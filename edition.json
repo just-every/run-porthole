@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "id": "just-every/porthole",
+  "identityKind": "project",
+  "toolchain": {
+    "id": "runeditrun/edition-authoring",
+    "version": "1.1.0"
+  },
+  "parent": null,
+  "components": [
+    {
+      "id": "just-every/porthole",
+      "role": "edition",
+      "source": {
+        "kind": "local",
+        "paths": [
+          "src/identity.ts",
+          "src/branding.json",
+          "src/routes",
+          "src/site"
+        ]
+      }
+    },
+    {
+      "id": "runeditrun/base",
+      "role": "foundation",
+      "source": {
+        "kind": "local",
+        "paths": [
+          "src/base",
+          "scripts/edition-authoring",
+          "src/modules/operator-auth",
+          "src/modules/mail",
+          "src/modules/demo",
+          "src/modules/ai",
+          "src/modules/dependencies",
+          "src/modules/owner-claim"
+        ],
+        "origin": {
+          "repository": "https://github.com/runeditrun/base.git",
+          "revision": "fa38858fa0c686bcb78a7d501ab4b5a547233e98",
+          "path": ".",
+          "paths": [
+            "foundation/runtime",
+            "edition-authoring",
+            "modules/operator-auth",
+            "modules/mail",
+            "modules/demo",
+            "modules/ai",
+            "modules/dependencies",
+            "modules/owner-claim"
+          ]
+        }
+      }
+    }
+  ]
+}

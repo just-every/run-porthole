@@ -1,0 +1,10 @@
+{
+  "name": "Porthole",
+  "repository": "https://github.com/just-every/run-porthole",
+  "clone": "npx -y @runeditrun/rer dev just-every/run-porthole",
+  "folder": "run-porthole",
+  "requirements": "Runs on macOS, Linux or Windows with WSL2, with git. The installer brings Node when it is missing, and rer brings pnpm.",
+  "licence": "MIT",
+  "docs": false,
+  "hosted": []
+}
