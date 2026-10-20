@@ -324,6 +324,8 @@ All new observations preserve the original inventory rows and are assigned expli
 | Detection: Slack monitor muting | differentiator | PORT-020, PORT-066 |
 | Agents: Reviewed fix PRs and guarded infrastructure actions in Preview | differentiator | PORT-029, PORT-077 |
 
+| Detection: Host service process event outlier database and RUM monitors | table-stakes | PORT-019, PORT-067 |
+
 | New integration entry | Clauses |
 | --- | --- |
 | Datadog tracing SDKs / Lambda Extension / Forwarder | PORT-062, PORT-071 |
@@ -338,4 +340,26 @@ All new observations preserve the original inventory rows and are assigned expli
 | GitHub Actions workflow re-run | PORT-029, PORT-077 |
 | LaunchDarkly / Statsig / Unleash production flag controls | PORT-029, PORT-077 |
 
-| Detection: Host service process event outlier database and RUM monitors | table-stakes | PORT-019, PORT-067 |
+## Buyer review 1 gap coverage
+
+These are target-document closures; every implementation status remains missing.
+
+| Gap | Requirement | Clauses | Checkable change |
+| --- | --- | --- | --- |
+| 1 | Datadog tracer and API continuity | PORT-002, PORT-039, PORT-062 | Unchanged ddtrace/Agent waterfall and service-map journey; named trace, metric, sketch, check and log endpoints; Lambda Extension/Forwarder evidence. |
+| 2 | Terraform and repository ownership | PORT-008, PORT-026, PORT-039, PORT-063 | HCL/import/state cutover for monitors, dashboards, SLOs, downtime and pipelines; 50-monitor/10-dashboard real module requires a zero-drift plan; repository owner/runbook/criticality imports. |
+| 3 | Integration and custom-check coverage | PORT-006, PORT-039, PORT-064 | Per-item map of enabled integrations, namespaces and custom Python checks before dual shipping; 25 integrations/two checks; unresolved mappings block readiness/cutover. |
+| 4 | Switching-cost projection | PORT-023, PORT-038, PORT-065 | Hourly incumbent usage and actual rate evidence become all-in USD/labor projections before installation and during dual run; frozen forecast checked over 30 days within 10%, units within 1%. |
+| 5 | Messages and handle routing | PORT-020, PORT-039, PORT-066 | State blocks, tag/value variables, handle translation and state-specific destinations; unresolved handles block activation; signed Slack acknowledge/mute/downtime actions. |
+| 6 | Complete monitor types | PORT-019, PORT-067, PORT-076 | Host, service/integration check, process, event, outlier, DB and RUM types, with explicit source-status and replay journeys per family. |
+| 7 | Widgets and functions | PORT-018, PORT-024, PORT-068 | Fifteen named widgets and eight function families, render/value comparisons and a 20-dashboard import with no unsupported flags for the required catalog. |
+| 8 | General events | PORT-022, PORT-067, PORT-069 | Event create/read/search/export, custom CI/Kubernetes/CloudWatch/EventBridge sources, graph overlays and event-monitor replay. |
+| 9 | Default service detection | PORT-008, PORT-019, PORT-028, PORT-070 | Owner-chosen auto-enable/proposal policy for discovered services; warmup/coverage shown; a new service regression detects and investigates without a handwritten rule. |
+| 10 | Cloud breadth and Lambda | PORT-005, PORT-062, PORT-064, PORT-071 | Named launch namespaces, resource tags, ALB/CloudFront S3 logs, Lambda traces/enhanced outcomes, and real GCP-project/Azure-subscription journeys beyond fixtures. |
+| 11 | Incident burst scaling | PORT-023, PORT-031, PORT-057, PORT-072 | Automatic ingest/query/worker scaling within a person-approved USD ceiling; 10x 30-minute burst retains protected signals and 10s/5s/2s budgets without manual sizing. |
+| 12 | Full hot-search horizon | PORT-011, PORT-057, PORT-073 | Five-second search qualification spans 15 days at 100k logs/s: 129.6 billion records and 64.8 TB logical source bytes, with actual physical-cost accounting; retention options remain explicit. |
+| 13 | Operating burden and support | PORT-031, PORT-037, PORT-058, PORT-074 | Automatic maintenance, signed patch cadence, measured maximum four buyer operator hours/month, priced support and an actual 24x7 severity-1 path with 30-minute acknowledgement. |
+| 14 | Docs and onboarding | PORT-031, PORT-075 | Public versioned setup/query/API/migration/operations documentation and a new-engineer first-service journey within 30 minutes using docs alone. |
+| 15 | Detection correctness | PORT-019, PORT-067, PORT-070, PORT-076 | Frozen independently labeled replay/held-out series with nonseasonal/hourly/daily/weekly behavior and DST; each family requires >=90% recall and <=1 false alert per 100 healthy-series-days. |
+| 16 | Untested promises | PORT-003, PORT-008, PORT-011, PORT-012, PORT-017, PORT-023 | Added concrete 60-second host/log outcomes; runbook/criticality checks; saved-search/cluster membership checks; exclusion byte/USD accounting; native ANR/render comparison; forecast and unused-metric dependency checks. |
+| 17 | Named remediation targets | PORT-029, PORT-077 | Kubernetes undo/Deployment/HPA, Argo rollback, ECS task/count updates, last-good GitHub deploy re-run and three flag providers each require person approval, effective provider result, uncertainty reconciliation and unchanged-SLO recovery. |
