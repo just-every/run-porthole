@@ -47,7 +47,7 @@ export async function observeHealth(env: HealthBindings): Promise<HealthState> {
    return {status:fresh(queryable)?'Healthy':'Unknown',reason:fresh(queryable)?'Real indexed telemetry query answered with fresh records.':'No fresh queryable telemetry; last-known data does not establish current health.',lastQueryableAt:queryable,evidence:{lastKnown:rows.map(row => ({signal:row.signal,team:row.team,service:row.service,environment:row.environment,eventTimeNs:row.event_time_ns,indexedAt:iso(row.indexed_at)}))}}
   }),
  ])
- const receipts = await healthReceipts(env.DB)
+ const receipts = await healthReceipts(env.DB), evaluatedAt=Date.now()
  const rows: HealthComponent[] = []
  for (const component of components) {
   const row = latest(receipts,component)

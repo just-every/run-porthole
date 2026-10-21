@@ -6,6 +6,7 @@ import {join} from 'node:path'
 import {execFile} from 'node:child_process'
 import {promisify} from 'node:util'
 import {verifyDirectory} from '../../scripts/porthole/archive.mjs'
+import {browserProof} from './audit.mjs'
 import {literal} from './fixture.mjs'
 const execute=promisify(execFile),api='/api/porthole/v1/archive',hash=value=>createHash('sha256').update(value).digest('hex')
 const post=(origin,cookie,path,data)=>fetch(origin+path,{method:'POST',redirect:'manual',headers:{origin,cookie,'content-type':'application/json'},body:JSON.stringify(data)})
@@ -39,6 +40,7 @@ export async function archiveJourney({origin,cookie,sql,restartWorker,freshOwner
   definitions.push(definition)
   if(kind==='repair')assert.equal((await post(origin,cookie,'/api/porthole/v1/approvals',{id:definition.id,revision:definition.revision,confirm:'approve'})).status,200)
  }
+ await archiveBrowserJourney({origin,cookie})
  const settings=await get(origin,cookie,'/app/settings/archive');assert.equal(settings.status,200)
  assert.match(await settings.text(),/Restore an archive/)
  const ui=await post(origin,cookie,'/app/settings/archive/export',{});assert.equal(ui.status,303)
@@ -128,7 +130,36 @@ export async function archiveJourney({origin,cookie,sql,restartWorker,freshOwner
    assert.match(replay.stdout,/Restored inactive product/)
    await destination.restartWorker();destCookie=destination.freshOwner?await destination.freshOwner():destCookie
    assert.equal((await destination.sql('SELECT paused FROM porthole_ingest_control'))[0].paused,1,'restart never activates restored intake')
+   await browserProof({origin:destOrigin,cookie:destCookie,paths:[`/app/settings/archive/jobs/${restore.id}`,'/app/health','/app/operations'],name:'archive-restored'})
   })
  }finally{await rm(directory,{recursive:true,force:true})}
  return source
+}
+
+async function archiveBrowserJourney({origin,cookie}) {
+ const {chromium}=await import('@playwright/test')
+ const browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']})
+ try {
+  for(const width of [1440,390]) {
+   const context=await browser.newContext({viewport:{width,height:width===1440?900:844}})
+   await context.addCookies(cookie.split('; ').map(value=>({name:value.slice(0,value.indexOf('=')),value:value.slice(value.indexOf('=')+1),url:origin})))
+   const page=await context.newPage()
+   await page.goto(origin+'/app/settings/archive')
+   await page.getByRole('button',{name:'Create frozen export',exact:true}).click()
+   await page.getByRole('heading',{name:/Frozen export/}).waitFor()
+   const job=page.url()
+   const downloaded=page.waitForEvent('download')
+   await page.getByRole('link',{name:/Download next chunk 0/}).click()
+   const download=await downloaded
+   assert.equal(await download.failure(),null)
+   await page.goto(job)
+   await page.getByRole('link',{name:'Download chunk 0',exact:true}).waitFor()
+   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'archive job fits viewport')
+   if(process.env.PORTHOLE_EVIDENCE_DIR) {
+    const {mkdir}=await import('node:fs/promises');await mkdir(process.env.PORTHOLE_EVIDENCE_DIR,{recursive:true})
+    await page.screenshot({path:join(process.env.PORTHOLE_EVIDENCE_DIR,`archive-export-${width}.png`),fullPage:true})
+   }
+   await context.close()
+  }
+ } finally {await browser.close()}
 }

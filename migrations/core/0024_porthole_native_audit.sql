@@ -51,3 +51,27 @@ CREATE TRIGGER porthole_native_fact_oa_policy_approvals_delete AFTER DELETE ON o
 CREATE TRIGGER porthole_bootstrap_fact AFTER INSERT ON oa_bootstrap BEGIN
  INSERT INTO porthole_audit_facts VALUES(lower(hex(randomblob(16))),COALESCE((SELECT MAX(ordinal) FROM porthole_audit_facts),0)+1,lower(hex(randomblob(16))),NEW.claim_id,1,'identity.bootstrap',NEW.claim_id,1,NEW.claimed_at,CAST(unixepoch('subsec')*1000 AS INTEGER));
 END;
+CREATE TRIGGER porthole_native_fact_porthole_ingest_control_insert AFTER INSERT ON porthole_ingest_control WHEN EXISTS(SELECT 1 FROM porthole_audit_context) BEGIN
+ INSERT INTO porthole_entity_refs(kind,key_ref,entity_ref) VALUES('porthole_ingest_control',NEW.singleton,lower(hex(randomblob(16)))) ON CONFLICT DO NOTHING;
+ INSERT INTO porthole_audit_facts SELECT lower(hex(randomblob(16))),COALESCE((SELECT MAX(ordinal) FROM porthole_audit_facts),0)+1,operation_ref,actor_ref,actor_revision,action,(SELECT entity_ref FROM porthole_entity_refs WHERE kind='porthole_ingest_control' AND key_ref=NEW.singleton),NEW.revision,occurred_at,CAST(unixepoch('subsec')*1000 AS INTEGER) FROM porthole_audit_context;
+ END;
+CREATE TRIGGER porthole_native_fact_porthole_ingest_control_update AFTER UPDATE ON porthole_ingest_control WHEN EXISTS(SELECT 1 FROM porthole_audit_context) BEGIN
+ INSERT INTO porthole_entity_refs(kind,key_ref,entity_ref) VALUES('porthole_ingest_control',NEW.singleton,lower(hex(randomblob(16)))) ON CONFLICT DO NOTHING;
+ INSERT INTO porthole_audit_facts SELECT lower(hex(randomblob(16))),COALESCE((SELECT MAX(ordinal) FROM porthole_audit_facts),0)+1,operation_ref,actor_ref,actor_revision,action,(SELECT entity_ref FROM porthole_entity_refs WHERE kind='porthole_ingest_control' AND key_ref=NEW.singleton),NEW.revision,occurred_at,CAST(unixepoch('subsec')*1000 AS INTEGER) FROM porthole_audit_context;
+ END;
+CREATE TRIGGER porthole_native_fact_porthole_ingest_events_insert AFTER INSERT ON porthole_ingest_events WHEN EXISTS(SELECT 1 FROM porthole_audit_context) BEGIN
+ INSERT INTO porthole_entity_refs(kind,key_ref,entity_ref) VALUES('porthole_ingest_events',NEW.id,lower(hex(randomblob(16)))) ON CONFLICT DO NOTHING;
+ INSERT INTO porthole_audit_facts SELECT lower(hex(randomblob(16))),COALESCE((SELECT MAX(ordinal) FROM porthole_audit_facts),0)+1,operation_ref,actor_ref,actor_revision,action,(SELECT entity_ref FROM porthole_entity_refs WHERE kind='porthole_ingest_events' AND key_ref=NEW.id),NULL,occurred_at,CAST(unixepoch('subsec')*1000 AS INTEGER) FROM porthole_audit_context;
+ END;
+CREATE TRIGGER porthole_native_fact_porthole_ingest_events_update AFTER UPDATE ON porthole_ingest_events WHEN EXISTS(SELECT 1 FROM porthole_audit_context) BEGIN
+ INSERT INTO porthole_entity_refs(kind,key_ref,entity_ref) VALUES('porthole_ingest_events',NEW.id,lower(hex(randomblob(16)))) ON CONFLICT DO NOTHING;
+ INSERT INTO porthole_audit_facts SELECT lower(hex(randomblob(16))),COALESCE((SELECT MAX(ordinal) FROM porthole_audit_facts),0)+1,operation_ref,actor_ref,actor_revision,action,(SELECT entity_ref FROM porthole_entity_refs WHERE kind='porthole_ingest_events' AND key_ref=NEW.id),NULL,occurred_at,CAST(unixepoch('subsec')*1000 AS INTEGER) FROM porthole_audit_context;
+ END;
+CREATE TRIGGER porthole_native_fact_porthole_health_configuration_insert AFTER INSERT ON porthole_health_configuration WHEN EXISTS(SELECT 1 FROM porthole_audit_context) BEGIN
+ INSERT INTO porthole_entity_refs(kind,key_ref,entity_ref) VALUES('porthole_health_configuration',NEW.singleton,lower(hex(randomblob(16)))) ON CONFLICT DO NOTHING;
+ INSERT INTO porthole_audit_facts SELECT lower(hex(randomblob(16))),COALESCE((SELECT MAX(ordinal) FROM porthole_audit_facts),0)+1,operation_ref,actor_ref,actor_revision,action,(SELECT entity_ref FROM porthole_entity_refs WHERE kind='porthole_health_configuration' AND key_ref=NEW.singleton),NEW.revision,occurred_at,CAST(unixepoch('subsec')*1000 AS INTEGER) FROM porthole_audit_context;
+ END;
+CREATE TRIGGER porthole_native_fact_porthole_health_configuration_update AFTER UPDATE ON porthole_health_configuration WHEN EXISTS(SELECT 1 FROM porthole_audit_context) BEGIN
+ INSERT INTO porthole_entity_refs(kind,key_ref,entity_ref) VALUES('porthole_health_configuration',NEW.singleton,lower(hex(randomblob(16)))) ON CONFLICT DO NOTHING;
+ INSERT INTO porthole_audit_facts SELECT lower(hex(randomblob(16))),COALESCE((SELECT MAX(ordinal) FROM porthole_audit_facts),0)+1,operation_ref,actor_ref,actor_revision,action,(SELECT entity_ref FROM porthole_entity_refs WHERE kind='porthole_health_configuration' AND key_ref=NEW.singleton),NEW.revision,occurred_at,CAST(unixepoch('subsec')*1000 AS INTEGER) FROM porthole_audit_context;
+ END;

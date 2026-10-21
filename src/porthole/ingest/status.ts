@@ -49,6 +49,7 @@ export async function statusPage(request: Request,env: Bindings) {
 export async function changeControl(request: Request,env: Bindings) {
  const actor=await authority(request,env,{manage:true,post:true})
  if(actor.session.kind!=='native')fail('native_session_required')
+ if(actor.member.role!=='owner' && !Object.values(actor.member.scope).every(values=>values.includes('*')))fail('global_pipeline_authority_required')
  const data=await input(request),paused=data.paused===true||data.paused==='true'?1:data.paused===false||data.paused==='false'?0:fail('invalid_pause',400)
  const max=data.maxPendingBytes===undefined?null:Number(data.maxPendingBytes)
  if(max!==null&&(!Number.isSafeInteger(max)||max<1||max>1073741824))fail('invalid_buffer_capacity',400)

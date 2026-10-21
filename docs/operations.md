@@ -1,105 +1,41 @@
-# Operational audit and health foundations (API v1)
+# Audit and operational doors
 
-These doors are implemented foundations. PORT-033 and PORT-037 are incomplete;
-the contract and acceptance journeys retain their full scope. No telemetry,
-monitor, repair, collector, notification or analytical recovery is supplied by
-these foundations.
+After native sign-in and setup, open Audit (`/app/audit`), Explore (`/app/explore`), Operations (`/app/operations`), Telemetry delivery (`/app/ingest`), Pipeline health (`/app/health`) or Settings → Archive. Each server handler checks the current native session or a scoped credential directly. Responses are private, uncacheable and excluded from indexing. Owners and admins read audit; only owners export it. Audit has no public append, edit or delete endpoint.
 
-An installation owner can open `/app/audit` and `/app/health` after native
-sign-in and first-run setup. The documents reuse the existing Base frame.
-`GET /api/v1/audit`, `GET /api/v1/audit/export` and `GET /api/v1/health` use
-the same installation-native session. Every handler checks authority directly;
-owners can read and export audit; admins can read audit. Audit exports and pipeline health remain owner-only. Other roles and requests from another origin refuse. Responses are
-private, uncacheable and excluded from indexing. There are no public append,
-edit or delete audit endpoints, and these endpoints do not mint credentials.
+## Durable facts and private audit
 
-## Audit coverage and privacy
+Every covered mutation first records an attempted action. Its database writes run with an installation-local context inside one D1 transaction. Triggers record immutable facts containing the operation, actor, target reference and actual revision in that same transaction. A failed fact insert rolls back the target write. Native role, membership, invitation, session, credential, identity-setting, domain, provider and approval changes use this boundary. Bootstrap records its own durable fact. Notice delivery records a separate opaque attempt/result. HTTP results follow the database facts; a missing response never changes a committed fact into a failed action.
 
-Today the edition records native POST attempts/results for invitations and
-cancellations, role/status changes, session revocation, display-name/email
-changes, identity settings, domain rules, provider unlink/relink and the optional
-policy approval/revocation routes. An unavailable optional auth action remains a
-recorded refusal; a record does not claim that the action exists or succeeded.
-Audit reads/exports record their own result and pinned numeric sequence range.
-The event includes opaque operation and actor references, the actor's native
-authority revision, a successful operator mutation's native target/revision, occurrence time, recording time, phase and HTTP status.
-UUID references are not session tokens. The ledger stores no actor directory,
-email, name, request/response body, header, URL, exception, credential or query
-literal. History is not hydrated with current identity labels in the audit UI.
+Facts project idempotently into a SHA-256 predecessor chain. A process can stop after a target commit and before projection; the next audit read projects the original fact once. A failed response or projection returns the operation reference with an instruction to inspect before retrying. Occurrence and recording times stay separate. A `committed` row describes persisted state; `succeeded`, `denied` and `failed` describe the HTTP result. Credential custody suspension and native session revocation facts are captured by the same transaction triggers.
 
-A durable attempt is written before a covered native mutation. If that write
-fails, the mutation does not run. Its result is appended after the native handler
-returns. Those are separate transactions: a crash or failed result append can
-leave an attempt without an outcome after the action took effect. That means
-**uncertain**, not failed or safe to retry; inspect the native object and the
-operation reference before retrying. Do not infer a target object's revision
-from the authority revision. Atomic target revision/outcome capture, invitation/session target references,
-non-HTTP/background actions, all remaining native auth/provider doors and the
-future product action families remain PORT-033 gaps.
+Audit stores only server-selected action labels, opaque references, revisions, times and results. It never copies a request body, URL, header, email address, display name, token, credential hash, query literal or exception. Native settings with nonopaque keys have a private alias directory; their key strings do not enter the chain. The UI does not hydrate historical references from the native identity directory.
 
-SQLite triggers reject ledger updates/deletes and broken sequence/predecessor
-inserts. Concurrent append uses a guarded predecessor check; exhausted contention
-refuses instead of accepting a fork. A deployment with privileged database
-access can remove guards, so export integrity requires an independently retained
-checkpoint; a hash chain alone is not a signature or proof against its custodian.
+Actor privacy (`/app/settings/privacy`, `POST /api/porthole/v1/actors/erase`) requires the native owner, fresh identity proof and explicit confirmation. Remove the member first through Members. Erasure anonymizes their native directory record and external identity linkage, destroys unusable authentication values and records the opaque erasure journal in the same transaction. The erased account cannot reactivate. Historical audit bytes and actor references remain unchanged. Telemetry-subject erasure and retention policy remain PORT-035's separate responsibility.
 
-## Reproducible reads and Evidence handoff
+## Queries, revisions and approval
 
-`GET /api/v1/audit?after=0&through=100&limit=25` selects sequence `(0,100]`,
-where `through` must already exist; omit it to pin the current head. Limits are
-1–100, default 25. Follow `next` as `after` while retaining the original `through`.
-The returned checkpoint belongs to that pinned `through` value. Concurrent
-reads append their own audit events without changing the pinned result. Invalid,
-duplicate and unrecognized parameters refuse without recording their values.
-An empty range is explicit. An attempt's result contains the exact numeric
-reproduction range; query strings are never copied.
+`POST /api/porthole/v1/query` accepts the supported signal/service/environment/team and nanosecond range filters. Explore submits the same operation. The underlying reader persists a protected query descriptor and an immutable completion watermark; audit carries only its opaque reference. `GET /api/porthole/v1/query/REFERENCE` repeats that descriptor under the caller's current authority. A later batch cannot enter the frozen result, and changed permissions still narrow or refuse replay. Direct telemetry reads and credential queries use the same scoped reader and emit an audit reference. Query descriptors belong to the protected product store, not the less detailed audit packet.
 
-Download `/api/v1/audit/export`. The `porthole.audit.v1` packet contains the
-ordered prefix, its checkpoint and versioned metadata for an owner-authorized
-Evidence handoff. It does not send anything to Evidence or assert compliance.
-Keep `checkpoint.hash` in separate custody, then check the saved packet offline:
+Operations saves real versioned count-monitor definitions and inactive repair plans. Monitor activation requires explicit confirmation for the current revision. An authorized owner, admin, scoped maintainer or responder can record approval of an exact unexpired repair revision. Editing creates a different revision and removes its approved state. There is no production executor yet; an approval record is not an executed repair. Quarantined restored definitions cannot activate, change or approve until a supported local reauthorization path exists.
+
+## Export and independent integrity checking
+
+`GET /api/v1/audit?after=0&through=100&limit=25` reads sequence `(0,100]`. Omit `through` to select the current checkpoint. Follow `next` while retaining that checkpoint. Invalid, duplicate and unknown parameters refuse without copying their values. A concurrent action cannot change a pinned prefix.
+
+`GET /api/v1/audit/export` streams the complete pinned packet in pages of 100 records without a row ceiling. Keep its checkpoint in independent custody and verify the saved packet:
 
 ```sh
 node scripts/porthole/verify-audit.mjs audit.json INDEPENDENTLY_RETAINED_64_HEX_CHECKPOINT
 ```
 
-The independent reader rejects changed content, gaps, duplicates, reordering,
-truncation, digest changes and an inconsistent retained checkpoint. Replacing
-both a packet and its untrusted checkpoint is not authenticated by this format.
-Export refuses above 10,000 entries rather than silently truncating; streaming,
-scoped provider handoff and larger archival export remain future work.
+The independent reader rejects content changes, gaps, duplicates, reordering, truncation and checkpoint substitution. SQLite guards reject chain modification and deletion. A privileged database custodian can remove guards, so the chain alone is not a signature against that custodian. The packet supports an owner-authorized Evidence handoff; exporting it does not send it to another provider.
 
-The installation adapter includes `porthole_audit_entries` in Base's archive
-inventory. `rer export --output PATH` and `rer import --input PATH --yes` remain
-the supported archive commands, into an empty destination only. The independent
-packet is an evidence export, not a product-data import door. No separate
-product importer is introduced. Actor erasure, later-erasure fencing and the
-full supported Base archive round-trip still require their public-door proof;
-restart persistence alone does not prove them. Do not restore an older identity
-directory to claim erased actors stayed anonymous.
+Settings → Archive and `node scripts/porthole/archive.mjs export ORIGIN DIRECTORY` preserve current product data, source/history labels, raw telemetry, audit streams and the actor-erasure journal. Keep a fresh native-session cookie in `PORTHOLE_ARCHIVE_COOKIE`, never in command arguments. Restore requires an empty product under its own destination owner; credentials, sessions and approval authority do not transfer. Imported definitions and historical health/delivery work are quarantined, ingestion is paused, and source audit streams retain their original hashes. The destination erasure journal is merged, never replaced by an older journal.
 
-Future clauses PORT-001/012/018/019/021/026/029/034/035/036/055/061 inherit
-PORT-033's existing audit obligations for their query, configuration, execution,
-archive, erasure, credential, connector and export doors. None is implemented or
-qualified by the audit foundation.
+The shared `rer export`/`rer import` adapter also excludes credential and session material and applies an executable inactive-restore policy. Its native full-installation round trip is a separate qualification from the HTTP product archive.
 
-## Independent health and recovery limits
+## Coverage inherited by later doors
 
-`GET /api/v1/health` and `/app/health` read the Base control plane directly,
-without calling an analytical backend or consulting deployment `/health`.
-The control-plane row probes its real D1 database and reports its observation
-time. Collector, ingest, queue, analytical storage, query, monitor-evaluation
-and delivery each have separate rows. Until real components provide independent
-fresh receipts, every one reports **Unknown** with a missing-coverage reason.
-Last-accepted/queryable timestamps are null, never manufactured from request time.
-The overall state stays Unknown even while deployment `/health` says `ok`.
+Current public doors cover membership, credentials, identity administration, queries, exports, monitor definitions, exact repair approval, actor privacy and independent notice attempts. PORT-001/012/018/019/021/026/029/034/035/036/055/061 inherit this boundary before adding their remaining ingestion-policy, dashboard, SLO, pipeline, tool, execution, erasure, connector and signal-export doors. A future family is not implemented by a label in the audit map.
 
-For a missing pipeline, inspect these rows first and retain Unknown. For a
-control-plane failure, use the owner's Base installation backup/restore procedure;
-do not enable collection, delivery or execution based on a successful `/health`.
-This is a diagnostic starting point, not a qualified analytical failover runbook.
-Last-known telemetry snapshots, fresh/stale component receipts, an independently
-configured failure notification, analytical-worker failover, durable ingest/send
-backlog reconciliation, original telemetry timestamps, repair idempotency and a
-firing-monitor outage/restore drill are still required by PORT-037. No notification
-or production action is sent by these read-only health doors.
+See [recovery.md](recovery.md) for independent observations, collector freshness, durable draining, firing-monitor outage behavior, notice consent and the remaining analytical/Base recovery limits.
