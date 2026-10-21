@@ -106,8 +106,9 @@ async function browserOperations({origin,cookie}) {
    const activate=page.locator('article').filter({has:page.getByRole('heading',{name:`Checkout ${width} error count`})}).locator('form[action="/app/operations/activate"]')
    await activate.getByRole('checkbox').check()
    await Promise.all([page.waitForResponse(response=>response.url().endsWith('/app/operations/activate')&&response.request().method()==='POST'),activate.getByRole('button',{name:'Activate monitor'}).click()])
-   await page.waitForLoadState('domcontentloaded')
-   assert.match(await page.locator('article').filter({has:page.getByRole('heading',{name:`Checkout ${width} error count`})}).innerText(),/active/)
+   const activeArticle=page.locator('article').filter({has:page.getByRole('heading',{name:`Checkout ${width} error count`})})
+   await activeArticle.getByText('monitor · revision 1 · active',{exact:true}).waitFor()
+   assert.match(await activeArticle.innerText(),/revision 1 · active\b/)
    for(const path of ['/app/operations','/app/explore']) {
     await page.goto(origin+path)
     if(path.endsWith('/explore')) {

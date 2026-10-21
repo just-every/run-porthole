@@ -145,21 +145,27 @@ try {
     return await run({origin,cookie:destinationCookie,persist,...destinationHelpers,restartWorker})
    } finally {await restartWorker(()=>{persist=savedStore;ownerEmail=savedOwner})}
   }
+  const {healthJourney,browserProof}=await import('./porthole/audit.mjs')
+  await healthJourney({origin,cookie})
   const { ingestJourney }=await import('./porthole/ingest.mjs')
   await ingestJourney({origin,cookie,persist,restartWorker,...helpers})
   if(process.env.PORTHOLE_STOCK_QUALIFICATION==='1') {const {stockIngestJourney}=await import('./porthole/stock-ingest.mjs');await stockIngestJourney({origin,cookie,persist,restartWorker,...helpers})}
   const {ingestBrowserJourney}=await import('./porthole/ingest.mjs')
   await ingestBrowserJourney({origin,cookie})
   cookie=await helpers.freshOwner()
-  const { auditJourney, healthJourney } = await import('./porthole/audit.mjs')
+  const { auditJourney } = await import('./porthole/audit.mjs')
   await auditJourney({ origin, cookie, persist, restartWorker })
   const {actionJourney}=await import('./porthole/actions.mjs')
   const actions=await actionJourney({origin,cookie,persist,restartWorker,...helpers});cookie=actions.cookie
   const { recoveryJourney }=await import('./porthole/health.mjs')
   await recoveryJourney({origin,cookie,persist,restartWorker,...helpers})
   cookie=await helpers.freshOwner()
+  await browserProof({origin,cookie,paths:['/app/health'],name:'health-recovered'})
+  cookie=await helpers.freshOwner()
   const { archiveJourney }=await import('./porthole/archive.mjs')
   await archiveJourney({origin,cookie,persist,restartWorker,withEmptyDestination,...helpers})
+  cookie=await helpers.freshOwner()
+  await browserProof({origin,cookie,paths:['/app/settings/archive'],name:'archive'})
   console.log('APP-HOME passed against emitted local Worker: /app behind sign-in and setup, then the trace view with its stylesheets')
 } catch(error) {
   console.error(allOutput.split('\n').filter(line=>/ERROR|Error|\[wrangler:info\]/.test(line)).slice(-50).join('\n').replace(/[A-Za-z0-9_-]{32,}/g,'[redacted]'))
