@@ -40,6 +40,17 @@ try {
   for (const path of ['/missing', '/health/extra', '/api', '/api/missing']) {
     assert.equal((await fetch(`${origin}${path}`)).status, 404, path)
   }
+  // A deployed installation must never accept demo/setup claims without its linked provider.
+  for (const body of [{}, { token: 'wrong-setup-token' }]) {
+    const claim = await fetch(`${origin}/auth/owner-claim`, {
+      method: 'POST', headers: { origin, 'content-type': 'application/json', 'x-rer-demo': '1' },
+      body: JSON.stringify(body), redirect: 'manual',
+    })
+    assert.equal(claim.status, 403)
+    assert.deepEqual(await claim.json(), { error: 'provider_unlinked' })
+    assert.equal(claim.headers.has('set-cookie'), false)
+  }
+  console.log('Installed owner claim rejects missing/wrong setup tokens and request demo flags')
   console.log('HTTP-001 passed against emitted local Worker: health, the installed homepage, HTTP and document 404s')
 } finally {
   worker.kill('SIGTERM')
