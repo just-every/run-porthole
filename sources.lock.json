@@ -2173,12 +2173,16 @@
       "sha256": "a11d6b89e7219137540c7052683c5f4d9ba7ddf16f66d34c1f56ae34029c0a95",
       "executable": false
     },
+    "tests/porthole/actions.mjs": {
+      "sha256": "6bdf46593d05861562738474b833703f0ffbb6946bd00f62aa89c851c4f5223b",
+      "executable": false
+    },
     "tests/porthole/archive.mjs": {
       "sha256": "d12aa0ca3da8bed16a33111574fc6431a0ede4eb20c540460f5105cd7e5efce3",
       "executable": false
     },
     "tests/porthole/audit.mjs": {
-      "sha256": "9c821921f8ffa0ce0d5d9e3e9b9a5bdb8ea1f12161bbfdd3778a52540381cee2",
+      "sha256": "bbbf1a2c4b64d4804a2c5ce264517dc09ef625daf7afd5ba4ace03178a6b485c",
       "executable": false
     },
     "tests/porthole/credentials.mjs": {
@@ -2206,7 +2210,7 @@
       "executable": false
     },
     "tests/runtime.mjs": {
-      "sha256": "2e8ec632d742f22432a1e07a8d15ccc6cc4f7f6aaa5aa8ca2695c1b76a037929",
+      "sha256": "c2163af2aa053c9faee982fe97d8cef5cbe9dd8f89ccf99ee25d7936680da984",
       "executable": false
     },
     "tests/typecheck-checks.mjs": {
