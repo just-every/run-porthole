@@ -15,11 +15,11 @@ await new Promise(resolve => socket.close(resolve))
 // on its own migrated store, never the checkout's local data.
 const persist = await mkdtemp(join(tmpdir(), 'foundation-runtime-'))
 execFileSync(process.execPath, ['node_modules/wrangler/bin/wrangler.js', 'd1', 'migrations', 'apply', 'foundation', '--local', '--persist-to', persist, '--config', 'dist/server/wrangler.json'], { stdio: 'pipe', env: { ...process.env, CI: '1', WRANGLER_SEND_METRICS: 'false' } })
-const worker = spawn(process.execPath, ['node_modules/wrangler/bin/wrangler.js', 'dev', '--inspector-port', '0', '--local', '--persist-to', persist, '--ip', '127.0.0.1', '--config', 'dist/server/wrangler.json', '--port', String(port)], { stdio: ['ignore', 'pipe', 'pipe'] })
+const origin = `http://127.0.0.1:${port}`
+const worker = spawn(process.execPath, ['node_modules/wrangler/bin/wrangler.js', 'dev', '--inspector-port', '0', '--local', '--persist-to', persist, '--ip', '127.0.0.1', '--config', 'dist/server/wrangler.json', '--port', String(port), '--var', `AUTH_ORIGIN:${origin}`, '--var', 'AUTH_LOCAL:true', '--var', 'OWNER_EMAIL:owner@example.com', '--var', 'SESSION_SECRET:runtime-session-secret-1234567890123456', '--var', 'SETUP_TOKEN:runtime-setup-token-1234567890123456789'], { stdio: ['ignore', 'pipe', 'pipe'] })
 let output = ''
 worker.stdout.on('data', chunk => { output += chunk })
 worker.stderr.on('data', chunk => { output += chunk })
-const origin = `http://127.0.0.1:${port}`
 try {
   let ready = false
   for (let attempt = 0; attempt < 120; attempt++) {
