@@ -9,9 +9,6 @@
 .hero-free b { font-weight: 700; }
 .hero-links { display: inline-flex; flex-wrap: wrap; justify-content: center; gap: 4px calc(34 * var(--u)); }
 .hero-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 12px calc(34 * var(--u)); }
-.pill { display: inline-flex; align-items: center; gap: calc(12 * var(--u)); min-height: max(44px, calc(46 * var(--u))); padding: 0 calc(30 * var(--u)); border-radius: 999px; background: var(--ink); color: #fff !important; text-decoration: none; font: 700 max(16px, calc(19.5 * var(--u)))/1 var(--sans); letter-spacing: -.01em; box-shadow: 0 calc(10 * var(--u)) calc(22 * var(--u)) calc(-12 * var(--u)) rgba(22, 21, 27, .55); }
-.pill svg { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
-.pill:hover { background: #2a2833; }
 .text-link { font: 500 max(15px, calc(18.5 * var(--u)))/1.2 var(--sans); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: calc(7 * var(--u)); padding-block: 8px; }
 .hero-cards { display: grid; }
 .hero-card { display: flex; align-items: center; text-wrap: pretty; padding: calc(12 * var(--u)) calc(13 * var(--u)); font-size: max(11px, calc(13.6 * var(--u))); line-height: 1.45; color: var(--ink); border-radius: calc(8 * var(--u)); border-color: rgba(22, 21, 27, .16); box-shadow: 0 1px 2px rgba(22, 21, 27, .05), 0 calc(6 * var(--u)) calc(16 * var(--u)) calc(-10 * var(--u)) rgba(22, 21, 27, .18); }

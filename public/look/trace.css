@@ -1,0 +1,147 @@
+/* The trace view (docs/LOOK.md): the p95 strip on its own clock axis, the trace card, and the waterfall on a
+   0–2,400 ms hairline grid whose selected span opens in place into four evidence cards and the agent's note. Bars:
+   heliotrope for the selected path, brass for spans that resolved without harm, sea glass only for done, scarlet only
+   for the slow span. Empty, every part keeps its place as a dashed ghost and names nothing that does not exist. */
+.trace-view { padding: 0 var(--gutter-app) 36px; }
+
+/* The p95 strip. */
+.p95 { margin: 14px 10px 0; }
+.p95-label { color: var(--muted); font: 500 14px/1.3 var(--sans); }
+.p95-body { display: grid; grid-template-columns: 62px minmax(0, 1fr); margin-top: 4px; }
+.p95-scale { position: relative; height: 84px; }
+.p95-scale span { position: absolute; right: 10px; transform: translateY(-50%); color: var(--muted); font: 400 13px/1 var(--sans); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.p95-plot { position: relative; height: 84px; border-bottom: 1px solid var(--slate-5); background: linear-gradient(var(--hair), var(--hair)) 0 25% / 100% 1px no-repeat, linear-gradient(var(--hair), var(--hair)) 0 62% / 100% 1px no-repeat; }
+.p95-plot svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.p95-line { fill: none; stroke: var(--helio-ink); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.p95-area { fill: var(--helio-pale); }
+.p95-point { position: absolute; width: 11px; height: 11px; margin: -5.5px 0 0 -5.5px; border: 2px solid #fff; border-radius: 50%; background: var(--helio-ink); }
+.p95-note { position: absolute; transform: translate(-4px, -100%); padding-bottom: 8px; color: var(--muted); font: 400 13px/1.25 var(--sans); white-space: nowrap; }
+.p95-note b { display: block; color: var(--helio-ink); font-weight: 700; font-variant-numeric: tabular-nums; }
+.p95-pin { position: absolute; top: -6px; bottom: 0; width: 0; border-left: 1.5px dashed var(--helio); }
+.p95-pin span { position: absolute; bottom: 100%; left: -10px; padding: 4px 9px; border: 1px solid var(--helio); border-radius: 6px; background: #fff; color: var(--ink); font: 500 13px/1.3 var(--sans); white-space: nowrap; }
+.p95-empty { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font: 500 15px/1.3 var(--sans); }
+.p95-empty::before { content: ""; position: absolute; left: 0; right: 0; bottom: 18px; border-top: 2px dashed var(--ghost-path); }
+.p95-empty span { position: relative; padding: 0 12px; background: #fff; }
+.p95-axis { position: relative; height: 24px; margin-left: 62px; }
+.p95-axis span { position: absolute; top: 6px; transform: translateX(-50%); color: var(--muted); font: 400 13px/1 var(--sans); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.p95-axis span:first-child { transform: none; }
+.p95-axis span:last-child { transform: translateX(-100%); }
+
+/* The trace card: the trace's title line. */
+.trace-card { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 22px; min-height: 52px; margin-top: 12px; padding: 10px 16px; border: 1px solid var(--line-2); border-radius: 8px; background: #fff; }
+.trace-card h1 { font: 860 19px/1.25 var(--sans); font-variation-settings: 'opsz' 32; letter-spacing: -.02em; }
+.trace-card .when { font: 400 17px/1.3 var(--sans); font-variant-numeric: tabular-nums; }
+.trace-card .total { color: var(--scarlet-ink); font: 800 20px/1 var(--sans); font-variant-numeric: tabular-nums; }
+.trace-card .facts { color: var(--muted); font: 400 16px/1.4 var(--sans); }
+
+/* The waterfall: a name column, then the track; ticks every 300 ms, durations past each bar's end. */
+.fall { --name-w: 330px; --end: 84px; --step: 26px; margin-top: 8px; }
+.fall-axis { display: grid; grid-template-columns: var(--name-w) minmax(0, 1fr); height: 30px; }
+.fall-ticks { position: relative; margin-right: var(--end); }
+.fall-ticks span { position: absolute; bottom: 9px; transform: translateX(-50%); color: var(--muted); font: 400 13px/1 var(--sans); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fall-ticks span:first-child { transform: none; }
+.fall-ticks span::after { content: ""; position: absolute; left: 50%; top: calc(100% + 3px); height: 6px; border-left: 1px solid var(--slate-5); }
+.fall-ticks span:first-child::after { left: 0; }
+.fall-scale { display: none; }
+.fall-row { display: grid; grid-template-columns: var(--name-w) minmax(0, 1fr); align-items: stretch; min-height: 38px; border-top: 1px solid var(--hair); }
+.fall-rows > .fall-row:last-child { border-bottom: 1px solid var(--hair); }
+.fall-name { position: relative; display: flex; align-items: center; gap: 10px; min-width: 0; padding: 4px 10px 4px calc(6px + var(--depth, 0) * var(--step)); font: 400 16px/1.2 var(--sans); }
+.fall-name .svc { min-width: 0; overflow-wrap: anywhere; }
+.fall-name .dur { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fall-name .dur.slow { color: var(--scarlet-ink); font-size: 18px; }
+.fall-name .tag { height: 26px; padding: 0 8px; font-size: 15px; }
+.fall-toggle { display: grid; place-items: center; flex: none; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 6px; background: none; color: var(--ink); cursor: pointer; }
+.fall-toggle svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; transition: transform .15s; }
+.fall-toggle[aria-expanded=false] svg { transform: rotate(-90deg); }
+.fall-gap { flex: none; width: 24px; }
+/* A row under the selected path keeps its parent's guide: a dashed heliotrope line down the indent. */
+.fall-row.guided .fall-name::before { content: ""; position: absolute; top: -1px; bottom: -1px; left: calc(6px + (var(--depth) - 1) * var(--step) + 11px); border-left: 2px dashed var(--guide); }
+.fall-track { position: relative; min-height: 36px; margin-right: var(--end); background: repeating-linear-gradient(to right, var(--hair) 0 1px, transparent 1px 12.5%); box-shadow: inset -1px 0 var(--hair); }
+.fall-bar { position: absolute; top: 50%; height: 20px; min-width: 3px; transform: translateY(-50%); border-radius: 2px; background: var(--span-ok); }
+.fall-bar.path { background: var(--span-path); }
+.fall-bar.done { background: var(--span-done); }
+.fall-bar.slow { background: var(--span-slow); }
+.fall-end { position: absolute; top: 50%; padding-left: 10px; transform: translateY(-50%); color: var(--brass-ink); font: 700 15px/1 var(--sans); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fall-end.path { color: var(--helio-ink); }
+.fall-end.done { color: var(--sea-ink); }
+.fall-end.slow { color: var(--scarlet-ink); font-size: 17px; font-weight: 800; }
+/* The selected span: a pale heliotrope band behind its row. */
+.fall-row.open { border-top-color: transparent; border-radius: 8px; background: var(--select-band); }
+.fall-row.open + .fall-open { border-top: 0; }
+.fall-row.open .fall-track { background: none; box-shadow: none; }
+
+/* Ghosts: where spans will hang, dashed, with nothing named. */
+.fall-bar.ghost { background: var(--ghost-fill); box-shadow: inset 0 0 0 1px var(--ghost-edge); }
+.fall-bar.ghost.path { background: var(--helio-pale); box-shadow: inset 0 0 0 1px var(--ghost-path); }
+.tag.tag-ghost { width: 96px; background: transparent; border: 1px dashed var(--ghost-edge); box-shadow: none; }
+.fall-row.ghost .fall-name { color: var(--muted); font-size: 15px; }
+
+/* The opened span: four evidence cards in a row and the agent's note, tied to the span by the dashed guide. */
+.fall-open { --guide-x: calc(6px + var(--depth, 0) * var(--step) + 11px); --open-in: calc(var(--guide-x) + 30px); position: relative; padding: 12px 0 14px var(--open-in); border-top: 1px solid var(--hair); }
+.evidence { position: relative; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.fall-open .evidence::before { content: ""; position: absolute; left: calc(var(--guide-x) - var(--open-in)); top: -12px; bottom: -12px; border-left: 2px dashed var(--guide); }
+.evidence-card { display: grid; align-content: start; gap: 10px; padding: 12px 14px 14px; border-radius: var(--card-radius); box-shadow: var(--card-shadow); }
+.evidence-card h2 { display: flex; align-items: center; gap: 10px; font: 860 18px/1.2 var(--sans); font-variation-settings: 'opsz' 32; letter-spacing: -.015em; }
+.evidence-card h2 svg { flex: none; width: 22px; height: 22px; fill: none; stroke: var(--helio-ink); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.evidence-card p { color: var(--ink); font-size: 15px; line-height: 1.45; }
+.evidence-card .quiet { color: var(--muted); }
+.code-box { padding: 10px 14px; border-radius: 8px; background: var(--code); color: var(--ink); font: 400 14px/1.6 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; }
+.code-box.ghost { min-height: 72px; background: var(--ghost-fill); box-shadow: inset 0 0 0 1px var(--ghost-edge); border-radius: 8px; }
+.meter { flex: 1; height: 12px; border-radius: 6px; background: var(--slate-6); overflow: hidden; }
+.meter i { display: block; height: 100%; border-radius: 6px; background: var(--span-slow); }
+
+/* The agent's note: the small sea-glass speech tag with the mark, what it says, who approves and the actions. */
+.agent-note { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; margin-top: 12px; padding: 12px 14px; border: 1px solid var(--note-edge); border-radius: 10px; background: var(--note-field); }
+.fall-open .agent-note::before { content: ""; position: absolute; left: calc(var(--guide-x) - var(--open-in) - 1px); top: -13px; width: calc(var(--open-in) - var(--guide-x)); height: calc(50% + 13px); border-left: 2px dashed var(--guide); border-bottom: 2px dashed var(--guide); border-bottom-left-radius: 12px; }
+.agent-tag { position: relative; display: inline-flex; align-items: center; gap: 6px; flex: none; padding: 5px 10px 5px 5px; border-radius: 999px; background: var(--sea); color: var(--ink); font: 700 14px/1 var(--sans); }
+.agent-tag::after { content: ""; position: absolute; right: -6px; top: 50%; border: 6px solid transparent; border-left-color: var(--sea); border-right: 0; transform: translateY(-50%); }
+.agent-tag img { display: block; width: 22px; height: 22px; }
+.agent-say { flex: 1 1 420px; min-width: 0; padding: 10px 14px; border: 1px solid #e0e6ef; border-radius: 12px; background: #fff; box-shadow: 0 3px 12px rgba(52, 105, 120, .07); color: var(--ink); font: 400 15px/1.45 var(--sans); }
+.agent-say b { font-weight: 700; }
+.agent-who { display: flex; align-items: center; gap: 8px; flex: none; }
+.agent-who .who-text b { font-size: 14px; }
+.agent-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.agent-aside { max-width: 200px; padding-left: 14px; border-left: 1px solid #cadce2; color: var(--muted); font: 400 14px/1.35 var(--sans); }
+
+/* The page's own not-found card, under the bar. */
+.lost { max-width: 560px; margin: 72px auto 0; padding: 32px 34px 30px; }
+.lost h1 { font: 860 34px/1.1 var(--sans); font-variation-settings: 'opsz' 32; letter-spacing: -.035em; }
+.lost p { margin-top: 12px; color: var(--muted); font-size: 17px; }
+.lost .pill { margin-top: 22px; }
+
+@media (max-width: 1279px) {
+  .fall { --name-w: 280px; --end: 76px; --step: 22px; }
+}
+@media (max-width: 1179px) {
+  .evidence { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 760px) {
+  .trace-view { padding: 0 16px 28px; }
+  .p95 { margin: 12px 0 0; }
+  .p95-body { grid-template-columns: 0 minmax(0, 1fr); }
+  .p95-scale span { display: none; }
+  .p95-axis { margin-left: 0; }
+  .p95-axis span:not(:first-child):not(:last-child):nth-child(even) { display: none; }
+  .trace-card { gap: 4px 14px; padding: 10px 14px; }
+  .fall-axis { display: none; }
+  .fall-scale { display: flex; justify-content: space-between; padding: 14px 2px 6px; color: var(--muted); font: 400 13px/1 var(--sans); font-variant-numeric: tabular-nums; }
+  .fall-rows { display: grid; gap: 8px; }
+  .fall-row, .fall-rows > .fall-row:last-child { grid-template-columns: minmax(0, 1fr); gap: 8px; min-height: 0; margin-left: calc(var(--depth, 0) * 10px); padding: 10px 12px 12px; border: 1px solid var(--line); border-radius: 12px; background: #fff; box-shadow: var(--shadow); }
+  .fall-name { flex-wrap: wrap; gap: 8px; padding: 0; }
+  .fall-row.guided .fall-name::before { display: none; }
+  .fall-track { min-height: 12px; height: 12px; margin: 0; border-radius: 6px; background: #f0f0f3; box-shadow: none; }
+  .fall-bar { height: 12px; border-radius: 6px; }
+  .fall-end { display: none; }
+  .fall-row.open { border-color: var(--ghost-path); background: var(--select-band); }
+  .fall-row.open .fall-track { background: #fff; }
+  .fall-open { padding: 4px 0 4px calc(var(--depth, 0) * 10px); border-top: 0; }
+  .fall-open .evidence::before, .fall-open .agent-note::before { display: none; }
+  .evidence { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .agent-note { flex-direction: column; align-items: stretch; }
+  .agent-tag { align-self: flex-start; }
+  .agent-say { flex: none; }
+  .agent-actions .pill, .agent-actions .pill-quiet { flex: 1 1 100%; justify-content: center; }
+  .agent-aside { max-width: none; padding: 10px 0 0; border-left: 0; border-top: 1px solid #cadce2; }
+  .lost { margin: 32px 16px 0; padding: 26px 20px 24px; }
+  .lost h1 { font-size: 29px; }
+}

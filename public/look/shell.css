@@ -1,0 +1,62 @@
+/* The app's document and its one bar (AppBar, docs/LOOK.md): white, a hairline under it, the lockup at left, the views,
+   the query pill, the monitor chip and the person at right. No left rail, ever. */
+body.app { margin: 0; padding: 0; min-height: 100vh; background: #fff; color: var(--ink); font: 400 16px/1.45 var(--sans); -webkit-font-smoothing: antialiased; overflow-x: clip; }
+.app :where(h1, h2, h3, p, ul, ol, dl, dd, figure, pre) { margin: 0; padding: 0; }
+.app :where(ul, ol) { list-style: none; }
+.app a { color: inherit; }
+.app :where(code, pre, kbd, .mono) { font-family: var(--mono); font-feature-settings: normal; font-variant-ligatures: none; }
+.app :focus-visible { outline: 3px solid var(--helio); outline-offset: 3px; border-radius: 6px; }
+
+.topbar { display: flex; align-items: center; gap: 22px; min-height: var(--bar-h); padding: 0 34px; border-bottom: 1px solid var(--line-2); background: #fff; }
+.brandmark { display: inline-flex; align-items: center; gap: 11px; flex: none; color: var(--ink); text-decoration: none; }
+.brandmark img { display: block; width: 44px; height: 44px; }
+.brandmark span { font: 880 31px/1 var(--sans); font-variation-settings: 'opsz' 32; letter-spacing: -.035em; white-space: nowrap; }
+
+/* The views: the code's real places, the current one underlined in heliotrope. */
+.views { display: flex; align-items: center; gap: 2px; flex: none; }
+.views a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 8px; color: var(--ink-2); font: 600 16px/1 var(--sans); text-decoration: none; white-space: nowrap; }
+.views a:hover { background: var(--field); color: var(--ink); }
+.views a[aria-current] { color: var(--ink); text-decoration: underline; text-decoration-thickness: 2px; text-decoration-color: var(--helio); text-underline-offset: 9px; }
+
+/* The query pill: the trace search, and the window beside it. */
+.query { display: flex; align-items: center; gap: 10px; flex: 0 1 380px; min-width: 180px; height: 44px; padding: 0 16px; border: 1px solid var(--line-2); border-radius: 999px; background: var(--field); color: var(--muted); }
+.query svg { flex: none; width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; }
+.query input { flex: 1; min-width: 0; padding: 0; border: 0; background: transparent; color: var(--ink); font: 400 17px/1.2 var(--sans); }
+.query input::placeholder { color: var(--muted); opacity: 1; }
+.query input:disabled { cursor: not-allowed; }
+.query input:focus-visible { outline: none; }
+.query:has(input:focus-visible) { outline: 3px solid var(--helio); outline-offset: 2px; }
+.range { color: var(--ink); font: 400 17px/1.2 var(--sans); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* The monitor chip: what fired and who was paged; a hollow dot when nothing can fire. */
+.alert-chip { display: inline-flex; align-items: center; gap: 10px; margin-left: auto; min-height: 44px; padding: 0 14px; border: 1px solid var(--line-2); border-radius: 8px; color: var(--ink); font: 500 15px/1.25 var(--sans); }
+.alert-chip .dot { flex: none; width: 12px; height: 12px; border-radius: 50%; background: var(--helio); }
+.alert-chip .dot.idle { background: transparent; box-shadow: inset 0 0 0 2px var(--slate-2); }
+
+/* The person: initials, name and role (the role is left out when it repeats the name). */
+.who { display: flex; align-items: center; gap: 10px; flex: none; }
+.who-text { display: grid; gap: 2px; }
+.who-text b { font: 600 15px/1.2 var(--sans); white-space: nowrap; }
+.who-text small { color: var(--muted); font: 400 13px/1.2 var(--sans); white-space: nowrap; }
+
+@media (max-width: 1279px) {
+  .topbar { gap: 16px; padding: 0 24px; }
+  .query { flex-basis: 300px; }
+  .who-text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}
+@media (max-width: 1023px) {
+  .topbar { flex-wrap: wrap; gap: 10px 12px; padding: 12px 16px; }
+  .brandmark img { width: 38px; height: 38px; }
+  .brandmark span { font-size: 27px; }
+  .alert-chip { order: 2; }
+  .who { order: 3; }
+  .views { order: 4; }
+  .query { order: 5; flex: 1 1 260px; }
+  .range { order: 6; flex-basis: 100%; font-size: 15px; }
+}
+@media (max-width: 599px) {
+  .who { order: 2; margin-left: auto; }
+  .alert-chip { order: 3; flex: 1 1 100%; margin-left: 0; min-height: 44px; white-space: normal; }
+  .views { order: 4; flex: 1 1 100%; margin-inline: -12px; }
+  .query { order: 5; flex: 1 1 100%; }
+}

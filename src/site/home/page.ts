@@ -14,6 +14,7 @@ import { cost } from './sections/cost'
 import { logs } from './sections/logs'
 import { moveIn } from './sections/movein'
 import { closing } from './sections/closing'
+import { sharedStyles } from '../look'
 
 const title = 'Porthole: know why it’s slow, fix it fast'
 const description = 'Porthole collects every trace, metric, log and profile, follows each slow request to the query or deploy behind it, readies the fix, and archives your logs in your own bucket. 100% free, open source alternative to Datadog, New Relic and Grafana Cloud.'
@@ -25,6 +26,6 @@ export function homePage(run: RunData, styles: string[], contract: boolean): str
   return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
     + `<title>${escape(title)}</title><meta name="description" content="${escape(description)}"><meta name="theme-color" content="#ffffff">${iconHead}`
     + '<link rel="preload" href="/fonts/porthole/inter-var.woff2" as="font" type="font/woff2" crossorigin>'
-    + styles.map(href => `<link rel="stylesheet" href="${escape(href)}">`).join('')
+    + [...sharedStyles, ...styles].map(href => `<link rel="stylesheet" href="${escape(href)}">`).join('')
     + `</head><body class="home">${keepTogether(body)}</body></html>`
 }

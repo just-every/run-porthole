@@ -1,0 +1,22 @@
+/* Parts the homepage, the docs, the app and Base's documents share (docs/LOOK.md). Sizes run on --u, one desk
+   pixel of the 1536 px designs: 1 px in the app and Base's documents, scaled on the homepage. */
+
+/* Data cards: crisp white, a thin hairline, a soft shadow. */
+.card { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); min-width: 0; }
+
+/* The team tag: the hero's hanging sign, a black plate, thin grey rim, mint pixel type. */
+.tag { display: inline-flex; align-items: center; flex: none; height: calc(30 * var(--u)); min-height: 22px; padding: 0 calc(10 * var(--u)); background: #171822; color: #6ef2bd; border: 1px solid #5a5e6e; border-radius: 3px; box-shadow: inset 0 0 0 1px #0b0b10; font: 400 max(13px, calc(18 * var(--u)))/1 var(--pixel); letter-spacing: .02em; white-space: nowrap; }
+@media (max-width: 760px) { .tag { height: 24px; padding: 0 8px; font-size: 14px; } }
+
+/* The primary action: an ink-black pill with white type (the homepage's "Run Porthole →"; the app's and Base's
+   primary buttons). */
+.pill, html.rer-themed main :is(button, a.action):not(.secondary) { display: inline-flex; align-items: center; gap: calc(12 * var(--u)); min-height: max(44px, calc(46 * var(--u))); padding: 0 calc(30 * var(--u)); border: 0; border-radius: 999px; background: var(--ink); color: #fff !important; text-decoration: none; font: 700 max(16px, calc(19.5 * var(--u)))/1 var(--sans); letter-spacing: -.01em; box-shadow: 0 calc(10 * var(--u)) calc(22 * var(--u)) calc(-12 * var(--u)) rgba(22, 21, 27, .55); cursor: pointer; }
+.pill svg { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.pill:hover, html.rer-themed main :is(button, a.action):not(.secondary):hover { background: #2a2833; }
+
+/* The one done mark: a thin sea-glass check. */
+.ok { display: inline-block; width: 1.05em; height: 1.05em; margin-left: .15em; vertical-align: -.16em; fill: none; stroke: var(--sea-check); stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.num { font-variant-numeric: tabular-nums; }
+.slow { color: var(--scarlet-ink); font-weight: 650; }
+.nowrap { white-space: nowrap; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }

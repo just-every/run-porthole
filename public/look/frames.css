@@ -1,0 +1,55 @@
+/* Base's documents in the app's look, by their own markup (Base keeps its markup and hashed styles; these selectors
+   outrank them wherever this file is linked). Sign-in and its notices, the link confirmation, first-run /setup and
+   sign-in settings (html.rer-themed) carry the app's bar (the server puts AppBar at the top of their body: the lockup
+   alone when signed out, the views and the person when signed in) and their content as one white card under it.
+   The Lobby (html[data-state]) keeps Base's door: the lockup, one line, the ink pill and the waterfall floor
+   (/brand/band.svg). controls.css draws their buttons and fields. */
+html.rer-themed { background: #fff; color-scheme: light; }
+html.rer-themed body { display: block; min-height: 100vh; margin: 0; padding: 0 0 72px; background: #fff; color: var(--ink); font: 400 16px/1.55 var(--sans); line-height: 1.55; -webkit-font-smoothing: antialiased; }
+html.rer-themed body > .topbar { margin-bottom: 64px; }
+html.rer-themed main { box-sizing: border-box; width: auto; max-width: 480px; margin: 0 auto; padding: 34px 36px 32px; border: 1px solid var(--line); border-radius: var(--radius); background: #fff; box-shadow: var(--shadow); overflow-wrap: anywhere; }
+/* the bar carries the lockup, so Base's own brand line inside the card goes */
+html.rer-themed body:has(> .topbar) main > :is(.brand, .rer-brand) { display: none; }
+html.rer-themed main > :is(.brand, .rer-brand) { display: flex; align-items: center; gap: 10px; margin: 0 0 24px; color: var(--ink); font: 880 24px/1 var(--sans); font-variation-settings: 'opsz' 32; letter-spacing: -.035em; }
+html.rer-themed main h1 { margin: 0 0 12px; color: var(--ink); font: 860 32px/1.12 var(--sans); font-variation-settings: 'opsz' 32; letter-spacing: -.035em; text-wrap: balance; }
+html.rer-themed main h2 { margin: 28px 0 12px; color: var(--ink); font: 860 21px/1.25 var(--sans); font-variation-settings: 'opsz' 32; letter-spacing: -.02em; }
+html.rer-themed main p { margin: 0 0 20px; color: var(--muted); font-size: 16px; line-height: 1.55; text-wrap: pretty; }
+html.rer-themed main dl { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 16px; margin: 0 0 22px; font-size: 16px; }
+html.rer-themed main dt { color: var(--muted); }
+html.rer-themed main dd { margin: 0; color: var(--ink); font-weight: 500; }
+html.rer-themed main form { display: grid; gap: 14px; margin: 0; }
+html.rer-themed main form p { margin: 0; }
+html.rer-themed main label { display: grid; gap: 6px; margin: 0; color: var(--ink); font: 600 15px/1.35 var(--sans); }
+html.rer-themed main label:has(input[type=checkbox]) { display: flex; align-items: flex-start; gap: 10px; font-weight: 500; }
+html.rer-themed main label.check { margin: 0 0 4px; }
+html.rer-themed main form > input:not([type=hidden]) { margin: 0; }
+html.rer-themed main :is(button, a.action):not(.secondary) { display: flex; justify-content: center; width: 100%; min-height: 48px; font-size: 17px; }
+html.rer-themed main button.secondary { width: 100%; min-height: 48px; }
+html.rer-themed main .stack { display: grid; gap: 12px; margin: 0 0 4px; }
+html.rer-themed main .divider { display: flex; align-items: center; gap: 12px; margin: 18px 0; color: var(--muted); font-size: 14px; }
+html.rer-themed main .divider::before, html.rer-themed main .divider::after { content: ""; flex: 1; border-top: 1px solid var(--line); }
+html.rer-themed main .notice { margin: 0 0 20px; padding: 12px 14px; border: 0; border-left: 4px solid var(--helio); border-radius: 6px; background: var(--helio-pale); color: var(--ink); }
+html.rer-themed main .notice[role=alert] { border-left-color: var(--ink); background: var(--field); }
+html.rer-themed main .secondary-link { margin: 18px 0 0; text-align: center; font-size: 15px; }
+html.rer-themed main a:not(.action) { color: var(--helio-ink); font-weight: 600; text-decoration: underline; text-decoration-thickness: 1.5px; text-underline-offset: 4px; }
+html.rer-themed main .secondary-link a { display: inline-flex; align-items: center; min-height: 32px; }
+html.rer-themed :focus-visible { outline: 3px solid var(--helio); outline-offset: 3px; }
+@media (max-width: 599px) {
+  html.rer-themed body > .topbar { margin-bottom: 28px; }
+  html.rer-themed main { margin: 0 16px; padding: 26px 20px 24px; }
+  html.rer-themed main h1 { font-size: 28px; }
+}
+
+/* the Lobby */
+html[data-state] { --rer-wordmark-weight: 880; --rer-wordmark-tracking: -.035em; }
+html[data-state] body { background: #fff; color: var(--ink); font-family: var(--sans); }
+html[data-state] .door { padding: 20vh 16px 34vh; }
+html[data-state] .door-art { height: 30vh; min-height: 170px; }
+html[data-state] .word { font-variation-settings: 'opsz' 32; }
+html[data-state] .line { color: var(--ink-2); }
+html[data-state] .btn { background: var(--ink); color: #fff; font-weight: 700; box-shadow: 0 10px 22px -12px rgba(22, 21, 27, .55); }
+html[data-state] .btn:hover { background: #2a2833; }
+html[data-state] .credit { color: var(--muted); }
+html[data-state] .credit a { text-decoration-color: var(--helio); }
+html[data-state] :focus-visible { outline-color: var(--helio); }
+@media (max-width: 640px) { html[data-state] .door { padding: 120px 16px 220px; } html[data-state] .door-art { height: 200px; } }

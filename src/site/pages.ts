@@ -34,6 +34,6 @@ export function sitePages({ styles = [], contract }: Partial<SiteContext> = {}):
       ...(contract ? [{ path: '/contract', html: contractPageHtml(identity, data, contract) }] : []),
       { path: '/404', html: siteNotFoundHtml(identity, data, contract) },
     ],
-    assets: ['rer-theme.css', 'fonts', 'brand', 'site', 'docs.css'],
+    assets: ['rer-theme.css', 'fonts', 'brand', 'look', 'site', 'docs.css'],
   }
 }

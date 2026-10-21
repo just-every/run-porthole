@@ -1,25 +1,57 @@
-/* This edition's declared theme. The installer, sign-in, confirmation, /setup
-   read these --rer-* tokens; the app serves this file and its fonts.
-   Buttons keep the colour chosen at setup (src/branding.json primaryColor)
-   because no --rer-accent is declared here; declare --rer-accent and
-   --rer-accent-text together to fix them instead. */
+/* Porthole's declared theme (the owner-approved look, 20 Oct 2026): the four faces and Base's --rer-* tokens.
+   Base's documents (sign-in, confirmation, /setup, settings, the Lobby, the installer, and the run site's /run,
+   /contract and not-found pages) read it; so do the app, the homepage and the docs, whose /look/tokens.css aliases
+   these values, so each is written once. Base's theme grammar allows only literal :root --rer-* tokens and
+   @font-face rules here. Primary buttons are the ink pill: --rer-accent is ink with white text. */
 @font-face {
-  font-family: Outfit;
+  font-family: 'Porthole Inter';
   font-style: normal;
-  font-weight: 100 900;
+  font-weight: 400 900;
   font-display: swap;
-  src: url('/fonts/outfit/outfit-latin-wght-normal.woff2') format('woff2');
+  src: url('/fonts/porthole/inter-var.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Porthole Mono';
+  font-style: normal;
+  font-weight: 400 600;
+  font-display: swap;
+  src: url('/fonts/porthole/jetbrains-mono-var.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Porthole Pixel';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/porthole/departure-mono.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Porthole Hand';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/porthole/caveat-600.woff2') format('woff2');
 }
 :root {
-  --rer-font-body: Outfit, Arial, sans-serif;
-  --rer-font-heading: Outfit, Arial, sans-serif;
-  --rer-page: #f4f6f5;
+  --rer-font-body: 'Porthole Inter', 'Inter', ui-sans-serif, system-ui, 'Segoe UI', Roboto, Arial, sans-serif;
+  --rer-font-heading: 'Porthole Inter', 'Inter', ui-sans-serif, system-ui, 'Segoe UI', Roboto, Arial, sans-serif;
+  --rer-page: #ffffff;
   --rer-surface: #ffffff;
-  --rer-text: #1b2724;
-  --rer-muted: #4a5a55;
-  --rer-border: #6b7c76;
-  --rer-focus: #1b2724;
-  --rer-link: #1f5f52;
-  --rer-radius: 12px;
+  --rer-text: #16151b;
+  --rer-muted: #5f5d66;
+  --rer-border: #8f8e99;
+  --rer-focus: #c86be6;
+  --rer-accent: #16151b;
+  --rer-accent-text: #ffffff;
+  --rer-link: #9333c8;
+  --rer-radius: 14px;
   --rer-logo: url('/brand/mark.svg');
+  --rer-done: #a3dacb;
+  --rer-done-ink: #1f7a62;
+  --rer-on-done: #16151b;
+  --rer-partial: #c2963a;
+  --rer-partial-ink: #8a6418;
+  --rer-on-partial: #16151b;
+  --rer-missing: #e1e3e8;
+  --rer-missing-ink: #5f5d66;
+  --rer-on-missing: #16151b;
 }

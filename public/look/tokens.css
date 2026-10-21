@@ -1,0 +1,44 @@
+/* Porthole's tokens: one set for the app, Base's documents, the homepage and the docs (docs/LOOK.md names each).
+   Crisp white, ink type, heliotrope for the selected path and focus, brass for what resolved without harm, sea glass
+   for done, scarlet only on the slow span and the incident. The faces and the values Base's theme grammar needs as
+   literals are written once in /rer-theme.css; these names alias them. --u is one desk pixel of the 1536 px pick:
+   1 px in the app, scaled by the homepage's own layout (its base.css). */
+:root {
+  --u: 1px;
+  --sans: var(--rer-font-body);
+  --mono: 'Porthole Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --pixel: 'Porthole Pixel', 'Porthole Mono', ui-monospace, monospace;
+  --hand: 'Porthole Hand', 'Segoe Print', 'Bradley Hand', cursive;
+  --ink: var(--rer-text); --ink-2: #3a3843; --muted: var(--rer-muted); --line: rgba(22, 21, 27, .11); --line-2: rgba(22, 21, 27, .18);
+  --helio: var(--rer-focus); --helio-ink: var(--rer-link); --helio-pale: #f6ebfb; --violet-bar: #a77cf0;
+  --scarlet: #e3302b; --scarlet-ink: #d02a24; --brass: var(--rer-partial); --brass-ink: var(--rer-partial-ink); --bolt: #dcad3e;
+  --sea: var(--rer-done); --sea-ink: var(--rer-done-ink); --sea-check: #2e9c7e; --sea-pale: #eaf6f1; --sea-field: #eef8f4;
+  --night: #111111; --slate-1: #5c6170; --slate-2: #7d8291; --slate-3: #9a9eab; --slate-4: #b5b8c2; --slate-5: #cdd0d7; --slate-6: var(--rer-missing);
+  --gradient: linear-gradient(90deg, #c86be6 0%, #c54fc4 30%, #d23d86 64%, #e7293b 100%);
+  --radius: calc(14 * var(--u));
+  --shadow: 0 1px 2px rgba(22, 21, 27, .05), 0 calc(10 * var(--u)) calc(28 * var(--u)) calc(-14 * var(--u)) rgba(22, 21, 27, .16);
+}
+
+/* The app: its bar, the trace view and Base's documents under it. */
+:root {
+  --edge: var(--rer-border);
+  --hair: #eceef3;
+  --field: #f6f6f8;
+  --bar-h: 72px;
+  --gutter-app: 24px;
+  --card-radius: 10px;
+  --card-shadow: 0 1px 2px rgba(22, 21, 27, .05), 0 8px 22px -14px rgba(22, 21, 27, .2);
+  --span-path: var(--helio);
+  --span-ok: var(--brass);
+  --span-done: var(--sea);
+  --span-slow: var(--scarlet);
+  --select-band: var(--helio-pale);
+  --guide: #c993ec;
+  --ghost-edge: #c9cbd3;
+  --ghost-fill: #f7f7f9;
+  --ghost-path: #dcb6ef;
+  --code: #f5f6f9;
+  --note-edge: #b9e2d6;
+  --note-field: var(--sea-field);
+}
+@media (max-width: 1023px) { :root { --bar-h: auto; --gutter-app: 16px; } }

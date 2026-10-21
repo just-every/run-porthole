@@ -1,0 +1,23 @@
+/* Controls (docs/LOOK.md). Each rule names the app's class and Base's element together, so Base's sign-in, setup and
+   settings forms and the app share one copy. Fields and quiet buttons have a thin 1 px edge at 3:1 (never a thick black
+   frame); focus is a heliotrope edge and ring. The primary action is the ink pill in parts.css. */
+
+/* Compact pills for the app's actions (the pick's Approve rollback · Ask Porthole · Open in Slack). */
+.pill.pill-sm { gap: 8px; min-height: 40px; padding: 0 18px; font: 600 15px/1 var(--sans); letter-spacing: 0; box-shadow: none; }
+.pill-quiet, html.rer-themed main button.secondary { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 0 18px; border: 1px solid var(--edge); border-radius: 999px; background: #fff; color: var(--ink); font: 600 15px/1 var(--sans); text-decoration: none; cursor: pointer; }
+.pill-quiet:hover, html.rer-themed main button.secondary:hover { border-color: var(--ink); background: #faf9fb; }
+.pill-quiet svg { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+@media (max-width: 760px) { .pill.pill-sm, .pill-quiet { min-height: 44px; } }
+
+/* Fields: the app's .field and every Base form input. A select gets Base's two-stroke chevron from select-style.ts
+   (page style), 14 px in from its edge with 40 px of end padding. */
+.field, html.rer-themed main input:not([type=checkbox]):not([type=radio]):not([type=hidden]) { box-sizing: border-box; display: block; width: 100%; min-height: 46px; margin: 0; padding: 10px 14px; border: 1px solid var(--edge); border-radius: 10px; background-color: #fff; color: var(--ink); font: 400 16px/1.4 var(--sans); }
+.field:hover, html.rer-themed main input:not([type=checkbox]):not([type=radio]):not([type=hidden]):hover { border-color: var(--slate-1); }
+.field:focus-visible, html.rer-themed main input:not([type=checkbox]):not([type=radio]):not([type=hidden]):focus-visible { border-color: var(--helio); outline: 2px solid var(--helio); outline-offset: 1px; }
+.field::placeholder { color: var(--muted); opacity: 1; }
+.check-box, html.rer-themed main input[type=checkbox] { flex: none; width: 20px; height: 20px; margin: 1px 0 0; accent-color: var(--ink); }
+.check-box:focus-visible, html.rer-themed main input[type=checkbox]:focus-visible { outline: 2px solid var(--helio); outline-offset: 2px; }
+
+/* The person: a round initials avatar in ink, never a portrait. */
+.avatar { display: inline-grid; place-items: center; flex: none; width: 34px; height: 34px; border-radius: 50%; background: var(--ink); color: #fff; font: 700 13px/1 var(--sans); letter-spacing: .02em; }
+.avatar.avatar-helio { background: var(--helio-ink); }

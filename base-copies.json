@@ -46,83 +46,6 @@
       }
     },
     {
-      "path": "public/brand/band.svg",
-      "originPath": "foundation/template/public/brand/band.svg",
-      "revision": "91c082876d6560150f3dc012ec57b92bd9895228",
-      "files": {
-        "public/brand/band.svg": "595e6226645ca8873d4e06c4417a7f42c2e6940094ab06baa4be6fc74e8fa1e3"
-      },
-      "modes": {
-        "public/brand/band.svg": "100644"
-      }
-    },
-    {
-      "path": "public/fonts/fonts.css",
-      "originPath": "default-seed/public/fonts/fonts.css",
-      "revision": "91c082876d6560150f3dc012ec57b92bd9895228",
-      "files": {
-        "public/fonts/fonts.css": "54e7fe8d3bf3b18338a9613769090602af4c38f596a5dc8408a204d4900447f1"
-      },
-      "modes": {
-        "public/fonts/fonts.css": "100644"
-      }
-    },
-    {
-      "path": "public/fonts/outfit/LICENSE.txt",
-      "originPath": "default-seed/public/fonts/outfit/LICENSE.txt",
-      "revision": "91c082876d6560150f3dc012ec57b92bd9895228",
-      "files": {
-        "public/fonts/outfit/LICENSE.txt": "0e5fcef5d93bfcae273c11c00f0bb453d3b5491860e1ac8b658767b7577c938f"
-      },
-      "modes": {
-        "public/fonts/outfit/LICENSE.txt": "100644"
-      }
-    },
-    {
-      "path": "public/fonts/outfit/outfit-latin-ext-wght-normal.woff2",
-      "originPath": "default-seed/public/fonts/outfit/outfit-latin-ext-wght-normal.woff2",
-      "revision": "91c082876d6560150f3dc012ec57b92bd9895228",
-      "files": {
-        "public/fonts/outfit/outfit-latin-ext-wght-normal.woff2": "0f53d1c03b3918d744a843b5039001ee31695ca1e255e3914188df81beb461e9"
-      },
-      "modes": {
-        "public/fonts/outfit/outfit-latin-ext-wght-normal.woff2": "100644"
-      }
-    },
-    {
-      "path": "public/fonts/outfit/outfit-latin-wght-normal.woff2",
-      "originPath": "default-seed/public/fonts/outfit/outfit-latin-wght-normal.woff2",
-      "revision": "91c082876d6560150f3dc012ec57b92bd9895228",
-      "files": {
-        "public/fonts/outfit/outfit-latin-wght-normal.woff2": "6c18d579fd87c3776be068b762cbc83fde3acb543d49eabd3ade842eb987e887"
-      },
-      "modes": {
-        "public/fonts/outfit/outfit-latin-wght-normal.woff2": "100644"
-      }
-    },
-    {
-      "path": "public/fonts/README.md",
-      "originPath": "default-seed/public/fonts/README.md",
-      "revision": "91c082876d6560150f3dc012ec57b92bd9895228",
-      "files": {
-        "public/fonts/README.md": "f89bdce214a6b69aa9cf8d9a49059abd95c5f4124a1e6924085eff9e07f654fa"
-      },
-      "modes": {
-        "public/fonts/README.md": "100644"
-      }
-    },
-    {
-      "path": "public/rer-theme.css",
-      "originPath": "foundation/template/public/rer-theme.css",
-      "revision": "91c082876d6560150f3dc012ec57b92bd9895228",
-      "files": {
-        "public/rer-theme.css": "a959e0a17df8abb03a123c04eb773b5e9183d426ed7f43424f8622d02433ddb1"
-      },
-      "modes": {
-        "public/rer-theme.css": "100644"
-      }
-    },
-    {
       "path": "scripts/edition-authoring",
       "originPath": "edition-authoring",
       "revision": "91c082876d6560150f3dc012ec57b92bd9895228",
@@ -205,65 +128,288 @@
       }
     },
     {
-      "path": "src/base",
-      "originPath": "foundation/runtime",
+      "path": "src/base/actor.ts",
+      "originPath": "foundation/runtime/actor.ts",
       "revision": "91c082876d6560150f3dc012ec57b92bd9895228",
       "files": {
-        "src/base/actor.ts": "a51af00fe7b50c6552a585f00d089c8ab66717cb741a6b5eda41c5bc0e6dafab",
-        "src/base/command-receipts.sql": "8064fe877c22bf0500ff5c20d274cbd4e8b2e0dea986fa9e3e4fef4faf2c54a0",
-        "src/base/command-receipts.ts": "2f2411c94af00854c4d040ae74a8e6bd11da98308e7d5b0211473f46679d791a",
-        "src/base/contract-filter.ts": "eec5be7da15653b69dd343fb3cf9f7a2e695eb215c5ee118f3508090e9c29232",
-        "src/base/contract-page.ts": "aee83fd5243c8ccf267048a31de0b5d04099de8ee9a912b1bfa03f314bda975b",
-        "src/base/contract-style.ts": "f4d420ed0749ad5d90937ce6fda7484aaba3336cd5192cb7763c0826d4d4f26d",
-        "src/base/deployment-health.ts": "49f4dac80429ea7d9477b40799a6242f9af4870f3229df70d0ac1f635476b8b7",
-        "src/base/dispatch.ts": "695ff1bf5bdcf65a429e3853eb80bcb477297c29e55221f6cad08dcff6ba610c",
-        "src/base/font-head.ts": "937fe339a397abee96e4279f2e310fa336eb30b2ec3aeb98f2c09ed0ba7d5dac",
-        "src/base/font-response.ts": "55abc935a78085735ae5b7f2d441ee7a5a67d9c797417f9b5ac3c2449f8c91a8",
-        "src/base/hydration/intro-guard.ts": "abc289d53537b631ad6de323b9123c843aea7498aa50d429a4786d7819194fcd",
-        "src/base/hydration/README.md": "a25e8a1a787e141590c9b46efb313b8ba6d9b135fad880d3aacfd5289c205244",
-        "src/base/hydration/report.ts": "38792ad67dc33c9ccd9537bcfc41b7f21a57f0d6f6266d045cb71d70630cf3d7",
-        "src/base/hydration/unit.tsx": "932bf2aa40a05c76f3a2c25a121db282e17c7bc839f9c37cd102ffe7f4e7ceca",
-        "src/base/icon-head.ts": "ce4fa9ca48534d926469829abd372d1c81c6de31fb18cb4df567bc84a598e86f",
-        "src/base/identity.ts": "0bc7faa1ce3d7fe3839a6a68135160be45387b052e4699dc7b45d13f67cb2106",
-        "src/base/lobby.ts": "9b43f26b89276e0551d8a1b0b10c7f98dece6ae0d0220b5f199a460c0f637636",
-        "src/base/page-style.ts": "8e55d14647ffe9d31bcf922c43f272b2f6920a2bff3c685d0a36e8a7b646c8e6",
-        "src/base/rejected-response.ts": "4aa9861a20497b9dde6f95951dcbecf60cee69e8dad1923c1110ef35abc10686",
-        "src/base/run-site.ts": "f8fdd4850677bca4888bc315de3e19a8652ed7b930ea371e71718378a5758d49",
-        "src/base/seed-contract.d.mts": "89a49eeec744b201f66b3c5d599dad839174e28d3c463944823de25ecfae738d",
-        "src/base/seed-contract.mjs": "7beada5d271beaaf63d76e1f8cf2712ba906ec7d430f8312f4abedfad57428b4",
-        "src/base/select-style.ts": "4fdee657176f62f425e4d41afd564752e30374d8806043a47661218080f629b7",
-        "src/base/setup-state.ts": "e4be71efeeec308d7a1ace213a2d58001cfdab2488140aac807bc71d70e47403",
-        "src/base/setup.ts": "151782b3a1d0984ef1e2d5938bba013a63a5fb679d7fd76e3c42632d47b5061f",
-        "src/base/static-assets.ts": "d6ed4098fbee2dc6d557eb1365e9a56b5f5435ad869357cb7d8472a8d0c70e76",
+        "src/base/actor.ts": "a51af00fe7b50c6552a585f00d089c8ab66717cb741a6b5eda41c5bc0e6dafab"
+      },
+      "modes": {
+        "src/base/actor.ts": "100644"
+      }
+    },
+    {
+      "path": "src/base/command-receipts.sql",
+      "originPath": "foundation/runtime/command-receipts.sql",
+      "revision": "91c082876d6560150f3dc012ec57b92bd9895228",
+      "files": {
+        "src/base/command-receipts.sql": "8064fe877c22bf0500ff5c20d274cbd4e8b2e0dea986fa9e3e4fef4faf2c54a0"
+      },
+      "modes": {
+        "src/base/command-receipts.sql": "100644"
+      }
+    },
+    {
+      "path": "src/base/command-receipts.ts",
+      "originPath": "foundation/runtime/command-receipts.ts",
+      "revision": "91c082876d6560150f3dc012ec57b92bd9895228",
+      "files": {
+        "src/base/command-receipts.ts": "2f2411c94af00854c4d040ae74a8e6bd11da98308e7d5b0211473f46679d791a"
+      },
+      "modes": {
+        "src/base/command-receipts.ts": "100644"
+      }
+    },
+    {
+      "path": "src/base/contract-filter.ts",
+      "originPath": "foundation/runtime/contract-filter.ts",
+      "revision": "91c082876d6560150f3dc012ec57b92bd9895228",
+      "files": {
+        "src/base/contract-filter.ts": "eec5be7da15653b69dd343fb3cf9f7a2e695eb215c5ee118f3508090e9c29232"
+      },
+      "modes": {
+        "src/base/contract-filter.ts": "100644"
+      }
+    },
+    {
+      "path": "src/base/contract-page.ts",
+      "originPath": "foundation/runtime/contract-page.ts",
+      "revision": "91c082876d6560150f3dc012ec57b92bd9895228",
+      "files": {
+        "src/base/contract-page.ts": "aee83fd5243c8ccf267048a31de0b5d04099de8ee9a912b1bfa03f314bda975b"
+      },
+      "modes": {
+        "src/base/contract-page.ts": "100644"
+      }
+    },
+    {
+      "path": "src/base/contract-style.ts",
+      "originPath": "foundation/runtime/contract-style.ts",
+      "revision": "91c082876d6560150f3dc012ec57b92bd9895228",
+      "files": {
+        "src/base/contract-style.ts": "f4d420ed0749ad5d90937ce6fda7484aaba3336cd5192cb7763c0826d4d4f26d"
+      },
+      "modes": {
+        "src/base/contract-style.ts": "100644"
+      }
+    },
+    {
+      "path": "src/base/deployment-health.ts",
+      "originPath": "foundation/runtime/deployment-health.ts",
+      "revision": "91c082876d6560150f3dc012ec57b92bd9895228",
+      "files": {
+        "src/base/deployment-health.ts": "49f4dac80429ea7d9477b40799a6242f9af4870f3229df70d0ac1f635476b8b7"
+      },
+      "modes": {
+        "src/base/deployment-health.ts": "100644"
+      }
+    },
+    {
+      "path": "src/base/dispatch.ts",
+      "originPath": "foundation/runtime/dispatch.ts",
+      "revision": "91c082876d6560150f3dc012ec57b92bd9895228",
+      "files": {
+        "src/base/dispatch.ts": "695ff1bf5bdcf65a429e3853eb80bcb477297c29e55221f6cad08dcff6ba610c"
+      },
+      "modes": {
+        "src/base/dispatch.ts": "100644"
+      }
+    },
+    {
+      "path": "src/base/font-response.ts",
+      "originPath": "foundation/runtime/font-response.ts",
+      "revision": "91c082876d6560150f3dc012ec57b92bd9895228",
+      "files": {
+        "src/base/font-response.ts": "55abc935a78085735ae5b7f2d441ee7a5a67d9c797417f9b5ac3c2449f8c91a8"
+      },
+      "modes": {
+        "src/base/font-response.ts": "100644"
+      }
+    },
+    {
+      "path": "src/base/hydration/intro-guard.ts",
+      "originPath": "foundation/runtime/hydration/intro-guard.ts",
+      "revision": "91c082876d6560150f3dc012ec57b92bd9895228",
+      "files": {
+        "src/base/hydration/intro-guard.ts": "abc289d53537b631ad6de323b9123c843aea7498aa50d429a4786d7819194fcd"
+      },
+      "modes": {
+        "src/base/hydration/intro-guard.ts": "100644"
+      }
+    },
+    {
+      "path": "src/base/hydration/README.md",
+      "originPath": "foundation/runtime/hydration/README.md",
+      "revision": "91c082876d6560150f3dc012ec57b92bd9895228",
+      "files": {
+        "src/base/hydration/README.md": "a25e8a1a787e141590c9b46efb313b8ba6d9b135fad880d3aacfd5289c205244"
+      },
+      "modes": {
+        "src/base/hydration/README.md": "100644"
+      }
+    },
+    {
+      "path": "src/base/hydration/report.ts",
+      "originPath": "foundation/runtime/hydration/report.ts",
+      "revision": "91c082876d6560150f3dc012ec57b92bd9895228",
+      "files": {
+        "src/base/hydration/report.ts": "38792ad67dc33c9ccd9537bcfc41b7f21a57f0d6f6266d045cb71d70630cf3d7"
+      },
+      "modes": {
+        "src/base/hydration/report.ts": "100644"
+      }
+    },
+    {
+      "path": "src/base/hydration/unit.tsx",
+      "originPath": "foundation/runtime/hydration/unit.tsx",
+      "revision": "91c082876d6560150f3dc012ec57b92bd9895228",
+      "files": {
+        "src/base/hydration/unit.tsx": "932bf2aa40a05c76f3a2c25a121db282e17c7bc839f9c37cd102ffe7f4e7ceca"
+      },
+      "modes": {
+        "src/base/hydration/unit.tsx": "100644"
+      }
+    },
+    {
+      "path": "src/base/icon-head.ts",
+      "originPath": "foundation/runtime/icon-head.ts",
+      "revision": "91c082876d6560150f3dc012ec57b92bd9895228",
+      "files": {
+        "src/base/icon-head.ts": "ce4fa9ca48534d926469829abd372d1c81c6de31fb18cb4df567bc84a598e86f"
+      },
+      "modes": {
+        "src/base/icon-head.ts": "100644"
+      }
+    },
+    {
+      "path": "src/base/identity.ts",
+      "originPath": "foundation/runtime/identity.ts",
+      "revision": "91c082876d6560150f3dc012ec57b92bd9895228",
+      "files": {
+        "src/base/identity.ts": "0bc7faa1ce3d7fe3839a6a68135160be45387b052e4699dc7b45d13f67cb2106"
+      },
+      "modes": {
+        "src/base/identity.ts": "100644"
+      }
+    },
+    {
+      "path": "src/base/lobby.ts",
+      "originPath": "foundation/runtime/lobby.ts",
+      "revision": "91c082876d6560150f3dc012ec57b92bd9895228",
+      "files": {
+        "src/base/lobby.ts": "9b43f26b89276e0551d8a1b0b10c7f98dece6ae0d0220b5f199a460c0f637636"
+      },
+      "modes": {
+        "src/base/lobby.ts": "100644"
+      }
+    },
+    {
+      "path": "src/base/page-style.ts",
+      "originPath": "foundation/runtime/page-style.ts",
+      "revision": "91c082876d6560150f3dc012ec57b92bd9895228",
+      "files": {
+        "src/base/page-style.ts": "8e55d14647ffe9d31bcf922c43f272b2f6920a2bff3c685d0a36e8a7b646c8e6"
+      },
+      "modes": {
+        "src/base/page-style.ts": "100644"
+      }
+    },
+    {
+      "path": "src/base/rejected-response.ts",
+      "originPath": "foundation/runtime/rejected-response.ts",
+      "revision": "91c082876d6560150f3dc012ec57b92bd9895228",
+      "files": {
+        "src/base/rejected-response.ts": "4aa9861a20497b9dde6f95951dcbecf60cee69e8dad1923c1110ef35abc10686"
+      },
+      "modes": {
+        "src/base/rejected-response.ts": "100644"
+      }
+    },
+    {
+      "path": "src/base/run-site.ts",
+      "originPath": "foundation/runtime/run-site.ts",
+      "revision": "91c082876d6560150f3dc012ec57b92bd9895228",
+      "files": {
+        "src/base/run-site.ts": "f8fdd4850677bca4888bc315de3e19a8652ed7b930ea371e71718378a5758d49"
+      },
+      "modes": {
+        "src/base/run-site.ts": "100644"
+      }
+    },
+    {
+      "path": "src/base/seed-contract.d.mts",
+      "originPath": "foundation/runtime/seed-contract.d.mts",
+      "revision": "91c082876d6560150f3dc012ec57b92bd9895228",
+      "files": {
+        "src/base/seed-contract.d.mts": "89a49eeec744b201f66b3c5d599dad839174e28d3c463944823de25ecfae738d"
+      },
+      "modes": {
+        "src/base/seed-contract.d.mts": "100644"
+      }
+    },
+    {
+      "path": "src/base/seed-contract.mjs",
+      "originPath": "foundation/runtime/seed-contract.mjs",
+      "revision": "91c082876d6560150f3dc012ec57b92bd9895228",
+      "files": {
+        "src/base/seed-contract.mjs": "7beada5d271beaaf63d76e1f8cf2712ba906ec7d430f8312f4abedfad57428b4"
+      },
+      "modes": {
+        "src/base/seed-contract.mjs": "100644"
+      }
+    },
+    {
+      "path": "src/base/select-style.ts",
+      "originPath": "foundation/runtime/select-style.ts",
+      "revision": "91c082876d6560150f3dc012ec57b92bd9895228",
+      "files": {
+        "src/base/select-style.ts": "4fdee657176f62f425e4d41afd564752e30374d8806043a47661218080f629b7"
+      },
+      "modes": {
+        "src/base/select-style.ts": "100644"
+      }
+    },
+    {
+      "path": "src/base/setup-state.ts",
+      "originPath": "foundation/runtime/setup-state.ts",
+      "revision": "91c082876d6560150f3dc012ec57b92bd9895228",
+      "files": {
+        "src/base/setup-state.ts": "e4be71efeeec308d7a1ace213a2d58001cfdab2488140aac807bc71d70e47403"
+      },
+      "modes": {
+        "src/base/setup-state.ts": "100644"
+      }
+    },
+    {
+      "path": "src/base/setup.ts",
+      "originPath": "foundation/runtime/setup.ts",
+      "revision": "91c082876d6560150f3dc012ec57b92bd9895228",
+      "files": {
+        "src/base/setup.ts": "151782b3a1d0984ef1e2d5938bba013a63a5fb679d7fd76e3c42632d47b5061f"
+      },
+      "modes": {
+        "src/base/setup.ts": "100644"
+      }
+    },
+    {
+      "path": "src/base/static-assets.ts",
+      "originPath": "foundation/runtime/static-assets.ts",
+      "revision": "91c082876d6560150f3dc012ec57b92bd9895228",
+      "files": {
+        "src/base/static-assets.ts": "d6ed4098fbee2dc6d557eb1365e9a56b5f5435ad869357cb7d8472a8d0c70e76"
+      },
+      "modes": {
+        "src/base/static-assets.ts": "100644"
+      }
+    },
+    {
+      "path": "src/base/theme-frame.ts",
+      "originPath": "foundation/runtime/theme-frame.ts",
+      "revision": "91c082876d6560150f3dc012ec57b92bd9895228",
+      "files": {
         "src/base/theme-frame.ts": "b65a43496156ee6ebe86ab9d0158ea0d18659146aa1d22aaa380ac14d83d64d0"
       },
       "modes": {
-        "src/base/actor.ts": "100644",
-        "src/base/command-receipts.sql": "100644",
-        "src/base/command-receipts.ts": "100644",
-        "src/base/contract-filter.ts": "100644",
-        "src/base/contract-page.ts": "100644",
-        "src/base/contract-style.ts": "100644",
-        "src/base/deployment-health.ts": "100644",
-        "src/base/dispatch.ts": "100644",
-        "src/base/font-head.ts": "100644",
-        "src/base/font-response.ts": "100644",
-        "src/base/hydration/intro-guard.ts": "100644",
-        "src/base/hydration/README.md": "100644",
-        "src/base/hydration/report.ts": "100644",
-        "src/base/hydration/unit.tsx": "100644",
-        "src/base/icon-head.ts": "100644",
-        "src/base/identity.ts": "100644",
-        "src/base/lobby.ts": "100644",
-        "src/base/page-style.ts": "100644",
-        "src/base/rejected-response.ts": "100644",
-        "src/base/run-site.ts": "100644",
-        "src/base/seed-contract.d.mts": "100644",
-        "src/base/seed-contract.mjs": "100644",
-        "src/base/select-style.ts": "100644",
-        "src/base/setup-state.ts": "100644",
-        "src/base/setup.ts": "100644",
-        "src/base/static-assets.ts": "100644",
         "src/base/theme-frame.ts": "100644"
       }
     },
@@ -798,17 +944,6 @@
       },
       "modes": {
         "src/router.tsx": "100644"
-      }
-    },
-    {
-      "path": "src/server.dev.ts",
-      "originPath": "foundation/template/src/server.dev.ts",
-      "revision": "91c082876d6560150f3dc012ec57b92bd9895228",
-      "files": {
-        "src/server.dev.ts": "4892545be3afaf55d1a45b99933f017baa43512d7152f56b21422010aa70b8a5"
-      },
-      "modes": {
-        "src/server.dev.ts": "100644"
       }
     },
     {
