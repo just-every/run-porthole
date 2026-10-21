@@ -38,7 +38,7 @@
         ],
         "origin": {
           "repository": "https://github.com/runeditrun/base.git",
-          "revision": "fa38858fa0c686bcb78a7d501ab4b5a547233e98",
+          "revision": "91c082876d6560150f3dc012ec57b92bd9895228",
           "path": ".",
           "paths": [
             "foundation/runtime",

@@ -4,14 +4,12 @@
 // title, a group and a written summary; every other document keeps its own
 // heading and is listed under Technical reference by its path.
 import { readdirSync, readFileSync } from 'node:fs'
-import { join, posix } from 'node:path'
+import { join } from 'node:path'
 import { Lexer, type Tokens } from 'marked'
+import type { Custody, Origin } from './custody'
 
 export const groups = ['Start here', 'Operate & develop', 'Product & design', 'Technical reference'] as const
 export type Group = typeof groups[number]
-
-/** Where Base keeps a document the seed copied, at the revision edition.json records. */
-export interface Origin { repository: string; revision: string; file: string }
 
 export interface Doc {
   /** Its repository path: "RUN-LOCALLY.md". */
@@ -51,17 +49,6 @@ function markdownFiles(root: string, directory: string, deep: boolean): string[]
   })
 }
 
-type Edition = { components: { id: string; source: { paths?: string[]; origin?: { repository: string; revision: string; path?: string; paths?: string[] } } }[] }
-// edition.json pairs each local path of a copied component with its path in the origin repository.
-function copies(root: string) {
-  const edition: Edition = JSON.parse(readFileSync(join(root, 'edition.json'), 'utf8'))
-  return edition.components.flatMap(({ id, source: { paths = [], origin } }) => {
-    if (!origin?.paths) return []
-    if (origin.paths.length !== paths.length) throw new Error(`edition.json component ${id} pairs ${paths.length} local paths with ${origin.paths.length} origin paths.`)
-    return paths.map((local, i) => ({ local, repository: origin.repository.replace(/\.git$/, ''), revision: origin.revision, path: posix.join(origin.path ?? '.', origin.paths![i]) }))
-  })
-}
-
 // The document's own first-level heading as plain text.
 const heading = (markdown: string) => {
   const token = Lexer.lex(markdown, { gfm: true }).find((token): token is Tokens.Heading => token.type === 'heading' && token.depth === 1)
@@ -70,18 +57,16 @@ const heading = (markdown: string) => {
 // "src/modules/mail/README.md" -> "src/modules/mail/readme".
 const slugOf = (file: string) => file.replace(/\.md$/, '').toLowerCase().replace(/[^a-z0-9/]+/g, '-').replace(/^-|-$/g, '')
 
-export function readDocs(root: string): Doc[] {
-  const origins = copies(root)
+export function readDocs(root: string, custody: Custody): Doc[] {
   const docs = [...markdownFiles(root, '', false), ...markdownFiles(root, 'src', true), ...markdownFiles(root, 'public', true)].map((file): Doc => {
     const markdown = readFileSync(join(root, file), 'utf8'), guide = guides[file]
-    const copy = origins.find(({ local }) => file.startsWith(`${local}/`))
     return {
       file, markdown,
       path: `/docs/${guide?.slug ?? slugOf(file)}`,
       title: guide?.title ?? heading(markdown) ?? file,
       summary: guide?.summary ?? null,
       group: guide?.group ?? 'Technical reference',
-      origin: copy ? { repository: copy.repository, revision: copy.revision, file: posix.join(copy.path, file.slice(copy.local.length + 1)) } : null,
+      origin: custody.origin(file),
     }
   })
   const rank = (doc: Doc) => order.includes(doc.file) ? order.indexOf(doc.file) : order.length

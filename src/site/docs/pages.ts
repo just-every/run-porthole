@@ -7,12 +7,13 @@ import type { SeedContract } from '../../base/seed-contract.mjs'
 import { homeLinks } from '../home/links'
 import { articlePage } from './article-page'
 import { readDocs } from './catalog'
+import { readCustody } from './custody'
 import { indexPage } from './index-page'
 import { checkDocLinks, linkResolver } from './links'
 import { renderMarkdown } from './markdown'
 
 export function docsPages(run: RunData, styles: string[], contract: SeedContract | undefined): { path: string; html: string }[] {
-  const root = process.cwd(), docs = readDocs(root), resolve = linkResolver(root, docs, run.repository)
+  const root = process.cwd(), custody = readCustody(root), docs = readDocs(root, custody), resolve = linkResolver(root, docs, custody, run.repository)
   const bodies = new Map(docs.map(doc => [doc.path, renderMarkdown(doc.markdown, href => resolve(doc, href))]))
   checkDocLinks(docs, bodies)
   const frame = { styles, links: homeLinks(run, !!contract) }

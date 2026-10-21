@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "domain": "run-porthole.com",
+  "name": "Porthole",
+  "settings": {
+    "MAIL_FROM": "Porthole Demo <auth@demo.invalid>"
+  }
+}

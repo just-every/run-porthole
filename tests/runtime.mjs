@@ -15,11 +15,11 @@ await new Promise(resolve => socket.close(resolve))
 // on its own migrated store, never the checkout's local data.
 const persist = await mkdtemp(join(tmpdir(), 'foundation-runtime-'))
 execFileSync(process.execPath, ['node_modules/wrangler/bin/wrangler.js', 'd1', 'migrations', 'apply', 'foundation', '--local', '--persist-to', persist, '--config', 'dist/server/wrangler.json'], { stdio: 'pipe', env: { ...process.env, CI: '1', WRANGLER_SEND_METRICS: 'false' } })
-const worker = spawn(process.execPath, ['node_modules/wrangler/bin/wrangler.js', 'dev', '--inspector-port', '0', '--local', '--persist-to', persist, '--ip', '127.0.0.1', '--config', 'dist/server/wrangler.json', '--port', String(port)], { stdio: ['ignore', 'pipe', 'pipe'] })
+const origin = `http://127.0.0.1:${port}`
+const worker = spawn(process.execPath, ['node_modules/wrangler/bin/wrangler.js', 'dev', '--inspector-port', '0', '--local', '--persist-to', persist, '--ip', '127.0.0.1', '--config', 'dist/server/wrangler.json', '--port', String(port), '--var', `AUTH_ORIGIN:${origin}`, '--var', 'AUTH_LOCAL:true', '--var', 'OWNER_EMAIL:owner@example.com', '--var', 'SESSION_SECRET:runtime-session-secret-1234567890123456', '--var', 'SETUP_TOKEN:runtime-setup-token-1234567890123456789'], { stdio: ['ignore', 'pipe', 'pipe'] })
 let output = ''
 worker.stdout.on('data', chunk => { output += chunk })
 worker.stderr.on('data', chunk => { output += chunk })
-const origin = `http://127.0.0.1:${port}`
 try {
   let ready = false
   for (let attempt = 0; attempt < 120; attempt++) {
@@ -40,6 +40,17 @@ try {
   for (const path of ['/missing', '/health/extra', '/api', '/api/missing']) {
     assert.equal((await fetch(`${origin}${path}`)).status, 404, path)
   }
+  // A deployed installation must never accept demo/setup claims without its linked provider.
+  for (const body of [{}, { token: 'wrong-setup-token' }]) {
+    const claim = await fetch(`${origin}/auth/owner-claim`, {
+      method: 'POST', headers: { origin, 'content-type': 'application/json', 'x-rer-demo': '1' },
+      body: JSON.stringify(body), redirect: 'manual',
+    })
+    assert.equal(claim.status, 403)
+    assert.deepEqual(await claim.json(), { error: 'provider_unlinked' })
+    assert.equal(claim.headers.has('set-cookie'), false)
+  }
+  console.log('Installed owner claim rejects missing/wrong setup tokens and request demo flags')
   console.log('HTTP-001 passed against emitted local Worker: health, the installed homepage, HTTP and document 404s')
 } finally {
   worker.kill('SIGTERM')

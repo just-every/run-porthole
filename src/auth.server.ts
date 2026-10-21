@@ -1,6 +1,6 @@
 import { rejectedResponse } from './base/rejected-response'
 import { createDependencies } from './modules/dependencies/index.mjs'
-import { createIdpOwnerClaimHandler } from './modules/owner-claim/index.mjs'
+import { createIdpOwnerClaimHandler, createOwnerClaimHandler } from './modules/owner-claim/index.mjs'
 import { firstRunResponse } from './base/setup'
 import { fontHead } from './base/font-head'
 import { fontDocumentResponse } from './base/font-response'
@@ -27,6 +27,9 @@ export interface Bindings {
  RER_MODELS_SERVICE?: string
  RER_MODELS_KEY?: string
  RER_DEMO?: string
+ RER_OWNER_CLAIM_ISSUER?: string
+ RER_OWNER_CLAIM_INSTALLATION_ID?: string
+ RER_OWNER_CLAIM_PUBLIC_KEYS?: string
  RER_DEV_KEY?: string
  RER_DEV_IDENTITY?: string
  RER_INSTALLATION_ID?: string
@@ -59,7 +62,16 @@ async function handleAuthResponse(request: Request, original: Bindings): Promise
   const linked = await createDependencies({ db: env.DB, origin: env.AUTH_ORIGIN, name: branding.name, provider: env.IDENTITY_PROVIDER, local: env.AUTH_LOCAL === 'true', auth: operatorAuth(env), claimOwner: token => createIdpOwnerClaimHandler({db:env.DB,authConfig:authConfig(env),clientIp:()=>request.headers.get('CF-Connecting-IP')??''})(new Request(env.AUTH_ORIGIN+'/auth/owner-claim',{method:'POST',headers:{Host:new URL(env.AUTH_ORIGIN).host,Origin:env.AUTH_ORIGIN,'Content-Type':'application/json'},body:JSON.stringify({token})})) }).handle(request)
   if (linked) return linked
  }
- if (url.pathname === '/auth/owner-claim') return createIdpOwnerClaimHandler({db:env.DB,authConfig:authConfig(env),clientIp:req=>req.headers.get('CF-Connecting-IP')??''})(request)
+ if (url.pathname === '/auth/owner-claim') {
+  // Only the demo runtime supplies these per-visitor signing keys and installation.
+  // Installed apps continue to require their linked identity provider's owner grant.
+  if (env.RER_DEMO === '1' && env.RER_OWNER_CLAIM_PUBLIC_KEYS) return createOwnerClaimHandler({
+   db: env.DB, authConfig: authConfig(env), clientIp: req => req.headers.get('CF-Connecting-IP') ?? '',
+   issuer: env.RER_OWNER_CLAIM_ISSUER ?? '', installationId: env.RER_OWNER_CLAIM_INSTALLATION_ID ?? '',
+   appOrigin: env.AUTH_ORIGIN, expectedEmail: env.OWNER_EMAIL, publicKeys: JSON.parse(env.RER_OWNER_CLAIM_PUBLIC_KEYS),
+  })(request)
+  return createIdpOwnerClaimHandler({db:env.DB,authConfig:authConfig(env),clientIp:req=>req.headers.get('CF-Connecting-IP')??''})(request)
+ }
  // The shared server-rendered sign-in page: plain forms that work before any script.
  if (url.pathname === '/signin') {
   const page = await createSignInHandler(operatorAuth(env), {
@@ -75,7 +87,7 @@ async function handleAuthResponse(request: Request, original: Bindings): Promise
  if (url.pathname === '/app') {
   const session = await operatorAuth(env).getSession(request)
   if (!session) return new Response(null, { status: 303, headers: { ...privateHeaders, location: '/signin' } })
-  return html(`<h1 data-rer-name>${escape(branding.name)}</h1><p>Signed in as ${escape(session.operator.displayName)}</p>`)
+  return html(`<h1>Lobby</h1><p>Signed in as ${escape(session.operator.displayName)}</p>`)
  }
  return null
 }
