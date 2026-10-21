@@ -1,6 +1,7 @@
 import type { ReactElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { fontHead } from '../base/font-head'
+import { fontDocumentResponse } from '../base/font-response'
 import { iconHead } from '../base/icon-head'
 import { selectStyle } from '../base/select-style'
 import branding from '../branding.json'
@@ -43,4 +44,16 @@ export async function withBar(response: Response, bar: BarProps = {}): Promise<R
   const headers = new Headers(response.headers)
   headers.delete('content-length')
   return new Response(html.replace(/<body([^>]*)>/i, (open: string) => open + renderToStaticMarkup(<AppBar {...bar} />)), { status: response.status, statusText: response.statusText, headers })
+}
+
+/** A Base document that carries neither the look nor the themed frame's class (the local hand-off page, the hosted
+ *  demo's owner-claim confirmation): the theme and the look's stylesheets, the class Base's other frames carry, and
+ *  the bar. */
+export async function asFrame(response: Response): Promise<Response> {
+  if (!response.body || !response.headers.get('content-type')?.startsWith('text/html')) return response
+  const looked = (await fontDocumentResponse(response))!
+  let html = await looked.text()
+  if (!html.includes('href="/rer-theme.css"')) html = html.replace(/<\/head\s*>/i, '<link rel="stylesheet" href="/rer-theme.css"></head>')
+  if (!html.includes('class="rer-themed"')) html = html.replace('<html lang="en">', '<html lang="en" class="rer-themed">')
+  return withBar(new Response(html, looked))
 }

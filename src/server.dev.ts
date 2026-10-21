@@ -6,9 +6,8 @@ import { withDevIdentity } from './modules/operator-auth/dev/index.mjs'
 import { authConfig, runtimeBindings, type Bindings } from './auth.server'
 import { devPersonas } from './dev-personas'
 import { withDevAi } from './modules/ai/dev/index.mjs'
-import { fontDocumentResponse } from './base/font-response'
 import { fontLinks } from './base/font-head'
-import { withBar } from './ui/document.server'
+import { asFrame } from './ui/document.server'
 
 const development = withDevAi<Bindings, typeof worker>(worker, { bindings: runtimeBindings })
 const dev = withDevIdentity<Bindings, typeof worker>(development, { bindings: runtimeBindings, config: authConfig, personas: devPersonas })
@@ -22,8 +21,6 @@ export default {
     const response = await dev.fetch!(request, env, execution)
     const path = new URL(request.url).pathname
     if ((path !== '/signin' && path !== '/__dev/key') || !response.headers.get('content-type')?.startsWith('text/html') || (await response.clone().text()).includes(look)) return response
-    const looked = (await fontDocumentResponse(response))!
-    const themed = path === '/__dev/key' ? new Response((await looked.text()).replace('<html lang="en">', '<html lang="en" class="rer-themed">'), looked) : looked
-    return withBar(themed)
+    return asFrame(response)
   },
 } satisfies ExportedHandler<Bindings>

@@ -11,7 +11,7 @@ html.rer-themed main { box-sizing: border-box; width: auto; max-width: 480px; ma
 /* the bar carries the lockup, so Base's own brand line inside the card goes */
 html.rer-themed body:has(> .topbar) main > :is(.brand, .rer-brand) { display: none; }
 html.rer-themed main > :is(.brand, .rer-brand) { display: flex; align-items: center; gap: 10px; margin: 0 0 24px; color: var(--ink); font: 880 24px/1 var(--sans); font-variation-settings: 'opsz' 32; letter-spacing: -.035em; }
-html.rer-themed main h1 { margin: 0 0 12px; color: var(--ink); font: 860 32px/1.12 var(--sans); font-variation-settings: 'opsz' 32; letter-spacing: -.035em; text-wrap: balance; }
+html.rer-themed main h1 { margin: 0 0 12px; color: var(--ink); font: 860 32px/1.22 var(--sans); font-variation-settings: 'opsz' 32; letter-spacing: -.035em; text-wrap: balance; }
 html.rer-themed main h2 { margin: 28px 0 12px; color: var(--ink); font: 860 21px/1.25 var(--sans); font-variation-settings: 'opsz' 32; letter-spacing: -.02em; }
 html.rer-themed main p { margin: 0 0 20px; color: var(--muted); font-size: 16px; line-height: 1.55; text-wrap: pretty; }
 html.rer-themed main dl { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 16px; margin: 0 0 22px; font-size: 16px; }
@@ -19,12 +19,14 @@ html.rer-themed main dt { color: var(--muted); }
 html.rer-themed main dd { margin: 0; color: var(--ink); font-weight: 500; }
 html.rer-themed main form { display: grid; gap: 14px; margin: 0; }
 html.rer-themed main form p { margin: 0; }
+html.rer-themed main form + p { margin: 18px 0 0; }
 html.rer-themed main label { display: grid; gap: 6px; margin: 0; color: var(--ink); font: 600 15px/1.35 var(--sans); }
 html.rer-themed main label:has(input[type=checkbox]) { display: flex; align-items: flex-start; gap: 10px; font-weight: 500; }
 html.rer-themed main label.check { margin: 0 0 4px; }
 html.rer-themed main form > input:not([type=hidden]) { margin: 0; }
 html.rer-themed main :is(button, a.action):not(.secondary) { display: flex; justify-content: center; width: 100%; min-height: 48px; font-size: 17px; box-shadow: none; }
 html.rer-themed main button.secondary { width: 100%; min-height: 48px; }
+html.rer-themed main :is(button, a.action):not(.secondary):disabled { background: var(--slate-5); color: var(--ink) !important; cursor: not-allowed; }
 html.rer-themed main .stack { display: grid; gap: 12px; margin: 0 0 4px; }
 html.rer-themed main h1 + .stack { margin-top: 22px; }
 html.rer-themed main .divider { display: flex; align-items: center; gap: 12px; margin: 18px 0; color: var(--muted); font-size: 14px; }

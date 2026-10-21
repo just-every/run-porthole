@@ -6,8 +6,8 @@ export interface P95Props { ticks: string[]; scale?: { at: number; label: string
 const percent = (value: number) => `${(value * 100).toFixed(3)}%`
 
 /** The p95 strip on its own clock axis: ticks spread from the window's start to its end; points are placed by `at`
- *  (0 to 1 along the window) and `ms` against `max`; the pin drops a deploy into the rows below. With no points it
- *  says `empty` on a dashed baseline. */
+ *  (0 to 1 along the window) and `ms` against `max` (a label near the window's end reads leftward); the pin drops
+ *  a deploy into the rows below. With no points it says `empty` on a dashed baseline. */
 export function P95Strip({ ticks, scale = [], points = [], max = 2400, pin, empty = 'No requests yet' }: P95Props) {
   const y = (ms: number) => 1 - Math.min(ms, max) / max
   const line = points.map(point => `${(point.at * 1000).toFixed(1)},${(y(point.ms) * 100).toFixed(2)}`).join(' ')
@@ -19,7 +19,7 @@ export function P95Strip({ ticks, scale = [], points = [], max = 2400, pin, empt
         {points.length ? <>
           <svg viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true"><polygon className="p95-area" points={`0,100 ${line} ${points[points.length - 1].at * 1000},100`} /><polyline className="p95-line" points={line} /></svg>
           {points.map(point => <span key={point.at} className="p95-point" style={{ left: percent(point.at), top: percent(y(point.ms)) }} />)}
-          {points.filter(point => point.value).map(point => <p key={point.at} className="p95-note" style={{ left: percent(point.at), top: percent(y(point.ms)) } as CSSProperties}><b>{point.value}</b>{point.time}</p>)}
+          {points.filter(point => point.value).map(point => <p key={point.at} className={point.at > .85 ? 'p95-note end' : 'p95-note'} style={{ left: percent(point.at), top: percent(y(point.ms)) } as CSSProperties}><b>{point.value}</b>{point.time}</p>)}
           {pin ? <p className="p95-pin" style={{ left: percent(pin.at) }}><span>{pin.label}</span></p> : null}
         </> : <p className="p95-empty"><span>{empty}</span></p>}
       </div>

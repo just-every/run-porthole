@@ -16,7 +16,9 @@ await new Promise(resolve => socket.close(resolve))
 const persist = await mkdtemp(join(tmpdir(), 'foundation-runtime-'))
 execFileSync(process.execPath, ['node_modules/wrangler/bin/wrangler.js', 'd1', 'migrations', 'apply', 'foundation', '--local', '--persist-to', persist, '--config', 'dist/server/wrangler.json'], { stdio: 'pipe', env: { ...process.env, CI: '1', WRANGLER_SEND_METRICS: 'false' } })
 const origin = `http://127.0.0.1:${port}`
-const worker = spawn(process.execPath, ['node_modules/wrangler/bin/wrangler.js', 'dev', '--inspector-port', '0', '--local', '--persist-to', persist, '--ip', '127.0.0.1', '--config', 'dist/server/wrangler.json', '--port', String(port), '--var', `AUTH_ORIGIN:${origin}`, '--var', 'AUTH_LOCAL:true', '--var', 'OWNER_EMAIL:owner@example.com', '--var', 'SESSION_SECRET:runtime-session-secret-1234567890123456', '--var', 'SETUP_TOKEN:runtime-setup-token-1234567890123456789'], { stdio: ['ignore', 'pipe', 'pipe'] })
+// The emitted Worker's owner-claim setup token: a synthetic test value.
+const setupToken = 'synthetic-runtime-setup-token-1234567890123456789'
+const worker = spawn(process.execPath, ['node_modules/wrangler/bin/wrangler.js', 'dev', '--inspector-port', '0', '--local', '--persist-to', persist, '--ip', '127.0.0.1', '--config', 'dist/server/wrangler.json', '--port', String(port), '--var', `AUTH_ORIGIN:${origin}`, '--var', 'AUTH_LOCAL:true', '--var', 'OWNER_EMAIL:owner@example.com', '--var', 'SESSION_SECRET:runtime-session-secret-1234567890123456', '--var', `SETUP_TOKEN:${setupToken}`], { stdio: ['ignore', 'pipe', 'pipe'] })
 let output = ''
 worker.stdout.on('data', chunk => { output += chunk })
 worker.stderr.on('data', chunk => { output += chunk })
@@ -52,6 +54,27 @@ try {
   }
   console.log('Installed owner claim rejects missing/wrong setup tokens and request demo flags')
   console.log('HTTP-001 passed against emitted local Worker: health, the installed homepage, HTTP and document 404s')
+  // APP-HOME: the owner's first run on the emitted Worker. /app sits behind sign-in and setup, then serves the
+  // trace view with every stylesheet it links.
+  const form = (body, cookie) => ({ method: 'POST', redirect: 'manual', headers: { origin, 'content-type': 'application/x-www-form-urlencoded', ...(cookie ? { cookie } : {}) }, body: new URLSearchParams(body) })
+  assert.equal((await fetch(`${origin}/app`, { redirect: 'manual' })).headers.get('location'), '/signin')
+  const owner = await fetch(`${origin}/auth/bootstrap`, form({ token: setupToken, displayName: 'Runtime Owner', returnTo: '/setup' }))
+  assert.equal(owner.status, 303)
+  const cookie = owner.headers.getSetCookie().map(value => value.split(';')[0]).join('; ')
+  assert.equal((await fetch(`${origin}/app`, { redirect: 'manual', headers: { cookie } })).headers.get('location'), '/setup')
+  assert.equal((await fetch(`${origin}/setup`, { headers: { cookie } })).status, 200)
+  assert.equal((await fetch(`${origin}/setup`, form({ confirm: 'yes' }, cookie))).headers.get('location'), '/app')
+  const home = await fetch(`${origin}/app`, { headers: { cookie } })
+  assert.equal(home.status, 200)
+  assert.match(home.headers.get('content-type'), /^text\/html/)
+  const linked = [...(await home.text()).matchAll(/<link rel="stylesheet" href="(\/[^"]+)"/g)].map(match => match[1])
+  assert.ok(linked.length >= 2, 'the home links the theme and the look')
+  for (const href of linked) {
+    const sheet = await fetch(`${origin}${href}`)
+    assert.equal(sheet.status, 200, href)
+    for (const [, imported] of (await sheet.text()).matchAll(/@import url\('(\/[^']+)'\)/g)) assert.equal((await fetch(`${origin}${imported}`)).status, 200, imported)
+  }
+  console.log('APP-HOME passed against emitted local Worker: /app behind sign-in and setup, then the trace view with its stylesheets')
 } finally {
   worker.kill('SIGTERM')
   await new Promise(resolve => worker.exitCode !== null ? resolve() : worker.once('exit', resolve))

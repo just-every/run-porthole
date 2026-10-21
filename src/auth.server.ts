@@ -7,7 +7,7 @@ import { createOperatorAuth, createAuthHandler, createSignInHandler, type AuthCo
 import { operatorMail } from './mail.server.mjs'
 import branding from './branding.json'
 import { identity } from './identity'
-import { homeDocument, withBar } from './ui/document.server'
+import { asFrame, homeDocument, withBar } from './ui/document.server'
 import { homeViews, settingsPath } from './ui/home'
 
 // The edition's declared theme (public/rer-theme.css), as Base frames link it.
@@ -61,11 +61,15 @@ async function handleAuthResponse(request: Request, original: Bindings): Promise
  if (url.pathname === '/auth/owner-claim') {
   // Only the demo runtime supplies these per-visitor signing keys and installation.
   // Installed apps continue to require their linked identity provider's owner grant.
-  if (env.RER_DEMO === '1' && env.RER_OWNER_CLAIM_PUBLIC_KEYS) return createOwnerClaimHandler({
-   db: env.DB, authConfig: authConfig(env), clientIp: req => req.headers.get('CF-Connecting-IP') ?? '',
-   issuer: env.RER_OWNER_CLAIM_ISSUER ?? '', installationId: env.RER_OWNER_CLAIM_INSTALLATION_ID ?? '',
-   appOrigin: env.AUTH_ORIGIN, expectedEmail: env.OWNER_EMAIL, publicKeys: JSON.parse(env.RER_OWNER_CLAIM_PUBLIC_KEYS),
-  })(request)
+  // Its confirmation page wears the frame the other sign-in documents wear.
+  if (env.RER_DEMO === '1' && env.RER_OWNER_CLAIM_PUBLIC_KEYS) {
+   const claim = await createOwnerClaimHandler({
+    db: env.DB, authConfig: authConfig(env), clientIp: req => req.headers.get('CF-Connecting-IP') ?? '',
+    issuer: env.RER_OWNER_CLAIM_ISSUER ?? '', installationId: env.RER_OWNER_CLAIM_INSTALLATION_ID ?? '',
+    appOrigin: env.AUTH_ORIGIN, expectedEmail: env.OWNER_EMAIL, publicKeys: JSON.parse(env.RER_OWNER_CLAIM_PUBLIC_KEYS),
+   })(request)
+   return claim && asFrame(claim)
+  }
   return createIdpOwnerClaimHandler({db:env.DB,authConfig:authConfig(env),clientIp:req=>req.headers.get('CF-Connecting-IP')??''})(request)
  }
  // The shared server-rendered sign-in page: plain forms that work before any script.

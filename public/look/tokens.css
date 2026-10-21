@@ -21,6 +21,7 @@
 
 /* The app: its bar, the trace view and Base's documents under it. */
 :root {
+  --surface: var(--rer-surface);
   --edge: var(--rer-border);
   --hair: #eceef3;
   --field: #f6f6f8;
