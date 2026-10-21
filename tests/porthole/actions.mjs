@@ -102,7 +102,7 @@ async function browserOperations({origin,cookie,restrictedCookie}) {
    await context.addCookies(cookie.split('; ').map(value=>({name:value.slice(0,value.indexOf('=')),value:value.slice(value.indexOf('=')+1),url:origin})))
    const page=await context.newPage()
    await page.goto(origin+'/app/operations')
-   const form=page.locator('form[action="/app/operations/save"]')
+   const form=page.locator('form[action="/app/operations/save"]').filter({has:page.getByRole('button',{name:'Save inactive definition',exact:true})})
    await form.getByLabel('Name',{exact:true}).fill(`Checkout ${width} error count`)
    await form.getByLabel('Kind',{exact:true}).selectOption('monitor')
    await form.getByLabel('Service',{exact:true}).fill('checkout')
