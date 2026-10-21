@@ -1,7 +1,7 @@
 import type { Bindings } from '../../auth.server'
 import { AuthError } from '../../modules/operator-auth/index.mjs'
 import { authority, fail } from '../security/authority'
-import { document, escape, privateHeaders } from '../document'
+import { operationDocument as document, escape, privateHeaders } from '../document'
 import { uuid } from './format'
 import { exportChunk, exportManifest, jobFor, jobStatus, startExport } from './store'
 import { commitRestore, stageChunk, startRestore } from './restore'

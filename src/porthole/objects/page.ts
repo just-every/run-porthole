@@ -1,4 +1,4 @@
-import {document,escape} from '../document'
+import {operationDocument as document,escape} from '../document'
 import type {ProductRole} from '../security/authority'
 import type {ObjectRow} from './http'
 export function operationsPage(objects:ObjectRow[],role:ProductRole) {

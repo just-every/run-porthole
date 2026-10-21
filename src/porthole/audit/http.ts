@@ -1,5 +1,5 @@
 import { operatorAuth, type Bindings } from '../../auth.server'
-import { document, escape, privateHeaders } from '../document'
+import { operationDocument as document, escape, privateHeaders } from '../document'
 import { append, checkpoint, read, verify, genesis, type AuditInput, type Checkpoint } from './store'
 import { streamAudit } from './export'
 import { projectFacts } from './facts'

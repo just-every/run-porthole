@@ -1,4 +1,4 @@
-import { document, escape } from '../document'
+import { operationDocument as document, escape } from '../document'
 import type { HealthState } from './model'
 export function healthPage(state: HealthState, notices: Record<string,unknown>[]) {
  const timestamp=(value:string|null,empty:string)=>value?`${escape(value)} (UTC)`:empty

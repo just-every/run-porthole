@@ -1,7 +1,7 @@
 import type { Bindings } from '../../auth.server'
 import { operatorAuth } from '../../auth.server'
 import { AuthError } from '../../modules/operator-auth/index.mjs'
-import { document, escape, privateHeaders } from '../document'
+import { operationDocument as document, escape, privateHeaders } from '../document'
 import { authority, fail, sameOrigin } from '../security/authority'
 import { CredentialLimit } from '../credentials/verify'
 import { observeHealth } from './observe'

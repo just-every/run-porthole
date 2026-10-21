@@ -1,5 +1,5 @@
 import type { Bindings } from '../../auth.server'
-import { document, escape, privateHeaders } from '../document'
+import { operationDocument as document, escape, privateHeaders } from '../document'
 import { authority, fail, scopeWithin, type Authority, type Scope } from '../security/authority'
 import { input } from '../security/input'
 import { nano } from './model'

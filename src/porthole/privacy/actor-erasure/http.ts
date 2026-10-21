@@ -1,6 +1,6 @@
 import type { Bindings } from '../../../auth.server'
 import { AuthError } from '../../../modules/operator-auth/index.mjs'
-import { document,escape,privateHeaders } from '../../document'
+import { operationDocument as document,escape,privateHeaders } from '../../document'
 import { authority,fail,proofFence } from '../../security/authority'
 import { input,text } from '../../security/input'
 const paths=new Set(['/app/settings/privacy','/app/settings/privacy/erase','/api/porthole/v1/actors/erase'])

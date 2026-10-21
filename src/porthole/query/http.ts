@@ -3,7 +3,7 @@ import { AuthError } from '../../modules/operator-auth/index.mjs'
 import { authority,fail } from '../security/authority'
 import { input } from '../security/input'
 import { readTelemetry } from '../ingest/read'
-import { document,escape,privateHeaders } from '../document'
+import { operationDocument as document,escape,privateHeaders } from '../document'
 const keys=['signal','service','environment','team','from','through','cursor','limit','snapshot']
 function queryRequest(request:Request,data:Record<string,unknown>):Request {
  const url=new URL('/api/porthole/v1/ingest/records',request.url)

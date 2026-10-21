@@ -1,4 +1,4 @@
-import { document, escape } from '../document'
+import { operationDocument as document, escape } from '../document'
 import { jobStatus, type Job } from './store'
 import { chunkRows, type Manifest } from './format'
 export const pageRoot='/app/settings/archive'

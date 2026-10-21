@@ -1,7 +1,7 @@
 import {operationsPage} from './page'
 import type { Bindings } from '../../auth.server'
 import { AuthError } from '../../modules/operator-auth/index.mjs'
-import { document,escape,privateHeaders } from '../document'
+import { operationDocument as document,escape,privateHeaders } from '../document'
 import { authority,administrative,fail,parseScope,scopeWithin } from '../security/authority'
 import { input,text } from '../security/input'
 import { validateBody } from './schema'
