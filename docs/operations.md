@@ -22,7 +22,7 @@ policy approval/revocation routes. An unavailable optional auth action remains a
 recorded refusal; a record does not claim that the action exists or succeeded.
 Audit reads/exports record their own result and pinned numeric sequence range.
 The event includes opaque operation and actor references, the actor's native
-authority revision, occurrence time, recording time, phase and HTTP status.
+authority revision, a successful operator mutation's native target/revision, occurrence time, recording time, phase and HTTP status.
 UUID references are not session tokens. The ledger stores no actor directory,
 email, name, request/response body, header, URL, exception, credential or query
 literal. History is not hydrated with current identity labels in the audit UI.
@@ -33,7 +33,7 @@ returns. Those are separate transactions: a crash or failed result append can
 leave an attempt without an outcome after the action took effect. That means
 **uncertain**, not failed or safe to retry; inspect the native object and the
 operation reference before retrying. Do not infer a target object's revision
-from the authority revision. Full atomic target revision/outcome capture,
+from the authority revision. Atomic target revision/outcome capture, invitation/session target references,
 non-HTTP/background actions, all remaining native auth/provider doors and the
 future product action families remain PORT-033 gaps.
 

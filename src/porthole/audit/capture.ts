@@ -25,16 +25,27 @@ export async function capture(request: Request, env: Bindings, handle: () => Pro
  let input: AuditInput
  try {
   const session = await operatorAuth(env).getSession(request)
-  // UUIDs are opaque native references. No identity directory or request field
-  // is copied. For these doors the actor revision is the native auth revision;
-  // target-object revision capture is still a future integration obligation.
-  input = { operationRef, occurredAt, actorRef: session?.operator.id ?? null, action,
-   entityRef: session?.operator.id ?? null, revision: session?.operator.version ?? null, phase: 'attempted', status: null }
+  // Only server-produced opaque references and numeric revisions may cross
+  // this boundary. Bodies and identity labels are never persisted.
+  input = { operationRef, occurredAt, actorRef: session?.operator.id ?? null, actorRevision: session?.operator.version ?? null, action,
+   entityRef: null, revision: null, phase: 'attempted', status: null }
   await append(env.DB, input)
  } catch { return auditUnavailable() }
  let response: Response
  try { response = await handle() ?? new Response(null, { status: 404 }) } catch { response = Response.json({ error: 'action_unavailable' }, { status: 503, headers }) }
- try { await append(env.DB, { ...input, phase: outcome(response.status), status: response.status }) }
+ try {
+  // Successful native operator mutations return the target and its revision.
+  // Select only those fields, validate against native storage, and discard the
+  // response's identity fields. Invitations with no returned target stay null.
+  if (response.ok && response.headers.get('content-type')?.startsWith('application/json')) {
+   const target = await response.clone().json() as { id?: unknown }
+   if (typeof target.id === 'string' && /^[a-f0-9-]{36}$/.test(target.id)) {
+    const row = await env.DB.prepare('SELECT id,version FROM oa_operators WHERE id=?').bind(target.id).first<{ id: string; version: number }>()
+    if (row) { input.entityRef = row.id; input.revision = row.version }
+   }
+  }
+  await append(env.DB, { ...input, phase: outcome(response.status), status: response.status })
+ }
  catch { return auditUnavailable(operationRef) }
  const responseHeaders = new Headers(response.headers)
  responseHeaders.set('x-porthole-operation', operationRef)

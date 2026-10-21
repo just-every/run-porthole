@@ -23,8 +23,8 @@ export async function auditResponse(request: Request, env: Bindings): Promise<Re
  try {
   const session = await operatorAuth(env).getSession(request)
   const head = await checkpoint(env.DB)
-  input = { operationRef: crypto.randomUUID(), occurredAt: Date.now(), actorRef: session?.operator.id ?? null,
-   action: exporting ? 'audit.export' : 'audit.query', entityRef: null, revision: 1, phase: 'attempted', status: null }
+  input = { operationRef: crypto.randomUUID(), occurredAt: Date.now(), actorRef: session?.operator.id ?? null, actorRevision: session?.operator.version ?? null,
+   action: exporting ? 'audit.export' : 'audit.query', entityRef: null, revision: null, phase: 'attempted', status: null }
   await append(env.DB, input)
   let response: Response
   if (!session) response = await problem('authentication_required', 401)
@@ -50,7 +50,7 @@ export async function auditResponse(request: Request, env: Bindings): Promise<Re
     if (exporting && !await verify(records, head)) response = await problem('audit_integrity_failed', 409)
     else if (page) {
      const next = records.at(-1)?.entry.sequence ?? after
-     const rows = records.map(({ entry }) => `<li><h2>${escape(entry.action)} — ${escape(entry.phase)}</h2><dl><dt>Sequence</dt><dd>${entry.sequence}</dd><dt>Occurred (UTC)</dt><dd>${escape(new Date(entry.occurredAt).toISOString())}</dd><dt>Recorded (UTC)</dt><dd>${escape(new Date(entry.recordedAt).toISOString())}</dd><dt>Actor reference</dt><dd>${escape(entry.actorRef ?? 'Unauthenticated')}</dd><dt>Operation reference</dt><dd>${escape(entry.operationRef)}</dd><dt>HTTP result</dt><dd>${entry.status ?? 'Pending; outcome unknown'}</dd><dt>Revision</dt><dd>${entry.revision ?? 'Not recorded'}</dd></dl></li>`).join('')
+     const rows = records.map(({ entry }) => `<li><h2>${escape(entry.action)} — ${escape(entry.phase)}</h2><dl><dt>Sequence</dt><dd>${entry.sequence}</dd><dt>Occurred (UTC)</dt><dd>${escape(new Date(entry.occurredAt).toISOString())}</dd><dt>Recorded (UTC)</dt><dd>${escape(new Date(entry.recordedAt).toISOString())}</dd><dt>Actor reference</dt><dd>${escape(entry.actorRef ?? 'Unauthenticated')}</dd><dt>Operation reference</dt><dd>${escape(entry.operationRef)}</dd><dt>HTTP result</dt><dd>${entry.status ?? 'Pending; outcome unknown'}</dd><dt>Target reference</dt><dd>${escape(entry.entityRef ?? 'Not returned')}</dd><dt>Target revision</dt><dd>${entry.revision ?? 'Not returned'}</dd><dt>Authority revision</dt><dd>${entry.actorRevision ?? 'Unauthenticated'}</dd></dl></li>`).join('')
      response = await document('Audit', `<p>Private operational history. References are opaque; request contents and identity labels are excluded. An attempt without an outcome is uncertain.</p><p>Snapshot through sequence ${through}. <a href="/api/v1/audit/export">Export audit for Evidence</a></p>${records.length ? `<ol start="${after + 1}">${rows}</ol>` : '<p>No audit entries in this range.</p>'}${next < through ? `<p><a href="/app/audit?after=${next}&amp;through=${through}&amp;limit=${limit}">Next audit entries</a></p>` : ''}<p>Product queries, monitors, repairs, actor erasure and archive continuity are still being built.</p>`)
     } else {
      const end = records.at(-1)?.entry.sequence ?? after

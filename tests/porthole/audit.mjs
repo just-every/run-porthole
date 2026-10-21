@@ -38,6 +38,7 @@ export async function auditJourney({ origin, cookie, persist, restartWorker }) {
  assert.equal(forged.status, 403)
  const changed = await fetch(`${origin}/auth/operator/role`, form(origin, cookie, { operatorId: target.id, role: 'admin' }))
  assert.equal(changed.status, 200)
+ const changedOperator = await changed.json()
  const invalidRead = await fetch(`${origin}/api/v1/audit?query=${encodeURIComponent(planted[2])}&token=${planted[1]}`, { headers: { cookie } })
  assert.equal(invalidRead.status, 400)
  for (const query of ['after=-1', 'limit=0', 'limit=101', 'limit=1&limit=2', 'through=9999999999999999999999']) {
@@ -54,7 +55,7 @@ export async function auditJourney({ origin, cookie, persist, restartWorker }) {
  assert.equal(pair[1].status, 202)
  assert.equal(pair[0].action, 'membership.invite')
  assert.ok(rows.some(row => row.action === 'membership.role' && row.phase === 'denied' && row.status === 403))
- assert.ok(rows.some(row => row.action === 'membership.role' && row.phase === 'succeeded' && row.status === 200))
+ assert.ok(rows.some(row => row.action === 'membership.role' && row.phase === 'succeeded' && row.status === 200 && row.entityRef === target.id && row.revision === changedOperator.version && Number.isSafeInteger(row.actorRevision)))
  for (const row of rows) {
   assert.ok(Number.isSafeInteger(row.occurredAt) && row.recordedAt >= row.occurredAt)
   assert.ok(row.actorRef === null || /^[a-f0-9-]{36}$/.test(row.actorRef))
@@ -100,7 +101,7 @@ export async function auditJourney({ origin, cookie, persist, restartWorker }) {
  for (const command of ['UPDATE porthole_audit_entries SET hash=hash WHERE sequence=1', 'DELETE FROM porthole_audit_entries WHERE sequence=1']) assert.throws(() => sql(command), /audit_append_only/)
  // An unavailable audit ledger must gate the mutation while the separate
  // health door still reports missing pipeline coverage truthfully.
- sql('ALTER TABLE porthole_audit_entries RENAME TO porthole_audit_unavailable')
+ await restartWorker(() => sql('ALTER TABLE porthole_audit_entries RENAME TO porthole_audit_unavailable'))
  try {
   const refusal = await fetch(`${origin}/auth/operator/role`, form(origin, cookie, { operatorId: target.id, role: 'member' }))
   assert.equal(refusal.status, 503)
@@ -110,7 +111,7 @@ export async function auditJourney({ origin, cookie, persist, restartWorker }) {
   const health = await fetch(`${origin}/api/v1/health`, { headers: { cookie } })
   assert.equal(health.status, 200); assert.equal((await health.json()).status, 'Unknown')
   await browserProof({ origin, cookie, paths: ['/app/audit'], name: 'audit-unavailable' })
- } finally { sql('ALTER TABLE porthole_audit_unavailable RENAME TO porthole_audit_entries') }
+ } finally { await restartWorker(() => sql('ALTER TABLE porthole_audit_unavailable RENAME TO porthole_audit_entries')) }
  const unchanged = await packet(origin, cookie)
  assert.deepEqual(unchanged.records.slice(0, restored.records.length), restored.records)
  await browserProof({ origin, cookie, paths: ['/app/audit?limit=2', '/app/audit?after=0&through=0', '/app/audit?limit=0'], name: 'audit' })

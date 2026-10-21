@@ -29,8 +29,8 @@ async function stopWorker() {
  worker.kill('SIGTERM')
  await new Promise(resolve => worker.exitCode !== null ? resolve() : worker.once('exit', resolve))
 }
-async function restartWorker() {
- await stopWorker(); output = ''; startWorker()
+async function restartWorker(changeStorage) {
+ await stopWorker(); if (changeStorage) changeStorage(); output = ''; startWorker()
  for (let attempt = 0; attempt < 120; attempt++) {
   if (worker.exitCode !== null) throw Error(output)
   try { if ((await fetch(`${origin}/health`)).ok) return } catch {}

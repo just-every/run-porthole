@@ -4,6 +4,7 @@ export type Phase = 'attempted' | 'succeeded' | 'denied' | 'failed'
 export interface AuditInput {
  operationRef: string
  actorRef: string | null
+ actorRevision: number | null
  action: string
  entityRef: string | null
  revision: number | null
