@@ -53,7 +53,7 @@ export async function observeHealth(env: HealthBindings): Promise<HealthState> {
   const row = latest(receipts,component)
   let status = row?.status??'Unknown', reason = row?.reason??'Not configured: no independent fresh product receipt.'
   if (component!=='control-plane' && control?.paused) {status='Unknown';reason='Collection is paused; retained data is last-known only.'}
-  if (row && (row.expires_at<now || row.observed_at+config.freshness_ms<now || row.observed_at>now)) { status='Unknown';reason='Component receipt is stale; earlier evidence is last-known only.' }
+  if (row && (row.expires_at<evaluatedAt || row.observed_at+config.freshness_ms<evaluatedAt || row.observed_at>evaluatedAt)) { status='Unknown';reason='Component receipt is stale; earlier evidence is last-known only.' }
   let evidence: Record<string,unknown> = row ? JSON.parse(row.evidence) as Record<string,unknown> : {}
   if (component === 'queue') {
    try {
