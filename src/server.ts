@@ -11,6 +11,8 @@ import { authResponse, runtimeBindings, type Bindings } from './auth.server'
 import { identity } from './identity'
 import { seedDemo } from './demo'
 import { portholeResponse } from './porthole/http'
+import { drainIngest } from './porthole/ingest/processor'
+import { healthTick,recordComponentReceipt } from './porthole/health/http'
 import { capture } from './porthole/audit/capture'
 
 const api = new Hono<{ Bindings: Bindings }>()
@@ -26,10 +28,19 @@ function noTransform(response: Response): Response {
 }
 
 export default withDemo<Bindings, ExportedHandler<Bindings>>({
+  async scheduled(_event,env,execution) {
+    execution.waitUntil((async()=>{
+      try {
+        const result=await drainIngest(env)
+        await recordComponentReceipt(env.DB,{component:'queue',source:'ingest-worker',status:result.paused?'Unknown':'Healthy',reason:result.paused?'Durable intake drain is paused.':'Bounded durable intake drain completed.',evidence:result})
+      } catch {await recordComponentReceipt(env.DB,{component:'queue',source:'ingest-worker',status:'Unknown',reason:'Durable intake drain failed; accepted envelopes remain pending.'})}
+      await healthTick(env)
+    })())
+  },
   async fetch(request, env, execution) {
     const asset = await staticAssetResponse(request, env)
     if (asset) return asset
-    const privateResponse = await capture(request, runtimeBindings(env), async () => await authResponse(request, env) ?? await portholeResponse(request, env))
+    const privateResponse = await capture(request, runtimeBindings(env), async audited => await authResponse(request, audited) ?? await portholeResponse(request, audited))
     if (privateResponse) return rejectedResponse(request, privateResponse)
     // The installed variant: the Lobby at / and the public claim state it reads.
     // Local dev serves the saved origin's data at its own port (RER_DEV_ORIGIN).

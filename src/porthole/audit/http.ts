@@ -1,6 +1,8 @@
 import { operatorAuth, type Bindings } from '../../auth.server'
 import { document, escape, privateHeaders } from '../document'
 import { append, checkpoint, read, verify, genesis, type AuditInput, type Checkpoint } from './store'
+import { streamAudit } from './export'
+import { projectFacts } from './facts'
 import { auditUnavailable, outcome } from './capture'
 
 const messages: Record<string, string> = {
@@ -32,6 +34,7 @@ export async function auditResponse(request: Request, env: Bindings): Promise<Re
  try {
   const session = await operatorAuth(env).getSession(request)
   if (!session) return problem('authentication_required', 401)
+  await projectFacts(env.DB)
   const head = await checkpoint(env.DB)
   input = { operationRef: crypto.randomUUID(), occurredAt: Date.now(), actorRef: session?.operator.id ?? null, actorRevision: session?.operator.version ?? null,
    action: exporting ? 'audit.export' : 'audit.query', entityRef: null, revision: null, phase: 'attempted', status: null }
@@ -51,16 +54,15 @@ export async function auditResponse(request: Request, env: Bindings): Promise<Re
     return response
    }
    input.rangeStart = after + 1; input.rangeEnd = through
-   // A full export is deliberately bounded until streaming archival custody is
-   // implemented. Refuse a larger export, never silently truncate it.
-   if (exporting && head.sequence > 10000) response = await problem('export_limit_use_installation_backup', 409)
+   // Export streams one pinned chain in bounded pages without a row ceiling.
+   if(exporting)return streamAudit(env.DB,head,input)
    else {
     const records = await read(env.DB, after, through, exporting ? 10000 : limit)
     if (exporting && !await verify(records, head)) response = await problem('audit_integrity_failed', 409)
     else if (page) {
      const next = records.at(-1)?.entry.sequence ?? after
      const rows = records.map(({ entry }) => `<li><h2>${escape(entry.action)} — ${escape(entry.phase)}</h2><dl><dt>Sequence</dt><dd>${entry.sequence}</dd><dt>Occurred (UTC)</dt><dd>${escape(new Date(entry.occurredAt).toISOString())}</dd><dt>Recorded (UTC)</dt><dd>${escape(new Date(entry.recordedAt).toISOString())}</dd><dt>Actor reference</dt><dd>${escape(entry.actorRef ?? 'Unauthenticated')}</dd><dt>Operation reference</dt><dd>${escape(entry.operationRef)}</dd><dt>HTTP result</dt><dd>${entry.status ?? 'Pending; outcome unknown'}</dd><dt>Target reference</dt><dd>${escape(entry.entityRef ?? 'Not returned')}</dd><dt>Target revision</dt><dd>${entry.revision ?? 'Not returned'}</dd><dt>Authority revision</dt><dd>${entry.actorRevision ?? 'Unauthenticated'}</dd></dl></li>`).join('')
-     response = await document('Audit', `<p>Private operational history. References are opaque; request contents and identity labels are excluded. An attempt without an outcome is uncertain.</p><p>Snapshot through sequence ${through}. ${session.operator.role==='owner'?'<a href="/api/v1/audit/export">Export audit for Evidence</a>':''}</p>${records.length ? `<ol start="${after + 1}">${rows}</ol>` : '<p>No audit entries in this range.</p>'}${next < through ? `<p><a href="/app/audit?after=${next}&amp;through=${through}&amp;limit=${limit}">Next audit entries</a></p>` : ''}<p>Product queries, monitors, repairs, actor erasure and archive continuity are still being built.</p>`)
+     response = await document('Audit', `<p>Private operational history. References are opaque; request contents and identity labels are excluded. An attempt without an outcome is uncertain.</p><p>Snapshot through sequence ${through}. ${session.operator.role==='owner'?'<a href="/api/v1/audit/export">Export audit for Evidence</a>':''}</p>${records.length ? `<ol start="${after + 1}">${rows}</ol>` : '<p>No audit entries in this range.</p>'}${next < through ? `<p><a href="/app/audit?after=${next}&amp;through=${through}&amp;limit=${limit}">Next audit entries</a></p>` : ''}<p><a href="/app/operations">Monitor definitions and repair plans</a> · <a href="/app/explore">Explore telemetry</a> · <a href="/app/settings/privacy">Actor privacy</a> · <a href="/app/settings/archive">Inactive archive</a></p><p>Committed entries are facts recorded atomically with the target mutation. A missing HTTP outcome remains uncertain; it never erases a committed fact.</p>`)
     } else {
      const end = records.at(-1)?.entry.sequence ?? after
      const pinned = through === 0 ? { sequence: 0, hash: genesis } : await env.DB.prepare('SELECT sequence,hash FROM porthole_audit_entries WHERE sequence=?').bind(through).first<Checkpoint>()

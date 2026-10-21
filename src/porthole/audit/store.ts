@@ -1,6 +1,6 @@
 /** Only server-selected metadata enters this store. Never pass a body, URL or exception. */
 export const genesis = '0'.repeat(64)
-export type Phase = 'attempted' | 'succeeded' | 'denied' | 'failed'
+export type Phase = 'attempted' | 'committed' | 'succeeded' | 'denied' | 'failed'
 export interface AuditInput {
  operationRef: string
  actorRef: string | null
@@ -33,13 +33,14 @@ export async function digest(text: string): Promise<string> {
 export async function checkpoint(db: D1Database): Promise<Checkpoint> {
  return await db.prepare('SELECT sequence,hash FROM porthole_audit_entries ORDER BY sequence DESC LIMIT 1').first<Checkpoint>() ?? { sequence: 0, hash: genesis }
 }
-export async function append(db: D1Database, input: AuditInput): Promise<AuditRecord> {
+export async function append(db: D1Database, input: AuditInput, fact?: {eventId:string;recordedAt:number}): Promise<AuditRecord> {
  // The unique predecessor and insert trigger serialize concurrent requests. The
  // SELECT guard avoids writing against an obsolete head; no fork is accepted.
  for (let attempt = 0; attempt < 12; attempt++) {
+  if (fact) { const existing=await db.prepare('SELECT entry,hash FROM porthole_audit_entries WHERE event_id=?').bind(fact.eventId).first<{entry:string;hash:string}>();if(existing)return {entry:JSON.parse(existing.entry),hash:existing.hash} }
   const head = await checkpoint(db)
   const entry: AuditEntry = { ...input, rangeStart: input.rangeStart ?? null, rangeEnd: input.rangeEnd ?? null,
-   version: 1, sequence: head.sequence + 1, eventId: crypto.randomUUID(), recordedAt: Date.now(), previousHash: head.hash }
+   version: 1, sequence: head.sequence + 1, eventId: fact?.eventId ?? crypto.randomUUID(), recordedAt: fact?.recordedAt ?? Date.now(), previousHash: head.hash }
   const encoded = canonical(entry), hash = await digest(encoded)
   const result = await db.prepare(`INSERT INTO porthole_audit_entries(sequence,event_id,previous_hash,hash,entry)
    SELECT ?,?,?,?,? WHERE COALESCE((SELECT MAX(sequence) FROM porthole_audit_entries),0)=?`)

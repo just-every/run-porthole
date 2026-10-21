@@ -32,10 +32,11 @@ const origin = `http://127.0.0.1:${port}`
 // The emitted Worker's owner-claim setup token: a synthetic test value.
 const setupToken = 'synthetic-runtime-setup-token-1234567890123456789'
 let worker
+let ownerEmail='owner@example.com'
 let output = ''
 let allOutput = ''
 function startWorker() {
- worker = spawn(process.execPath, ['node_modules/wrangler/bin/wrangler.js', 'dev', '--inspector-port', '0', '--local', '--persist-to', persist, '--ip', '127.0.0.1', '--config', 'dist/server/wrangler.json', '--port', String(port), '--var', `AUTH_ORIGIN:${origin}`, '--var', 'AUTH_LOCAL:true', '--var', 'OWNER_EMAIL:owner@example.com', '--var', 'MAIL_FROM:synthetic-porthole-4@example.com', '--var', 'SESSION_SECRET:runtime-session-secret-1234567890123456', '--var', `SETUP_TOKEN:${setupToken}`], { stdio: ['ignore', 'pipe', 'pipe'] })
+ worker = spawn(process.execPath, ['node_modules/wrangler/bin/wrangler.js', 'dev', '--inspector-port', '0', '--local', '--persist-to', persist, '--ip', '127.0.0.1', '--config', 'dist/server/wrangler.json', '--port', String(port), '--var', `AUTH_ORIGIN:${origin}`, '--var', 'AUTH_LOCAL:true', '--var', `OWNER_EMAIL:${ownerEmail}`, '--var', 'MAIL_FROM:synthetic-porthole-4@example.com', '--var', 'SESSION_SECRET:runtime-session-secret-1234567890123456', '--var', `SETUP_TOKEN:${setupToken}`], { stdio: ['ignore', 'pipe', 'pipe'] })
 worker.stdout.on('data', chunk => { output += chunk; allOutput += chunk })
 worker.stderr.on('data', chunk => { output += chunk; allOutput += chunk })
 }
@@ -130,9 +131,31 @@ try {
   cookie=membership.cookie
   await credentialJourney({origin,cookie,persist,restartWorker,...helpers,getLogs:()=>allOutput})
   cookie=await helpers.freshOwner()
-  const { auditJourney, healthJourney } = await import('./porthole/audit.mjs')
+  async function withEmptyDestination(run) {
+   const savedStore=persist,savedOwner=ownerEmail
+   const destination=await mkdtemp(join(tmpdir(),'porthole-archive-destination-'));stores.push(destination)
+   try {
+    await restartWorker(()=>{persist=destination;ownerEmail='synthetic-porthole-400@example.com';migrate('dist/server/wrangler.json')})
+    const boot=await fetch(origin+'/auth/bootstrap',form({token:setupToken,displayName:'Destination owner'}))
+    assert.equal(boot.status,303)
+    let destinationCookie=boot.headers.getSetCookie().map(value=>value.split(';')[0]).join('; ')
+    await fetch(origin+'/setup',form({confirm:'yes'},destinationCookie))
+    const destinationHelpers=fixture({origin,sql,restartWorker,sessionSecret:'runtime-session-secret-1234567890123456',ownerEmail})
+    destinationCookie=await destinationHelpers.freshOwner()
+    return await run({origin,cookie:destinationCookie,persist,...destinationHelpers,restartWorker})
+   } finally {await restartWorker(()=>{persist=savedStore;ownerEmail=savedOwner})}
+  }
+  const { ingestJourney }=await import('./porthole/ingest.mjs')
+  await ingestJourney({origin,cookie,persist,restartWorker,...helpers})
+  cookie=await helpers.freshOwner()
+  const { auditJourney, healthJourney, actionJourney } = await import('./porthole/audit.mjs')
   await auditJourney({ origin, cookie, persist, restartWorker })
-  await healthJourney({ origin, cookie })
+  const actions=await actionJourney({origin,cookie,persist,restartWorker,...helpers});cookie=actions.cookie
+  const { recoveryJourney }=await import('./porthole/health.mjs')
+  await recoveryJourney({origin,cookie,persist,restartWorker,...helpers})
+  cookie=await helpers.freshOwner()
+  const { archiveJourney }=await import('./porthole/archive.mjs')
+  await archiveJourney({origin,cookie,persist,restartWorker,withEmptyDestination,...helpers})
   console.log('APP-HOME passed against emitted local Worker: /app behind sign-in and setup, then the trace view with its stylesheets')
 } catch(error) {
   console.error(allOutput.split('\n').filter(line=>/ERROR|Error|\[wrangler:info\]/.test(line)).slice(-50).join('\n').replace(/[A-Za-z0-9_-]{32,}/g,'[redacted]'))

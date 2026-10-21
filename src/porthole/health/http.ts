@@ -1,30 +1,51 @@
-import { operatorAuth, type Bindings } from '../../auth.server'
+import type { Bindings } from '../../auth.server'
+import { operatorAuth } from '../../auth.server'
+import { AuthError } from '../../modules/operator-auth/index.mjs'
 import { document, escape, privateHeaders } from '../document'
+import { authority, fail, sameOrigin } from '../security/authority'
+import { CredentialLimit } from '../credentials/verify'
+import { observeHealth } from './observe'
+import { configureHealth } from './configuration'
+import { collectorHeartbeat } from './heartbeat'
+import { healthPage } from './page'
+import { healthTick } from './tick'
+import { noticeSummary } from '../recovery/notices'
+import type { HealthBindings } from './model'
+export { healthTick, recordComponentReceipt } from './tick'
+const paths=new Set(['/app/health','/api/v1/health','/app/health/configuration','/api/v1/health/configuration','/api/v1/health/heartbeat','/app/health/tick','/api/v1/health/tick'])
+const json=(value:unknown,status=200,extra:Record<string,string>={})=>Response.json(value,{status,headers:{...privateHeaders,...extra}})
 
-/** Deployment liveness is deliberately separate from product coverage. Until
- * real workers/collectors exist, none can furnish a fresh accepted/queryable
- * receipt. A working control plane must never turn these gaps green. */
-export async function healthResponse(request: Request, env: Bindings): Promise<Response | null> {
- const path = new URL(request.url).pathname
- if (!['/app/health', '/api/v1/health'].includes(path)) return null
- const page = path === '/app/health'
- const json = (value: unknown, status = 200) => Response.json(value, { status, headers: privateHeaders })
- const messages: Record<string, string> = { authentication_required: 'Sign in as the installation owner to read pipeline health.', owner_required: 'Only the installation owner can read pipeline health.', method_not_allowed: 'Open this page to read pipeline health.', control_plane_unavailable: 'The control plane could not be read. Follow the owner recovery procedure before resuming work.' }
- const failure = (message: string, status: number) => page ? document('Pipeline health unavailable', `<p role="alert">${escape(messages[message] ?? messages.control_plane_unavailable)}</p><p><a href="/app/health">Try again</a></p>`, status) : json({ error: message }, status)
- if (request.method !== 'GET') return failure('method_not_allowed', 405)
+export async function healthResponse(request:Request, bindings:Bindings):Promise<Response|null> {
+ const env=bindings as HealthBindings,url=new URL(request.url),page=url.pathname.startsWith('/app/')
+ if (!paths.has(url.pathname)) return null
  try {
-  const session = await operatorAuth(env).getSession(request)
-  if (!session) return failure('authentication_required', 401)
-  if (session.operator.role !== 'owner') return failure('owner_required', 403)
-  const checkedAt = new Date().toISOString()
-  let control = false
-  try { control = (await env.DB.prepare('SELECT 1 AS ready').first<{ ready: number }>())?.ready === 1 } catch {}
-  const components = [
-   { component: 'control-plane', status: control ? 'Healthy' : 'Unknown', reason: control ? 'Authenticated request and control-plane database answered.' : 'Control-plane database unavailable.', checkedAt, lastAcceptedAt: null, lastQueryableAt: null },
-   ...['collector', 'ingest', 'queue', 'storage', 'query', 'monitor-evaluation', 'delivery'].map(component => ({ component, status: 'Unknown', reason: 'Not configured: no independent fresh product receipt.', checkedAt, lastAcceptedAt: null, lastQueryableAt: null })),
-  ]
-  const state = { version: 1, status: 'Unknown', checkedAt, lastAcceptedAt: null, lastQueryableAt: null, components }
-  if (!page) return json(state)
-  return document('Pipeline health', `<p role="status">Unknown — pipeline coverage is incomplete.</p><p>Checked ${escape(checkedAt)} (UTC). This control-plane door does not query an analytical backend.</p><dl><dt>Last accepted</dt><dd>No accepted receipt</dd><dt>Last queryable</dt><dd>No queryable receipt</dd></dl><ul>${components.map(row => `<li><h2>${escape(row.component)}: ${escape(row.status)}</h2><p>${escape(row.reason)}</p></li>`).join('')}</ul><p>Deployment liveness at /health does not establish telemetry health. Independent failure notices, analytical failover and backlog recovery are still being built.</p><p><a href="/api/v1/health">Read health as JSON</a></p>`)
- } catch { return failure('control_plane_unavailable', 503) }
+  sameOrigin(request,env)
+  if (url.search) fail('invalid_health_query',400)
+  if (url.pathname==='/api/v1/health/heartbeat') return json(await collectorHeartbeat(request,env))
+  if (request.method==='POST') {
+   sameOrigin(request,env,true)
+   if (url.pathname.endsWith('/configuration')) {
+    const config=await configureHealth(request,env)
+    return page?new Response(null,{status:303,headers:{...privateHeaders,location:'/app/health'}}):json({revision:config.revision,noticesEnabled:config.notices_enabled===1,freshnessSeconds:config.freshness_ms/1000,recipient:config.recipient})
+   }
+   if (url.pathname.endsWith('/tick')) {
+    const actor=await authority(request,env,{post:true})
+    if (actor.member.role!=='owner') fail('owner_required')
+    const result=await healthTick(env)
+    return page?new Response(null,{status:303,headers:{...privateHeaders,location:'/app/health'}}):json(result)
+   }
+  }
+  if (request.method!=='GET' || !['/app/health','/api/v1/health'].includes(url.pathname)) fail('method_not_allowed',405)
+  const session=await operatorAuth(env).getSession(request)
+  if (!session) fail('authentication_required',401)
+  if (session.operator.role!=='owner') fail('owner_required')
+  const state=await observeHealth(env), notices=await noticeSummary(env.DB)
+  return page?healthPage(state,notices):json({...state,notices})
+ } catch(error) {
+  const code=error instanceof AuthError || error instanceof CredentialLimit?error.code:'control_plane_unavailable'
+  const status=error instanceof AuthError || error instanceof CredentialLimit?error.status:503
+  const messages:Record<string,string>={authentication_required:'Sign in as the installation owner to read pipeline health.',unauthenticated:'Sign in as the installation owner to read pipeline health.',owner_required:'Only the installation owner can read pipeline health.',step_up_required:'Verify your identity, then save this configuration within five minutes.',control_plane_unavailable:'The control plane could not be read. Follow the owner recovery procedure before resuming work.'}
+  const extra:Record<string,string>=error instanceof CredentialLimit?{'retry-after':String(error.retryAfter)}:{}
+  return page?document('Pipeline health unavailable',`<p role="alert">${escape(messages[code]??code.replaceAll('_',' '))}</p><p><a href="/app/health">Return to pipeline health</a></p>`,status,{forms:true}):json({error:code},status,extra)
+ }
 }
