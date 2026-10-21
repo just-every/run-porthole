@@ -74,6 +74,7 @@ export async function auditJourney({ origin, cookie, persist, restartWorker }) {
  assert.ok(concurrent.every(response => response.status === 200))
  const concurrentExport = await packet(origin, cookie)
  assert.equal(verifyAudit(concurrentExport, concurrentExport.checkpoint.hash), concurrentExport.records.length)
+ console.log('Audit actions, privacy, pinned reads and concurrent chain passed')
  for (const response of concurrent) {
   assert.equal(concurrentExport.records.filter(row => row.entry.operationRef === response.headers.get('x-porthole-operation')).length, 2)
  }
@@ -92,6 +93,7 @@ export async function auditJourney({ origin, cookie, persist, restartWorker }) {
   assert.match(execFileSync(process.execPath, ['scripts/porthole/verify-audit.mjs', file, exported.checkpoint.hash], { encoding: 'utf8' }), /Verified/)
  } finally { await rm(scratch, { recursive: true, force: true }) }
  await restartWorker()
+ console.log('Audit restart completed')
  const restored = await packet(origin, cookie)
  assert.deepEqual(restored.records.slice(0, concurrentExport.records.length), concurrentExport.records)
  assert.equal(verifyAudit(restored, restored.checkpoint.hash), restored.records.length)
@@ -112,6 +114,7 @@ export async function auditJourney({ origin, cookie, persist, restartWorker }) {
   assert.equal(health.status, 200); assert.equal((await health.json()).status, 'Unknown')
   await browserProof({ origin, cookie, paths: ['/app/audit'], name: 'audit-unavailable' })
  } finally { await restartWorker(() => sql('ALTER TABLE porthole_audit_unavailable RENAME TO porthole_audit_entries')) }
+ console.log('Audit immutable guards and unavailable-store mutation refusal passed')
  const unchanged = await packet(origin, cookie)
  assert.deepEqual(unchanged.records.slice(0, restored.records.length), restored.records)
  await browserProof({ origin, cookie, paths: ['/app/audit?limit=2', '/app/audit?after=0&through=0', '/app/audit?limit=0'], name: 'audit' })

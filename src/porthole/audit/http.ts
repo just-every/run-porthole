@@ -22,6 +22,7 @@ export async function auditResponse(request: Request, env: Bindings): Promise<Re
  let input: AuditInput | undefined
  try {
   const session = await operatorAuth(env).getSession(request)
+  if (!session) return problem('authentication_required', 401)
   const head = await checkpoint(env.DB)
   input = { operationRef: crypto.randomUUID(), occurredAt: Date.now(), actorRef: session?.operator.id ?? null, actorRevision: session?.operator.version ?? null,
    action: exporting ? 'audit.export' : 'audit.query', entityRef: null, revision: null, phase: 'attempted', status: null }
