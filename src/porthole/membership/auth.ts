@@ -39,11 +39,11 @@ export function productAuth(env: Bindings, base: OperatorAuth): OperatorAuth {
 export async function guardNativeRequest(request: Request,env: Bindings) {
  const path=new URL(request.url).pathname
  if(request.headers.has('authorization') && path.startsWith('/auth/') && !['/auth/confirm','/auth/magic-link'].includes(path)) fail('native_session_required')
- const settings=path.startsWith('/auth/settings/') || ['/auth/providers','/auth/domain-rules','/auth/sessions'].includes(path)
+ const settings=path.startsWith('/auth/settings/') || ['/auth/providers','/auth/domain-rules','/auth/sessions','/auth/email','/auth/display-name'].includes(path)
  const privileged=['/auth/settings/identity','/auth/domain-rules','/auth/providers/unlink','/auth/providers/relink','/auth/email','/auth/policy/approve']
  if(settings) {
   const session=await baseOperatorAuth(env).getSession(request)
-  if(session && (await memberFor(env.DB,session.operator.id))?.role==='restricted contractor') fail('settings_forbidden')
+  if(session) { const member=await memberFor(env.DB,session.operator.id); if(!member) fail('authority_changed',409); if(member.role==='restricted contractor') fail('settings_forbidden') }
  }
  if(request.method==='POST' && privileged.includes(path)) await authority(request,env,{post:true,stepUp:true})
 }

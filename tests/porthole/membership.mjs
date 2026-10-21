@@ -76,7 +76,9 @@ export async function membershipJourney({origin,cookie,sql,mutate,link,signIn,fr
  // A real Base personal credential planted at its paid/network credential edge.
  const personal=randomBytes(32).toString('base64url'),digest=await hashToken(sessionSecret,'credential',personal)
  await mutate(`INSERT INTO oa_credentials(id,token_hash,operator_id,operator_version,kind,expires_at) SELECT ${literal(randomUUID())},${literal(digest)},id,version,'native',${Date.now()+3600000} FROM oa_operators WHERE id=${literal(target.id)};`)
+ assert.equal((await fetch(origin+'/api/porthole/v1/session',{headers:{authorization:'Bearer '+personal}})).status,200)
  assert.equal((await post('/app/settings/members/remove',{operatorId:target.id})).status,200)
+ assert.equal((await fetch(origin+'/api/porthole/v1/session',{headers:{authorization:'Bearer '+personal}})).status,401)
  assert.equal((await get('/auth/session',targetCookie)).status,401)
  assert.ok(sql(`SELECT revoked_at FROM oa_credentials WHERE operator_id=${literal(target.id)}`)[0].revoked_at)
  assert.equal((await get('/app/settings/members')).status,200)
@@ -99,6 +101,14 @@ export async function membershipBrowser({origin,cookie}) {
    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth))
    await page.keyboard.press('Tab');assert.notEqual(await page.evaluate(()=>getComputedStyle(document.activeElement).outlineStyle),'none')
    if(process.env.PORTHOLE_EVIDENCE_DIR) {await mkdir(process.env.PORTHOLE_EVIDENCE_DIR,{recursive:true});await page.screenshot({path:join(process.env.PORTHOLE_EVIDENCE_DIR,`members-${width}.png`),fullPage:true})}
+   await page.getByLabel('Email',{exact:true}).fill(`synthetic-porthole-browser-${width}@example.com`)
+   await page.getByLabel('Display name',{exact:true}).fill('Checkout on-call responder')
+   await page.getByLabel('Product role',{exact:true}).first().selectOption('responder')
+   await page.getByLabel('Services (comma separated; * for all)',{exact:true}).first().fill('checkout')
+   await page.getByLabel('Environments (comma separated)',{exact:true}).first().fill('production')
+   await page.getByLabel('Teams (comma separated)',{exact:true}).first().fill('commerce')
+   await page.getByRole('button',{name:'Send invitation',exact:true}).click()
+   await page.getByRole('heading',{name:'Checkout on-call responder',exact:true}).last().waitFor()
    await page.getByRole('link',{name:'Credentials',exact:true}).click();assert.equal(new URL(page.url()).pathname,'/app/settings/credentials')
    assert.deepEqual(errors,[]);await context.close()
   }

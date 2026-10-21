@@ -43,7 +43,13 @@ export function positive(value: unknown, fallback: number): number {
  return Number.isSafeInteger(result) && result > 0 ? result : fail('invalid_quota', 400)
 }
 export function quotas(value: Record<string, unknown>, kind: CredentialClass): Quotas {
- return { requestsPerMinute: positive(value.requestsPerMinute, 600), acceptedBytesPerMinute: positive(value.acceptedBytesPerMinute, 10 * 1024 * 1024), scannedBytesPerDay: positive(value.scannedBytesPerDay, 10 * 1024 ** 3), usdMicrosPerDay: positive(value.usdMicrosPerDay, 10_000_000) }
+ let budget = value.usdMicrosPerDay
+ if (value.usdPerDay !== undefined) {
+  if (budget !== undefined || typeof value.usdPerDay !== 'string' || !/^[0-9]+(?:\.[0-9]{1,6})?$/.test(value.usdPerDay)) fail('invalid_quota', 400)
+  const [dollars, fraction = ''] = value.usdPerDay.split('.')
+  budget = Number(BigInt(dollars) * 1000000n + BigInt(fraction.padEnd(6, '0')))
+ }
+ return { requestsPerMinute: positive(value.requestsPerMinute, 600), acceptedBytesPerMinute: positive(value.acceptedBytesPerMinute, 10 * 1024 * 1024), scannedBytesPerDay: positive(value.scannedBytesPerDay, 10 * 1024 ** 3), usdMicrosPerDay: positive(budget, 10_000_000) }
 }
 export function intersect(scope: CredentialScope, member: Scope): CredentialScope {
  const values = (wanted: string[], held: string[]) => held.includes('*') ? wanted : wanted.includes('*') ? held : wanted.filter(value => held.includes(value))

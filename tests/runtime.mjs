@@ -20,10 +20,11 @@ const origin = `http://127.0.0.1:${port}`
 const setupToken = 'synthetic-runtime-setup-token-1234567890123456789'
 let worker
 let output = ''
+let allOutput = ''
 function startWorker() {
  worker = spawn(process.execPath, ['node_modules/wrangler/bin/wrangler.js', 'dev', '--inspector-port', '0', '--local', '--persist-to', persist, '--ip', '127.0.0.1', '--config', 'dist/server/wrangler.json', '--port', String(port), '--var', `AUTH_ORIGIN:${origin}`, '--var', 'AUTH_LOCAL:true', '--var', 'OWNER_EMAIL:owner@example.com', '--var', 'MAIL_FROM:synthetic-porthole-4@example.com', '--var', 'SESSION_SECRET:runtime-session-secret-1234567890123456', '--var', `SETUP_TOKEN:${setupToken}`], { stdio: ['ignore', 'pipe', 'pipe'] })
-worker.stdout.on('data', chunk => { output += chunk })
-worker.stderr.on('data', chunk => { output += chunk })
+worker.stdout.on('data', chunk => { output += chunk; allOutput += chunk })
+worker.stderr.on('data', chunk => { output += chunk; allOutput += chunk })
 }
 async function stopWorker() {
  worker.kill('SIGTERM')
@@ -104,7 +105,7 @@ try {
   await migrationJourney()
   const membership=await membershipJourney({origin,cookie,persist,restartWorker,...helpers,sessionSecret:'runtime-session-secret-1234567890123456'})
   cookie=membership.cookie
-  await credentialJourney({origin,cookie,persist,restartWorker,...helpers,readOutput:()=>output})
+  await credentialJourney({origin,cookie,persist,restartWorker,...helpers,getLogs:()=>allOutput})
   cookie=await helpers.freshOwner()
   const { auditJourney, healthJourney } = await import('./porthole/audit.mjs')
   await auditJourney({ origin, cookie, persist, restartWorker })
