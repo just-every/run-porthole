@@ -9,7 +9,7 @@ body.docs { margin: 0; background: #fff; color: var(--ink); font: 400 17px/1.6 v
    (repeated after each code font shorthand, which resets it). */
 .docs :where(code, pre, kbd, samp) { font-family: var(--mono); font-feature-settings: normal; font-variant-ligatures: none; }
 .docs :where(b, strong) { font-weight: 650; }
-.docs :where(a, button, summary, [tabindex]):focus-visible { outline: 3px solid var(--helio); outline-offset: 3px; border-radius: 6px; }
+.docs :where(a, button, summary):focus-visible { outline: 3px solid var(--helio); outline-offset: 3px; border-radius: 6px; }
 .docs-skip { position: absolute; left: 16px; top: 12px; z-index: 10; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .docs-skip:focus { width: auto; height: auto; overflow: visible; clip-path: none; padding: 10px 18px; border-radius: 999px; background: var(--ink); color: #fff; font: 600 15px/1 var(--sans); text-decoration: none; }
 
@@ -127,22 +127,12 @@ body.docs { margin: 0; background: #fff; color: var(--ink); font: 400 17px/1.6 v
    longer than a whole line, so nothing is hidden. */
 .docs-code .docs-word { display: inline-block; max-width: 100%; white-space: inherit; text-indent: 0; }
 
-/* Tables: quiet rules; on a column of 640 px or less each row becomes a
-   small card, every filled cell under its column's name, reading down the
-   card and aligned left. Prose in a cell breaks between words and code keeps
+/* Tables: quiet rules. Prose in a cell breaks between words and code keeps
    its words whole, as in prose (a longer token breaks only after a slash or
-   punctuation), so no column is narrower than its longest word. A table that
-   still cannot fit scrolls in its own box, which the page's script makes a
-   named, focusable region while it scrolls: an edge, and a shadow on the
-   side with more. */
+   punctuation), so no column is narrower than its longest word. A table
+   whose words cannot fit the column stacks into cards (below); without the
+   articles' script it scrolls in its own box instead. */
 .docs-table { overflow-x: auto; container-type: inline-size; }
-.docs-table[tabindex] {
-  border-radius: 10px; box-shadow: inset 0 0 0 1px var(--line-2);
-  background: linear-gradient(90deg, #fff 30%, rgba(255, 255, 255, 0)) left / 28px 100% no-repeat local,
-    linear-gradient(270deg, #fff 30%, rgba(255, 255, 255, 0)) right / 28px 100% no-repeat local,
-    radial-gradient(farthest-side at 0 50%, rgba(22, 21, 27, .16), transparent) left / 10px 100% no-repeat,
-    radial-gradient(farthest-side at 100% 50%, rgba(22, 21, 27, .16), transparent) right / 10px 100% no-repeat;
-}
 .docs-table table { width: 100%; border-collapse: collapse; font-size: 15px; line-height: 1.5; }
 .docs-cols-4 table { font-size: 14px; }
 .docs-table th { padding: 10px 12px; border-bottom: 1px solid var(--line-2); text-align: left; vertical-align: bottom; font-weight: 650; color: var(--ink); overflow-wrap: break-word; }
@@ -152,6 +142,9 @@ body.docs { margin: 0; background: #fff; color: var(--ink); font: 400 17px/1.6 v
 .docs-table .docs-right { text-align: right; }
 .docs-table .docs-center { text-align: center; }
 .docs-cell-label { display: none; }
+/* Stacked, each row is a small card that reads down, every filled cell under
+   its column's name and aligned left: on a column of 640 px or less, and
+   while a table is wider than its column (script.ts marks it .docs-stack). */
 @container (max-width: 640px) {
   .docs-table :is(table, tbody, tr, td) { display: block; }
   .docs-table thead, .docs-table td.docs-empty { display: none; }
@@ -162,6 +155,14 @@ body.docs { margin: 0; background: #fff; color: var(--ink); font: 400 17px/1.6 v
   .docs-table td + td { margin-top: 8px; }
   .docs-table .docs-cell-label { display: block; margin-bottom: 2px; font: 600 12px/1.4 var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 }
+.docs-stack :is(table, tbody, tr, td) { display: block; }
+.docs-stack thead, .docs-stack td.docs-empty { display: none; }
+.docs-stack tr { padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; }
+.docs-stack tr + tr { margin-top: 10px; }
+.docs-stack td { padding: 0; border: 0; text-align: left; }
+.docs-stack :is(.docs-right, .docs-center) { text-align: left; }
+.docs-stack td + td { margin-top: 8px; }
+.docs-stack .docs-cell-label { display: block; margin-bottom: 2px; font: 600 12px/1.4 var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 
 /* Previous and next. */
 .docs-pager { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 48px; padding-top: 28px; border-top: 1px solid var(--line); }

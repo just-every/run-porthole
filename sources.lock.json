@@ -253,7 +253,7 @@
       "executable": false
     },
     "public/docs.css": {
-      "sha256": "b6a24c2674f90df54ccec204e109c992739c3a3f4663069d238a41a8bb389b72",
+      "sha256": "f051b2117a21ba690a6b68fbf4d15957b1ea42474f3586f5473269baa52c2048",
       "executable": false
     },
     "public/fonts/fonts.css": {
@@ -1705,7 +1705,7 @@
       "executable": false
     },
     "src/site/docs/script.ts": {
-      "sha256": "18df60e506717f0d71d7bed4aa73c8f4408d00c4386183ab0f8e869aaf841ed3",
+      "sha256": "7299a6388d62fbefe2b368b1bde220ece7168c251d39bc6491c4caa82805e53e",
       "executable": false
     },
     "src/site/docs/text.ts": {
