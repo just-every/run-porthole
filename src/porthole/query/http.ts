@@ -18,7 +18,7 @@ export async function queryResponse(request:Request,env:Bindings):Promise<Respon
  if(!page && url.pathname!=='/api/porthole/v1/query' && !/^\/api\/porthole\/v1\/query\/[a-f0-9-]{36}$/.test(url.pathname))return null
  try {
   await authority(request,env,{post:request.method==='POST'})
-  if(page && request.method==='GET') return document('Explore telemetry',`<p>Read retained telemetry within your current service, environment and team scope. Each query has a reproducible, private snapshot reference in Audit.</p><form method="post" action="/app/explore"><label>Signal <select name="signal"><option>logs</option><option>metrics</option><option>traces</option></select></label><label>Service <input name="service" required></label><label>Environment <input name="environment" required></label><label>Team <input name="team" required></label><button>Run query</button></form>`,200,{forms:true})
+  if(page && request.method==='GET') return document('Explore telemetry',`<p>Read retained telemetry within your current service, environment and team scope. Each query has a reproducible, private snapshot reference in Audit.</p><form method="post" action="/app/explore"><label>Signal <select name="signal" aria-label="Signal"><option>logs</option><option>metrics</option><option>traces</option></select></label><label>Service <input name="service" required></label><label>Environment <input name="environment" required></label><label>Team <input name="team" required></label><button>Run query</button></form>`,200,{forms:true})
   let data:Record<string,unknown>
   const id=url.pathname.split('/').at(-1)!
   if(request.method==='GET' && id!=='query') {

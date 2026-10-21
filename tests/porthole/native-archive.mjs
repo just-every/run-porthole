@@ -43,6 +43,10 @@ try {
  assert.equal((await sql(destination,`SELECT state FROM porthole_objects WHERE id='${objectId}'`))[0].state,'quarantined')
  assert.equal((await sql(destination,'SELECT paused FROM porthole_ingest_control'))[0].paused,1)
  assert.ok((await sql(destination,"SELECT status FROM oa_operators")).every(row=>row.status==='inactive'))
+ await command(destination,['setup','--owner-email','synthetic-porthole-603@example.com','--non-interactive'])
+ const newOwner=(await sql(destination,"SELECT id FROM oa_operators WHERE email='synthetic-porthole-603@example.com' AND role='owner' AND status='active'"))[0]
+ assert.ok(newOwner && newOwner.id!==owner.id,'destination has its own new native owner')
+ assert.equal((await sql(destination,'SELECT paused FROM porthole_ingest_control'))[0].paused,1)
  assert.equal((await sql(destination,"SELECT COUNT(*) AS n FROM porthole_audit_entries WHERE json_extract(entry,'$.action')='installation.import.complete'"))[0].n,1,'native restore fact is captured in its durable job transaction')
  const before=(await sql(destination,'SELECT COUNT(*) AS n FROM porthole_objects'))[0].n
  await assert.rejects(()=>command(destination,['import','--input',file,'--yes']),/refus|empty|occupied|failed/i)

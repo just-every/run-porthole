@@ -9,6 +9,13 @@ export async function actionJourney({origin,cookie,restartWorker,freshOwner,sql,
  // Real inactive definitions and exact revision approvals use the same native
  // authority as the UI, with atomic mutation facts rather than copied bodies.
  const scope={services:['checkout'],environments:['production'],teams:['commerce']}
+ cookie=await freshOwner()
+ const sourceResponse=await post('/app/settings/credentials/mint',{name:'synthetic-porthole-308',class:'ingest',scope:{...scope,signals:['logs'],actions:['telemetry.write']}})
+ assert.equal(sourceResponse.status,201)
+ const source=await sourceResponse.json(),eventTime=BigInt(Date.now())*1000000n
+ const accepted=await fetch(origin+'/v1/logs',{method:'POST',headers:{authorization:`Bearer ${source.secret}`,'content-type':'application/json'},body:JSON.stringify({resourceLogs:[{resource:{attributes:[{key:'service.name',value:{stringValue:'checkout'}},{key:'deployment.environment.name',value:{stringValue:'production'}},{key:'team.name',value:{stringValue:'commerce'}}]},scopeLogs:[{logRecords:[{timeUnixNano:String(eventTime),severityNumber:17,body:{stringValue:'Checkout payment authorization timed out'}},{timeUnixNano:String(eventTime+1n),severityNumber:17,body:{stringValue:'Checkout dependency returned an upstream error'}}]}]}]})})
+ assert.equal(accepted.status,200)
+ assert.equal((await post('/api/porthole/v1/ingest/drain',{})).status,200)
  const saved=await post('/api/porthole/v1/objects',{kind:'monitor',name:'Checkout request errors',scope,body:{signal:'logs',operator:'above',threshold:2,windowSeconds:300}})
  assert.equal(saved.status,201)
  const monitor=await saved.json()
@@ -26,6 +33,7 @@ export async function actionJourney({origin,cookie,restartWorker,freshOwner,sql,
  assert.equal(queried.status,200)
  const query=await queried.json()
  assert.ok(query.queryRef)
+ assert.equal(query.records.length,2)
  const replay=await (await fetch(origin+query.replay,{headers:{cookie}})).json()
  assert.deepEqual(replay.records,query.records)
  const literal='synthetic-porthole-300 restricted literal'

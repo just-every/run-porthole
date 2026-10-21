@@ -79,11 +79,11 @@ CREATE TRIGGER porthole_native_fact_porthole_health_configuration_update AFTER U
 -- their minimal audit trail in that same bookkeeping row until projection;
 -- this does not make an otherwise empty restore destination nonempty.
 CREATE TRIGGER porthole_cli_audit_insert AFTER INSERT ON rer_portability_jobs BEGIN
- UPDATE rer_portability_jobs SET metadata=json_set(metadata,'$.portholeAuditTrail',json_array(json_object('id',lower(hex(randomblob(16))),'phase',NEW.phase,'occurredAt',CAST(unixepoch('subsec')*1000 AS INTEGER),'actorRef',(SELECT claim_id FROM oa_bootstrap WHERE singleton=1),'actorRevision',(SELECT version FROM oa_operators WHERE id=(SELECT claim_id FROM oa_bootstrap WHERE singleton=1))))) WHERE id=NEW.id;
+ UPDATE rer_portability_jobs SET metadata=json_set(metadata,'$.portholeAuditTrail',json_array(json_object('id',lower(hex(randomblob(16))),'phase',NEW.phase,'occurredAt',CAST(unixepoch('subsec')*1000 AS INTEGER),'actorRef',COALESCE((SELECT claim_id FROM oa_bootstrap WHERE singleton=1),(SELECT source_identity FROM rer_portability_state WHERE id=1)),'actorRevision',(SELECT version FROM oa_operators WHERE id=(SELECT claim_id FROM oa_bootstrap WHERE singleton=1))))) WHERE id=NEW.id;
 END;
 CREATE TRIGGER porthole_cli_audit_update AFTER UPDATE ON rer_portability_jobs
  WHEN NEW.phase!=OLD.phase OR json_extract(NEW.metadata,'$.portholeAuditTrail') IS NULL BEGIN
  UPDATE rer_portability_jobs SET metadata=json_set(metadata,'$.portholeAuditTrail',json(
- CASE WHEN NEW.phase!=OLD.phase THEN json_insert(COALESCE(json_extract(OLD.metadata,'$.portholeAuditTrail'),'[]'),'$[#]',json_object('id',lower(hex(randomblob(16))),'phase',NEW.phase,'occurredAt',CAST(unixepoch('subsec')*1000 AS INTEGER),'actorRef',(SELECT claim_id FROM oa_bootstrap WHERE singleton=1),'actorRevision',(SELECT version FROM oa_operators WHERE id=(SELECT claim_id FROM oa_bootstrap WHERE singleton=1))))
+ CASE WHEN NEW.phase!=OLD.phase THEN json_insert(COALESCE(json_extract(OLD.metadata,'$.portholeAuditTrail'),'[]'),'$[#]',json_object('id',lower(hex(randomblob(16))),'phase',NEW.phase,'occurredAt',CAST(unixepoch('subsec')*1000 AS INTEGER),'actorRef',COALESCE((SELECT claim_id FROM oa_bootstrap WHERE singleton=1),(SELECT source_identity FROM rer_portability_state WHERE id=1)),'actorRevision',(SELECT version FROM oa_operators WHERE id=(SELECT claim_id FROM oa_bootstrap WHERE singleton=1))))
  ELSE COALESCE(json_extract(OLD.metadata,'$.portholeAuditTrail'),'[]') END)) WHERE id=NEW.id;
 END;
