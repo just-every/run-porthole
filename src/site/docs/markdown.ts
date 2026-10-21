@@ -17,9 +17,14 @@ const copyIcon = '<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" 
 const anchor = (text: string) => text.toLowerCase().replace(/[^\p{L}\p{M}\p{N}\p{Pc} -]/gu, '').replace(/ /g, '-')
 // Code wraps only at its own spaces, as the Run page's does, keeping each word
 // of up to 30 characters whole; a longer word may also break after a slash or
-// punctuation, and anywhere as a last resort.
+// punctuation, and anywhere as a last resort, but never inside its leading
+// dashes and first name, so a long flag never reads as "-" or "--" and a rest.
+const longWord = (word: string) => {
+  const dashes = /^-+\w*/.exec(word)?.[0] ?? '', lead = dashes.length <= 30 ? dashes : ''
+  return (lead ? `<span class="docs-word">${escape(lead)}</span>` : '') + word.slice(lead.length).split(/(?<=[/,;|}\]])(?!\/)/).map(escape).join('<wbr>')
+}
 const codeWords = (text: string) => text.split(/(\s+)/).map((part, i) => i % 2 || !part ? part
-  : part.length <= 30 ? `<span class="docs-word">${escape(part)}</span>` : part.split(/(?<=[/,;|}\]])(?!\/)/).map(escape).join('<wbr>')).join('')
+  : part.length <= 30 ? `<span class="docs-word">${escape(part)}</span>` : longWord(part)).join('')
 const inlineCode = (text: string) => `<code>${codeWords(text)}</code>`
 
 // Each source line of a code block is a block of its own, so a line too long
