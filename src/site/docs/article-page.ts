@@ -6,6 +6,7 @@ import { escape } from '../../base/run-site'
 import { groups, type Doc } from './catalog'
 import { docsDocument, pathHtml, type Frame } from './frame'
 import type { Body } from './markdown'
+import { ARTICLE_SCRIPT } from './script'
 import { NB, prose } from './text'
 
 function menu(docs: Doc[], current: Doc): string {
@@ -30,5 +31,5 @@ export function articlePage(doc: Doc, body: Body, docs: Doc[], frame: Frame, rep
     + `${contents ? `<details class="docs-contents-menu"><summary>On this page</summary><nav aria-label="On this page">${contents}</nav></details>` : ''}`
     + `<div class="docs-prose">${body.html}</div><nav class="docs-pager" aria-label="Previous and next">${pager}</nav></article></main>`
     + `<aside class="docs-contents">${contents ? `<nav aria-label="On this page"><p>On this page</p>${contents}</nav>` : ''}</aside></div>`
-  return docsDocument(frame, { title: `${doc.title} · Porthole docs`, description: doc.summary ?? `${doc.title}: ${doc.file} in Porthole’s repository.`, current: 'true', main, copy: true })
+  return docsDocument(frame, { title: `${doc.title} · Porthole docs`, description: doc.summary ?? `${doc.title}: ${doc.file} in Porthole’s repository.`, current: 'true', main, script: ARTICLE_SCRIPT })
 }

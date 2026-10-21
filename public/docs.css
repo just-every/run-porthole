@@ -9,7 +9,7 @@ body.docs { margin: 0; background: #fff; color: var(--ink); font: 400 17px/1.6 v
    (repeated after each code font shorthand, which resets it). */
 .docs :where(code, pre, kbd, samp) { font-family: var(--mono); font-feature-settings: normal; font-variant-ligatures: none; }
 .docs :where(b, strong) { font-weight: 650; }
-.docs :where(a, button, summary):focus-visible { outline: 3px solid var(--helio); outline-offset: 3px; border-radius: 6px; }
+.docs :where(a, button, summary, [tabindex]):focus-visible { outline: 3px solid var(--helio); outline-offset: 3px; border-radius: 6px; }
 .docs-skip { position: absolute; left: 16px; top: 12px; z-index: 10; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .docs-skip:focus { width: auto; height: auto; overflow: visible; clip-path: none; padding: 10px 18px; border-radius: 999px; background: var(--ink); color: #fff; font: 600 15px/1 var(--sans); text-decoration: none; }
 
@@ -43,29 +43,38 @@ body.docs { margin: 0; background: #fff; color: var(--ink); font: 400 17px/1.6 v
 .docs-go { display: inline-flex; align-items: center; gap: 8px; margin-top: auto; padding-top: 18px; font: 650 var(--t14)/1.2 var(--sans); }
 .docs-go svg { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
 .docs-card:hover .docs-go { text-decoration: underline; text-underline-offset: 4px; }
+/* Technical reference: each path directly under its title, breaking only
+   after a slash (frame.ts keeps every name whole). */
 .docs-files { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: 0 calc(32 * var(--u)); list-style: none; }
-.docs-files a { display: grid; gap: 3px; height: 100%; padding-block: 12px; border-bottom: 1px solid var(--line); text-decoration: none; }
+.docs-files a { display: grid; align-content: start; gap: 3px; height: 100%; padding-block: 12px; border-bottom: 1px solid var(--line); text-decoration: none; }
 .docs-files strong { font: 600 var(--t15)/1.35 var(--sans); color: var(--ink); }
-.docs-files code { font: 500 max(12px, calc(13 * var(--u)))/1.45 var(--mono); font-variant-ligatures: none; color: var(--muted); overflow-wrap: anywhere; }
+.docs-files code { font: 500 max(12px, calc(13 * var(--u)))/1.45 var(--mono); font-variant-ligatures: none; color: var(--muted); }
 .docs-files a:hover strong { text-decoration: underline; text-underline-offset: 3px; }
 
 /* An article: the documentation menu, the reading column and its contents. */
 .docs-layout { display: grid; grid-template-columns: max(200px, calc(248 * var(--u))) minmax(0, calc(800 * var(--u))) max(180px, calc(224 * var(--u))); justify-content: space-between; gap: max(28px, calc(48 * var(--u))); align-items: start; padding-block: max(28px, calc(44 * var(--u))) max(56px, calc(96 * var(--u))); }
 .docs-main { min-width: 0; }
-.docs-side, .docs-contents { position: sticky; top: 0; max-height: 100vh; max-height: 100dvh; overflow-y: auto; padding-block: 8px 24px; }
+/* The two panels scroll, which clips: 8 px each side, given back by the
+   margin, keeps their links' focus rings whole. Every control is at least
+   24 px tall. */
+.docs-side, .docs-contents { position: sticky; top: 0; max-height: 100vh; max-height: 100dvh; overflow-y: auto; margin-inline: -8px; padding: 8px 8px 24px; }
+/* With Technical reference open the menu is taller than the screen and, on
+   load, starts below the header: a third of a screen of room at its end lets
+   the reader's place scroll well into view (script.ts) on its last items too. */
+.docs-side:has(details[open]) { padding-bottom: calc(24px + 33vh); }
 .docs-nav { display: grid; gap: 22px; }
-.docs-nav-home { justify-self: start; font: 700 var(--t16)/1.3 var(--sans); color: var(--ink); text-decoration: none; }
+.docs-nav-home { justify-self: start; padding-block: 4px; font: 700 var(--t16)/1.3 var(--sans); color: var(--ink); text-decoration: none; }
 .docs-nav-home:hover { text-decoration: underline; text-underline-offset: 4px; }
 .docs-nav-group { display: grid; gap: 2px; }
-.docs-nav-group > p, .docs-nav-group > summary { padding: 0 10px 6px; font: 600 12.5px/1.4 var(--sans); letter-spacing: .14em; text-transform: uppercase; color: var(--helio-ink); }
+.docs-nav-group > p, .docs-nav-group > summary { padding: 3px 10px 6px; font: 600 12.5px/1.4 var(--sans); letter-spacing: .14em; text-transform: uppercase; color: var(--helio-ink); }
 .docs-nav-group > summary { cursor: pointer; }
 .docs-nav-group > a { display: block; padding: 6px 10px; border-radius: 8px; font-size: max(14px, calc(15 * var(--u))); line-height: 1.35; color: var(--ink-2); text-decoration: none; overflow-wrap: anywhere; }
 .docs-nav-group > a:hover { background: #f6f5f8; color: var(--ink); }
 .docs-nav-group > a[aria-current] { background: var(--helio-pale); box-shadow: inset 2px 0 0 var(--helio); color: var(--ink); font-weight: 650; }
 .docs-menu, .docs-contents-menu { display: none; }
-.docs-contents nav { display: grid; gap: 10px; }
-.docs-contents nav > p { margin-bottom: 2px; font: 600 12.5px/1.4 var(--sans); letter-spacing: .14em; text-transform: uppercase; color: var(--helio-ink); }
-.docs-contents nav > a { font-size: 14px; line-height: 1.4; color: var(--muted); text-decoration: none; overflow-wrap: anywhere; }
+.docs-contents nav { display: grid; gap: 4px; }
+.docs-contents nav > p { margin-bottom: 5px; font: 600 12.5px/1.4 var(--sans); letter-spacing: .14em; text-transform: uppercase; color: var(--helio-ink); }
+.docs-contents nav > a { padding-block: 3px; font-size: 14px; line-height: 1.4; color: var(--muted); text-decoration: none; overflow-wrap: anywhere; }
 .docs-contents nav > a:hover { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
 
 .docs-title { padding-bottom: max(22px, calc(28 * var(--u))); border-bottom: 1px solid var(--line); }
@@ -81,6 +90,11 @@ body.docs { margin: 0; background: #fff; color: var(--ink); font: 400 17px/1.6 v
 .docs-prose { padding-top: max(20px, calc(28 * var(--u))); font-size: 17px; line-height: 1.7; color: var(--ink-2); overflow-wrap: anywhere; }
 .docs-prose :where(p, ul, ol, blockquote, .docs-code, .docs-table) { margin-bottom: 18px; }
 .docs-prose p, .docs-prose li { text-wrap: pretty; }
+/* Reading lines of about 70 characters (Inter's figures, which set the ch,
+   are wider than its average letter); tables and code blocks keep the
+   column, in a list item too. */
+.docs-prose :where(p, li, blockquote) { max-width: 58ch; }
+.docs-prose li:has(> :is(.docs-code, .docs-table)) { max-width: none; }
 .docs-prose h2 { margin: 44px 0 14px; font: 820 max(25px, calc(30 * var(--u)))/1.15 var(--sans); font-variation-settings: 'opsz' 32; letter-spacing: -.032em; color: var(--ink); text-wrap: balance; scroll-margin-top: 16px; }
 .docs-prose h3 { margin: 32px 0 10px; font: 700 max(19px, calc(21 * var(--u)))/1.3 var(--sans); letter-spacing: -.015em; color: var(--ink); text-wrap: balance; scroll-margin-top: 16px; }
 .docs-prose :where(h4, h5, h6) { margin: 26px 0 8px; font: 650 17px/1.4 var(--sans); color: var(--ink); scroll-margin-top: 16px; }
@@ -109,48 +123,44 @@ body.docs { margin: 0; background: #fff; color: var(--ink); font: 400 17px/1.6 v
 .docs-code pre { padding: 16px 20px 18px; font: 500 14px/1.7 var(--mono); font-variant-ligatures: none; white-space: pre-wrap; overflow-wrap: anywhere; tab-size: 2; }
 .docs-code pre code { font: inherit; color: inherit; }
 .docs-line { display: block; padding-left: calc((var(--indent, 0) + 2) * 1ch); text-indent: calc((var(--indent, 0) + 2) * -1ch); }
+/* A code word moves to the next line whole, and breaks only when it is
+   longer than a whole line, so nothing is hidden. */
+.docs-code .docs-word { display: inline-block; max-width: 100%; white-space: inherit; text-indent: 0; }
 
-/* Tables: quiet rules; on a narrow column each row becomes a small card,
-   every filled cell under its column's name. Prose in a cell breaks between
-   words, so no column is narrower than its longest word, and code keeps its
-   words whole as in prose; only in a narrow column (narrower still for
-   three columns or fewer) may code break at its hyphens, and anywhere as a
-   last resort, so a table still fits. */
-.docs-table { container-type: inline-size; }
+/* Tables: quiet rules; on a column of 640 px or less each row becomes a
+   small card, every filled cell under its column's name, reading down the
+   card and aligned left. Prose in a cell breaks between words and code keeps
+   its words whole, as in prose (a longer token breaks only after a slash or
+   punctuation), so no column is narrower than its longest word. A table that
+   still cannot fit scrolls in its own box, which the page's script makes a
+   named, focusable region while it scrolls: an edge, and a shadow on the
+   side with more. */
+.docs-table { overflow-x: auto; container-type: inline-size; }
+.docs-table[tabindex] {
+  border-radius: 10px; box-shadow: inset 0 0 0 1px var(--line-2);
+  background: linear-gradient(90deg, #fff 30%, rgba(255, 255, 255, 0)) left / 28px 100% no-repeat local,
+    linear-gradient(270deg, #fff 30%, rgba(255, 255, 255, 0)) right / 28px 100% no-repeat local,
+    radial-gradient(farthest-side at 0 50%, rgba(22, 21, 27, .16), transparent) left / 10px 100% no-repeat,
+    radial-gradient(farthest-side at 100% 50%, rgba(22, 21, 27, .16), transparent) right / 10px 100% no-repeat;
+}
 .docs-table table { width: 100%; border-collapse: collapse; font-size: 15px; line-height: 1.5; }
 .docs-cols-4 table { font-size: 14px; }
 .docs-table th { padding: 10px 12px; border-bottom: 1px solid var(--line-2); text-align: left; vertical-align: bottom; font-weight: 650; color: var(--ink); overflow-wrap: break-word; }
 .docs-table td { padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; overflow-wrap: break-word; }
 .docs-cols-4 :is(th, td) { padding-inline: 8px; }
+@container (max-width: 720px) { .docs-cols-4 :is(th, td) { padding-inline: 6px; } }
 .docs-table .docs-right { text-align: right; }
 .docs-table .docs-center { text-align: center; }
 .docs-cell-label { display: none; }
 @container (max-width: 640px) {
-  .docs-table code { overflow-wrap: anywhere; }
-  .docs-table .docs-word { white-space: normal; }
-}
-@container (max-width: 736px) {
-  .docs-cols-4 code { overflow-wrap: anywhere; }
-  .docs-cols-4 .docs-word { white-space: normal; }
-}
-@container (max-width: 480px) {
   .docs-table :is(table, tbody, tr, td) { display: block; }
   .docs-table thead, .docs-table td.docs-empty { display: none; }
   .docs-table tr { padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; }
   .docs-table tr + tr { margin-top: 10px; }
   .docs-table td { padding: 0; border: 0; text-align: left; }
+  .docs-table :is(.docs-right, .docs-center) { text-align: left; }
   .docs-table td + td { margin-top: 8px; }
   .docs-table .docs-cell-label { display: block; margin-bottom: 2px; font: 600 12px/1.4 var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
-}
-/* Four or more columns stack sooner. */
-@container (max-width: 640px) {
-  .docs-cols-4 :is(table, tbody, tr, td) { display: block; }
-  .docs-cols-4 thead, .docs-cols-4 td.docs-empty { display: none; }
-  .docs-cols-4 tr { padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; }
-  .docs-cols-4 tr + tr { margin-top: 10px; }
-  .docs-cols-4 td { padding: 0; border: 0; text-align: left; }
-  .docs-cols-4 td + td { margin-top: 8px; }
-  .docs-cols-4 .docs-cell-label { display: block; margin-bottom: 2px; font: 600 12px/1.4 var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 }
 
 /* Previous and next. */
@@ -167,8 +177,8 @@ body.docs { margin: 0; background: #fff; color: var(--ink); font: 400 17px/1.6 v
 .docs-menu > summary::after, .docs-contents-menu > summary::after { content: '+'; display: inline-block; font: 500 20px/1 var(--sans); color: var(--muted); transition: transform .15s; }
 .docs-menu[open] > summary::after, .docs-contents-menu[open] > summary::after { transform: rotate(45deg); }
 .docs-menu > nav { padding: 4px 8px 18px; }
-.docs-contents-menu > nav { display: grid; gap: 10px; padding: 2px 16px 16px; }
-.docs-contents-menu > nav > a { font-size: 15px; line-height: 1.4; color: var(--ink-2); text-decoration: none; }
+.docs-contents-menu > nav { display: grid; gap: 6px; padding: 0 16px 14px; }
+.docs-contents-menu > nav > a { padding-block: 2px; font-size: 15px; line-height: 1.4; color: var(--ink-2); text-decoration: none; }
 .docs-contents-menu > nav > a:hover { text-decoration: underline; text-underline-offset: 3px; }
 
 @media (max-width: 1179px) {

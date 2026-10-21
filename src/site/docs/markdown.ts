@@ -15,11 +15,12 @@ const languages: Record<string, string> = { sh: 'Shell', bash: 'Shell', text: 'T
 const copyIcon = '<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" width="8.5" height="8.5" rx="2"/><path d="M3 10.5V4a1.5 1.5 0 0 1 1.5-1.5H10"/></svg>'
 // GitHub's heading anchors: lower case, punctuation other than "-" and "_" dropped, each space a hyphen.
 const anchor = (text: string) => text.toLowerCase().replace(/[^\p{L}\p{M}\p{N}\p{Pc} -]/gu, '').replace(/ /g, '-')
-// Inline code wraps only at its own spaces, as the Run page's does, keeping
-// each word of up to 30 characters whole; a longer word may also break after a
-// slash or punctuation, and anywhere as a last resort.
-const inlineCode = (text: string) => `<code>${text.split(/(\s+)/).map((part, i) => i % 2 || !part ? part
-  : part.length <= 30 ? `<span class="docs-word">${escape(part)}</span>` : part.split(/(?<=[/,;|}\]])/).map(escape).join('<wbr>')).join('')}</code>`
+// Code wraps only at its own spaces, as the Run page's does, keeping each word
+// of up to 30 characters whole; a longer word may also break after a slash or
+// punctuation, and anywhere as a last resort.
+const codeWords = (text: string) => text.split(/(\s+)/).map((part, i) => i % 2 || !part ? part
+  : part.length <= 30 ? `<span class="docs-word">${escape(part)}</span>` : part.split(/(?<=[/,;|}\]])(?!\/)/).map(escape).join('<wbr>')).join('')
+const inlineCode = (text: string) => `<code>${codeWords(text)}</code>`
 
 // Each source line of a code block is a block of its own, so a line too long
 // for the column wraps under a hanging indent, two characters past its own
@@ -27,7 +28,7 @@ const inlineCode = (text: string) => `<code>${text.split(/(\s+)/).map((part, i) 
 // newline, which keeps it in a copied selection.
 const codeLines = (text: string) => text.split('\n').map(line => {
   const indent = line.match(/^[ \t]*/)![0].replace(/\t/g, '  ').length
-  return `<span class="docs-line"${indent ? ` style="--indent:${indent}"` : ''}>${line ? escape(line) : '\n'}</span>`
+  return `<span class="docs-line"${indent ? ` style="--indent:${indent}"` : ''}>${line ? codeWords(line) : '\n'}</span>`
 }).join('')
 
 export function renderMarkdown(markdown: string, resolve: (href: string) => string): Body {

@@ -253,7 +253,7 @@
       "executable": false
     },
     "public/docs.css": {
-      "sha256": "b7976c59253f6983889d5928b98898802090d8db11a414370f5436cc60ce06be",
+      "sha256": "b6a24c2674f90df54ccec204e109c992739c3a3f4663069d238a41a8bb389b72",
       "executable": false
     },
     "public/fonts/fonts.css": {
@@ -1673,7 +1673,7 @@
       "executable": false
     },
     "src/site/docs/article-page.ts": {
-      "sha256": "fb3139ce6fbc8bbf394eb24638b93c620629ea1b276a45fa3400547b6cceed44",
+      "sha256": "5e866b30bde52a9a606935db0f10329902dcb42413c358e48a6594fda5a996e6",
       "executable": false
     },
     "src/site/docs/catalog.ts": {
@@ -1685,7 +1685,7 @@
       "executable": false
     },
     "src/site/docs/frame.ts": {
-      "sha256": "a0cdf24a619c7334d1772bc7238fefda6b8658ed7a9d69524b3189143c623d82",
+      "sha256": "8588eecb94e0506a351a7f0bcb5bba21d8a1a8f237cb92b8fb3fa45df61755dc",
       "executable": false
     },
     "src/site/docs/index-page.ts": {
@@ -1697,15 +1697,19 @@
       "executable": false
     },
     "src/site/docs/markdown.ts": {
-      "sha256": "fe7181963633d6ce1beec0211886d7635be94264f5d0cf7146be12e31615717a",
+      "sha256": "99fe241461b9111401b36b779781962ec2b8c38604fa6eddd1c14516cc249419",
       "executable": false
     },
     "src/site/docs/pages.ts": {
       "sha256": "65a96c9e91b4685096ae4f55a994b0f68e1fc423cf23a807f918ad0fb67ba514",
       "executable": false
     },
+    "src/site/docs/script.ts": {
+      "sha256": "18df60e506717f0d71d7bed4aa73c8f4408d00c4386183ab0f8e869aaf841ed3",
+      "executable": false
+    },
     "src/site/docs/text.ts": {
-      "sha256": "c6de2ed6695861075f308253c4090056950da1cc7d9010b46d0afdd3ab859154",
+      "sha256": "56facb04f46ad4bc7d806f65f2797e49e4ce49f6ed904ee705d07664a0bf1b53",
       "executable": false
     },
     "src/site/home/links.ts": {
