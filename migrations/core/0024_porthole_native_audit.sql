@@ -83,7 +83,7 @@ CREATE TRIGGER porthole_cli_audit_insert AFTER INSERT ON rer_portability_jobs BE
 END;
 CREATE TRIGGER porthole_cli_audit_update AFTER UPDATE ON rer_portability_jobs
  WHEN NEW.phase!=OLD.phase OR json_extract(NEW.metadata,'$.portholeAuditTrail') IS NULL BEGIN
- UPDATE rer_portability_jobs SET metadata=json_set(metadata,'$.portholeAuditTrail',
+ UPDATE rer_portability_jobs SET metadata=json_set(metadata,'$.portholeAuditTrail',json(
  CASE WHEN NEW.phase!=OLD.phase THEN json_insert(COALESCE(json_extract(OLD.metadata,'$.portholeAuditTrail'),'[]'),'$[#]',json_object('id',lower(hex(randomblob(16))),'phase',NEW.phase,'occurredAt',CAST(unixepoch('subsec')*1000 AS INTEGER),'actorRef',(SELECT claim_id FROM oa_bootstrap WHERE singleton=1),'actorRevision',(SELECT version FROM oa_operators WHERE id=(SELECT claim_id FROM oa_bootstrap WHERE singleton=1))))
- ELSE COALESCE(json_extract(OLD.metadata,'$.portholeAuditTrail'),'[]') END) WHERE id=NEW.id;
+ ELSE COALESCE(json_extract(OLD.metadata,'$.portholeAuditTrail'),'[]') END)) WHERE id=NEW.id;
 END;

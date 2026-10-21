@@ -1,5 +1,5 @@
-import { projectNativeTransfers } from './native-transfers'
-import { append, type AuditInput } from './store'
+import { projectNativeTransfers } from './native-transfers.ts'
+import { append, type AuditInput } from './store.ts'
 interface Fact {id:string;operation_ref:string;actor_ref:string|null;actor_revision:number|null;action:string;entity_ref:string;revision:number|null;occurred_at:number;recorded_at:number}
 /** Projection can restart after any row: the immutable fact id is also the
  * chain event id. A write is durable even if its HTTP outcome is never sent. */

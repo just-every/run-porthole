@@ -1,0 +1,51 @@
+import assert from 'node:assert/strict'
+import {execFile} from 'node:child_process'
+import {promisify} from 'node:util'
+import {mkdtemp,symlink,rm,readFile} from 'node:fs/promises'
+import {tmpdir} from 'node:os'
+import {join} from 'node:path'
+import {randomBytes,randomUUID,createHash} from 'node:crypto'
+const execute=promisify(execFile)
+const root=process.cwd(),scratch=await mkdtemp(join(tmpdir(),'porthole-native-archive-'))
+async function command(cwd,args) {
+ try {return await execute(process.execPath,[join(root,'node_modules/@runeditrun/rer/global/rer.mjs'),...args,'--cwd',cwd],{cwd,env:{...process.env,WRANGLER_SEND_METRICS:'false'},maxBuffer:16*1024*1024})}
+ catch(error){const safe=(String(error.stdout??'')+'\n'+String(error.stderr??'')).replace(/[A-Za-z0-9_+./=-]{32,}/g,'[redacted]').split('\n').slice(-24).join('\n');throw Error(`Native ${args[0]} failed (${error.code})\n${safe}`)}
+}
+async function clone(name) {
+ const directory=join(scratch,name)
+ await execute('git',['clone','--quiet','--local','--no-hardlinks',root,directory])
+ await symlink(join(root,'node_modules'),join(directory,'node_modules'),'dir')
+ return directory
+}
+async function sql(cwd,statement) {
+ const result=await execute(process.execPath,[join(root,'node_modules/wrangler/bin/wrangler.js'),'d1','execute','foundation','--local','--persist-to',join(cwd,'.wrangler/state'),'--config',join(cwd,'wrangler.jsonc'),'--json','--command',statement],{cwd,env:{...process.env,WRANGLER_SEND_METRICS:'false'},maxBuffer:8*1024*1024})
+ return JSON.parse(result.stdout).flatMap(value=>value.results??[])
+}
+try {
+ const source=await clone('source')
+ await command(source,['setup','--owner-email','synthetic-porthole-600@example.com','--non-interactive'])
+ const owner=(await sql(source,"SELECT id FROM oa_operators WHERE role='owner' AND status='active'"))[0]
+ assert.ok(owner)
+ const credentialId=randomUUID(),secret=`ph_${randomBytes(32).toString('base64url')}`,hash=createHash('sha256').update(secret).digest('hex'),now=Date.now(),objectId=randomUUID()
+ const scope=JSON.stringify({services:['checkout'],environments:['production'],teams:['commerce'],signals:['logs'],actions:['telemetry.read']})
+ // Source-state fixture, not minting evidence: the separate HTTP credential
+ // journey proves minting. This command qualifies native archive exclusion.
+ await sql(source,`INSERT INTO porthole_credentials(id,name,class,custodian_id,secret_hash,prefix,last_four,scope,created_at,expires_at,requests_per_minute,accepted_bytes_per_minute,scanned_bytes_per_day,usd_micros_per_day) VALUES('${credentialId}','synthetic-porthole-601','read','${owner.id}','${hash}','${secret.slice(0,7)}','${secret.slice(-4)}','${scope}',${now},${now+3600000},600,1048576,1048576,1000000); INSERT INTO porthole_objects VALUES('${objectId}','monitor','synthetic-porthole-602','{"services":["checkout"],"environments":["production"],"teams":["commerce"]}','{"signal":"logs","operator":"above","threshold":2,"windowSeconds":60}',1,'active',${now},${now});`)
+ const file=join(source,'exports','installation.rer')
+ await command(source,['export','--output',file])
+ const contents=await readFile(file,'utf8')
+ for(const privateValue of [secret,hash,'synthetic-porthole-600@example.com'])assert.ok(!contents.includes(privateValue),'native export excludes credential/hash/native identity')
+ const sourceAudit=await sql(source,"SELECT entry FROM porthole_audit_entries WHERE json_extract(entry,'$.action')='installation.export.complete'")
+ assert.equal(sourceAudit.length,1,'native export result is in private audit')
+ const destination=await clone('destination')
+ await command(destination,['import','--input',file,'--yes'])
+ assert.equal((await sql(destination,'SELECT COUNT(*) AS n FROM porthole_credentials'))[0].n,0)
+ assert.equal((await sql(destination,`SELECT state FROM porthole_objects WHERE id='${objectId}'`))[0].state,'quarantined')
+ assert.equal((await sql(destination,'SELECT paused FROM porthole_ingest_control'))[0].paused,1)
+ assert.ok((await sql(destination,"SELECT status FROM oa_operators")).every(row=>row.status==='inactive'))
+ assert.equal((await sql(destination,"SELECT COUNT(*) AS n FROM porthole_audit_entries WHERE json_extract(entry,'$.action')='installation.import.complete'"))[0].n,1,'native restore fact is captured in its durable job transaction')
+ const before=(await sql(destination,'SELECT COUNT(*) AS n FROM porthole_objects'))[0].n
+ await assert.rejects(()=>command(destination,['import','--input',file,'--yes']),/refus|empty|occupied|failed/i)
+ assert.equal((await sql(destination,'SELECT COUNT(*) AS n FROM porthole_objects'))[0].n,before)
+ console.log('nativeArchiveJourney passed: real rer setup/export/empty restore, excluded credential/hash/identity, inactive authority and durable CLI audit')
+} finally {await rm(scratch,{recursive:true,force:true})}

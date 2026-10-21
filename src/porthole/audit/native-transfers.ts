@@ -1,4 +1,4 @@
-import { append } from './store'
+import { append } from './store.ts'
 /** Native transfer jobs retain the event timestamp/actor in the transaction
  * that changes their durable state. Only this explicit projection enters audit. */
 export async function projectNativeTransfers(db:D1Database) {

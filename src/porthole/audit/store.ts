@@ -43,8 +43,8 @@ export async function append(db: D1Database, input: AuditInput, fact?: {eventId:
    version: 1, sequence: head.sequence + 1, eventId: fact?.eventId ?? crypto.randomUUID(), recordedAt: fact?.recordedAt ?? Date.now(), previousHash: head.hash }
   const encoded = canonical(entry), hash = await digest(encoded)
   const result = await db.prepare(`INSERT INTO porthole_audit_entries(sequence,event_id,previous_hash,hash,entry)
-   SELECT ?,?,?,?,? WHERE COALESCE((SELECT MAX(sequence) FROM porthole_audit_entries),0)=?`)
-   .bind(entry.sequence, entry.eventId, entry.previousHash, hash, encoded, head.sequence).run()
+   SELECT ?,?,?,?,? WHERE COALESCE((SELECT MAX(sequence) FROM porthole_audit_entries),0)=? AND NOT EXISTS(SELECT 1 FROM porthole_audit_entries WHERE event_id=?)`)
+   .bind(entry.sequence, entry.eventId, entry.previousHash, hash, encoded, head.sequence,entry.eventId).run()
   if (result.meta.changes === 1) return { entry, hash }
  }
  throw new Error('audit_busy')

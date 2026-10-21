@@ -4,7 +4,7 @@ import { operatorInstaller, developmentTarget, previewTarget } from '@runeditrun
 import { selectLocalState } from '@runeditrun/rer/local/state';
 import { commandAdapter as createCommandAdapter } from '@runeditrun/rer/adapter';
 import { ownerDeploy } from '@runeditrun/rer/deploy';
-import { localPortability } from '@runeditrun/rer/portability';
+import { nativePortability } from '../porthole/native-portability.mjs';
 import * as model from './ui/seed.mjs';
 
 export { selectLocalState };
@@ -21,7 +21,7 @@ export const adapter = lifecycle;
 export const { install } = lifecycle;
 export const commandAdapter = createCommandAdapter(lifecycle, {
  dev: developmentTarget, preview: previewTarget, verify: ['pnpm', ['run', 'verify:app']], deploy: ownerDeploy('deploy.json', lifecycle),
- portability: localPortability({ database:'foundation',policyModule:'scripts/porthole/archive-policy.mjs',transient:['local runtime caches and logs'] }),
+ portability: nativePortability(),
  setup: { manifestFile: 'rer-setup.json' }, browserModule: 'scripts/installer/ui/seed.mjs',
  // The run site (rer build --site, rer deploy --site, RER_SITE): pages from
  // edition identity and Run data, written to an ignored folder; its domain is in deploy-site.json.
