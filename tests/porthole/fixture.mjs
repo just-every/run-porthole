@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import {randomBytes,randomUUID,createHash} from 'node:crypto'
+import {ownerSigninDigest} from '../../src/modules/operator-auth/owner-signin-grant.mjs'
 import {hashToken} from '../../src/modules/operator-auth/crypto.mjs'
 
 export const form=(origin,cookie,data)=>({method:'POST',redirect:'manual',headers:{origin,cookie,'content-type':'application/json'},body:JSON.stringify(data)})
@@ -11,7 +12,7 @@ export function fixture({origin,sql,restartWorker,sessionSecret}) {
   // Network-edge substitute for the owner's rer-signin grant, not a session
   // fake: the real public confirmation consumes it and issues the session.
   const token=randomBytes(32).toString('base64url'),now=Date.now()
-  await mutate(`INSERT INTO oa_owner_signins(id,token_hash,operator_id,operator_version,created_at,expires_at) SELECT ${literal(randomUUID())},${literal(createHash('sha256').update(token).digest('hex'))},id,version,${now},${now+120000} FROM oa_operators WHERE email='owner@example.com';`)
+  await mutate(`INSERT INTO oa_owner_signins(id,token_hash,operator_id,operator_version,created_at,expires_at) SELECT ${literal(randomUUID())},${literal(await ownerSigninDigest(token))},id,version,${now},${now+120000} FROM oa_operators WHERE email='owner@example.com';`)
   const response=await fetch(origin+'/auth/owner-signin',form(origin,'',{token}))
   assert.equal(response.status,303,'owner link confirmation')
   return response.headers.getSetCookie().map(value=>value.split(';')[0]).join('; ')

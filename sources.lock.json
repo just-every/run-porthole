@@ -86,7 +86,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "9cb6bc72db083df8bbd2a3ae15fe015342c229bc0af88dbb8b5083a0e5d910da",
+      "sha256": "5847e4ea592cf989f140c6b1cccd72e49b18181b9988a1fb11bc25553f614778",
       "executable": false
     },
     "AGENTS.md": {
@@ -102,7 +102,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "200418ecfe077dffd03f2b2ed768717ab69609e6d5a0e78d5bf8ac0cb27eec35",
+      "sha256": "fc934ed8da8d6626319ac52a9e2f5ea7b8d40f8fadbb54a7c5c20260c3d820f1",
       "executable": false
     },
     "DEMO.md": {
@@ -2002,11 +2002,11 @@
       "executable": false
     },
     "tests/porthole/credentials.mjs": {
-      "sha256": "4c99c0f295327d5a9a9f1d676a22c68aa313a6de227f6551b9478ac8731552e5",
+      "sha256": "30a035fc836d9ea9a043f3cf0f74469dfc250f4b6b5dd6c65b07f24ab40af67b",
       "executable": false
     },
     "tests/porthole/fixture.mjs": {
-      "sha256": "ef73b577a0530201b3e7e2b9d645b729df28f9a2af3919c370e3ef51a36d2e22",
+      "sha256": "831d30a6512840670a17fa6a1972d0c7cd85dbfbf06ac143d1770e8eff5c7faa",
       "executable": false
     },
     "tests/porthole/membership.mjs": {

@@ -39,6 +39,7 @@ export async function credentialJourney({ origin, cookie, sql, mutate, restartWo
  assert.equal(invited.status, 202)
  let adminCookie = await signIn('synthetic-porthole-83@example.com')
  for (const kind of ['proposal', 'execution']) assert.equal((await post(settings + '/mint', { name: 'synthetic-porthole-82', class: kind, scope: { ...scope, actions: kindActions[kind] } }, adminCookie)).status, 403)
+ assert.equal((await post(settings+'/mint',{name:'synthetic-porthole-82',class:'read',scope:{...scope,services:['other-service']}},adminCookie)).status,403)
  const read = await mint('read', adminCookie, { requestsPerMinute: 2 })
  const stored = sql(`SELECT * FROM porthole_credentials WHERE id=${literal(read.credential.id)}`)[0]
  assert.ok(stored.secret_hash === createHash('sha256').update(read.secret).digest('hex'), 'only the SHA-256 verifier is persisted')
