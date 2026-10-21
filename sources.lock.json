@@ -2014,7 +2014,7 @@
       "executable": false
     },
     "tests/porthole/membership.mjs": {
-      "sha256": "d522913235bba48f811583634eabbe6c8c75499c2ae6d30e673876452633b746",
+      "sha256": "e702ba85ff88525bdde8563ed3617184c30eea84cc8649249438cd5da6afab50",
       "executable": false
     },
     "tests/runtime.mjs": {

@@ -111,7 +111,10 @@ export async function membershipBrowser({origin,cookie,contractorCookie}) {
    const context=await browser.newContext({viewport:{width,height:width===1440?900:844}})
    await context.addCookies(cookie.split('; ').map(value=>({name:value.slice(0,value.indexOf('=')),value:value.slice(value.indexOf('=')+1),url:origin})))
    const page=await context.newPage();const errors=[];page.on('pageerror',error=>errors.push(error.message))
-   await page.goto(origin+'/app/settings/members');await page.getByRole('heading',{name:'Members',exact:true,level:1}).waitFor()
+   const entry=await page.goto(origin+'/auth/settings/identity');assert.equal(entry.status(),200)
+   await page.getByRole('link',{name:'Members',exact:true}).waitFor()
+   if(process.env.PORTHOLE_EVIDENCE_DIR) {await mkdir(process.env.PORTHOLE_EVIDENCE_DIR,{recursive:true});await page.screenshot({path:join(process.env.PORTHOLE_EVIDENCE_DIR,`settings-entry-${width}.png`),fullPage:true})}
+   await page.getByRole('link',{name:'Members',exact:true}).click();await page.getByRole('heading',{name:'Members',exact:true,level:1}).waitFor()
    assert.ok(await page.getByRole('heading',{name:'Migration report'}).isVisible())
    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth))
    await page.keyboard.press('Tab');assert.notEqual(await page.evaluate(()=>getComputedStyle(document.activeElement).outlineStyle),'none')
