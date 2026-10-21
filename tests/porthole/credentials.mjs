@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { literal } from './fixture.mjs'
 
 const settings = '/app/settings/credentials', introspection = '/api/porthole/v1/credential'
-const scope = { services: ['synthetic-porthole-80'], environments: ['synthetic-porthole-81'], teams: [], signals: ['logs'], actions: ['telemetry.read'] }
+const scope = { services: ['checkout'], environments: ['production'], teams: ['commerce'], signals: ['logs'], actions: ['telemetry.read'] }
 const kindActions = { ingest: ['telemetry.write'], 'change-event': ['change.deploy'], read: ['telemetry.read'], proposal: ['telemetry.read', 'proposal.create'], execution: ['plan.execute'] }
 const privateResponse = response => {
  assert.match(response.headers.get('cache-control') ?? '', /no-store/)
@@ -22,7 +22,7 @@ export async function credentialJourney({ origin, cookie, sql, mutate, restartWo
  const post = (path, data, actingCookie = ownerCookie, headers = {}) => fetch(origin + path, { method: 'POST', redirect: 'manual', headers: { origin, cookie: actingCookie, 'content-type': 'application/json', ...headers }, body: JSON.stringify(data) })
  const inspect = secret => fetch(origin + introspection, { headers: { authorization: `Bearer ${secret}` } })
  const mint = async (kind, actingCookie = ownerCookie, extra = {}) => {
-  const response = await post(settings + '/mint', { name: 'synthetic-porthole-82', class: kind, scope: { ...scope, actions: kindActions[kind] }, ...extra }, actingCookie)
+  const response = await post(settings + '/mint', { name: 'Checkout investigation', class: kind, scope: { ...scope, actions: kindActions[kind] }, ...extra }, actingCookie)
   assert.equal(response.status, 201, `mint ${kind}`); privateResponse(response)
   const value = await response.json()
   assert.ok(/^ph_[A-Za-z0-9_-]{43}$/.test(value.secret), 'secret carries 256 random bits')
@@ -35,10 +35,10 @@ export async function credentialJourney({ origin, cookie, sql, mutate, restartWo
  }
  ownerCookie = await freshOwner()
  // Give a real native admin a bounded scope through the public Members door.
- const invited = await post('/app/settings/members/invite', { email: 'synthetic-porthole-83@example.com', displayName: 'synthetic-porthole-84', role: 'admin', scope: { services: scope.services, environments: scope.environments, teams: [] } })
+ const invited = await post('/app/settings/members/invite', { email: 'synthetic-porthole-83@example.com', displayName: 'Checkout administrator', role: 'admin', scope: { services: scope.services, environments: scope.environments, teams: [] } })
  assert.equal(invited.status, 202)
  let adminCookie = await signIn('synthetic-porthole-83@example.com')
- for (const kind of ['proposal', 'execution']) assert.equal((await post(settings + '/mint', { name: 'synthetic-porthole-82', class: kind, scope: { ...scope, actions: kindActions[kind] } }, adminCookie)).status, 403)
+ for (const kind of ['proposal', 'execution']) assert.equal((await post(settings + '/mint', { name: 'Checkout investigation', class: kind, scope: { ...scope, actions: kindActions[kind] } }, adminCookie)).status, 403)
  assert.equal((await post(settings+'/mint',{name:'synthetic-porthole-82',class:'read',scope:{...scope,services:['other-service']}},adminCookie)).status,403)
  const read = await mint('read', adminCookie, { requestsPerMinute: 2 })
  const stored = sql(`SELECT * FROM porthole_credentials WHERE id=${literal(read.credential.id)}`)[0]
@@ -53,12 +53,12 @@ export async function credentialJourney({ origin, cookie, sql, mutate, restartWo
  const html = await (await fetch(origin + settings, { headers: { cookie: ownerCookie } })).text()
  assert.ok(!html.includes(read.secret) && !html.includes(stored.secret_hash))
  for (const path of [settings + '/mint', '/app/settings/members/invite', '/auth/invite']) {
-  const denied = await post(path, { name: 'synthetic-porthole-82', class: 'read', scope }, '', { authorization: `Bearer ${read.secret}` })
+  const denied = await post(path, { name: 'Checkout investigation', class: 'read', scope }, '', { authorization: `Bearer ${read.secret}` })
   assert.equal(denied.status, 403)
  }
  assert.equal((await post(introspection, {}, ownerCookie)).status, 403, 'API never mints')
  assert.equal((await fetch(origin + introspection + '?token='+encodeURIComponent(read.secret), { headers: { authorization: `Bearer ${read.secret}` } })).status, 400)
- assert.equal((await post(settings + '/mint', { name: 'synthetic-porthole-82', class: 'read', scope }, ownerCookie, { origin: 'https://synthetic-porthole.invalid' })).status, 403)
+ assert.equal((await post(settings + '/mint', { name: 'Checkout investigation', class: 'read', scope }, ownerCookie, { origin: 'https://synthetic-porthole.invalid' })).status, 403)
  const checks = await Promise.all(Array.from({ length: 3 }, () => inspect(read.secret)))
  assert.deepEqual(checks.map(response => response.status).sort(), [200, 200, 429])
  const throttled = checks.find(response => response.status === 429)
@@ -70,17 +70,17 @@ export async function credentialJourney({ origin, cookie, sql, mutate, restartWo
  // Expire just the owner's proof; its native session remains live. Revocation
  // must still work while mint, rotate and rescope refuse privileged authority.
  await mutate(`UPDATE oa_step_up_challenges SET consumed_at=1 WHERE operator_id=(SELECT id FROM oa_operators WHERE email='owner@example.com'); UPDATE oa_sessions SET created_at=1 WHERE operator_id=(SELECT id FROM oa_operators WHERE email='owner@example.com'); UPDATE oa_tokens SET consumed_at=1 WHERE operator_id=(SELECT id FROM oa_operators WHERE email='owner@example.com') AND consumed_at IS NOT NULL;`)
- assert.equal((await post(settings + '/mint', { name: 'synthetic-porthole-82', class: 'read', scope })).status, 403)
+ assert.equal((await post(settings + '/mint', { name: 'Checkout investigation', class: 'read', scope })).status, 403)
  assert.equal((await post(settings + '/rotate', { id: read.credential.id })).status, 403)
  assert.equal((await post(settings + '/rescope', { id: read.credential.id, scope })).status, 403)
  assert.equal((await post(settings + '/revoke', { id: read.credential.id })).status, 200)
  assert.equal((await inspect(read.secret)).status, 401)
  ownerCookie = await freshOwner()
  for (const action of ['membership.change', 'credential.mint', 'approval.create', 'retention.change', 'installation.export', 'connector.secret.read', 'source.retire', 'monitor.weaken']) {
-  assert.equal((await post(settings + '/mint', { name: 'synthetic-porthole-82', class: 'proposal', scope: { ...scope, actions: [action] } })).status, 403)
+  assert.equal((await post(settings + '/mint', { name: 'Checkout investigation', class: 'proposal', scope: { ...scope, actions: [action] } })).status, 403)
  }
- assert.equal((await post(settings + '/mint', { name: 'synthetic-porthole-82', class: 'read', scope, expiresAt: Date.now() + 731 * 86400000 })).status, 400)
- assert.equal((await post(settings + '/mint', { name: 'synthetic-porthole-82', class: 'read', scope, requestsPerMinute: 0 })).status, 400)
+ assert.equal((await post(settings + '/mint', { name: 'Checkout investigation', class: 'read', scope, expiresAt: Date.now() + 731 * 86400000 })).status, 400)
+ assert.equal((await post(settings + '/mint', { name: 'Checkout investigation', class: 'read', scope, requestsPerMinute: 0 })).status, 400)
  const identities = {}
  for (const kind of Object.keys(kindActions)) identities[kind] = await mint(kind)
  assert.notEqual(identities.proposal.credential.id, identities.execution.credential.id)
@@ -155,7 +155,7 @@ export async function credentialBrowserJourney({ origin, cookie }) {
     await mkdir(process.env.PORTHOLE_EVIDENCE_DIR, { recursive: true })
     await page.screenshot({ path: join(process.env.PORTHOLE_EVIDENCE_DIR, `credentials-${width}.png`), fullPage: true })
    }
-   await page.getByLabel('Name', { exact: true }).fill('synthetic-porthole-86')
+   await page.getByLabel('Name', { exact: true }).fill('Checkout investigation')
    await page.getByRole('button', { name: 'Mint credential', exact: true }).click()
    await page.getByRole('heading', { name: 'Save your credential', exact: true }).waitFor()
    const secret = await page.getByRole('textbox').inputValue()

@@ -3,9 +3,10 @@ const queued=await queuedEntrypoint(import.meta.url,'verify:runtime');if(queued!
 import assert from 'node:assert/strict'
 import { execFileSync, spawn } from 'node:child_process'
 import { createServer } from 'node:net'
-import { mkdtemp, readFile, rm } from 'node:fs/promises'
+import { mkdtemp, readFile, rm, mkdir, writeFile, readdir, copyFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join,resolve } from 'node:path'
+import { randomUUID } from 'node:crypto'
 
 const socket = createServer()
 await new Promise(resolve => socket.listen(0, '127.0.0.1', resolve))
@@ -14,7 +15,16 @@ await new Promise(resolve => socket.close(resolve))
 // The installed homepage reads the claim state from D1: run the emitted Worker
 // on its own migrated store, never the checkout's local data.
 const persist = await mkdtemp(join(tmpdir(), 'foundation-runtime-'))
-execFileSync(process.execPath, ['node_modules/wrangler/bin/wrangler.js', 'd1', 'migrations', 'apply', 'foundation', '--local', '--persist-to', persist, '--config', 'dist/server/wrangler.json'], { stdio: 'pipe', env: { ...process.env, CI: '1', WRANGLER_SEND_METRICS: 'false' } })
+const migrationEnv={...process.env,CI:'1',WRANGLER_SEND_METRICS:'false'}
+const migrate=config=>execFileSync(process.execPath,['node_modules/wrangler/bin/wrangler.js','d1','migrations','apply','foundation','--local','--persist-to',persist,'--config',config],{stdio:'pipe',env:migrationEnv})
+const sql=command=>JSON.parse(execFileSync(process.execPath,['node_modules/wrangler/bin/wrangler.js','d1','execute','foundation','--local','--persist-to',persist,'--config','dist/server/wrangler.json','--json','--command',command],{encoding:'utf8',env:migrationEnv})).flatMap(result=>result.results??[])
+// Upgrade a real prior installation: Base first, then existing members, then
+// the shipped product migrations through Wrangler's actual migration command.
+const oldMigrations=join(persist,'previous-migrations');await mkdir(oldMigrations)
+for(const name of (await readdir('migrations/core')).filter(name=>name<'0017')) await copyFile('migrations/core/'+name,join(oldMigrations,name))
+const oldConfig=join(persist,'previous.json')
+await writeFile(oldConfig,JSON.stringify({name:'justevery-porthole',compatibility_date:'2026-09-08',d1_databases:[{binding:'DB',database_name:'foundation',database_id:'local-foundation-only',migrations_dir:oldMigrations}]}))
+migrate(oldConfig)
 const origin = `http://127.0.0.1:${port}`
 // The emitted Worker's owner-claim setup token: a synthetic test value.
 const setupToken = 'synthetic-runtime-setup-token-1234567890123456789'
@@ -79,6 +89,10 @@ try {
   const owner = await fetch(`${origin}/auth/bootstrap`, form({ token: setupToken, displayName: 'Runtime Owner', returnTo: '/setup' }))
   assert.equal(owner.status, 303)
   let cookie = owner.headers.getSetCookie().map(value => value.split(';')[0]).join('; ')
+  await restartWorker(()=>{
+   sql(`INSERT INTO oa_operators(id,email,display_name,role,status,created_at) VALUES('${randomUUID()}','synthetic-porthole-10@example.com','Existing checkout administrator','admin','active',${Date.now()}),('${randomUUID()}','synthetic-porthole-11@example.com','Existing checkout analyst','member','active',${Date.now()})`)
+   migrate('dist/server/wrangler.json')
+  })
   assert.equal((await fetch(`${origin}/app`, { redirect: 'manual', headers: { cookie } })).headers.get('location'), '/setup')
   assert.equal((await fetch(`${origin}/setup`, { headers: { cookie } })).status, 200)
   assert.equal((await fetch(`${origin}/setup`, form({ confirm: 'yes' }, cookie))).headers.get('location'), '/app')
@@ -92,17 +106,11 @@ try {
     assert.equal(sheet.status, 200, href)
     for (const [, imported] of (await sheet.text()).matchAll(/@import url\('(\/[^']+)'\)/g)) assert.equal((await fetch(`${origin}${imported}`)).status, 200, imported)
   }
-  const sql = command => {
-   const output=execFileSync(process.execPath, ['node_modules/wrangler/bin/wrangler.js','d1','execute','foundation','--local','--persist-to',persist,'--config','dist/server/wrangler.json','--json','--command',command], {encoding:'utf8',env:{...process.env,CI:'1',WRANGLER_SEND_METRICS:'false'}})
-   return JSON.parse(output).flatMap(result=>result.results??[])
-  }
   const {fixture}=await import('./porthole/fixture.mjs')
   const helpers=fixture({origin,sql,restartWorker,sessionSecret:'runtime-session-secret-1234567890123456'})
   cookie=await helpers.freshOwner()
   const {membershipJourney}=await import('./porthole/membership.mjs')
   const {credentialJourney}=await import('./porthole/credentials.mjs')
-  const {migrationJourney}=await import('./porthole/migration.mjs')
-  await migrationJourney()
   const membership=await membershipJourney({origin,cookie,persist,restartWorker,...helpers,sessionSecret:'runtime-session-secret-1234567890123456'})
   cookie=membership.cookie
   await credentialJourney({origin,cookie,persist,restartWorker,...helpers,getLogs:()=>allOutput})

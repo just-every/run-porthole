@@ -83,7 +83,13 @@ export async function membershipJourney({origin,cookie,sql,mutate,link,signIn,fr
  assert.ok(sql(`SELECT revoked_at FROM oa_credentials WHERE operator_id=${literal(target.id)}`)[0].revoked_at)
  assert.equal((await get('/app/settings/members')).status,200)
  const migration=sql('SELECT * FROM porthole_membership_migration')
+ assert.equal(migration.length,3)
  assert.ok(migration.every(row=>row.gained_access===0))
+ const previousMember=migration.find(row=>row.previous_role==='member')
+ assert.equal(previousMember.assigned_role,'read-only analyst')
+ assert.deepEqual(JSON.parse(previousMember.assigned_scope),{services:[],environments:[],teams:[]})
+ const migrationPage=await (await get('/app/settings/members')).text()
+ assert.ok(migrationPage.includes(previousMember.operator_id))
  await membershipBrowser({origin,cookie})
  console.log('membershipJourney passed: seven roles, links, no escalation, fresh proof, revision fence, last owner and removal')
  return {cookie,target,admin,contractor,scope}
@@ -101,9 +107,10 @@ export async function membershipBrowser({origin,cookie}) {
    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth))
    await page.keyboard.press('Tab');assert.notEqual(await page.evaluate(()=>getComputedStyle(document.activeElement).outlineStyle),'none')
    if(process.env.PORTHOLE_EVIDENCE_DIR) {await mkdir(process.env.PORTHOLE_EVIDENCE_DIR,{recursive:true});await page.screenshot({path:join(process.env.PORTHOLE_EVIDENCE_DIR,`members-${width}.png`),fullPage:true})}
+   if(process.env.PORTHOLE_EVIDENCE_DIR) {await page.getByRole('heading',{name:'Migration report'}).scrollIntoViewIfNeeded();await page.screenshot({path:join(process.env.PORTHOLE_EVIDENCE_DIR,`members-migration-${width}.png`)})}
    await page.getByLabel('Email',{exact:true}).fill(`synthetic-porthole-browser-${width}@example.com`)
    await page.getByLabel('Display name',{exact:true}).fill('Checkout on-call responder')
-   await page.getByLabel('Product role',{exact:true}).first().selectOption('responder')
+   await page.getByRole('combobox').first().selectOption('responder')
    await page.getByLabel('Services (comma separated; * for all)',{exact:true}).first().fill('checkout')
    await page.getByLabel('Environments (comma separated)',{exact:true}).first().fill('production')
    await page.getByLabel('Teams (comma separated)',{exact:true}).first().fill('commerce')

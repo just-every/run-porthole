@@ -121,6 +121,10 @@
       "sha256": "ef14358921e65e512b69894d27181b39ee06dd02deedaaefa304e208d8cd6d14",
       "executable": false
     },
+    "docs/access.md": {
+      "sha256": "db250d0338adaf2cc6a8e8924de6d1d475c80edc38e21816419ce496c7c50331",
+      "executable": false
+    },
     "docs/LOOK.md": {
       "sha256": "38d17d1c2a05a56e6d8f4d1d74627bfa946ac7fca77b64638194032719e33401",
       "executable": false
@@ -2002,7 +2006,7 @@
       "executable": false
     },
     "tests/porthole/credentials.mjs": {
-      "sha256": "30a035fc836d9ea9a043f3cf0f74469dfc250f4b6b5dd6c65b07f24ab40af67b",
+      "sha256": "ae2aeb47fa5f6b7a69a8003eeec2db5f92701d4e6551fd303a11a3e81f2f9429",
       "executable": false
     },
     "tests/porthole/fixture.mjs": {
@@ -2010,15 +2014,11 @@
       "executable": false
     },
     "tests/porthole/membership.mjs": {
-      "sha256": "f59ae87c38074f79ce8ea2cb0a68ea5b87d984c8cefecb9dc45fa151193bdae7",
-      "executable": false
-    },
-    "tests/porthole/migration.mjs": {
-      "sha256": "7ba004a1fcb2be6a85c0313fd80f4b8b862dd07694e01448306afdae9ae88fe9",
+      "sha256": "1ff640e7b0855aaaf10c8653aeb71c551d980adb5e43647e7688f4943902a023",
       "executable": false
     },
     "tests/runtime.mjs": {
-      "sha256": "13bd31bbe7e1eec45e8a7773caa57fb4273f36f9f7cbe4d45c083963ba004ac5",
+      "sha256": "d84971542317f467ac1a0e251673b35ed6e368478b02a477166c8a160217555c",
       "executable": false
     },
     "tests/typecheck-checks.mjs": {
