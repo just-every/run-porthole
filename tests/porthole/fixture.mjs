@@ -10,7 +10,14 @@ export function fixture({origin,sql,restartWorker,sessionSecret,ownerEmail='owne
  async function mutate(statement) {await restartWorker(()=>sql(statement))}
  let ownerSession=null
  async function freshOwner() {
-  if(ownerSession && Date.now()-ownerSession.at<240000 && (await fetch(origin+'/auth/session',{headers:{cookie:ownerSession.cookie}})).status===200)return ownerSession.cookie
+  if(ownerSession && Date.now()-ownerSession.at<240000) {
+   const response=await fetch(origin+'/auth/session',{headers:{cookie:ownerSession.cookie}})
+   if(response.status===200) {
+    const session=await response.json()
+    const proof=(await sql(`SELECT COUNT(*) AS n FROM oa_step_up_challenges WHERE session_id=${literal(session.id)} AND operator_id=${literal(session.operator.id)} AND operator_version=${session.operator.version} AND consumed_at>=${Date.now()-240000}`))[0]
+    if(proof.n>0)return ownerSession.cookie
+   }
+  }
   // Network-edge substitute for the owner's rer-signin grant, not a session
   // fake: the real public confirmation consumes it and issues the session.
   const token=randomBytes(32).toString('base64url'),now=Date.now()

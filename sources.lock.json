@@ -2214,7 +2214,7 @@
       "executable": false
     },
     "tests/porthole/fixture.mjs": {
-      "sha256": "9e5368e1d965066b3d1d56b697aafacb13b2907fea90b0716e3a8b9b3924539f",
+      "sha256": "8c91aa6312be3072bc6450036e867d7fd5cc326001404bea0aacb1988c735d94",
       "executable": false
     },
     "tests/porthole/health.mjs": {
