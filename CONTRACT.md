@@ -320,7 +320,7 @@ Every capability claim on the run site's homepage (run-porthole.com, `src/site/h
 
 ## Status
 
-Judged from the code and tests at commit `a1f1b688a4e82ca008dc473a0578c0472bedb7d8` (21 October 2026). Exact-SHA branch Verify remains a separate landing gate; partial rows retain the complete clause obligations.
+Judged from the code and tests at commit `facd6a2d49ee0bd378d55e60a641f9951e77efaa` (21 October 2026). Exact-SHA branch Verify remains a separate landing gate; partial rows retain the complete clause obligations.
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
