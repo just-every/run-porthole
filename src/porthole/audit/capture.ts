@@ -4,6 +4,10 @@ import { append, type AuditInput } from './store'
 // Each existing administrative HTTP mutation has a fixed label. Future product
 // handlers must adopt this seam; this list does not claim to implement them.
 const actions: Record<string, string> = {
+ '/app/settings/members/invite':'membership.invite', '/app/settings/members/change':'membership.role', '/app/settings/members/remove':'membership.status',
+ '/app/settings/credentials/rescope':'credentials.rescope',
+ '/app/settings/credentials/mint':'credentials.mint', '/app/settings/credentials/rotate':'credentials.rotate', '/app/settings/credentials/revoke':'credentials.revoke',
+ '/auth/step-up':'identity.step-up', '/auth/confirm':'identity.confirm',
  '/auth/invite': 'membership.invite', '/auth/invite/cancel': 'membership.cancel-invitation',
  '/auth/operator/status': 'membership.status', '/auth/operator/role': 'membership.role',
  '/auth/session/revoke': 'credentials.revoke-session', '/auth/settings/identity': 'identity.settings',

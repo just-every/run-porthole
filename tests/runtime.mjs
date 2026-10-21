@@ -77,7 +77,7 @@ try {
   assert.equal((await fetch(`${origin}/app`, { redirect: 'manual' })).headers.get('location'), '/signin')
   const owner = await fetch(`${origin}/auth/bootstrap`, form({ token: setupToken, displayName: 'Runtime Owner', returnTo: '/setup' }))
   assert.equal(owner.status, 303)
-  const cookie = owner.headers.getSetCookie().map(value => value.split(';')[0]).join('; ')
+  let cookie = owner.headers.getSetCookie().map(value => value.split(';')[0]).join('; ')
   assert.equal((await fetch(`${origin}/app`, { redirect: 'manual', headers: { cookie } })).headers.get('location'), '/setup')
   assert.equal((await fetch(`${origin}/setup`, { headers: { cookie } })).status, 200)
   assert.equal((await fetch(`${origin}/setup`, form({ confirm: 'yes' }, cookie))).headers.get('location'), '/app')
@@ -91,6 +91,21 @@ try {
     assert.equal(sheet.status, 200, href)
     for (const [, imported] of (await sheet.text()).matchAll(/@import url\('(\/[^']+)'\)/g)) assert.equal((await fetch(`${origin}${imported}`)).status, 200, imported)
   }
+  const sql = command => {
+   const output=execFileSync(process.execPath, ['node_modules/wrangler/bin/wrangler.js','d1','execute','foundation','--local','--persist-to',persist,'--config','dist/server/wrangler.json','--json','--command',command], {encoding:'utf8',env:{...process.env,CI:'1',WRANGLER_SEND_METRICS:'false'}})
+   return JSON.parse(output).flatMap(result=>result.results??[])
+  }
+  const {fixture}=await import('./porthole/fixture.mjs')
+  const helpers=fixture({origin,sql,restartWorker,sessionSecret:'runtime-session-secret-1234567890123456'})
+  cookie=await helpers.freshOwner()
+  const {membershipJourney}=await import('./porthole/membership.mjs')
+  const {credentialJourney}=await import('./porthole/credentials.mjs')
+  const {migrationJourney}=await import('./porthole/migration.mjs')
+  await migrationJourney()
+  const membership=await membershipJourney({origin,cookie,persist,restartWorker,...helpers,sessionSecret:'runtime-session-secret-1234567890123456'})
+  cookie=membership.cookie
+  await credentialJourney({origin,cookie,persist,restartWorker,...helpers,readOutput:()=>output})
+  cookie=await helpers.freshOwner()
   const { auditJourney, healthJourney } = await import('./porthole/audit.mjs')
   await auditJourney({ origin, cookie, persist, restartWorker })
   await healthJourney({ origin, cookie })

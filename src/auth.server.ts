@@ -9,6 +9,8 @@ import branding from './branding.json'
 import { identity } from './identity'
 import { asFrame, homeDocument, withBar } from './ui/document.server'
 import { homeViews, settingsPath } from './ui/home'
+import { productAuth, rolePolicy, guardNativeRequest } from './porthole/membership/auth'
+import { settingsNav } from './porthole/membership/page'
 
 // The edition's declared theme (public/rer-theme.css), as Base frames link it.
 const theme = { href: '/rer-theme.css', productName: branding.name, accentColor: branding.primaryColor }
@@ -46,9 +48,10 @@ export interface Bindings {
 
 export const runtimeBindings = (env: Bindings): Bindings => env.RER_DEV_ORIGIN && env.AUTH_LOCAL === 'true' ? { ...env, AUTH_ORIGIN: env.RER_DEV_ORIGIN } : env
 export const authConfig = (env: Bindings): AuthConfig => ({ dependencies: true, origin: env.AUTH_ORIGIN, local: env.AUTH_LOCAL === 'true', OWNER_EMAIL: env.OWNER_EMAIL, SESSION_SECRET: env.SESSION_SECRET, SETUP_TOKEN: env.SETUP_TOKEN, MAIL_FROM: env.MAIL_FROM, branding: { productName: branding.name, accentColor: branding.primaryColor, signInPath: '/signin', theme: theme.href } })
-export function operatorAuth(env: Bindings) {
- return createOperatorAuth({ db: env.DB, config: authConfig(env), mailSender: operatorMail(env), clientIp: request => request.headers.get('CF-Connecting-IP') ?? '' })
+export function baseOperatorAuth(env: Bindings) {
+ return createOperatorAuth({ db: env.DB, config: authConfig(env), mailSender: operatorMail(env), rolePolicy: rolePolicy(env), clientIp: request => request.headers.get('CF-Connecting-IP') ?? '' })
 }
+export function operatorAuth(env: Bindings) { return productAuth(env, baseOperatorAuth(env)) }
 
 const privateHeaders = { 'cache-control': 'no-store', 'referrer-policy': 'no-referrer', 'x-content-type-options': 'nosniff', 'x-robots-tag': 'noindex, nofollow' }
 
@@ -82,8 +85,13 @@ async function handleAuthResponse(request: Request, original: Bindings): Promise
  // Base's auth documents wear the app's bar: sign-in settings (the owner's) with the views and the person, the
  // link confirmations with the lockup alone.
  if (url.pathname.startsWith('/auth/')) {
-  const response = await fontDocumentResponse(await createAuthHandler(operatorAuth(env))(request))
+  try { await guardNativeRequest(request,env) } catch (error) {
+   const failure=error as {code?:string;status?:number}
+   return Response.json({error:failure.code??'auth_unavailable'},{status:failure.status??503,headers:privateHeaders})
+  }
+  let response = await fontDocumentResponse(await createAuthHandler(operatorAuth(env))(request))
   if (!response || url.pathname !== settingsPath || response.status !== 200) return response && withBar(response)
+  if (response.headers.get('content-type')?.startsWith('text/html')) { const html=await response.text();response=new Response(html.replace('</main>',settingsNav+'</main>'),response) }
   const session = await operatorAuth(env).getSession(request)
   return withBar(response, session ? { viewer: session.operator, views: homeViews(session.operator, settingsPath) } : {})
  }
