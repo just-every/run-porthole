@@ -710,7 +710,7 @@
       "executable": false
     },
     "src/auth.server.ts": {
-      "sha256": "57ad409644b6ab6727f508aa2b6c911732b918f36d586cac19260e46509558cb",
+      "sha256": "38b282130e9982e3d37685c0cb9b031622fd6f921e8ea81f5492da48b48ec958",
       "executable": false
     },
     "src/base/actor.ts": {
@@ -2014,7 +2014,7 @@
       "executable": false
     },
     "tests/porthole/membership.mjs": {
-      "sha256": "7caa6b55e3d6fab467148e75073b8c27ba1370d83b209af25daaf231ba92ac2c",
+      "sha256": "851f947bab1f18dba046f1f3084368c744bcb10a77141bdc8e4851586d4784e1",
       "executable": false
     },
     "tests/runtime.mjs": {

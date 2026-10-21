@@ -3,7 +3,7 @@ import { createDependencies } from './modules/dependencies/index.mjs'
 import { createIdpOwnerClaimHandler, createOwnerClaimHandler } from './modules/owner-claim/index.mjs'
 import { firstRunResponse } from './base/setup'
 import { fontDocumentResponse } from './base/font-response'
-import { createOperatorAuth, createAuthHandler, createSignInHandler, type AuthConfig } from './modules/operator-auth/index.mjs'
+import { createOperatorAuth, createAuthHandler, createSignInHandler, type AuthConfig, AuthError } from './modules/operator-auth/index.mjs'
 import { operatorMail } from './mail.server.mjs'
 import branding from './branding.json'
 import { identity } from './identity'
@@ -11,6 +11,7 @@ import { asFrame, homeDocument, withBar } from './ui/document.server'
 import { homeViews, settingsPath } from './ui/home'
 import { productAuth, rolePolicy, guardNativeRequest } from './porthole/membership/auth'
 import { settingsNav } from './porthole/membership/page'
+import { document } from './porthole/document'
 
 // The edition's declared theme (public/rer-theme.css), as Base frames link it.
 const theme = { href: '/rer-theme.css', productName: branding.name, accentColor: branding.primaryColor }
@@ -112,6 +113,12 @@ async function handleAuthResponse(request: Request, original: Bindings): Promise
 }
 
 export async function authResponse(request: Request, original: Bindings): Promise<Response | null> {
- const response = await handleAuthResponse(request, original)
- return response ? rejectedResponse(request, response) : null
+ try {
+  const response = await handleAuthResponse(request, original)
+  return response ? rejectedResponse(request, response) : null
+ } catch(error) {
+  const status=error instanceof AuthError?error.status:503
+  if(new URL(request.url).pathname.startsWith('/app/settings')) return document('Settings unavailable','<p role="alert">Settings cannot be read right now. Try again or contact the installation owner.</p><p><a href="/app/settings/members">Try again</a></p>',status)
+  return rejectedResponse(request,Response.json({error:error instanceof AuthError?error.code:'auth_unavailable'},{status,headers:privateHeaders}))
+ }
 }

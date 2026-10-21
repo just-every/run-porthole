@@ -11,7 +11,9 @@ export async function membershipJourney({origin,cookie,sql,mutate,link,signIn,fr
  const scope={services:['checkout'],environments:['production'],teams:['commerce']}
  const roles=['admin','maintainer','responder','read-only analyst','finance reader','restricted contractor']
  for(const [i,role] of roles.entries()) {
-  const r=await post('/app/settings/members/invite',{email:`synthetic-porthole-${20+i}@example.com`,displayName:`Checkout ${role}`,role,scope:role==='admin'?{services:['*'],environments:['*'],teams:['*']}:scope})
+  const [label,service,team]=i===2?['Payments','payments','payments']:i===3?['Fulfillment','fulfillment','fulfillment']:['Checkout','checkout','commerce']
+  const assignment=role==='finance reader'?{services:['checkout','payments','fulfillment'],environments:['production'],teams:['commerce','payments','fulfillment']}:{services:[service],environments:['production'],teams:[team]}
+  const r=await post('/app/settings/members/invite',{email:`synthetic-porthole-${20+i}@example.com`,displayName:`${label} ${role}`,role,scope:role==='admin'?{services:['*'],environments:['*'],teams:['*']}:assignment})
   assert.equal(r.status,202,`${role} invitation: ${await r.text()}`)
  }
  const rows=await members()
@@ -71,7 +73,7 @@ export async function membershipJourney({origin,cookie,sql,mutate,link,signIn,fr
  await signIn(other.email)
  assert.equal((await post('/app/settings/members/change',{operatorId:other.id,role:'owner',confirmEmail:other.email})).status,200)
  const otherOwner=await signIn(other.email)
- assert.equal((await post('/app/settings/members/change',{operatorId:other.id,role:'read-only analyst',scope},otherOwner)).status,200)
+ assert.equal((await post('/app/settings/members/change',{operatorId:other.id,role:'read-only analyst',scope:other.scope},otherOwner)).status,200)
  assert.equal((await get('/auth/session',otherOwner)).status,401)
  const typed=await post('/app/settings/members/change',{operatorId:target.id,role:'owner',confirmEmail:'wrong@example.com'})
  assert.equal(typed.status,400)
@@ -95,6 +97,8 @@ export async function membershipJourney({origin,cookie,sql,mutate,link,signIn,fr
  const migrationPage=await (await get('/app/settings/members')).text()
  assert.ok(migrationPage.includes(previousMember.operator_id))
  await membershipBrowser({origin,cookie,contractorCookie})
+ await mutate('ALTER TABLE porthole_members RENAME TO porthole_members_unavailable')
+ try {await unavailableBrowser({origin,cookie})} finally {await mutate('ALTER TABLE porthole_members_unavailable RENAME TO porthole_members')}
  console.log('membershipJourney passed: seven roles, links, no escalation, fresh proof, revision fence, last owner and removal')
  return {cookie,target,admin,contractor,scope}
 }
@@ -120,8 +124,16 @@ export async function membershipBrowser({origin,cookie,contractorCookie}) {
    await page.getByLabel('Teams (comma separated)',{exact:true}).first().fill('commerce')
    await page.getByRole('button',{name:'Send invitation',exact:true}).click()
    await page.getByRole('heading',{name:'Checkout on-call responder',exact:true}).last().waitFor()
-   const manageName=width===1440?'Existing checkout analyst':'Checkout responder'
+   const manageName=width===1440?'Existing checkout analyst':'Payments responder'
    const managed=page.locator('li').filter({has:page.getByRole('heading',{name:manageName,exact:true})})
+   await managed.getByText('Manage '+manageName,{exact:true}).click()
+   await managed.getByRole('combobox').selectOption('owner')
+   const refusal=page.waitForResponse(response=>response.url().endsWith('/app/settings/members/change') && response.request().method()==='POST')
+   await managed.getByRole('button',{name:'Save role and scope',exact:true}).click()
+   assert.equal((await refusal).status(),400)
+   await page.getByRole('alert').waitFor()
+   if(process.env.PORTHOLE_EVIDENCE_DIR) await page.screenshot({path:join(process.env.PORTHOLE_EVIDENCE_DIR,`members-invalid-${width}.png`),fullPage:true})
+   await page.getByRole('link',{name:'Return to Members',exact:true}).click()
    await managed.getByText('Manage '+manageName,{exact:true}).click()
    await managed.getByRole('combobox').selectOption('responder')
    if(process.env.PORTHOLE_EVIDENCE_DIR) await managed.screenshot({path:join(process.env.PORTHOLE_EVIDENCE_DIR,`members-manage-${width}.png`)})
@@ -133,6 +145,8 @@ export async function membershipBrowser({origin,cookie,contractorCookie}) {
    assert.equal(current.find(row=>row.displayName===manageName).status,'inactive')
    if(process.env.PORTHOLE_EVIDENCE_DIR) await managed.screenshot({path:join(process.env.PORTHOLE_EVIDENCE_DIR,`members-removed-${width}.png`)})
    await page.getByRole('link',{name:'Credentials',exact:true}).click();assert.equal(new URL(page.url()).pathname,'/app/settings/credentials')
+   await page.getByRole('heading',{name:'Credentials',exact:true}).waitFor();assert.equal(await page.locator('li').count(),0)
+   if(process.env.PORTHOLE_EVIDENCE_DIR) await page.screenshot({path:join(process.env.PORTHOLE_EVIDENCE_DIR,`credentials-empty-${width}.png`),fullPage:true})
    await context.clearCookies()
    await context.addCookies(contractorCookie.split('; ').map(value=>({name:value.slice(0,value.indexOf('=')),value:value.slice(value.indexOf('=')+1),url:origin})))
    const denied=await page.goto(origin+'/app/settings/members');assert.equal(denied.status(),403)
@@ -141,4 +155,18 @@ export async function membershipBrowser({origin,cookie,contractorCookie}) {
    assert.deepEqual(errors,[]);await context.close()
   }
  } finally {await browser.close()}
+}
+
+async function unavailableBrowser({origin,cookie}) {
+ const {chromium}=await import('@playwright/test'),{join}=await import('node:path')
+ const browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']})
+ try {for(const width of [1440,390]) {
+  const context=await browser.newContext({viewport:{width,height:width===1440?900:844}})
+  await context.addCookies(cookie.split('; ').map(value=>({name:value.slice(0,value.indexOf('=')),value:value.slice(value.indexOf('=')+1),url:origin})))
+  const page=await context.newPage(),response=await page.goto(origin+'/app/settings/members')
+  assert.equal(response.status(),503);await page.getByRole('alert').waitFor()
+  assert.equal(await page.locator('form').count(),0)
+  if(process.env.PORTHOLE_EVIDENCE_DIR) await page.screenshot({path:join(process.env.PORTHOLE_EVIDENCE_DIR,`settings-unavailable-${width}.png`),fullPage:true})
+  await context.close()
+ }} finally {await browser.close()}
 }
