@@ -47,7 +47,7 @@ export async function objectsResponse(request:Request,env:Bindings):Promise<Resp
   }
   if(!['owner','admin','maintainer'].includes(actor.member.role))fail('definition_change_forbidden')
   const kind=text(data.kind),name=text(data.name),body=validateBody(kind,typeof data.body==='string'?JSON.parse(data.body):data.body)
-  const scope=parseScope(data.scope ?? {services:[data.service],environments:[data.environment],teams:[data.team]})
+  const scope=parseScope((typeof data.scope==='string'?JSON.parse(data.scope):data.scope) ?? {services:[data.service],environments:[data.environment],teams:[data.team]})
   if(!scope.services.length || !scope.environments.length || !scopeWithin(scope,actor.member.scope))fail('scope_forbidden')
   const id=data.id===undefined?crypto.randomUUID():text(data.id,36),revision=data.id===undefined?1:Number(data.revision)+1
   if(!Number.isSafeInteger(revision)||revision<1)fail('invalid_revision',400)

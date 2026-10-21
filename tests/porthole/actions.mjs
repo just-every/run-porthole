@@ -74,6 +74,7 @@ export async function actionJourney({origin,cookie,restartWorker,freshOwner,sql,
  const restrictedCookie=await signIn(email)
  const restricted=await post('/api/porthole/v1/query',{signal:'logs',service:'billing',environment:'production',team:'commerce'},restrictedCookie)
  assert.equal(restricted.status,403)
+ await browserOperations({origin,cookie,restrictedCookie})
  const target=(await sql(`SELECT id FROM oa_operators WHERE email='${email}'`))[0]
  cookie=await freshOwner()
  assert.equal((await post('/app/settings/members/remove',{operatorId:target.id})).status,200)
@@ -87,13 +88,12 @@ export async function actionJourney({origin,cookie,restartWorker,freshOwner,sql,
  assert.deepEqual(after.records.slice(0,before.records.length),before.records)
  assert.equal(verifyAudit(after,after.checkpoint.hash),after.records.length)
  assert.ok(!JSON.stringify(after).includes(email))
- await browserOperations({origin,cookie})
  await browserProof({origin,cookie,paths:['/app/operations','/app/explore','/app/settings/privacy','/app/audit'],name:'actions'})
  console.log('Audit operational actions passed: real query/replay/refusal, versioned monitor, exact repair approval, atomic facts, actor anonymization and restart continuity')
  return {cookie}
 }
 
-async function browserOperations({origin,cookie}) {
+async function browserOperations({origin,cookie,restrictedCookie}) {
  const {chromium}=await import('@playwright/test')
  const browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']})
  try {
@@ -111,12 +111,26 @@ async function browserOperations({origin,cookie}) {
    await form.getByLabel('Definition JSON',{exact:true}).fill(JSON.stringify({signal:'logs',operator:'above',threshold:2,windowSeconds:300}))
    await Promise.all([page.waitForURL(origin+'/app/operations'),form.getByRole('button',{name:'Save inactive definition'}).click()])
    await page.getByRole('heading',{name:`Checkout ${width} error count`}).waitFor()
+   const monitorArticle=page.locator('article').filter({has:page.getByRole('heading',{name:`Checkout ${width} error count`})})
+   await monitorArticle.getByText('Edit monitor',{exact:true}).click()
+   const edit=monitorArticle.locator('form[action="/app/operations/save"]')
+   await edit.getByLabel('Definition JSON',{exact:true}).fill(JSON.stringify({signal:'logs',operator:'above',threshold:3,windowSeconds:300}))
+   await Promise.all([page.waitForResponse(response=>response.url().endsWith('/app/operations/save')&&response.request().method()==='POST'),edit.getByRole('button',{name:'Save new revision'}).click()])
+   await monitorArticle.getByText('monitor · revision 2 · inactive',{exact:true}).waitFor()
    const activate=page.locator('article').filter({has:page.getByRole('heading',{name:`Checkout ${width} error count`})}).locator('form[action="/app/operations/activate"]')
    await activate.getByRole('checkbox').check()
    await Promise.all([page.waitForResponse(response=>response.url().endsWith('/app/operations/activate')&&response.request().method()==='POST'),activate.getByRole('button',{name:'Activate monitor'}).click()])
    const activeArticle=page.locator('article').filter({has:page.getByRole('heading',{name:`Checkout ${width} error count`})})
-   await activeArticle.getByText('monitor · revision 1 · active',{exact:true}).waitFor()
-   assert.match(await activeArticle.innerText(),/revision 1 · active\b/)
+   await activeArticle.getByText('monitor · revision 2 · active',{exact:true}).waitFor()
+   assert.match(await activeArticle.innerText(),/revision 2 · active\b/)
+   const planName=`Checkout ${width} recovery plan`
+   const created=await context.request.post(origin+'/api/porthole/v1/objects',{headers:{origin},data:{kind:'repair',name:planName,scope:{services:['checkout'],environments:['production'],teams:['commerce']},body:{steps:[{kind:'rollback',target:'checkout',revision:'deployment-42'}],expiresAt:Date.now()+3600000}}})
+   assert.equal(created.status(),201)
+   await page.goto(origin+'/app/operations')
+   const plan=page.locator('article').filter({has:page.getByRole('heading',{name:planName,exact:true})})
+   await plan.getByRole('checkbox').check()
+   await Promise.all([page.waitForResponse(response=>response.url().endsWith('/app/operations/approve')&&response.request().method()==='POST'),plan.getByRole('button',{name:'Record approval'}).click()])
+   await plan.getByText('repair · revision 1 · approved',{exact:true}).waitFor()
    for(const path of ['/app/operations','/app/explore']) {
     await page.goto(origin+path)
     if(path.endsWith('/explore')) {
@@ -130,6 +144,28 @@ async function browserOperations({origin,cookie}) {
     assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'operations stay within viewport')
     if(process.env.PORTHOLE_EVIDENCE_DIR) {await mkdir(process.env.PORTHOLE_EVIDENCE_DIR,{recursive:true});await page.screenshot({path:join(process.env.PORTHOLE_EVIDENCE_DIR,`operations-user-${width}-${path.endsWith('explore')?'query':'definitions'}.png`),fullPage:true})}
    }
+   await page.goto(origin+'/app/audit')
+   const downloaded=page.waitForEvent('download')
+   await page.getByRole('link',{name:'Export audit for Evidence',exact:true}).click()
+   const download=await downloaded
+   assert.equal(await download.failure(),null)
+   const {readFile}=await import('node:fs/promises')
+   const exported=JSON.parse(await readFile(await download.path(),'utf8'))
+   assert.equal(verifyAudit(exported,exported.checkpoint.hash),exported.records.length)
+   const restricted=await browser.newContext({viewport:{width,height:width===1440?900:844}})
+   await restricted.addCookies(restrictedCookie.split('; ').map(value=>({name:value.slice(0,value.indexOf('=')),value:value.slice(value.indexOf('=')+1),url:origin})))
+   const refused=await restricted.newPage()
+   await refused.goto(origin+'/app/explore')
+   await refused.getByLabel('Signal',{exact:true}).selectOption('logs')
+   await refused.getByLabel('Service',{exact:true}).fill('billing')
+   await refused.getByLabel('Environment',{exact:true}).fill('production')
+   await refused.getByLabel('Team',{exact:true}).fill('commerce')
+   const denied=refused.waitForResponse(response=>response.url().endsWith('/app/explore')&&response.request().method()==='POST')
+   await refused.getByRole('button',{name:'Run query'}).click()
+   assert.equal((await denied).status(),403)
+   await refused.getByRole('heading',{name:'Query unavailable',exact:true}).waitFor()
+   if(process.env.PORTHOLE_EVIDENCE_DIR)await refused.screenshot({path:join(process.env.PORTHOLE_EVIDENCE_DIR,`restricted-query-${width}.png`),fullPage:true})
+   await restricted.close()
    await context.close()
   }
  } finally {await browser.close()}
