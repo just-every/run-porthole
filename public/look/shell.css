@@ -23,11 +23,12 @@ body.app { margin: 0; padding: 0; min-height: 100vh; background: var(--surface);
 
 /* The query pill: the trace search, and the window beside it. Its words keep 18 px and step down only where the pill
    is narrower than they are (1024 px with Base's Dev or Demo label beside the wordmark), so they are never cut: the
-   pill is a size container, its words' room is the pill less the icon and gap (100cqi - 30px), about 9.6 px per px of
-   type. */
+   pill is a size container, its words' room is the pill less the icon and gap (100cqi - 30px), and they take about
+   9.4 px per px of type (9.8 leaves a margin). The field keeps no room for the browser's clear button. */
 .query { display: flex; align-items: center; gap: 10px; flex: 0 1 406px; min-width: 180px; height: 46px; padding: 0 16px; border: 1px solid var(--line-2); border-radius: 999px; background: var(--field); color: var(--muted); container-type: inline-size; }
 .query svg { flex: none; width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; }
-.query input { flex: 1; align-self: stretch; min-width: 0; padding: 0; border: 0; background: transparent; color: var(--ink); font: 400 18px/1.2 var(--sans); font-size: min(18px, (100cqi - 30px) / 9.6); }
+.query input { flex: 1; align-self: stretch; min-width: 0; padding: 0; border: 0; background: transparent; color: var(--ink); font: 400 18px/1.2 var(--sans); font-size: min(18px, (100cqi - 30px) / 9.8); }
+.query input::-webkit-search-cancel-button { display: none; }
 .query input::placeholder { color: var(--muted); opacity: 1; }
 .query input:disabled { cursor: not-allowed; }
 .query input:focus-visible { outline: none; }
