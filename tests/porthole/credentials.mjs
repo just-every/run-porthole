@@ -11,7 +11,7 @@ const privateResponse = response => {
  assert.match(response.headers.get('cache-control') ?? '', /no-store/)
  assert.equal(response.headers.get('referrer-policy'), 'no-referrer')
 }
-/** Harness contract: sql(statement) returns SELECT rows from real SQLite;
+/** Harness contract: sql(statement) asynchronously returns SELECT rows from real SQLite;
  * mutate(statement) stops the emitted Worker, runs SQL, and restarts it;
  * freshOwner()/signIn(email) consume actual Base confirmations over HTTP;
  * getLogs() returns captured Worker stdout/stderr without printing it.
@@ -41,7 +41,7 @@ export async function credentialJourney({ origin, cookie, sql, mutate, restartWo
  for (const kind of ['proposal', 'execution']) assert.equal((await post(settings + '/mint', { name: 'Checkout investigation', class: kind, scope: { ...scope, actions: kindActions[kind] } }, adminCookie)).status, 403)
  assert.equal((await post(settings+'/mint',{name:'synthetic-porthole-82',class:'read',scope:{...scope,services:['other-service']}},adminCookie)).status,403)
  const read = await mint('read', adminCookie, { requestsPerMinute: 2 })
- const stored = sql(`SELECT * FROM porthole_credentials WHERE id=${literal(read.credential.id)}`)[0]
+ const stored = (await sql(`SELECT * FROM porthole_credentials WHERE id=${literal(read.credential.id)}`))[0]
  assert.ok(stored.secret_hash === createHash('sha256').update(read.secret).digest('hex'), 'only the SHA-256 verifier is persisted')
  assert.ok(!JSON.stringify(stored).includes(read.secret), 'plaintext never enters credential storage')
  assert.equal(stored.last_four.length, 4)
@@ -109,7 +109,7 @@ export async function credentialJourney({ origin, cookie, sql, mutate, restartWo
  const custodialRead = await mint('read', adminCookie)
  const custodialIngest = await mint('ingest', adminCookie)
  const custodialChange = await mint('change-event', adminCookie)
- const adminId = sql("SELECT id FROM oa_operators WHERE email='synthetic-porthole-83@example.com'")[0].id
+ const adminId = (await sql("SELECT id FROM oa_operators WHERE email='synthetic-porthole-83@example.com'"))[0].id
  const removal = await post('/app/settings/members/remove', { operatorId: adminId })
  assert.equal(removal.status, 200)
  assert.equal((await inspect(custodialRead.secret)).status, 401)
@@ -117,7 +117,7 @@ export async function credentialJourney({ origin, cookie, sql, mutate, restartWo
  const continuous = await inspect(custodialIngest.secret)
  assert.equal(continuous.status, 200)
  assert.notEqual((await continuous.json()).custodianId, adminId)
- const suspended = sql(`SELECT status FROM porthole_credentials WHERE id=${literal(custodialRead.credential.id)}`)[0]
+ const suspended = (await sql(`SELECT status FROM porthole_credentials WHERE id=${literal(custodialRead.credential.id)}`))[0]
  assert.equal(suspended.status, 'suspended')
  // Restart cannot resurrect revoked or custodially suspended credentials.
  await restartWorker()
@@ -153,7 +153,14 @@ export async function credentialBrowserJourney({ origin, cookie }) {
    assert.notEqual(await page.evaluate(() => getComputedStyle(document.activeElement).outlineStyle), 'none')
    if (process.env.PORTHOLE_EVIDENCE_DIR) {
     await mkdir(process.env.PORTHOLE_EVIDENCE_DIR, { recursive: true })
-    await page.screenshot({ path: join(process.env.PORTHOLE_EVIDENCE_DIR, `credentials-${width}.png`), fullPage: true })
+    await page.screenshot({ path: join(process.env.PORTHOLE_EVIDENCE_DIR, `credentials-${width}.png`), fullPage: false })
+   }
+   if(process.env.PORTHOLE_EVIDENCE_DIR) {
+    for(const status of ['active','revoked','suspended','expired']) {
+     const row=page.locator('li').filter({has:page.locator('dd').filter({hasText:new RegExp('^'+status+'$')})}).first()
+     await row.screenshot({path:join(process.env.PORTHOLE_EVIDENCE_DIR,`credential-${status}-${width}.png`)})
+    }
+    await page.locator('form[action="/app/settings/credentials/mint"]').screenshot({path:join(process.env.PORTHOLE_EVIDENCE_DIR,`credential-mint-${width}.png`)})
    }
    await page.getByLabel('Name', { exact: true }).fill('Checkout investigation')
    await page.getByRole('button', { name: 'Mint credential', exact: true }).click()

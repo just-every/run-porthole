@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import {randomBytes,randomUUID,createHash} from 'node:crypto'
+import {randomBytes,randomUUID} from 'node:crypto'
 import {ownerSigninDigest} from '../../src/modules/operator-auth/owner-signin-grant.mjs'
 import {hashToken} from '../../src/modules/operator-auth/crypto.mjs'
 
@@ -27,7 +27,7 @@ export function fixture({origin,sql,restartWorker,sessionSecret}) {
   return token
  }
  async function signIn(email) {
-  const kind=sql(`SELECT status FROM oa_operators WHERE email=${literal(email)}`)[0]?.status==='invited'?'invite':'magic'
+  const kind=(await sql(`SELECT status FROM oa_operators WHERE email=${literal(email)}`))[0]?.status==='invited'?'invite':'magic'
   const token=await link(email,{kind}),response=await fetch(origin+'/auth/confirm',form(origin,'',{token}))
   assert.equal(response.status,303,'native email confirmation')
   return response.headers.getSetCookie().map(value=>value.split(';')[0]).join('; ')

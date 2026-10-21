@@ -1,12 +1,14 @@
 import {queuedEntrypoint} from '@runeditrun/rer/queued-entry';
 const queued=await queuedEntrypoint(import.meta.url,'verify:runtime');if(queued!==null)process.exit(queued);
 import assert from 'node:assert/strict'
-import { execFileSync, spawn } from 'node:child_process'
+import { execFile, execFileSync, spawn } from 'node:child_process'
 import { createServer } from 'node:net'
 import { mkdtemp, readFile, rm, mkdir, writeFile, readdir, copyFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
+import {promisify} from 'node:util'
+const execute=promisify(execFile)
 
 const socket = createServer()
 await new Promise(resolve => socket.listen(0, '127.0.0.1', resolve))
@@ -17,7 +19,7 @@ await new Promise(resolve => socket.close(resolve))
 const persist = await mkdtemp(join(tmpdir(), 'foundation-runtime-'))
 const migrationEnv={...process.env,CI:'1',WRANGLER_SEND_METRICS:'false'}
 const migrate=config=>execFileSync(process.execPath,['node_modules/wrangler/bin/wrangler.js','d1','migrations','apply','foundation','--local','--persist-to',persist,'--config',config],{stdio:'pipe',env:migrationEnv})
-const sql=command=>JSON.parse(execFileSync(process.execPath,['node_modules/wrangler/bin/wrangler.js','d1','execute','foundation','--local','--persist-to',persist,'--config','dist/server/wrangler.json','--json','--command',command],{encoding:'utf8',env:migrationEnv})).flatMap(result=>result.results??[])
+const sql=async command=>JSON.parse((await execute(process.execPath,['node_modules/wrangler/bin/wrangler.js','d1','execute','foundation','--local','--persist-to',persist,'--config','dist/server/wrangler.json','--json','--command',command],{encoding:'utf8',env:migrationEnv})).stdout).flatMap(result=>result.results??[])
 // Upgrade a real prior installation: Base first, then existing members, then
 // the shipped product migrations through Wrangler's actual migration command.
 const oldMigrations=join(persist,'previous-migrations');await mkdir(oldMigrations)
@@ -41,7 +43,7 @@ async function stopWorker() {
  await new Promise(resolve => worker.exitCode !== null ? resolve() : worker.once('exit', resolve))
 }
 async function restartWorker(changeStorage) {
- await stopWorker(); if (changeStorage) changeStorage(); output = ''; startWorker()
+ await stopWorker(); if (changeStorage) await changeStorage(); output = ''; startWorker()
  for (let attempt = 0; attempt < 120; attempt++) {
   if (worker.exitCode !== null) throw Error(output)
   try { if ((await fetch(`${origin}/health`)).ok) return } catch {}
@@ -89,8 +91,8 @@ try {
   const owner = await fetch(`${origin}/auth/bootstrap`, form({ token: setupToken, displayName: 'Runtime Owner', returnTo: '/setup' }))
   assert.equal(owner.status, 303)
   let cookie = owner.headers.getSetCookie().map(value => value.split(';')[0]).join('; ')
-  await restartWorker(()=>{
-   sql(`INSERT INTO oa_operators(id,email,display_name,role,status,created_at) VALUES('${randomUUID()}','synthetic-porthole-10@example.com','Existing checkout administrator','admin','active',${Date.now()}),('${randomUUID()}','synthetic-porthole-11@example.com','Existing checkout analyst','member','active',${Date.now()})`)
+  await restartWorker(async()=>{
+   await sql(`INSERT INTO oa_operators(id,email,display_name,role,status,created_at) VALUES('${randomUUID()}','synthetic-porthole-10@example.com','Existing checkout administrator','admin','active',${Date.now()}),('${randomUUID()}','synthetic-porthole-11@example.com','Existing checkout analyst','member','active',${Date.now()})`)
    migrate('dist/server/wrangler.json')
   })
   assert.equal((await fetch(`${origin}/app`, { redirect: 'manual', headers: { cookie } })).headers.get('location'), '/setup')
@@ -120,7 +122,7 @@ try {
   await healthJourney({ origin, cookie })
   console.log('APP-HOME passed against emitted local Worker: /app behind sign-in and setup, then the trace view with its stylesheets')
 } catch(error) {
-  console.error(allOutput.replace(/[A-Za-z0-9_-]{32,}/g,'[redacted]').slice(-12000))
+  console.error(allOutput.split('\n').filter(line=>/ERROR|Error|\[wrangler:info\]/.test(line)).slice(-50).join('\n').replace(/[A-Za-z0-9_-]{32,}/g,'[redacted]'))
   throw error
 } finally {
   await stopWorker()

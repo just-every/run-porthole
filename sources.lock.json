@@ -2006,19 +2006,19 @@
       "executable": false
     },
     "tests/porthole/credentials.mjs": {
-      "sha256": "9b0831a69b69281fbcf1b6c926ca24a51b20058a8232237d0f655072f8eba57e",
+      "sha256": "27860feff091341c5b138f46d99782e87b3feac7d785062fe8cf19652d3452fd",
       "executable": false
     },
     "tests/porthole/fixture.mjs": {
-      "sha256": "831d30a6512840670a17fa6a1972d0c7cd85dbfbf06ac143d1770e8eff5c7faa",
+      "sha256": "fbe3011463c3204b87ee5e99be9dc7352718ba920c847ce397c4d3c7d1a72151",
       "executable": false
     },
     "tests/porthole/membership.mjs": {
-      "sha256": "074053a585a817b2450fb08cf4c8aa43194f90f52997f90353c97b41202c0cc2",
+      "sha256": "e272a1b53558deab709fed42788c8b7abf4248031273bad4cacaaf145161b908",
       "executable": false
     },
     "tests/runtime.mjs": {
-      "sha256": "24c516f53496df684f9b046be5291a9e53780e204ca432688a9b63270bb88af8",
+      "sha256": "ea1e434f24be130627e891de724288934f14e271cc23e74be9d0c6c43343a8ce",
       "executable": false
     },
     "tests/typecheck-checks.mjs": {
