@@ -15,6 +15,7 @@ const actions: Record<string, string> = {
  '/api/v1/health/configuration':'health.configure', '/app/health/configuration':'health.configure', '/api/v1/health/tick':'health.reconcile', '/app/health/tick':'health.reconcile',
  '/api/porthole/v1/approvals':'repair.approve', '/app/operations/approve':'repair.approve',
  '/api/porthole/v1/actors/erase':'privacy.erase-actor', '/app/settings/privacy/erase':'privacy.erase-actor',
+ '/auth/signout':'identity.signout', '/auth/owner-signin':'identity.signin', '/auth/magic-link':'identity.request-signin', '/auth/review-session':'identity.review-session', '/auth/setup-complete':'identity.setup-complete',
  '/auth/step-up':'identity.step-up', '/auth/confirm':'identity.confirm',
  '/auth/invite': 'membership.invite', '/auth/invite/cancel': 'membership.cancel-invitation',
  '/auth/operator/status': 'membership.status', '/auth/operator/role': 'membership.role',
@@ -28,10 +29,11 @@ const headers = { 'cache-control': 'no-store', 'referrer-policy': 'no-referrer',
 export const auditUnavailable = (operationRef?: string) => Response.json({ error: 'audit_unavailable', ...(operationRef ? { operationRef, result: 'inspect_attempt_before_retry' } : {}) }, { status: 503, headers })
 export const outcome = (status: number) => status >= 500 ? 'failed' as const : status >= 400 ? 'denied' as const : 'succeeded' as const
 
-/** Durable intent gates the action. An absent outcome is explicitly uncertain,
- * never success. Base's mutation and the result append are separate commits. */
+/** Durable intent gates each action. Target mutation facts commit with the
+ * write; HTTP outcomes follow projection. An absent HTTP result is uncertain. */
 export async function capture(request: Request, env: Bindings, handle: (env: Bindings) => Promise<Response | null>): Promise<Response | null> {
- const action = request.method === 'POST' ? actions[new URL(request.url).pathname] : undefined
+ const path=new URL(request.url).pathname
+ const action = request.method === 'POST' ? actions[path] ?? (path.startsWith('/auth/dependencies/') ? 'connector.attempt' : undefined) ?? (path.startsWith('/api/porthole/v1/archive/') || path.startsWith('/app/settings/archive/') ? 'installation.archive' : undefined) : request.method==='GET' && (path==='/api/porthole/v1/ingest/records' || path==='/api/porthole/v1/ingest/archive' || /^\/api\/porthole\/v1\/query\/[a-f0-9-]{36}$/.test(path)) ? 'telemetry.query' : undefined
  if (!action) return handle(env)
  const operationRef = crypto.randomUUID(), occurredAt = Date.now()
  let input: AuditInput
@@ -57,6 +59,8 @@ export async function capture(request: Request, env: Bindings, handle: (env: Bin
     if (row) { input.entityRef = row.id; input.revision = row.version }
    }
   }
+  const attributed=response.headers.get('x-porthole-actor'),attributedRevision=Number(response.headers.get('x-porthole-actor-revision'))
+  if(attributed && /^[a-f0-9-]{36}$/.test(attributed) && Number.isSafeInteger(attributedRevision)) {input.actorRef=attributed;input.actorRevision=attributedRevision}
   const reference=response.headers.get('x-porthole-entity')
   if(reference && /^[a-f0-9-]{36}$/.test(reference)) input.entityRef=reference
   await append(env.DB, { ...input, phase: outcome(response.status), status: response.status })

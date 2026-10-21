@@ -1,6 +1,7 @@
 import { canonical, digest, genesis, type AuditEntry } from '../audit/store'
 import { byTable, catalog } from './catalog'
 import { validateBody } from '../objects/schema'
+import { validateHealthHistory } from './health-history'
 import { fail, parseScope, roles } from '../security/authority'
 
 export const format = 'porthole.product-archive.v1'
@@ -40,7 +41,7 @@ export async function validateRow(payload: PortableRow, state: Validation): Prom
  for(const value of Object.values(row)) if(value!==null && typeof value!=='string' && !integer(value)) bad()
  const required=(...keys:string[])=>{for(const key of keys)if(!str(row[key]) || !(row[key] as string).length)bad()}
  if(item.table==='porthole_objects') {
-  if(!uuid(row.id) || !['monitor','repair','dashboard','slo','pipeline','connector','investigation','service','notebook','report'].includes(String(row.kind)) || !str(row.name) || !integer(row.revision,1) || !integer(row.created_at) || !integer(row.updated_at) || !['active','inactive','approved','archived','quarantined','pending','paused','draft'].includes(String(row.state))) bad()
+  if(!uuid(row.id) || !['monitor','repair'].includes(String(row.kind)) || !str(row.name) || !integer(row.revision,1) || !integer(row.created_at) || !integer(row.updated_at) || !['active','inactive','approved','archived','quarantined','pending','paused','draft'].includes(String(row.state))) bad()
   parseScope(json(row.scope)); const body=json(row.body); if(!object(body)) bad(); validateBody(String(row.kind),body)
  } else if(item.table==='porthole_archive_quarantine') {
   if(!uuid(row.object_id)||!uuid(row.archive_id)||!str(row.source_state)||!integer(row.restored_at)||row.collection!=='paused'||row.schedules!=='paused'||row.delivery!=='quarantined'||row.execution!=='paused'||row.leases!=='interrupted')bad()
@@ -60,10 +61,14 @@ export async function validateRow(payload: PortableRow, state: Validation): Prom
   const head=state.audit[String(row.stream)]??{sequence:0,hash:genesis}
   if(!object(entry)||entry.sequence!==head.sequence+1||entry.sequence!==row.sequence||entry.eventId!==row.event_id||entry.previousHash!==head.hash||row.previous_hash!==head.hash||await digest(canonical(entry))!==row.hash)fail('archive_audit_integrity_failed',422)
   state.audit[String(row.stream)]={sequence:entry.sequence,hash:row.hash as string}
+ } else if(item.table==='porthole_archive_health_history') {
+  validateHealthHistory(row)
+ } else if(item.table==='porthole_monitor_evaluations') {
+  if(!uuid(row.id)||!uuid(row.object_id)||!integer(row.revision,1)||!integer(row.evaluated_at)||!/^\d{20}$/.test(String(row.window_start_ns))||!/^\d{20}$/.test(String(row.window_end_ns))||String(row.window_start_ns)>String(row.window_end_ns)||!['Healthy','Firing','Unknown'].includes(String(row.status))||row.observed_count!==null&&!integer(row.observed_count)||!str(row.reason)||row.firing_episode!==null&&!str(row.firing_episode))bad()
  } else if(item.table==='porthole_ingest_control') {
   if(row.singleton!==1||![0,1].includes(row.paused as number)||!integer(row.max_pending_bytes,1)||!integer(row.revision,1)||!integer(row.changed_at))bad()
  } else if(item.table==='porthole_ingest_batches') {
-  required('id','source_id','identity','protocol'); if(row.wire_base64!=='')bad(); if(!['traces','metrics','logs'].includes(String(row.signal))||!hex(row.digest)||!integer(row.accepted_at)||!integer(row.byte_count)||!integer(row.record_count)||!integer(row.sequence,1)||row.completion_sequence!==null&&!integer(row.completion_sequence,1)||!['pending','complete'].includes(String(row.state))||row.completed_at!==null&&!integer(row.completed_at))bad()
+  required('id','source_id','identity','protocol'); if(!str(row.wire_base64))bad();try{atob(String(row.wire_base64))}catch{return bad()}; if(!['traces','metrics','logs'].includes(String(row.signal))||!hex(row.digest)||!integer(row.accepted_at)||!integer(row.byte_count)||!integer(row.record_count)||!integer(row.sequence,1)||row.completion_sequence!==null&&!integer(row.completion_sequence,1)||!['pending','complete'].includes(String(row.state))||row.completed_at!==null&&!integer(row.completed_at))bad()
   const records=json(row.records);if(!Array.isArray(records)||records.length!==row.record_count)bad()
   if(row.state==='pending'&&(row.completed_at!==null||row.completion_sequence!==null)||row.state==='complete'&&(!integer(row.completed_at)||!integer(row.completion_sequence,1)))bad()
   for(const raw of records as unknown[]) {
@@ -78,7 +83,7 @@ export async function validateRow(payload: PortableRow, state: Validation): Prom
   if(!object(json(row.payload)))bad()
   if(item.table==='porthole_telemetry_records'&&(!integer(row.indexed_at)||![0,1].includes(row.late as number)||![0,1].includes(row.out_of_order as number))||item.table==='porthole_telemetry_archive'&&!integer(row.archived_at))bad()
  } else {
-  required('id','source_id','team','service','environment','reason');if(!['traces','metrics','logs'].includes(String(row.signal))||!['rejected','duplicate','source_loss','buffer_loss'].includes(String(row.kind))||!integer(row.occurred_at)||row.record_count!==null&&!integer(row.record_count))bad()
+  required('id','source_id','reason');for(const key of ['team','service','environment'])if(!str(row[key]))bad();if(!['traces','metrics','logs','profiles'].includes(String(row.signal))||!['rejected','duplicate','source_loss','buffer_loss'].includes(String(row.kind))||!integer(row.occurred_at)||row.record_count!==null&&!integer(row.record_count))bad()
   for(const key of ['range_start_ns','range_end_ns'])if(row[key]!==null&&!/^\d{20}$/.test(String(row[key])))bad()
  }
  state.tables[item.table]++

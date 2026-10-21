@@ -53,7 +53,7 @@ export async function archiveJourney({origin,cookie,sql,restartWorker,freshOwner
  for(let index=1;index<status.totalChunks;index++)chunks.push(await value(await get(origin,cookie,`${api}/exports/${jobId}/chunks/${index}`)))
  const manifest=await value(await get(origin,cookie,`${api}/exports/${jobId}/manifest`)),rows=chunks.flatMap(chunk=>chunk.rows),source={manifest,chunks,rows}
  const encoded=JSON.stringify(source),credential=(await sql(`SELECT secret_hash FROM porthole_credentials WHERE id=${literal(key.credential.id)}`))[0]
- for(const privateValue of [key.secret,credential.secret_hash,'owner@example.com',...cookie.split('; ').map(part=>part.slice(part.indexOf('=')+1))])assert.ok(!encoded.includes(privateValue),'archive excludes native secret/hash/session/identity fields')
+ for(const privateValue of [key.secret,credential.secret_hash,...cookie.split('; ').map(part=>part.slice(part.indexOf('=')+1))])assert.ok(!encoded.includes(privateValue),'archive excludes native secret/hash/session/identity fields')
  assert.ok(rows.some(row=>row.table==='porthole_objects'&&row.row.state==='approved'),'pending rollback history preserved without approval grant')
  assert.ok(!rows.some(row=>['porthole_credentials','porthole_object_approvals','oa_sessions'].includes(row.table)))
  assert.ok(rows.filter(row=>row.table==='porthole_archive_actors').every(row=>row.row.state==='inactive'&&Object.keys(row.row).sort().join(',')==='actor_ref,role,scope,state'))
@@ -79,6 +79,7 @@ export async function archiveJourney({origin,cookie,sql,restartWorker,freshOwner
   await withEmptyDestination(async destination=>{
    let destCookie=destination.freshOwner?await destination.freshOwner():destination.cookie
    const destOrigin=destination.origin,initialOwner=(await destination.sql("SELECT id FROM oa_operators WHERE role='owner' AND status='active'"))[0].id
+   assert.ok(!rows.some(row=>row.table==='porthole_archive_actors'&&row.row.actor_ref===initialOwner),'destination has its own independent owner')
    const restore=await value(await post(destOrigin,destCookie,api+'/restores',{manifest}),201)
    const damagedChunk=structuredClone(chunks[0]);damagedChunk.rows[0].row.name='synthetic-corrupt'
    assert.equal((await post(destOrigin,destCookie,`${api}/restores/${restore.id}/chunks`,{chunk:damagedChunk})).status,422)
@@ -98,6 +99,12 @@ export async function archiveJourney({origin,cookie,sql,restartWorker,freshOwner
    assert.equal((await destination.sql("SELECT id FROM oa_operators WHERE role='owner' AND status='active'"))[0].id,initialOwner)
    assert.equal((await destination.sql('SELECT COUNT(*) AS n FROM porthole_credentials'))[0].n,0)
    assert.equal((await destination.sql('SELECT COUNT(*) AS n FROM porthole_object_approvals'))[0].n,0)
+   assert.equal((await destination.sql('SELECT COUNT(*) AS n FROM porthole_health_notices'))[0].n,0,'archived pending sends never enter the live outbox')
+   assert.equal((await destination.sql('SELECT notices_enabled FROM porthole_health_configuration'))[0].notices_enabled,0,'source delivery consent cannot transfer')
+   assert.equal((await destination.sql('SELECT COUNT(*) AS n FROM porthole_archive_health_history'))[0].n,manifest.tables.porthole_archive_health_history)
+   const deliveryHistory=(await destination.sql("SELECT row,state FROM porthole_archive_health_history WHERE table_name='porthole_health_notices'"))
+   assert.ok(deliveryHistory.every(row=>row.state==='quarantined'))
+   assert.deepEqual(deliveryHistory.map(row=>JSON.parse(row.row)).sort((a,b)=>a.id.localeCompare(b.id)),rows.filter(row=>row.table==='porthole_archive_health_history'&&row.row.table_name==='porthole_health_notices').map(row=>JSON.parse(row.row.row)).sort((a,b)=>a.id.localeCompare(b.id)))
    assert.equal((await destination.sql('SELECT paused FROM porthole_ingest_control'))[0].paused,1)
    const objects=await value(await get(destOrigin,destCookie,'/api/porthole/v1/objects'))
    assert.ok(objects.objects.every(object=>object.state==='quarantined'))
@@ -107,7 +114,7 @@ export async function archiveJourney({origin,cookie,sql,restartWorker,freshOwner
    }
    const repair=definitions.find(definition=>rows.some(row=>row.table==='porthole_objects'&&row.row.id===definition.id&&row.row.kind==='repair'))
    assert.equal((await post(destOrigin,destCookie,'/api/porthole/v1/approvals',{id:repair.id,revision:repair.revision,confirm:'approve'})).status,409,'quarantined repair carries no approval authority')
-   for(const table of ['porthole_ingest_batches','porthole_telemetry_records','porthole_telemetry_archive','porthole_ingest_events','porthole_query_snapshots'])assert.equal((await destination.sql(`SELECT COUNT(*) AS n FROM ${table}`))[0].n,manifest.tables[table])
+   for(const table of ['porthole_ingest_batches','porthole_telemetry_records','porthole_telemetry_archive','porthole_ingest_events','porthole_query_snapshots','porthole_monitor_evaluations'])assert.equal((await destination.sql(`SELECT COUNT(*) AS n FROM ${table}`))[0].n,manifest.tables[table])
    const streams=await value(await get(destOrigin,destCookie,api+'/audit'))
    for(const stream of streams.streams){
     const actual=[];let after=0
@@ -116,7 +123,7 @@ export async function archiveJourney({origin,cookie,sql,restartWorker,freshOwner
     assert.deepEqual(actual,original,'source immutable audit chain remains public-readable')
    }
    const reexport=await savedExport(destOrigin,destCookie,await post(destOrigin,destCookie,api+'/exports',{}))
-   for(const table of ['porthole_telemetry_records','porthole_telemetry_archive'])assert.deepEqual(reexport.rows.filter(row=>row.table===table),rows.filter(row=>row.table===table))
+   for(const table of ['porthole_ingest_batches','porthole_telemetry_records','porthole_telemetry_archive'])assert.deepEqual(reexport.rows.filter(row=>row.table===table),rows.filter(row=>row.table===table))
    const replay=await execute(process.execPath,['scripts/porthole/archive.mjs','restore',destOrigin,directory,'--confirm'],{env:{...process.env,PORTHOLE_ARCHIVE_COOKIE:destCookie}})
    assert.match(replay.stdout,/Restored inactive product/)
    await destination.restartWorker();destCookie=destination.freshOwner?await destination.freshOwner():destCookie

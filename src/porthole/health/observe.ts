@@ -5,7 +5,7 @@ const max = (values: (number | null)[]) => values.reduce<number | null>((a,b) =>
 const latest = (rows: ReceiptRow[], component: Component) => rows.filter(row => row.component === component).sort((a,b) => b.observed_at-a.observed_at)[0]
 export function transportState(env: HealthBindings) {
  if (env.AUTH_LOCAL === 'true' || env.RER_DEMO === '1') return 'Development mail is suppressed.'
- return env.PORTHOLE_HEALTH_MAIL_KEY && env.PORTHOLE_HEALTH_MAIL_FROM ? 'Independent Resend transport configured; acceptance is not mailbox delivery.' : 'Missing PORTHOLE_HEALTH_MAIL_KEY or PORTHOLE_HEALTH_MAIL_FROM.'
+ return env.MAIL_PROVIDER==='resend' && env.MAIL_API_KEY && env.MAIL_FROM ? 'Installation Resend transport configured independently of analytical storage; acceptance is not mailbox delivery.' : 'Configure installation MAIL_PROVIDER=resend, MAIL_API_KEY and MAIL_FROM.'
 }
 
 /** Uses only the authenticated control-plane store. Every backend read can fail
@@ -53,7 +53,7 @@ export async function observeHealth(env: HealthBindings): Promise<HealthState> {
   const row = latest(receipts,component)
   let status = row?.status??'Unknown', reason = row?.reason??'Not configured: no independent fresh product receipt.'
   if (component!=='control-plane' && control?.paused) {status='Unknown';reason='Collection is paused; retained data is last-known only.'}
-  if (row && (row.expires_at<now || row.observed_at>now)) { status='Unknown';reason='Component receipt is stale; earlier evidence is last-known only.' }
+  if (row && (row.expires_at<now || row.observed_at+config.freshness_ms<now || row.observed_at>now)) { status='Unknown';reason='Component receipt is stale; earlier evidence is last-known only.' }
   let evidence: Record<string,unknown> = row ? JSON.parse(row.evidence) as Record<string,unknown> : {}
   if (component === 'queue') {
    try {
@@ -62,7 +62,7 @@ export async function observeHealth(env: HealthBindings): Promise<HealthState> {
     if (queue?.paused || queue?.oldest && !fresh(queue.oldest)) {status='Unknown';reason=queue?.paused?'Durable ingest drain is paused.':'Pending ingest exceeds the freshness window.'}
    } catch {status='Unknown';reason='Durable ingest queue could not be read.'}
   }
-  if (component === 'delivery' && (!config.notices_enabled || env.AUTH_LOCAL==='true' || env.RER_DEMO==='1' || !env.PORTHOLE_HEALTH_MAIL_KEY || !env.PORTHOLE_HEALTH_MAIL_FROM)) {status='Unknown';reason=config.notices_enabled?transportState(env):'Independent failure notices are disabled until the owner explicitly configures them.'}
+  if (component === 'delivery' && (!config.notices_enabled || env.AUTH_LOCAL==='true' || env.RER_DEMO==='1' || env.MAIL_PROVIDER!=='resend' || !env.MAIL_API_KEY || !env.MAIL_FROM)) {status='Unknown';reason=config.notices_enabled?transportState(env):'Independent failure notices are disabled until the owner explicitly configures them.'}
   rows.push({component,status,reason,checkedAt,observedAt:iso(row?.observed_at),lastAcceptedAt:iso(max(receipts.filter(r=>r.component===component).map(r=>r.last_accepted_at))),lastQueryableAt:iso(max(receipts.filter(r=>r.component===component).map(r=>r.last_queryable_at))),evidence})
  }
  return {version:2,status:rows.every(row=>row.status==='Healthy')?'Healthy':'Unknown',checkedAt,lastAcceptedAt:iso(max(receipts.map(row=>row.last_accepted_at))),lastQueryableAt:iso(max(receipts.map(row=>row.last_queryable_at))),components:rows,configuration:{revision:config.revision,freshnessSeconds:config.freshness_ms/1000,noticesEnabled:config.notices_enabled===1,recipient:config.recipient,transport:transportState(env)}}

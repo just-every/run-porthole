@@ -24,6 +24,7 @@ export function record(payload: Record<string, unknown>, attr: Record<string, un
   return value
  }
  const body = object(payload.record)
+ payload.delivery={receivedTimeUnixNano:now.toString(),arrivalDeltaNs:(now-BigInt(eventTimeNs)).toString(),clockAheadNs:(BigInt(eventTimeNs)>now?BigInt(eventTimeNs)-now:0n).toString(),uncertainTime:BigInt(eventTimeNs)===0n||BigInt(eventTimeNs)>now+600n*1000000000n}
  return { team: pick(['team.name','team'], 'x-porthole-team'), service: pick(['service.name','service_name','service','job'], 'x-porthole-service'), environment: pick(['deployment.environment.name','deployment.environment','environment','env'], 'x-porthole-environment'),
   eventTimeNs, traceId: id(body.traceId,32,signal === 'traces'), spanId: id(body.spanId,16,signal === 'traces'), payload,
   late: BigInt(eventTimeNs) < now - 10n * 60n * 1000000000n ? 1 : 0, outOfOrder: 0 }

@@ -17,7 +17,7 @@ export async function configureHealth(request: Request, env: HealthBindings) {
  const recipient=enabled && typeof data.recipient==='string'?data.recipient.trim():null
  if (enabled && (!recipient || recipient.length>254 || !/^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)+$/.test(recipient))) fail('invalid_recipient',400)
  if (enabled && data.confirm!=='enable-independent-notices') fail('explicit_notice_confirmation_required',400)
- if (enabled && (!env.PORTHOLE_HEALTH_MAIL_KEY || !env.PORTHOLE_HEALTH_MAIL_FROM) && env.AUTH_LOCAL!=='true' && env.RER_DEMO!=='1') fail('independent_mail_bindings_required',409)
+ if (enabled && (env.MAIL_PROVIDER!=='resend' || !env.MAIL_API_KEY || !env.MAIL_FROM) && env.AUTH_LOCAL!=='true' && env.RER_DEMO!=='1') fail('independent_mail_bindings_required',409)
  const now=Date.now()
  const results=await env.DB.batch([
   env.DB.prepare(`UPDATE porthole_health_configuration SET revision=revision+1,freshness_ms=?,notices_enabled=?,recipient=?,configured_by=?,changed_at=? WHERE singleton=1 AND revision=? AND ${actor.fence} AND ${proof.sql} RETURNING revision`)

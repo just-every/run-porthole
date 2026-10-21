@@ -31,8 +31,7 @@ export default withDemo<Bindings, ExportedHandler<Bindings>>({
   async scheduled(_event,env,execution) {
     execution.waitUntil((async()=>{
       try {
-        const result=await drainIngest(env)
-        await recordComponentReceipt(env.DB,{component:'queue',source:'ingest-worker',status:result.paused?'Unknown':'Healthy',reason:result.paused?'Durable intake drain is paused.':'Bounded durable intake drain completed.',evidence:result})
+        await drainIngest(env)
       } catch {await recordComponentReceipt(env.DB,{component:'queue',source:'ingest-worker',status:'Unknown',reason:'Durable intake drain failed; accepted envelopes remain pending.'})}
       await healthTick(env)
     })())

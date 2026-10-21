@@ -46,7 +46,7 @@ export async function runArchive({operation,origin,directory,cookie,confirm=fals
   // advanced. A lost response or interrupted write can replay the same cursor.
   for(let index=progress.next;index<total;index++){
    const response=await transport(origin,cookie,`/exports/${progress.id}/chunks/${index}`),path=join(directory,`chunk-${index}.json`),file=await open(path+'.new','w',0o600)
-   try{for await(const part of response.body)await file.write(part)}finally{await file.close()}
+   try{for await(const part of response.body)await file.writeFile(part)}finally{await file.close()}
    const chunk=await fileJSON(path+'.new'),nextHash=checkChunk(chunk,index,progress.hash)
    await rename(path+'.new',path);progress={...progress,next:index+1,hash:nextHash};await saveJSON(progressPath,progress)
   }

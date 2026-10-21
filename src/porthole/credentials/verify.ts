@@ -13,6 +13,8 @@ export class CredentialLimit extends Error {
  constructor(readonly retryAfter: number) { super('credential_quota_exceeded') }
 }
 export interface CredentialUse {
+ /** Internal metadata inspection before a metered, rechecked query. No writes or results. */
+ inspectOnly?: boolean
  acceptedBytes?: number; scannedBytes?: number; usdMicros?: number
  action?: string; scope?: Scope; dataScope?: Scope
  /** A later door's writes MUST include the supplied SQL fence and arguments.
@@ -54,6 +56,10 @@ export async function verifyCredential(request: Request, env: Bindings, use: Cre
  const authoritySql = `EXISTS(SELECT 1 ${join} WHERE c.id=? AND c.revision=? AND c.custodian_id=? AND m.revision=? AND o.version=? AND ${live})`
  const authorityArgs: unknown[] = [row.id, row.revision, row.custodian_id, row.member_revision, row.operator_version, now]
  const fence = { sql: `${authoritySql} AND EXISTS(SELECT 1 FROM porthole_credentials WHERE id=? AND last_request_id=?)`, args: [...authorityArgs, row.id, requestId] }
+ if(use.inspectOnly) {
+  if(use.writes || bytes || scanned || usd)fail('inspection_cannot_reserve_usage')
+  return {credential:{...metadata(row,now),scope},fence:{sql:authoritySql,args:authorityArgs},results:[] as D1Result[]}
+ }
  const statements = [env.DB.prepare(`UPDATE porthole_credentials SET
  minute=?,minute_requests=CASE WHEN minute=? THEN minute_requests+1 ELSE 1 END,
  minute_bytes=CASE WHEN minute=? THEN minute_bytes+? ELSE ? END,

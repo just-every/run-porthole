@@ -49,7 +49,9 @@ export async function evaluateMonitors(env:HealthBindings) {
     last_known_at=CASE WHEN excluded.revision!=revision THEN excluded.last_known_at ELSE COALESCE(excluded.last_known_at,last_known_at) END,
     firing_episode=excluded.firing_episode,reason=excluded.reason WHERE excluded.evaluated_at>=evaluated_at`).bind(evaluationId),
   ])
-  outcomes.push({monitorId:monitor.id,revision:monitor.revision,status,observedCount:count,lastKnownCount:count??(previous?.revision===monitor.revision?previous.last_known_count:null),lastKnownAt:count!==null?now:previous?.last_known_at??null,firingEpisode:episode,reason})
+  const persisted=await env.DB.prepare('SELECT revision,status,last_known_count,last_known_at,firing_episode FROM porthole_monitor_state WHERE object_id=?').bind(monitor.id).first<Previous>()
+  if (persisted?.revision!==monitor.revision) {outcomes.push({monitorId:monitor.id,revision:monitor.revision,status:'Unknown',reason:'Monitor revision changed before the evaluation committed.'});continue}
+  outcomes.push({monitorId:monitor.id,revision:monitor.revision,status,observedCount:count,lastKnownCount:persisted?.last_known_count??null,lastKnownAt:persisted?.last_known_at??null,firingEpisode:persisted?.firing_episode??null,reason})
  }
  const complete=monitors.length>0 && monitors.length<=100 && outcomes.every(row=>row.status!=='Unknown')
  await recordComponentReceipt(env.DB,{component:'monitor-evaluation',source:'monitor-worker',status:complete?'Healthy':'Unknown',reason:!monitors.length?'Not configured: no active count monitors.':monitors.length>100?'Monitor evaluation coverage exceeds the bounded 100-monitor pass.':complete?'Active count monitors evaluated against real retained records.':'One or more monitors have incomplete telemetry coverage; firing episodes remain unresolved.',evidence:{evaluatedAt:new Date(now).toISOString(),monitors:outcomes,limit:100}})

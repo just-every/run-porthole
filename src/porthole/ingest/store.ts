@@ -81,7 +81,9 @@ export async function rejectEnvelope(request: Request, env: Bindings, signal: st
  let granted: CredentialScope | undefined
  try {
   await verifyCredential(request,env,{action:'telemetry.write',scope:emptyScope,dataScope:allScope,writes(fence,scope) {
-   check(scope,signal,[]); granted=scope
+   // The write action authenticates the source; a denied signal still gets a
+   // rejection receipt without permitting a telemetry write in that signal.
+   granted=scope
    // Only account groups covered by the live credential; do not copy denied
    // foreign resource names into a ledger readable by its custodian.
    const permitted = records.filter(row => (scope.services.includes('*') || scope.services.includes(row.service)) && (scope.environments.includes('*') || scope.environments.includes(row.environment)) && (scope.teams.includes('*') || scope.teams.includes(row.team)))

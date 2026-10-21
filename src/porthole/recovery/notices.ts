@@ -14,7 +14,7 @@ export async function reconcileHealthIncidents(env: HealthBindings, state: Healt
   if (row.component==='control-plane') continue // A dead control plane cannot notify itself.
   if (row.status==='Unknown' && (!row.observedAt || row.reason.startsWith('Not configured:'))) continue
   const episode=crypto.randomUUID()
-  const message=JSON.stringify({from:env.PORTHOLE_HEALTH_MAIL_FROM??'',to:[config.recipient],subject:`Porthole ${row.status==='Unknown'?'failure':'recovery'}: ${row.component}`,
+  const message=JSON.stringify({from:env.MAIL_FROM??'',to:[config.recipient],subject:`Porthole ${row.status==='Unknown'?'failure':'recovery'}: ${row.component}`,
    text:`${row.component}: ${row.status}\n${row.reason}\nObserved ${state.checkedAt}\nLast accepted: ${row.lastAcceptedAt??'unknown'}\nLast queryable: ${row.lastQueryableAt??'unknown'}\nInspect ${env.AUTH_ORIGIN}/app/health. Unknown means incomplete coverage. This notice authorizes no repair.`})
   if (row.status==='Unknown') {
    await env.DB.batch([
@@ -39,7 +39,7 @@ export async function reconcileHealthIncidents(env: HealthBindings, state: Healt
  * provider idempotency. The exact frozen body survives process termination. */
 export async function deliverHealthNotice(env: HealthBindings): Promise<{attempted:number;status:string}> {
  if (env.AUTH_LOCAL==='true' || env.RER_DEMO==='1') return {attempted:0,status:'development_suppressed'}
- if (!env.PORTHOLE_HEALTH_MAIL_KEY || !env.PORTHOLE_HEALTH_MAIL_FROM) return {attempted:0,status:'unconfigured'}
+ if (env.MAIL_PROVIDER!=='resend' || !env.MAIL_API_KEY || !env.MAIL_FROM) return {attempted:0,status:'unconfigured'}
  const config=await healthConfiguration(env.DB)
  if (!config.notices_enabled) return {attempted:0,status:'disabled'}
  const owner=await env.DB.prepare(`SELECT 1 AS live FROM oa_operators o JOIN porthole_members m ON m.operator_id=o.id WHERE o.id=? AND o.status='active' AND o.role='owner' AND m.role='owner'`).bind(config.configured_by).first<{live:number}>()
@@ -61,7 +61,7 @@ export async function deliverHealthNotice(env: HealthBindings): Promise<{attempt
  }
  let status:'accepted'|'rejected'|'pending'='pending', providerId:string|null=null
  try {
-  const response=await fetch('https://api.resend.com/emails',{method:'POST',redirect:'manual',signal:AbortSignal.timeout(15000),headers:{authorization:`Bearer ${env.PORTHOLE_HEALTH_MAIL_KEY}`,'content-type':'application/json','idempotency-key':`porthole-health/${notice.id}`},body:notice.message})
+  const response=await fetch('https://api.resend.com/emails',{method:'POST',redirect:'manual',signal:AbortSignal.timeout(15000),headers:{authorization:`Bearer ${env.MAIL_API_KEY}`,'content-type':'application/json','idempotency-key':`porthole-health/${notice.id}`},body:notice.message})
   if (response.ok) {
    const body=await response.json() as {id?:unknown}
    if (typeof body.id==='string' && /^[A-Za-z0-9_-]{1,128}$/.test(body.id)) {status='accepted';providerId=body.id}

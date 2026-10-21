@@ -12,5 +12,5 @@ CREATE TRIGGER porthole_approval_fact AFTER INSERT ON porthole_object_approvals 
  INSERT INTO porthole_audit_facts SELECT lower(hex(randomblob(16))),COALESCE((SELECT MAX(ordinal) FROM porthole_audit_facts),0)+1,operation_ref,actor_ref,actor_revision,'repair.approve',NEW.object_id,NEW.revision,occurred_at,CAST(unixepoch('subsec')*1000 AS INTEGER) FROM porthole_audit_context;
 END;
 CREATE TRIGGER porthole_query_fact AFTER INSERT ON porthole_query_snapshots WHEN EXISTS(SELECT 1 FROM porthole_audit_context) BEGIN
- INSERT INTO porthole_audit_facts SELECT lower(hex(randomblob(16))),COALESCE((SELECT MAX(ordinal) FROM porthole_audit_facts),0)+1,operation_ref,actor_ref,actor_revision,'telemetry.query',NEW.id,NULL,created_at,CAST(unixepoch('subsec')*1000 AS INTEGER) FROM porthole_audit_context;
+ INSERT INTO porthole_audit_facts SELECT lower(hex(randomblob(16))),COALESCE((SELECT MAX(ordinal) FROM porthole_audit_facts),0)+1,operation_ref,NEW.actor_ref,actor_revision,'telemetry.query',NEW.id,NULL,created_at,CAST(unixepoch('subsec')*1000 AS INTEGER) FROM porthole_audit_context;
 END;

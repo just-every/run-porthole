@@ -44,3 +44,14 @@ CREATE TABLE porthole_archive_quarantine (
  collection TEXT NOT NULL DEFAULT 'paused', schedules TEXT NOT NULL DEFAULT 'paused',
  delivery TEXT NOT NULL DEFAULT 'quarantined', execution TEXT NOT NULL DEFAULT 'paused', leases TEXT NOT NULL DEFAULT 'interrupted'
 );
+-- Live health observations, collector associations and delivery configuration
+-- become inert historical rows. No scheduler or sender reads this sidecar.
+CREATE TABLE porthole_archive_health_history (
+ stream TEXT NOT NULL, table_name TEXT NOT NULL, row_key TEXT NOT NULL,
+ row TEXT NOT NULL CHECK(json_valid(row)), state TEXT NOT NULL DEFAULT 'quarantined' CHECK(state='quarantined'),
+ PRIMARY KEY(stream,table_name,row_key)
+);
+CREATE TRIGGER porthole_archive_health_no_update BEFORE UPDATE ON porthole_archive_health_history
+ BEGIN SELECT RAISE(ABORT,'history_immutable'); END;
+CREATE TRIGGER porthole_archive_health_no_delete BEFORE DELETE ON porthole_archive_health_history
+ BEGIN SELECT RAISE(ABORT,'history_immutable'); END;

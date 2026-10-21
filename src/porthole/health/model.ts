@@ -2,11 +2,7 @@ import type { Bindings } from '../../auth.server'
 export const components = ['control-plane','collector','ingest','queue','storage','query','monitor-evaluation','delivery'] as const
 export type Component = typeof components[number]
 export type HealthStatus = 'Healthy' | 'Unknown'
-export interface HealthBindings extends Bindings {
- /** Separate Resend account/key; never inherited from sign-in mail. */
- PORTHOLE_HEALTH_MAIL_KEY?: string
- PORTHOLE_HEALTH_MAIL_FROM?: string
-}
+export type HealthBindings = Bindings
 export interface ReceiptInput {
  component: Component; source: string; status: HealthStatus; reason: string
  lastAcceptedAt?: number | null; lastQueryableAt?: number | null
