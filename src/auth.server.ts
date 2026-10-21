@@ -54,6 +54,8 @@ export function baseOperatorAuth(env: Bindings) {
 }
 export function operatorAuth(env: Bindings) { return productAuth(env, baseOperatorAuth(env)) }
 
+const settingsUnavailable = (status: number) => document('Settings unavailable','<p role="alert">Settings cannot be read right now. Try again or contact the installation owner.</p><p><a href="/app/settings/members">Try again</a></p>',status)
+
 const privateHeaders = { 'cache-control': 'no-store', 'referrer-policy': 'no-referrer', 'x-content-type-options': 'nosniff', 'x-robots-tag': 'noindex, nofollow' }
 
 async function handleAuthResponse(request: Request, original: Bindings): Promise<Response | null> {
@@ -99,6 +101,7 @@ async function handleAuthResponse(request: Request, original: Bindings): Promise
  if (url.pathname === '/setup' || url.pathname === '/app' || url.pathname.startsWith('/app/')) {
   const setup = await firstRunResponse(request, env, operatorAuth(env), { theme })
   if (setup) {
+   if(url.pathname.startsWith('/app/settings') && setup.status>=500) return settingsUnavailable(setup.status)
    if (url.pathname !== '/setup' || setup.status !== 200) return setup
    const session = await operatorAuth(env).getSession(request)
    return withBar(setup, session ? { viewer: session.operator, home: '/setup' } : {})
@@ -118,7 +121,7 @@ export async function authResponse(request: Request, original: Bindings): Promis
   return response ? rejectedResponse(request, response) : null
  } catch(error) {
   const status=error instanceof AuthError?error.status:503
-  if(new URL(request.url).pathname.startsWith('/app/settings')) return document('Settings unavailable','<p role="alert">Settings cannot be read right now. Try again or contact the installation owner.</p><p><a href="/app/settings/members">Try again</a></p>',status)
+  if(new URL(request.url).pathname.startsWith('/app/settings')) return settingsUnavailable(status)
   return rejectedResponse(request,Response.json({error:error instanceof AuthError?error.code:'auth_unavailable'},{status,headers:privateHeaders}))
  }
 }

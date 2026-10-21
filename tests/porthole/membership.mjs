@@ -67,6 +67,7 @@ export async function membershipJourney({origin,cookie,sql,mutate,link,signIn,fr
  await mutate(`UPDATE oa_step_up_challenges SET consumed_at=${Date.now()-360000} WHERE operator_id=${literal(owner.id)};UPDATE oa_sessions SET created_at=${Date.now()-360000} WHERE operator_id=${literal(owner.id)};`)
  assert.equal((await post('/app/settings/members/change',{operatorId:target.id,role:'owner',confirmEmail:target.email})).status,403)
  assert.equal((await post('/app/settings/members/remove',{operatorId:target.id})).status,403)
+ await staleBrowser({origin,cookie})
  cookie=await freshOwner()
  const other=rows.find(row=>row.productRole==='responder')
  assert.equal((await post('/app/settings/members/change',{operatorId:other.id,role:'owner',confirmEmail:other.email})).status,409)
@@ -167,6 +168,23 @@ async function unavailableBrowser({origin,cookie}) {
   assert.equal(response.status(),503);await page.getByRole('alert').waitFor()
   assert.equal(await page.locator('form').count(),0)
   if(process.env.PORTHOLE_EVIDENCE_DIR) await page.screenshot({path:join(process.env.PORTHOLE_EVIDENCE_DIR,`settings-unavailable-${width}.png`),fullPage:true})
+  await context.close()
+ }} finally {await browser.close()}
+}
+
+async function staleBrowser({origin,cookie}) {
+ const {chromium}=await import('@playwright/test'),{mkdir}=await import('node:fs/promises'),{join}=await import('node:path')
+ const browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']})
+ try {for(const width of [1440,390]) {
+  const context=await browser.newContext({viewport:{width,height:width===1440?900:844}})
+  await context.addCookies(cookie.split('; ').map(value=>({name:value.slice(0,value.indexOf('=')),value:value.slice(value.indexOf('=')+1),url:origin})))
+  const page=await context.newPage();await page.goto(origin+'/app/settings/members')
+  const target=page.locator('li').filter({has:page.getByRole('heading',{name:'Checkout maintainer',exact:true})})
+  await target.getByText('Manage Checkout maintainer',{exact:true}).click();await target.getByRole('checkbox').check()
+  const refusal=page.waitForResponse(response=>response.url().endsWith('/app/settings/members/remove') && response.request().method()==='POST')
+  await target.getByRole('button',{name:'Remove member',exact:true}).click();assert.equal((await refusal).status(),403)
+  await page.getByRole('alert').waitFor();assert.ok(await page.getByRole('button',{name:'Send confirmation link',exact:true}).isVisible())
+  if(process.env.PORTHOLE_EVIDENCE_DIR) {await mkdir(process.env.PORTHOLE_EVIDENCE_DIR,{recursive:true});await page.screenshot({path:join(process.env.PORTHOLE_EVIDENCE_DIR,`members-stale-${width}.png`),fullPage:true})}
   await context.close()
  }} finally {await browser.close()}
 }
