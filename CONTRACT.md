@@ -316,20 +316,20 @@ Every capability claim on the run site's homepage (run-porthole.com, `src/site/h
 
 ## Status
 
-Judged from the code and tests at commit `d02b6f99dc3419675b237ed20f9472671dbcddd2` (20 October 2026).
+Judged from the code and tests at commit `e60864b177bea494a3c6d89553217f055d0e3ea5` (21 October 2026).
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 0 | 0 | 0 | 0 |
-| Target and push further | 0 | 0 | 90 | 90 |
-| All | 0 | 0 | 90 | 90 |
+| Target and push further | 0 | 8 | 82 | 90 |
+| All | 0 | 8 | 82 | 90 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
-| `PORT-031` | Owner-run Base installation | target | missing |  | No implementation for owner-run base installation; the complete public-door journey above remains required. |
-| `PORT-032` | Sign-in and accountable membership | target | missing |  | No implementation for sign-in and accountable membership; the complete public-door journey above remains required. |
-| `PORT-033` | Durable audit with private contents | target | missing |  | No implementation for durable audit with private contents; the complete public-door journey above remains required. |
-| `PORT-034` | Complete inactive archive and restore | target | missing |  | No implementation for complete inactive archive and restore; the complete public-door journey above remains required. |
+| `PORT-031` | Owner-run Base installation | target | partial | Base installation, setup, owner-account deployment and local archive commands: `scripts/installer/local.mjs`, `rer-setup.json`, `deploy.json`. | Missing telemetry/analytical installation, prerequisite and US/USD cost inventory, automatic capacity and operating-burden qualification; the complete clause journey remains unproved. |
+| `PORT-032` | Sign-in and accountable membership | target | partial | Mounted owner bootstrap, email-link sign-in/sign-out, invitations and session revocation: `src/auth.server.ts`, `src/modules/operator-auth/service.mjs`, `src/modules/operator-auth/accounts/admin.mjs`. | Missing product roles beyond owner/admin/member, reviewed ownership handover and mobile/MCP revocation; complete membership, isolation and abuse journeys remain unproved. |
+| `PORT-033` | Durable audit with private contents | target | partial | Durable actor/time audit for identity-setting changes and owner sign-in: `src/modules/operator-auth/accounts/provider-control.mjs`, `src/modules/operator-auth/accounts/owner-signin.mjs`. | Missing product-wide action/result/revision audit, separate occurrence/recording times, private query reproducibility, tamper-detectable Evidence export and erasure-safe actor history; complete journey remains unproved. |
+| `PORT-034` | Complete inactive archive and restore | target | partial | Local installation archive export/import with declared table policy and empty-destination restore: `scripts/installer/local.mjs`, `RUN-LOCALLY.md`. | Missing observability estate/telemetry archives, resumable streaming transfer, inactive connector/monitor/action restoration and erasure-aware cross-account recovery; complete clause journey remains unproved. |
 | `PORT-035` | Retention and operator-directed erasure | target | missing |  | No implementation for retention and operator-directed erasure; the complete public-door journey above remains required. |
 | `PORT-036` | Agents are scoped credentials | target | missing |  | No implementation for agents are scoped credentials; the complete public-door journey above remains required. |
 | `PORT-037` | Recovery of observability itself | target | missing |  | No implementation for recovery of observability itself; the complete public-door journey above remains required. |
@@ -359,7 +359,7 @@ Judged from the code and tests at commit `d02b6f99dc3419675b237ed20f9472671dbcdd
 | `PORT-022` | Change tracking | target | missing |  | No implementation for change tracking; the complete public-door journey above remains required. |
 | `PORT-023` | Telemetry cost control | target | missing |  | No implementation for telemetry cost control; the complete public-door journey above remains required. |
 | `PORT-024` | Migration from incumbents | target | missing |  | No implementation for migration from incumbents; the complete public-door journey above remains required. |
-| `PORT-025` | Access audit and compliance | target | missing |  | No implementation for access audit and compliance; the complete public-door journey above remains required. |
+| `PORT-025` | Access audit and compliance | target | partial | Mounted Auth/OIDC identity, server-side owner/admin/member policy and privileged email step-up: `src/auth.server.ts`, `src/modules/operator-auth/accounts/roles.mjs`, `src/modules/operator-auth/identity/email-link/index.mjs`. | Missing SAML/SCIM/MFA, product dataset/field/object permissions across all public doors, regional/compliance evidence and executed agreements; complete access/compliance journeys remain unproved. |
 | `PORT-026` | Observability as code and agent access | target | missing |  | No implementation for observability as code and agent access; the complete public-door journey above remains required. |
 | `PORT-027` | LLM and agent observability | target | missing |  | No implementation for llm and agent observability; the complete public-door journey above remains required. |
 | `PORT-039` | Datadog complete account migration | target | missing |  | No implementation for datadog complete account migration; the complete public-door journey above remains required. |
@@ -374,10 +374,10 @@ Judged from the code and tests at commit `d02b6f99dc3419675b237ed20f9472671dbcdd
 | `PORT-048` | Collaborative notebooks and safe sharing | target | missing |  | No implementation for collaborative notebooks and safe sharing; the complete public-door journey above remains required. |
 | `PORT-050` | Spool and Uptime evidence handoffs | target | missing |  | No implementation for spool and uptime evidence handoffs; the complete public-door journey above remains required. |
 | `PORT-051` | Oncall and Lamp keep response ownership | target | missing |  | No implementation for oncall and lamp keep response ownership; the complete public-door journey above remains required. |
-| `PORT-052` | Auth and Evidence integrations | target | missing |  | No implementation for auth and evidence integrations; the complete public-door journey above remains required. |
+| `PORT-052` | Auth and Evidence integrations | target | partial | Linked sibling Auth federation and signed logout/session fencing: `src/auth.server.ts`, `src/modules/dependencies/auth.mjs`, `src/modules/dependencies/logout.mjs`. | Missing Evidence export/provenance/integrity, SAML/SCIM alternatives and product query/agent revocation and disconnect journeys; successful federation acceptance remains unproved. |
 | `PORT-053` | Issues and general workflow handoffs | target | missing |  | No implementation for issues and general workflow handoffs; the complete public-door journey above remains required. |
 | `PORT-054` | Performance scope and neighboring products | target | missing |  | No implementation for performance scope and neighboring products; the complete public-door journey above remains required. |
-| `PORT-055` | Dependable integration lifecycle | target | missing |  | No implementation for dependable integration lifecycle; the complete public-door journey above remains required. |
+| `PORT-055` | Dependable integration lifecycle | target | partial | Auth adapter version/origin validation, owner-approved link/relink/unlink and signed revocation: `src/modules/dependencies/index.mjs`, `src/modules/dependencies/protocol.mjs`, `src/modules/dependencies/logout.mjs`. | Missing complete adapter catalog, scope/egress/owner/freshness/quota lifecycle, encrypted credentials, durable accepted/rejected/uncertain effect reconciliation and required fault journeys. |
 | `PORT-056` | Telemetry delivery and loss accounting | target | missing |  | No implementation for telemetry delivery and loss accounting; the complete public-door journey above remains required. |
 | `PORT-057` | Measured switching-buyer capacity | target | missing |  | No implementation for measured switching-buyer capacity; the complete public-door journey above remains required. |
 | `PORT-058` | Safe updates and fleet compatibility | target | missing |  | No implementation for safe updates and fleet compatibility; the complete public-door journey above remains required. |
@@ -400,7 +400,7 @@ Judged from the code and tests at commit `d02b6f99dc3419675b237ed20f9472671dbcdd
 | `PORT-072` | Automatic incident burst capacity | target | missing |  | No implementation for automatic incident burst capacity; the complete public-door journey above remains required. |
 | `PORT-073` | Full hot retention at sustained ingest | target | missing |  | No implementation for full hot retention at sustained ingest; the complete public-door journey above remains required. |
 | `PORT-074` | Backend operation burden and support | target | missing |  | No implementation for backend operation burden and support; the complete public-door journey above remains required. |
-| `PORT-075` | Public documentation and guided first service | target | missing |  | No implementation for public documentation and guided first service; the complete public-door journey above remains required. |
+| `PORT-075` | Public documentation and guided first service | target | partial | Signed-out documentation catalog, rendered articles, navigation and link checking with foundation operating guides: `src/site/docs/catalog.ts`, `src/site/docs/pages.ts`, `RUN-LOCALLY.md`. | Missing version navigation and complete product/language/integration/query/API references, collector/service/signal/detection onboarding and executed clean 30-minute first-service journeys. |
 | `PORT-076` | Defined anomaly forecast and outlier quality | target | missing |  | No implementation for defined anomaly forecast and outlier quality; the complete public-door journey above remains required. |
 | `PORT-077` | Executable approved repair targets | push-further | missing |  | No implementation for executable approved repair targets; the complete public-door journey above remains required. |
 | `PORT-078` | Custom span-derived metrics before sampling | target | missing |  | No implementation for custom span-derived metrics before sampling; the complete public-door journey above remains required. |
