@@ -15,7 +15,7 @@
 .field:hover, html.rer-themed main input:not([type=checkbox]):not([type=radio]):not([type=hidden]):hover { border-color: var(--slate-1); }
 .field:focus-visible, html.rer-themed main input:not([type=checkbox]):not([type=radio]):not([type=hidden]):focus-visible { border-color: var(--helio); outline: 2px solid var(--helio); outline-offset: 1px; }
 .field::placeholder { color: var(--muted); opacity: 1; }
-.check-box, html.rer-themed main input[type=checkbox] { flex: none; width: 20px; height: 20px; margin: 1px 0 0; accent-color: var(--ink); }
+.check-box, html.rer-themed main input[type=checkbox] { flex: none; width: 24px; height: 24px; margin: -2px 0 0; accent-color: var(--ink); }
 .check-box:focus-visible, html.rer-themed main input[type=checkbox]:focus-visible { outline: 2px solid var(--helio); outline-offset: 2px; }
 
 /* The person: a round initials avatar in ink, never a portrait. */

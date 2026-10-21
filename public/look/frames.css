@@ -48,6 +48,9 @@ html[data-state] { --rer-wordmark-weight: 880; --rer-wordmark-tracking: -.035em;
 html[data-state] body { background: #fff; color: var(--ink); font-family: var(--sans); }
 html[data-state] .door { padding: 20vh 16px 34vh; }
 html[data-state] .door-art { height: 30vh; min-height: 170px; }
+/* The floor (and the run site's /run and not-found floor) is cropped from its right, never its start: wherever it is
+   narrower than the waterfall, it keeps the staircase's first spans. */
+html[data-state] .door-art img, body > .art img { object-position: left bottom; }
 html[data-state] .word { font-variation-settings: 'opsz' 32; }
 html[data-state] .line { color: var(--ink-2); }
 html[data-state] .btn { background: var(--ink); color: #fff; font-weight: 700; box-shadow: 0 10px 22px -12px rgba(22, 21, 27, .55); }

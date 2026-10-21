@@ -121,7 +121,7 @@
       "executable": false
     },
     "docs/LOOK.md": {
-      "sha256": "38ea2ed7b3ad8b3bfc662f60b7f573016345b9423f0be1777b4d7b508c2fadfa",
+      "sha256": "38d17d1c2a05a56e6d8f4d1d74627bfa946ac7fca77b64638194032719e33401",
       "executable": false
     },
     "edition.json": {
@@ -221,7 +221,7 @@
       "executable": false
     },
     "public/brand/band.svg": {
-      "sha256": "2c1216ea90753ddf1adb97ac02be5abf130cf628a45850ad859c66fee4775bdc",
+      "sha256": "8be72bbb11cbf03ec97c8c9aefd6802e9d62bcb156407a869472d1d99cd1cf24",
       "executable": false
     },
     "public/brand/favicon.ico": {
@@ -297,15 +297,15 @@
       "executable": false
     },
     "public/look/controls.css": {
-      "sha256": "0663941a04105899d9c127aef2afc95e5fe03560ed852a096a8f4fd814e59a1b",
+      "sha256": "db335fdebec28d3c92b5192d0f4d1f422e6a932db304708a295d2ce436c26d42",
       "executable": false
     },
     "public/look/frames.css": {
-      "sha256": "74920bbc6f0291b43886e47184f797b056f50357c7f60f0c457b061c0d036651",
+      "sha256": "083ab779bfd04d50e45997beac02b7661cb0316aefc2cf69fbdb7439564efcf4",
       "executable": false
     },
     "public/look/lobby.css": {
-      "sha256": "6acccba8aea31c7d90a901bcbdbc06b4a22d0d2b318d77ed3f5b69ed9b334c8d",
+      "sha256": "48b14d71c485f26d9f13b577dbb8e42256cd9191ca6441f697d3106b5636e7e0",
       "executable": false
     },
     "public/look/parts.css": {
@@ -317,7 +317,7 @@
       "executable": false
     },
     "public/look/shell.css": {
-      "sha256": "6f7191010fc03116dcb3fdfc6adc61a2c0283ec633fea9223a42c7f9b272d63c",
+      "sha256": "a3d40126ee7f0525db3270aac7e98d107029fa275864e79204b534dc391a7cd0",
       "executable": false
     },
     "public/look/tokens.css": {
@@ -325,7 +325,7 @@
       "executable": false
     },
     "public/look/trace.css": {
-      "sha256": "5268c90b9ad2e5a8565b32b1aeba06f0cf0288cd0bd580d0d9246a08c8482cb4",
+      "sha256": "f213641db32b99766839d5f1368d597d1285f467b8ed67d0088e54b3948728e4",
       "executable": false
     },
     "public/rer-theme.css": {
@@ -1681,11 +1681,11 @@
       "executable": false
     },
     "src/routes/__root.tsx": {
-      "sha256": "1035827f219da08cb21dac81f7299b7996c075c5af1730270bddafe7120e0e69",
+      "sha256": "da8b89c9de730d7fbb9ea74a0ebc546cabc2e02118c05ccdb4a15d2d5e949bce",
       "executable": false
     },
     "src/server.dev.ts": {
-      "sha256": "524fc03eda4ee1cee2ca93b7d8d637dced2d98ce9d2191639b5d463f4354ae5a",
+      "sha256": "dd2f19ae109152e53ede774ff8ca122b6f37a6188449ea7d83b51cd90e26f1cd",
       "executable": false
     },
     "src/server.ts": {
@@ -1873,7 +1873,7 @@
       "executable": false
     },
     "src/ui/home.tsx": {
-      "sha256": "0b09d306933c4dbbd1a02b220b772727c662763660501a447ac3e7d42e48769f",
+      "sha256": "80786c7606962df8cdbd861755231133d59029ee4c45b05dd49d873b543f3bc0",
       "executable": false
     },
     "src/ui/icons.tsx": {

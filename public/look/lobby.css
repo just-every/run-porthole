@@ -1,5 +1,5 @@
 /* The look the edition identity's stylesheet reaches (src/identity.ts `fonts`, linked before the theme): the Lobby,
    and the run site's /run, /contract and not-found pages, which take the theme's tokens and need nothing more. Only the
-   Lobby's rules in frames.css (html[data-state]) apply there. */
+   Lobby's rules in frames.css (html[data-state]) and the floor's crop apply there. */
 @import url('/look/tokens.css');
 @import url('/look/frames.css');

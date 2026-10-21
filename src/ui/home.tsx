@@ -45,7 +45,7 @@ export function AppHome({ viewer, site }: { viewer: Viewer; site: string }) {
       actions={<><a className="pill pill-sm" href={`${site}/contract`}>See what’s built<Arrow /></a><a className="pill-quiet" href={`${site}/docs`}>Read the docs</a></>} />
   </>
   return <>
-    <AppBar viewer={viewer} views={homeViews(viewer, homePath)} query={{ placeholder: 'Search traces', disabled: true }} alert={{ fired: false, text: 'Monitors aren’t built yet' }} />
+    <AppBar viewer={viewer} views={homeViews(viewer, homePath)} query={{ placeholder: 'Search isn’t built yet', disabled: true }} alert={{ fired: false, text: 'Monitors aren’t built yet' }} />
     <main className="trace-view" id="main">
       <P95Strip ticks={['30 min ago', '25', '20', '15', '10', '5', 'now']} />
       <TraceCard title="No traces yet" facts={`${branding.name} hasn’t received a span.`} />
