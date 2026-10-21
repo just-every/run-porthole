@@ -41,7 +41,7 @@ export function AppHome({ viewer, site }: { viewer: Viewer; site: string }) {
       <EvidenceCard kind="deploy"><div className="code-box ghost" /><p className="quiet">The deploy that came before it</p></EvidenceCard>
     </div>
     <AgentNote
-      say={<><b>Nothing to investigate yet.</b> Collecting traces, monitors and {branding.name}’s agent are still being built. {works}</>}
+      say={<><b>Nothing to investigate yet.</b> Trace collection, monitors and {branding.name}’s agent are still being built. {works}</>}
       actions={<><a className="pill pill-sm" href={`${site}/contract`}>See what’s built<Arrow /></a><a className="pill-quiet" href={`${site}/docs`}>Read the docs</a></>} />
   </>
   return <>
