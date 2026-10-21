@@ -30,7 +30,7 @@ export default withDemo<Bindings, ExportedHandler<Bindings>>({
     const asset = await staticAssetResponse(request, env)
     if (asset) return asset
     const privateResponse = await capture(request, runtimeBindings(env), async () => await authResponse(request, env) ?? await portholeResponse(request, env))
-    if (privateResponse) return privateResponse
+    if (privateResponse) return rejectedResponse(request, privateResponse)
     // The installed variant: the Lobby at / and the public claim state it reads.
     // Local dev serves the saved origin's data at its own port (RER_DEV_ORIGIN).
     const state = await setupStateResponse(request, runtimeBindings(env))

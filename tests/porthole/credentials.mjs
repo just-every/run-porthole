@@ -169,6 +169,7 @@ export async function credentialBrowserJourney({ origin, cookie }) {
    const denied = await page.goto(origin + settings)
    assert.equal(denied.status(), 401)
    await page.getByRole('alert').waitFor()
+   if(process.env.PORTHOLE_EVIDENCE_DIR) await page.screenshot({path:join(process.env.PORTHOLE_EVIDENCE_DIR,`credentials-signed-out-${width}.png`),fullPage:true})
    assert.deepEqual(errors, [])
    await context.close()
   }

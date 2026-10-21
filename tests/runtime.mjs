@@ -5,7 +5,7 @@ import { execFileSync, spawn } from 'node:child_process'
 import { createServer } from 'node:net'
 import { mkdtemp, readFile, rm, mkdir, writeFile, readdir, copyFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join,resolve } from 'node:path'
+import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
 
 const socket = createServer()
@@ -119,6 +119,9 @@ try {
   await auditJourney({ origin, cookie, persist, restartWorker })
   await healthJourney({ origin, cookie })
   console.log('APP-HOME passed against emitted local Worker: /app behind sign-in and setup, then the trace view with its stylesheets')
+} catch(error) {
+  console.error(allOutput.replace(/[A-Za-z0-9_-]{32,}/g,'[redacted]').slice(-12000))
+  throw error
 } finally {
   await stopWorker()
   await rm(persist, { recursive: true, force: true })

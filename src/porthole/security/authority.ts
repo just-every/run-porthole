@@ -36,6 +36,7 @@ export async function authority(request: Request, env: Bindings, options: { mana
  const fence = `EXISTS(SELECT 1 FROM oa_sessions a JOIN oa_operators ao ON ao.id=a.operator_id JOIN porthole_members am ON am.operator_id=ao.id
  WHERE a.id=? AND a.revoked_at IS NULL AND a.expires_at>? AND a.operator_version=ao.version AND ao.id=? AND ao.version=? AND ao.status='active' AND am.revision=?
  AND ao.role=CASE WHEN am.role IN ('owner','admin') THEN am.role ELSE 'member' END
+ AND NOT EXISTS(SELECT 1 FROM oa_provider_session_pins sp WHERE sp.session_id=a.id AND NOT EXISTS(SELECT 1 FROM oa_identity_providers ip WHERE ip.provider_id=sp.provider_id AND ip.status='linked' AND ip.issuer=sp.issuer AND ip.client_id=sp.client_id AND ip.linked_at=sp.linked_at))
  AND (a.kind!='oidc' OR EXISTS(SELECT 1 FROM oa_provider_sessions p JOIN oa_auth_settings c ON c.singleton=1 AND c.idp_sign_in=1 AND c.generation=p.generation WHERE p.session_id=a.id)))`
  const args: unknown[] = [session.id, now, member.operatorId, session.operator.version, member.revision]
  if (options.stepUp) await freshProof(env.DB, session)

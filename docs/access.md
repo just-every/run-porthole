@@ -29,7 +29,7 @@ its hash and masked identifiers; the secret cannot be recovered. Use
 scope and last use. It does not query telemetry or execute a plan.
 
 Every credential expires. Rotation preserves scope and quotas; read/ingest/
-change-event overlap is at most seven days, and execution has no overlap.
+change-event/proposal overlap is at most seven days, and execution has no overlap.
 Expiry warnings appear in Credentials. A quota refusal returns 429 with
 `Retry-After`. Byte and USD reservations must be supplied by the trusted data or
 job door when those doors ship, never by client usage claims.

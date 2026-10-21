@@ -90,11 +90,11 @@ export async function membershipJourney({origin,cookie,sql,mutate,link,signIn,fr
  assert.deepEqual(JSON.parse(previousMember.assigned_scope),{services:[],environments:[],teams:[]})
  const migrationPage=await (await get('/app/settings/members')).text()
  assert.ok(migrationPage.includes(previousMember.operator_id))
- await membershipBrowser({origin,cookie})
+ await membershipBrowser({origin,cookie,contractorCookie})
  console.log('membershipJourney passed: seven roles, links, no escalation, fresh proof, revision fence, last owner and removal')
  return {cookie,target,admin,contractor,scope}
 }
-export async function membershipBrowser({origin,cookie}) {
+export async function membershipBrowser({origin,cookie,contractorCookie}) {
  const {chromium}=await import('@playwright/test'),{mkdir}=await import('node:fs/promises'),{join}=await import('node:path')
  const browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']})
  try {
@@ -117,6 +117,11 @@ export async function membershipBrowser({origin,cookie}) {
    await page.getByRole('button',{name:'Send invitation',exact:true}).click()
    await page.getByRole('heading',{name:'Checkout on-call responder',exact:true}).last().waitFor()
    await page.getByRole('link',{name:'Credentials',exact:true}).click();assert.equal(new URL(page.url()).pathname,'/app/settings/credentials')
+   await context.clearCookies()
+   await context.addCookies(contractorCookie.split('; ').map(value=>({name:value.slice(0,value.indexOf('=')),value:value.slice(value.indexOf('=')+1),url:origin})))
+   const denied=await page.goto(origin+'/app/settings/members');assert.equal(denied.status(),403)
+   await page.getByRole('alert').waitFor();assert.equal(await page.getByRole('combobox').count(),0)
+   if(process.env.PORTHOLE_EVIDENCE_DIR) await page.screenshot({path:join(process.env.PORTHOLE_EVIDENCE_DIR,`members-restricted-${width}.png`),fullPage:true})
    assert.deepEqual(errors,[]);await context.close()
   }
  } finally {await browser.close()}
