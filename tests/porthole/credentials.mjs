@@ -35,7 +35,7 @@ export async function credentialJourney({ origin, cookie, sql, mutate, restartWo
  }
  ownerCookie = await freshOwner()
  // Give a real native admin a bounded scope through the public Members door.
- const invited = await post('/app/settings/members/invite', { email: 'synthetic-porthole-83@example.com', displayName: 'Checkout administrator', role: 'admin', scope: { services: scope.services, environments: scope.environments, teams: [] } })
+ const invited = await post('/app/settings/members/invite', { email: 'synthetic-porthole-83@example.com', displayName: 'Checkout administrator', role: 'admin', scope: { services: scope.services, environments: scope.environments, teams: scope.teams } })
  assert.equal(invited.status, 202)
  let adminCookie = await signIn('synthetic-porthole-83@example.com')
  for (const kind of ['proposal', 'execution']) assert.equal((await post(settings + '/mint', { name: 'Checkout investigation', class: kind, scope: { ...scope, actions: kindActions[kind] } }, adminCookie)).status, 403)
@@ -115,10 +115,10 @@ export async function credentialJourney({ origin, cookie, sql, mutate, restartWo
  const custodialIngest = await mint('ingest', adminCookie)
  const custodialChange = await mint('change-event', adminCookie)
  const adminId = (await sql("SELECT id FROM oa_operators WHERE email='synthetic-porthole-83@example.com'"))[0].id
- assert.equal((await post('/app/settings/members/change',{operatorId:adminId,role:'maintainer',scope:{services:scope.services,environments:scope.environments,teams:[]}})).status,200)
+ assert.equal((await post('/app/settings/members/change',{operatorId:adminId,role:'maintainer',scope:{services:scope.services,environments:scope.environments,teams:scope.teams}})).status,200)
  assert.equal((await inspect(custodialRead.secret)).status,401)
  assert.equal((await inspect(custodialIngest.secret)).status,200)
- assert.equal((await post('/app/settings/members/change',{operatorId:adminId,role:'admin',scope:{services:scope.services,environments:scope.environments,teams:[]}})).status,200)
+ assert.equal((await post('/app/settings/members/change',{operatorId:adminId,role:'admin',scope:{services:scope.services,environments:scope.environments,teams:scope.teams}})).status,200)
  assert.equal((await inspect(custodialRead.secret)).status,401,'restored authority never revives a suspended key')
  adminCookie=await signIn('synthetic-porthole-83@example.com')
  const removalRead=await mint('read',adminCookie),removalIngest=await mint('ingest',adminCookie)

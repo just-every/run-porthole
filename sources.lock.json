@@ -2006,7 +2006,7 @@
       "executable": false
     },
     "tests/porthole/credentials.mjs": {
-      "sha256": "8a16652406cb2e7c2284f2812d10de946a6b407de45fd6b398a9f1e7a8d5a776",
+      "sha256": "0dd0d17bbc3383c2360b96ed8c300f2f670fc148fd3014b80697a947396c2f65",
       "executable": false
     },
     "tests/porthole/fixture.mjs": {
