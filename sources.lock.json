@@ -189,11 +189,11 @@
       "executable": false
     },
     "package.json": {
-      "sha256": "df76d775a949be93c38a4c15aaee69329dce3e336e8d9d187ba9606614efe482",
+      "sha256": "8956871206317fc8394a8c217cb3dc25da5d4f6f93e6d75f4bacce34d2f28129",
       "executable": false
     },
     "pnpm-lock.yaml": {
-      "sha256": "f96efb0f4c6d9f79e313dfb6ef90f3f36960b2576e05f0d5073c47f7208ae2e4",
+      "sha256": "6e5673ac5228577e7c67fc56cba6b70a8949739a7e8f525b8c242f95fed15f32",
       "executable": false
     },
     "public/brand/apple-touch-icon.png": {
@@ -234,6 +234,10 @@
     },
     "public/brand/mark.svg": {
       "sha256": "318fc9df37c41c0fb3507fcbf4415cb229d053eb6a9db6fe59505ed4e43ca647",
+      "executable": false
+    },
+    "public/docs.css": {
+      "sha256": "93bc5f41aaf52047555953c7fe295193998d5442b678a8009265b2c43536f093",
       "executable": false
     },
     "public/fonts/fonts.css": {
@@ -557,7 +561,7 @@
       "executable": false
     },
     "README.md": {
-      "sha256": "c308f2328074bd635a78b1971bf7c134eb2f9d33bb8cfd2ecb318d71b73724b7",
+      "sha256": "0adaa3b35e50cb014f1ab6cf4045fff76561168cacebb50a51c78b23294526cf",
       "executable": false
     },
     "rer-setup.json": {
@@ -1648,8 +1652,40 @@
       "sha256": "05d0b2d1c936cf66fc2bdc838762404d277242f54264cd006533ad031925801f",
       "executable": false
     },
+    "src/site/docs/article-page.ts": {
+      "sha256": "fb3139ce6fbc8bbf394eb24638b93c620629ea1b276a45fa3400547b6cceed44",
+      "executable": false
+    },
+    "src/site/docs/catalog.ts": {
+      "sha256": "7d39368bdddb235c7269b19f9dd14afcf5a0237fc9d1a841287db0f4f17139f5",
+      "executable": false
+    },
+    "src/site/docs/frame.ts": {
+      "sha256": "a0cdf24a619c7334d1772bc7238fefda6b8658ed7a9d69524b3189143c623d82",
+      "executable": false
+    },
+    "src/site/docs/index-page.ts": {
+      "sha256": "48c064b84175e5b877d8c1091629be6d2cc8452d3194ca1fe91935fe5d3991b8",
+      "executable": false
+    },
+    "src/site/docs/links.ts": {
+      "sha256": "7f659f2ef0f201f4614ea447286513b457ed3411a7455fa7fb8961fcbc50c02a",
+      "executable": false
+    },
+    "src/site/docs/markdown.ts": {
+      "sha256": "fe7181963633d6ce1beec0211886d7635be94264f5d0cf7146be12e31615717a",
+      "executable": false
+    },
+    "src/site/docs/pages.ts": {
+      "sha256": "438bdd65e38a5b3aeef399cea4fd6169fa982c5db04f3082b34b8e97381c1eea",
+      "executable": false
+    },
+    "src/site/docs/text.ts": {
+      "sha256": "c6de2ed6695861075f308253c4090056950da1cc7d9010b46d0afdd3ab859154",
+      "executable": false
+    },
     "src/site/home/links.ts": {
-      "sha256": "77943d613b49e74cf70479e3dec0264f175b03d08a79e68153e3ace3de76525f",
+      "sha256": "ef733f77f4b5bc488992eb0f4e4ecde95203d2b3f2bf56985e0e485664e0cc7e",
       "executable": false
     },
     "src/site/home/page.ts": {
@@ -1709,7 +1745,7 @@
       "executable": false
     },
     "src/site/home/shell.ts": {
-      "sha256": "98fee87c6cf24f84cb94d6bf3d09d7baf5e8ebdd265788a630dd264b18cb760f",
+      "sha256": "414fe3d6ffac4b5ee803e36232ad058bb93258c6946a167cf864268c71dd7032",
       "executable": false
     },
     "src/site/home/styles/base.css": {
@@ -1769,11 +1805,11 @@
       "executable": false
     },
     "src/site/pages.ts": {
-      "sha256": "24109e5318e07913030732e310b72d563dfc1d24a4c052910007a21525afd625",
+      "sha256": "90024f89031d4b0f74639b3a312b27874df353f355c5e8ae382b47117bfebb78",
       "executable": false
     },
     "src/site/run.json": {
-      "sha256": "fc98675a3a152d34056702d83cc8c61449433a480c9e9776878d0a855ce01797",
+      "sha256": "e936cf5a933e852875dcf0e68d2612764a3b830afac5d4572fb14652d2b0b390",
       "executable": false
     },
     "tests/incremental-typecheck.test.mjs": {

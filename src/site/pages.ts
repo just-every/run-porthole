@@ -1,11 +1,13 @@
 // The run site `rer build --site` writes: the approved homepage at /, whose
 // Run Porthole opens /run, the page with the two commands that run Porthole;
+// /docs and an article for each of the repository's Markdown documents;
 // /contract when the seed has a CONTRACT.md; the not-found page; and the
 // public files they use. Every Run page string and command is in run.json;
 // nothing here reads installation data.
 import { contractPageHtml } from '../base/contract-page'
 import { runPageHtml, siteNotFoundHtml, type RunData, type SiteBuild, type SiteContext } from '../base/run-site'
 import { identity } from '../identity'
+import { docsPages } from './docs/pages'
 import { homePage } from './home/page'
 import run from './run.json'
 import './home/styles/base.css'
@@ -28,9 +30,10 @@ export function sitePages({ styles = [], contract }: Partial<SiteContext> = {}):
     pages: [
       { path: '/', html: homePage(data, styles, !!contract) },
       { path: '/run', html: runPageHtml(identity, data, contract) },
+      ...docsPages(data, styles, contract),
       ...(contract ? [{ path: '/contract', html: contractPageHtml(identity, data, contract) }] : []),
       { path: '/404', html: siteNotFoundHtml(identity, data, contract) },
     ],
-    assets: ['rer-theme.css', 'fonts', 'brand', 'site'],
+    assets: ['rer-theme.css', 'fonts', 'brand', 'site', 'docs.css'],
   }
 }
