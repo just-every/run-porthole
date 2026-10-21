@@ -41,6 +41,8 @@ export async function membershipJourney({origin,cookie,sql,mutate,link,signIn,fr
  const otherInstallation=`operator_session_local_${new URL(origin).port}=${randomBytes(32).toString('base64url')}`
  assert.equal((await get('/auth/session',otherInstallation)).status,401)
  const adminCookie=await signIn(admin.email)
+ assert.equal((await get('/api/v1/audit',adminCookie)).status,200)
+ assert.equal((await get('/api/v1/audit/export',adminCookie)).status,403)
  for(const role of ['owner','admin']) assert.equal((await post('/app/settings/members/invite',{email:`synthetic-porthole-${role}@example.com`,displayName:'Escalation',role},adminCookie)).status,403)
  assert.equal((await post('/app/settings/members/change',{operatorId:owner.id,role:'read-only analyst',scope},adminCookie)).status,403)
  assert.equal((await post('/app/settings/members/change',{operatorId:admin.id,role:'owner'},adminCookie)).status,403)
@@ -61,10 +63,12 @@ export async function membershipJourney({origin,cookie,sql,mutate,link,signIn,fr
  // Age only the synthetic fixture's proof. Base's 10-minute window would pass;
  // the product must refuse once the required 5 minutes have elapsed.
  await mutate(`UPDATE oa_step_up_challenges SET consumed_at=${Date.now()-360000} WHERE operator_id=${literal(owner.id)};UPDATE oa_sessions SET created_at=${Date.now()-360000} WHERE operator_id=${literal(owner.id)};`)
- assert.equal((await post('/app/settings/members/invite',{email:'synthetic-porthole-91@example.com',displayName:'Stale',role:'owner'})).status,403)
+ assert.equal((await post('/app/settings/members/change',{operatorId:target.id,role:'owner',confirmEmail:target.email})).status,403)
  assert.equal((await post('/app/settings/members/remove',{operatorId:target.id})).status,403)
  cookie=await freshOwner()
  const other=rows.find(row=>row.productRole==='responder')
+ assert.equal((await post('/app/settings/members/change',{operatorId:other.id,role:'owner',confirmEmail:other.email})).status,409)
+ await signIn(other.email)
  assert.equal((await post('/app/settings/members/change',{operatorId:other.id,role:'owner',confirmEmail:other.email})).status,200)
  const otherOwner=await signIn(other.email)
  assert.equal((await post('/app/settings/members/change',{operatorId:other.id,role:'read-only analyst',scope},otherOwner)).status,200)

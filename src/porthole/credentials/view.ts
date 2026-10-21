@@ -4,7 +4,7 @@ import { metadata, type CredentialRow } from './store'
 
 const style = 'fieldset{min-width:0}pre{white-space:pre-wrap;overflow-wrap:anywhere}textarea,select{box-sizing:border-box;max-width:100%;font:inherit}textarea{width:100%}ul{padding-left:20px}li{margin-bottom:32px}@media(max-width:480px){.rer-themed dl{grid-template-columns:minmax(0,1fr)}.rer-themed dt{font-weight:600}}'
 async function screen(title: string, body: string) {
- const response = await document(title, body)
+ const response = await document(title, body,200,{forms:true})
  const hash = btoa(String.fromCharCode(...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(style)))))
  const headers = new Headers(response.headers)
  headers.set('content-security-policy', headers.get('content-security-policy')!.replace("style-src 'self'", `style-src 'self' 'sha256-${hash}'`))

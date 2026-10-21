@@ -79,6 +79,6 @@ export async function credentialResponse(request: Request, env: Bindings): Promi
   const code = error instanceof AuthError || error instanceof CredentialLimit ? error.code : 'credentials_unavailable'
   const status = error instanceof AuthError || error instanceof CredentialLimit ? error.status : 503
   const headers: Record<string, string> = error instanceof CredentialLimit ? { 'retry-after': String(error.retryAfter) } : {}
-  return wantsJson ? json({ error: code }, status, headers) : document('Credentials unavailable', `<p role="alert">${escape(code.replaceAll('_', ' '))}. Verify your identity or contact the installation owner.</p><p><a href="${root}">Return to Credentials</a></p>`, status)
+  return wantsJson ? json({ error: code }, status, headers) : document('Credentials unavailable', `<p role="alert">${escape(code.replaceAll('_', ' '))}. Verify your identity or contact the installation owner.</p><p><a href="${root}">Return to Credentials</a></p>`, status,{forms:true})
  }
 }

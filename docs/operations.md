@@ -9,7 +9,7 @@ An installation owner can open `/app/audit` and `/app/health` after native
 sign-in and first-run setup. The documents reuse the existing Base frame.
 `GET /api/v1/audit`, `GET /api/v1/audit/export` and `GET /api/v1/health` use
 the same installation-native session. Every handler checks authority directly;
-non-owner sessions and requests from another origin refuse. Responses are
+owners can read and export audit; admins can read audit. Audit exports and pipeline health remain owner-only. Other roles and requests from another origin refuse. Responses are
 private, uncacheable and excluded from indexing. There are no public append,
 edit or delete audit endpoints, and these endpoints do not mint credentials.
 

@@ -15,7 +15,7 @@ export async function membershipResponse(request:Request,env:Bindings):Promise<R
   if(url.searchParams.size) fail('invalid_input',400)
   if(request.method==='GET' && ['/app/settings','/app/settings/members'].includes(url.pathname)) {
    const rows=await listMembers(env,actor),migration=(await env.DB.prepare('SELECT * FROM porthole_membership_migration ORDER BY operator_id').all<Record<string,unknown>>()).results
-   return document('Members',membersPage(actor,rows,migration))
+   return document('Members',membersPage(actor,rows,migration),200,{forms:true})
   }
   if(request.method!=='POST') fail('method_not_allowed',405)
   const data=await input(request)
@@ -32,6 +32,6 @@ export async function membershipResponse(request:Request,env:Bindings):Promise<R
   return form?new Response(null,{status:303,headers:{...privateHeaders,location:'/app/settings/members'}}):Response.json(result,{status,headers:privateHeaders})
  } catch(error) {
   const code=error instanceof AuthError?error.code:'membership_unavailable',status=error instanceof AuthError?error.status:503
-  return form || request.method==='GET'?document('Members unavailable',`${settingsNav}<p role="alert">${escape(code.replaceAll('_',' '))}.</p>${code==='step_up_required'?'<p>Send and confirm a new sign-in proof, then retry the change.</p><form method="post" action="/auth/step-up"><input type="hidden" name="action" value="owner:transfer"><input type="hidden" name="returnTo" value="/app/settings/members"><button>Send confirmation link</button></form>':''}<p><a href="/app/settings/members">Return to Members</a></p>`,status):Response.json({error:code},{status,headers:privateHeaders})
+  return form || request.method==='GET'?document('Members unavailable',`${settingsNav}<p role="alert">${escape(code.replaceAll('_',' '))}.</p>${code==='step_up_required'?'<p>Send and confirm a new sign-in proof, then retry the change.</p><form method="post" action="/auth/step-up"><input type="hidden" name="action" value="owner:transfer"><input type="hidden" name="returnTo" value="/app/settings/members"><button>Send confirmation link</button></form>':''}<p><a href="/app/settings/members">Return to Members</a></p>`,status,{forms:true}):Response.json({error:code},{status,headers:privateHeaders})
  }
 }

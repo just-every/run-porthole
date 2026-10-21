@@ -40,6 +40,7 @@ async function linkHash(secret: string, token: string) {
 export async function inviteMember(request: Request, env: Bindings, data: Record<string,unknown>) {
  const role=productRole(data.role ?? 'read-only analyst'),actor=await authority(request,env,{manage:true,post:true,stepUp:administrative(role)})
  canManage(actor,role,role)
+ if(role==='owner') fail('owner_requires_active_member',409)
  const email=normalizeEmail(data.email),displayName=text(data.displayName),scope=selectedScope(data.scope,role,actor)
  const id=crypto.randomUUID(),tokenId=crypto.randomUUID(),token=randomToken(),now=Date.now(),expiresAt=now+7*86400000
  const proof=administrative(role) ? proofFence(actor) : {sql:'1',args:[]}
@@ -76,7 +77,10 @@ export async function changeMember(request: Request, env: Bindings, id: string, 
  if(own && !(actor.member.role==='owner' && role!=='owner')) fail('self_change_forbidden')
  const row=await env.DB.prepare('SELECT email,status,version FROM oa_operators WHERE id=?').bind(id).first<{email:string;status:string;version:number}>()
  if(!row) fail('operator_not_found',404)
- if(role==='owner' && target.role!=='owner' && data.confirmEmail!==row.email) fail('typed_email_required',400)
+ if(role==='owner' && target.role!=='owner') {
+  if(row.status!=='active') fail('owner_requires_active_member',409)
+  if(data.confirmEmail!==row.email) fail('typed_email_required',400)
+ }
  const needsProof=administrative(role) || administrative(target.role)
  if(needsProof) await authority(request,env,{manage:true,post:true,stepUp:true})
  const proof=needsProof ? proofFence(actor) : {sql:'1',args:[]}
