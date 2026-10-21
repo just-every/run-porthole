@@ -15,6 +15,10 @@ rer dev just-every/run-porthole
 
 Already have Node 22 or later? `npx -y @runeditrun/rer dev just-every/run-porthole` does both steps. To start again: `cd run-porthole && rer dev`.
 
-Read [RUN-LOCALLY.md](RUN-LOCALLY.md) and [OPERATIONS.md](OPERATIONS.md) for commands and state. Node 22.20.0, pnpm 10.12.4 and the published `@runeditrun/rer` 0.2.73 are pinned. [edition.json](edition.json) records Base source provenance; the MIT licence is in [LICENSE](LICENSE).
+Read [RUN-LOCALLY.md](RUN-LOCALLY.md) and [OPERATIONS.md](OPERATIONS.md) for commands and state. Node 22.20.0, pnpm 10.12.4 and the published `@runeditrun/rer` 0.2.76 are pinned. [edition.json](edition.json) records Base source provenance; the MIT licence is in [LICENSE](LICENSE).
 
 The public run site at run-porthole.com is built with `rer build --site`, including `/run` and `/contract` from root CONTRACT.md. The separate Run site workflow deploys only when `RUN_SITE_DEPLOY=true`; it needs `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN`. Verify runs independently.
+
+## Try the demo
+
+[Open Porthole Demo](https://demo.run-porthole.com/) for a private, temporary copy, or run `rer demo` locally. The demo opens signed in to the current foundation Lobby with setup complete. Porthole’s observability features are still to be built; the demo contains no telemetry. Invitations succeed with mail silently suppressed. Demo data is isolated from other visitors and from local owner data.
