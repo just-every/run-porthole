@@ -33,6 +33,14 @@ export async function acceptEnvelope(request: Request, env: Bindings, envelope: 
   const response = await verifyCredential(request,env,{ action:'telemetry.write',scope:emptyScope,dataScope:allScope,acceptedBytes:envelope.wire.length,
    writes(fence,scope) {
     check(scope,envelope.signal,envelope.records); granted = scope
+    // Resource metadata can be repeated by thousands of records even when
+    // the compressed request is small. Bound the durable representation before
+    // serializing the whole array, so expansion cannot exhaust the Worker.
+    let normalizedBytes=2
+    for(const record of envelope.records) {
+     normalizedBytes+=new TextEncoder().encode(canonical(record)).length+1
+     if(normalizedBytes+encodedWire.length>1536*1024)throw new IntakeError('durable_envelope_too_large',413)
+    }
     const encodedRecords=canonical(envelope.records)
     const bufferedBytes=new TextEncoder().encode(encodedRecords).length+encodedWire.length
     const tenant = request.headers.get('x-scope-orgid')

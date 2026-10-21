@@ -98,5 +98,14 @@ export async function recoveryJourney({origin,freshOwner,restartWorker,sql}) {
  assert.ok(resumed.notices.some(row=>row.component==='collector'&&row.phase==='failure'))
  await sendHeartbeat();await post('/api/porthole/v1/ingest/drain',{})
  await post('/api/v1/health/configuration',{revision:resumed.configuration.revision,freshnessSeconds:300,noticesEnabled:false})
+ const loss={sourceId:credential.credential.id,signal:'logs',service:scope.services[0],environment:scope.environments[0],team:scope.teams[0],kind:'source_loss',count:1}
+ const oldTime=BigInt(eventTime)-7200n*1000000000n
+ await post('/api/porthole/v1/ingest/loss',{...loss,from:String(oldTime),through:String(oldTime+1n)},201)
+ const outside=await post('/api/v1/health/tick',{})
+ assert.equal(monitor(outside.state,created.id).status,'Firing','a loss outside the original evaluation window cannot poison current coverage')
+ await post('/api/porthole/v1/ingest/loss',{...loss,from:eventTime,through:String(BigInt(eventTime)+1n)},201)
+ const incomplete=await post('/api/v1/health/tick',{})
+ assert.equal(monitor(incomplete.state,created.id).status,'Unknown','an overlapping source loss makes a real firing evaluation incomplete')
+ assert.equal(monitor(incomplete.state,created.id).firingEpisode,firing.firingEpisode)
  console.log('Recovery public doors passed: durable ingest restart/replay, original event nanoseconds, firing-monitor analytical outage, preserved last-known evidence and firing episode, actual collector staleness, durable independent-notice episodes and local suppression; external mail acceptance remains unproved')
 }

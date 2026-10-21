@@ -45,5 +45,7 @@ export async function guardNativeRequest(request: Request,env: Bindings) {
   const session=await baseOperatorAuth(env).getSession(request)
   if(session) { const member=await memberFor(env.DB,session.operator.id); if(!member) fail('authority_changed',409); if(member.role==='restricted contractor') fail('settings_forbidden') }
  }
+ const privatePosts=['/auth/invite','/auth/invite/cancel','/auth/operator/status','/auth/operator/role','/auth/session/revoke','/auth/policy/revoke','/auth/display-name','/auth/step-up','/auth/setup-complete']
+ if(request.method==='POST' && privatePosts.includes(path))await authority(request,env,{post:true})
  if(request.method==='POST' && privileged.includes(path)) await authority(request,env,{post:true,stepUp:true})
 }

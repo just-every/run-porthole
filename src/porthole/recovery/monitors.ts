@@ -26,11 +26,12 @@ export async function evaluateMonitors(env:HealthBindings) {
    const collectorScope=scopeWhere(scope,'h')
    const collectors=await env.DB.prepare(`SELECT COUNT(*) AS count,MIN(h.observed_at) AS oldest FROM porthole_health_collectors h JOIN porthole_credentials c ON c.id=h.credential_id JOIN porthole_members m ON m.operator_id=c.custodian_id JOIN oa_operators o ON o.id=m.operator_id
     WHERE h.signal=? AND ${collectorScope.sql} AND c.status='active' AND c.expires_at>? AND o.status='active' AND m.role IN ('owner','admin') AND o.role=m.role`).bind(definition.signal,...collectorScope.args,now).first<{count:number;oldest:number|null}>()
-   const lost=await env.DB.prepare(`SELECT COUNT(*) AS count FROM porthole_ingest_events r WHERE r.kind IN ('source_loss','buffer_loss') AND r.signal=? AND r.occurred_at>=? AND ${where.sql}`).bind(definition.signal,now-definition.windowSeconds*1000,...where.args).first<{count:number}>()
+   const lost=await env.DB.prepare(`SELECT COUNT(*) AS count FROM porthole_ingest_events r WHERE r.kind IN ('source_loss','buffer_loss') AND r.signal=? AND (r.range_start_ns IS NULL OR r.range_end_ns IS NULL OR (r.range_start_ns<=? AND r.range_end_ns>=?)) AND ${where.sql}`).bind(definition.signal,through,from,...where.args).first<{count:number}>()
+   const uncertain=await env.DB.prepare(`SELECT COUNT(*) AS count FROM porthole_telemetry_records r WHERE r.signal=? AND json_extract(r.payload,'$.delivery.uncertainTime')=1 AND printf('%020d',CAST(json_extract(r.payload,'$.delivery.receivedTimeUnixNano') AS INTEGER)) BETWEEN ? AND ? AND ${where.sql}`).bind(definition.signal,from,through,...where.args).first<{count:number}>()
    const result=await env.DB.prepare(`SELECT COUNT(*) AS count FROM porthole_telemetry_records r JOIN porthole_ingest_batches b ON b.id=r.batch_id WHERE b.state='complete' AND r.signal=? AND r.event_time_ns>=? AND r.event_time_ns<=? AND ${where.sql}`).bind(definition.signal,from,through,...where.args).first<{count:number}>()
    const freshCollector=!!collectors?.count && collectors.oldest!==null && now-collectors.oldest<=health.configuration.freshnessSeconds*1000
-   if (inputs.some(row=>row.status!=='Healthy') || !freshCollector || lost?.count || !result) {
-    reason=lost?.count?'Recorded source or buffer loss makes this window incomplete.':!freshCollector?'No fresh authenticated collector covers this monitor scope.':'Telemetry component coverage is incomplete.'
+   if (inputs.some(row=>row.status!=='Healthy') || !freshCollector || lost?.count || uncertain?.count || !result) {
+    reason=uncertain?.count?'Source clock uncertainty makes this window incomplete.':lost?.count?'Recorded source or buffer loss makes this window incomplete.':!freshCollector?'No fresh authenticated collector covers this monitor scope.':'Telemetry component coverage is incomplete.'
    } else {
     count=result.count
     const firing=definition.operator==='above'?count>definition.threshold:count<definition.threshold
