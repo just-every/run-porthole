@@ -6,7 +6,7 @@ const max = (values: (number | null)[]) => values.reduce<number | null>((a,b) =>
 const latest = (rows: ReceiptRow[], component: Component) => rows.filter(row => row.component === component).sort((a,b) => b.observed_at-a.observed_at)[0]
 export function transportState(env: HealthBindings) {
  if (env.AUTH_LOCAL === 'true' || env.RER_DEMO === '1') return 'Development mail is suppressed.'
- return env.MAIL_PROVIDER==='resend' && env.MAIL_API_KEY && env.MAIL_FROM ? 'Installation Resend transport configured independently of analytical storage; acceptance is not mailbox delivery.' : 'Configure installation MAIL_PROVIDER=resend, MAIL_API_KEY and MAIL_FROM.'
+ return independentMailConfigured(env) ? 'Installation mail transport configured independently of analytical storage; acceptance is not mailbox delivery.' : 'Configure installation MAIL_PROVIDER=resend or sendgrid, MAIL_API_KEY and MAIL_FROM.'
 }
 
 /** Uses only the authenticated control-plane store. Every backend read can fail

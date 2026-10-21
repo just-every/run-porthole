@@ -26,7 +26,7 @@ try {
  await command(source,['setup','--owner-email','synthetic-porthole-600@example.com','--non-interactive'])
  const owner=(await sql(source,"SELECT id FROM oa_operators WHERE role='owner' AND status='active'"))[0]
  assert.ok(owner)
- const credentialId=randomUUID(),secret=`ph_${randomBytes(32).toString('base64url')}`,hash=createHash('sha256').update(secret).digest('hex'),now=Date.now(),objectId=randomUUID()
+ const credentialId=randomUUID(),secret=`synthetic-porthole-601-${randomBytes(32).toString('hex')}`,hash=createHash('sha256').update(secret).digest('hex'),now=Date.now(),objectId=randomUUID()
  const scope=JSON.stringify({services:['checkout'],environments:['production'],teams:['commerce'],signals:['logs'],actions:['telemetry.read']})
  // Source-state fixture, not minting evidence: the separate HTTP credential
  // journey proves minting. This command qualifies native archive exclusion.

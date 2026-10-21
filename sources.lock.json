@@ -134,7 +134,7 @@
       "executable": false
     },
     "docs/recovery.md": {
-      "sha256": "e52c35d8f22fe44e294526498d610da3ea0f82de0aded6d9ddce5e5a2d2633c6",
+      "sha256": "40bbaef08f97129000afe3c7728f5b17278356d8d977625895b99b8e9a65f85f",
       "executable": false
     },
     "edition.json": {
@@ -375,6 +375,10 @@
     },
     "public/look/trace.css": {
       "sha256": "f213641db32b99766839d5f1368d597d1285f467b8ed67d0088e54b3948728e4",
+      "executable": false
+    },
+    "public/porthole/operations.css": {
+      "sha256": "83a58bd91395026bc4bdaca70328bdc8c1d5a57e9873f6783462a0f0d817c692",
       "executable": false
     },
     "public/rer-theme.css": {
@@ -1814,7 +1818,7 @@
       "executable": false
     },
     "src/porthole/health/observe.ts": {
-      "sha256": "22e9dbfb6723346bdbc7e7e994fcece491c04a48aadf1f7cfa7f6fc367c24f28",
+      "sha256": "a38a11f88dd7963d633c3a423daf7b7df18ce6339acecaf0d9d27bf687fabb78",
       "executable": false
     },
     "src/porthole/health/page.ts": {
@@ -1943,6 +1947,10 @@
     },
     "src/porthole/query/http.ts": {
       "sha256": "96579c8ec47cd824fa4bbe7e8e762faee7962f493466cecd79e8df7fb77be311",
+      "executable": false
+    },
+    "src/porthole/recovery/mail.ts": {
+      "sha256": "51a461db5aee02f7834c872dac2059723effc2cf6b51b406424701be17474264",
       "executable": false
     },
     "src/porthole/recovery/monitors.ts": {
@@ -2206,7 +2214,7 @@
       "executable": false
     },
     "tests/porthole/fixture.mjs": {
-      "sha256": "56389bc12d5f0fab182f19bb047597e8c15e08a3e3c1ca7ece9b16983a6f3af4",
+      "sha256": "9e5368e1d965066b3d1d56b697aafacb13b2907fea90b0716e3a8b9b3924539f",
       "executable": false
     },
     "tests/porthole/health.mjs": {
@@ -2222,7 +2230,7 @@
       "executable": false
     },
     "tests/porthole/native-archive.mjs": {
-      "sha256": "811992be9efb40a40ea06b3c555b6f9adc6cb6805db08c97cc4e71e6e84e361a",
+      "sha256": "b87ba083c133825ac4cb380ced3f81ce59ad2e119abf4a00b7d5360a2f821305",
       "executable": false
     },
     "tests/porthole/stock-ingest.mjs": {

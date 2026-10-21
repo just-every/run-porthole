@@ -8,14 +8,18 @@ export const literal=value=>`'${String(value).replaceAll("'","''")}'`
 export function fixture({origin,sql,restartWorker,sessionSecret,ownerEmail='owner@example.com'}) {
  const read=statement=>sql(statement)
  async function mutate(statement) {await restartWorker(()=>sql(statement))}
+ let ownerSession=null
  async function freshOwner() {
+  if(ownerSession && Date.now()-ownerSession.at<240000 && (await fetch(origin+'/auth/session',{headers:{cookie:ownerSession.cookie}})).status===200)return ownerSession.cookie
   // Network-edge substitute for the owner's rer-signin grant, not a session
   // fake: the real public confirmation consumes it and issues the session.
   const token=randomBytes(32).toString('base64url'),now=Date.now()
   await mutate(`INSERT INTO oa_owner_signins(id,token_hash,operator_id,operator_version,created_at,expires_at) SELECT ${literal(randomUUID())},${literal(await ownerSigninDigest(token))},id,version,${now},${now+120000} FROM oa_operators WHERE email=${literal(ownerEmail)};`)
   const response=await fetch(origin+'/auth/owner-signin',form(origin,'',{token}))
   assert.equal(response.status,303,'owner link confirmation')
-  return response.headers.getSetCookie().map(value=>value.split(';')[0]).join('; ')
+  const cookie=response.headers.getSetCookie().map(value=>value.split(';')[0]).join('; ')
+  ownerSession={cookie,at:Date.now()}
+  return cookie
  }
  async function link(email,{kind='magic',expired=false}={}) {
   const token=randomBytes(32).toString('base64url'),now=Date.now()
