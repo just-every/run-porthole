@@ -125,6 +125,10 @@ try {
   const {fixture}=await import('./porthole/fixture.mjs')
   const helpers=fixture({origin,sql,restartWorker,sessionSecret:'runtime-session-secret-1234567890123456'})
   cookie=await helpers.freshOwner()
+  if(process.env.PORTHOLE_STOCK_ONLY==='1') {
+   const {stockIngestJourney}=await import('./porthole/stock-ingest.mjs')
+   await stockIngestJourney({origin,cookie,persist,restartWorker,...helpers})
+  } else {
   const {membershipJourney}=await import('./porthole/membership.mjs')
   const {credentialJourney}=await import('./porthole/credentials.mjs')
   const membership=await membershipJourney({origin,cookie,foreignCookie,persist,restartWorker,...helpers,sessionSecret:'runtime-session-secret-1234567890123456'})
@@ -166,6 +170,7 @@ try {
   await archiveJourney({origin,cookie,persist,restartWorker,withEmptyDestination,...helpers})
   cookie=await helpers.freshOwner()
   await browserProof({origin,cookie,paths:['/app/settings/archive'],name:'archive'})
+  }
   console.log('APP-HOME passed against emitted local Worker: /app behind sign-in and setup, then the trace view with its stylesheets')
 } catch(error) {
   console.error(allOutput.split('\n').filter(line=>/ERROR|Error|\[wrangler:info\]/.test(line)).slice(-50).join('\n').replace(/[A-Za-z0-9_-]{32,}/g,'[redacted]'))

@@ -111,7 +111,12 @@ export async function stockIngestJourney({origin,cookie,sql,restartWorker,freshO
   const loki={streams:[{stream:{service:ingestScope.services[0],environment:ingestScope.environments[0],team:ingestScope.teams[0]},values:[[String(time+20n),'synthetic-porthole-252'],[String(time+21n),'synthetic-porthole-253 日本語']]}]}
   assert.equal((await fetch(`http://127.0.0.1:${lokiPort}/loki/api/v1/push`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(loki)})).status,204)
   const sourceBatches=()=>sql(`SELECT * FROM porthole_ingest_batches WHERE source_id=${literal(source.credential.id)} ORDER BY sequence`)
-  await until(async()=>{const rows=await sourceBatches();return rows.reduce((n,row)=>n+row.record_count,0)===7},'seven stock-emitted records durably acknowledged')
+  try {await until(async()=>{const rows=await sourceBatches();return rows.reduce((n,row)=>n+row.record_count,0)===7},'seven stock-emitted records durably acknowledged')}
+  catch {
+   const batches=await sourceBatches()
+   const diagnostic=logs.split(source.secret).join('[redacted]').replace(/[A-Za-z0-9_-]{32,}/g,'[redacted]')
+   throw Error('Stock collector did not reconcile: '+JSON.stringify(batches.map(row=>({protocol:row.protocol,signal:row.signal,count:row.record_count})))+'\n'+diagnostic)
+  }
   let batches=await sourceBatches()
   assert.equal(batches.filter(row=>row.protocol==='otlp.http/v1.9.0').reduce((n,row)=>n+row.record_count,0),4)
   assert.equal(batches.filter(row=>row.protocol==='prometheus.WriteRequest/v1').reduce((n,row)=>n+row.record_count,0),1)

@@ -34,7 +34,10 @@ export const outcome = (status: number) => status >= 500 ? 'failed' as const : s
  * write; HTTP outcomes follow projection. An absent HTTP result is uncertain. */
 export async function capture(request: Request, env: Bindings, handle: (env: Bindings) => Promise<Response | null>): Promise<Response | null> {
  const path=new URL(request.url).pathname
- const action = request.method === 'POST' ? actions[path] ?? (path.startsWith('/auth/dependencies/') ? 'connector.attempt' : undefined) ?? (path.startsWith('/api/porthole/v1/archive/') || path.startsWith('/app/settings/archive/') ? 'installation.archive' : undefined) : request.method==='GET' && (path==='/api/porthole/v1/ingest/records' || path==='/api/porthole/v1/ingest/archive' || /^\/api\/porthole\/v1\/query\/[a-f0-9-]{36}$/.test(path)) ? 'telemetry.query' : undefined
+ const action=request.method==='POST'
+  ? actions[path] ?? (path.startsWith('/auth/dependencies/')?'connector.attempt':undefined) ?? (path.startsWith('/api/porthole/v1/archive/')||path.startsWith('/app/settings/archive/')?'installation.archive':undefined)
+  : request.method==='GET' && (path.startsWith('/api/porthole/v1/archive/')||path.startsWith('/app/settings/archive/jobs/'))?'installation.archive-read'
+  : request.method==='GET' && (path==='/api/porthole/v1/ingest/records'||path==='/api/porthole/v1/ingest/archive'||/^\/api\/porthole\/v1\/query\/[a-f0-9-]{36}$/.test(path))?'telemetry.query' : undefined
  if (!action) return handle(env)
  const operationRef = crypto.randomUUID(), occurredAt = Date.now()
  let input: AuditInput

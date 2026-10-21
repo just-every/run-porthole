@@ -55,3 +55,11 @@ CREATE TRIGGER porthole_archive_health_no_update BEFORE UPDATE ON porthole_archi
  BEGIN SELECT RAISE(ABORT,'history_immutable'); END;
 CREATE TRIGGER porthole_archive_health_no_delete BEFORE DELETE ON porthole_archive_health_history
  BEGIN SELECT RAISE(ABORT,'history_immutable'); END;
+
+CREATE TRIGGER porthole_archive_job_fact_insert AFTER INSERT ON porthole_archive_jobs WHEN EXISTS(SELECT 1 FROM porthole_audit_context) BEGIN
+ INSERT INTO porthole_audit_facts SELECT lower(hex(randomblob(16))),COALESCE((SELECT MAX(ordinal) FROM porthole_audit_facts),0)+1,operation_ref,actor_ref,actor_revision,'installation.'||NEW.direction,NEW.id,NEW.next_chunk,occurred_at,CAST(unixepoch('subsec')*1000 AS INTEGER) FROM porthole_audit_context;
+END;
+
+CREATE TRIGGER porthole_archive_job_fact_update AFTER UPDATE ON porthole_archive_jobs WHEN EXISTS(SELECT 1 FROM porthole_audit_context) BEGIN
+ INSERT INTO porthole_audit_facts SELECT lower(hex(randomblob(16))),COALESCE((SELECT MAX(ordinal) FROM porthole_audit_facts),0)+1,operation_ref,actor_ref,actor_revision,'installation.'||NEW.direction,NEW.id,NEW.next_chunk,occurred_at,CAST(unixepoch('subsec')*1000 AS INTEGER) FROM porthole_audit_context;
+END;
