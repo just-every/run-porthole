@@ -3,6 +3,15 @@ import { document, escape, privateHeaders } from '../document'
 import { append, checkpoint, read, verify, genesis, type AuditInput, type Checkpoint } from './store'
 import { auditUnavailable, outcome } from './capture'
 
+const messages: Record<string, string> = {
+ authentication_required: 'Sign in as the installation owner to read audit history.',
+ owner_required: 'Only the installation owner can read audit history.',
+ method_not_allowed: 'Open this page to read audit history.',
+ invalid_range: 'Choose an existing sequence range and a limit from 1 to 100.',
+ export_limit_use_installation_backup: 'This history is too large for an audit packet. Use an installation backup.',
+ audit_integrity_failed: 'Audit integrity could not be verified. Retain your last trusted export and contact the installation owner.',
+ audit_unavailable: 'Audit history could not be read. Try again when the audit store is available.',
+}
 const paths = new Set(['/api/v1/audit', '/api/v1/audit/export', '/app/audit'])
 const json = (value: unknown, status = 200) => Response.json(value, { status, headers: privateHeaders })
 function integer(url: URL, key: string, fallback: number, min: number, max: number): number {
@@ -17,7 +26,7 @@ export async function auditResponse(request: Request, env: Bindings): Promise<Re
  const url = new URL(request.url)
  if (!paths.has(url.pathname)) return null
  const page = url.pathname === '/app/audit', exporting = url.pathname.endsWith('/export')
- const problem = (message: string, status: number) => page ? document('Audit unavailable', `<p role="alert">${escape(message)}</p><p><a href="/app/audit">Try again</a></p>`, status) : json({ error: message }, status)
+ const problem = (message: string, status: number) => page ? document('Audit unavailable', `<p role="alert">${escape(messages[message] ?? messages.audit_unavailable)}</p><p><a href="/app/audit">Try again</a></p>`, status) : json({ error: message }, status)
  if (request.method !== 'GET') return problem('method_not_allowed', 405)
  let input: AuditInput | undefined
  try {
@@ -28,8 +37,7 @@ export async function auditResponse(request: Request, env: Bindings): Promise<Re
    action: exporting ? 'audit.export' : 'audit.query', entityRef: null, revision: null, phase: 'attempted', status: null }
   await append(env.DB, input)
   let response: Response
-  if (!session) response = await problem('authentication_required', 401)
-  else if (session.operator.role !== 'owner') response = await problem('owner_required', 403)
+  if (session.operator.role !== 'owner') response = await problem('owner_required', 403)
   else {
    let after: number, through: number, limit: number
    try {

@@ -9,7 +9,8 @@ export async function healthResponse(request: Request, env: Bindings): Promise<R
  if (!['/app/health', '/api/v1/health'].includes(path)) return null
  const page = path === '/app/health'
  const json = (value: unknown, status = 200) => Response.json(value, { status, headers: privateHeaders })
- const failure = (message: string, status: number) => page ? document('Pipeline health unavailable', `<p role="alert">${escape(message)}</p><p><a href="/app/health">Try again</a></p>`, status) : json({ error: message }, status)
+ const messages: Record<string, string> = { authentication_required: 'Sign in as the installation owner to read pipeline health.', owner_required: 'Only the installation owner can read pipeline health.', method_not_allowed: 'Open this page to read pipeline health.', control_plane_unavailable: 'The control plane could not be read. Follow the owner recovery procedure before resuming work.' }
+ const failure = (message: string, status: number) => page ? document('Pipeline health unavailable', `<p role="alert">${escape(messages[message] ?? messages.control_plane_unavailable)}</p><p><a href="/app/health">Try again</a></p>`, status) : json({ error: message }, status)
  if (request.method !== 'GET') return failure('method_not_allowed', 405)
  try {
   const session = await operatorAuth(env).getSession(request)

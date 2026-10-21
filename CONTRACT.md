@@ -316,23 +316,23 @@ Every capability claim on the run site's homepage (run-porthole.com, `src/site/h
 
 ## Status
 
-Judged from the code and tests at commit `d02b6f99dc3419675b237ed20f9472671dbcddd2` (20 October 2026).
+Judged from the foundation journeys at commit `27213197eb57fd1292b75eca63efb0776d69ddad` (21 October 2026). Exact-SHA branch Verify remains a separate landing gate; partial rows retain the complete clause obligations.
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 0 | 0 | 0 | 0 |
-| Target and push further | 0 | 0 | 90 | 90 |
-| All | 0 | 0 | 90 | 90 |
+| Target and push further | 0 | 2 | 88 | 90 |
+| All | 0 | 2 | 88 | 90 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
 | `PORT-031` | Owner-run Base installation | target | missing |  | No implementation for owner-run base installation; the complete public-door journey above remains required. |
 | `PORT-032` | Sign-in and accountable membership | target | missing |  | No implementation for sign-in and accountable membership; the complete public-door journey above remains required. |
-| `PORT-033` | Durable audit with private contents | target | missing |  | No implementation for durable audit with private contents; the complete public-door journey above remains required. |
+| `PORT-033` | Durable audit with private contents | target | partial | `tests/porthole/audit.mjs` auditJourney, called by `tests/runtime.mjs`: native administrative attempts/results and target revisions, opaque references, planted-content exclusion, pinned-range replay, concurrent chain integrity, independent offline tamper checks, restart, append-only guards, unavailable-store refusal and 1440/390 browser states. `scripts/porthole/verify-audit.mjs` independent packet reader. `docs/operations.md` coverage and limits. | Foundation only. Full UI/API query and restricted-query, monitor-change and repair-approval journeys are unproved; product action families and remaining native/background doors are not covered. Native mutations and audit outcomes are separate transactions; invitation/session target references and atomic target revisions/outcomes remain incomplete. Actor erasure/anonymization, later-journal fencing and supported Base archive round-trip remain unproved. Export is bounded to 10,000 rows and Evidence handoff is a packet, without a connected scoped provider receipt. Both acceptance sentences remain open. |
 | `PORT-034` | Complete inactive archive and restore | target | missing |  | No implementation for complete inactive archive and restore; the complete public-door journey above remains required. |
 | `PORT-035` | Retention and operator-directed erasure | target | missing |  | No implementation for retention and operator-directed erasure; the complete public-door journey above remains required. |
 | `PORT-036` | Agents are scoped credentials | target | missing |  | No implementation for agents are scoped credentials; the complete public-door journey above remains required. |
-| `PORT-037` | Recovery of observability itself | target | missing |  | No implementation for recovery of observability itself; the complete public-door journey above remains required. |
+| `PORT-037` | Recovery of observability itself | target | partial | `tests/porthole/audit.mjs` healthJourney, called by `tests/runtime.mjs`: separate authenticated control-plane door, eight component rows, actual control-plane D1 probe, Unknown unconfigured coverage, null accepted/queryable timestamps and 1440/390 browser states; auditJourney also proves health remains readable during audit-store unavailability. `docs/operations.md` diagnostic procedure and recovery limits. | Foundation only. Fresh/stale real component observations and last-known telemetry/accepted/queryable timestamps, a firing-monitor analytical-backend/collector outage drill, configured independent failure notification, owner backup/failover/Base restore and bounded durable ingest/delivery reconciliation with original timestamps and no duplicate repair execution remain unproved. No analytical pipeline exists yet; an unconfigured Unknown display is not outage/recovery qualification. Both acceptance sentences remain open. |
 | `PORT-038` | US organization defaults and cost commitments | target | missing |  | No implementation for us organization defaults and cost commitments; the complete public-door journey above remains required. |
 | `PORT-001` | OpenTelemetry-native ingest | target | missing |  | No implementation for opentelemetry-native ingest; the complete public-door journey above remains required. |
 | `PORT-002` | Drop-in compatible intake | target | missing |  | No implementation for drop-in compatible intake; the complete public-door journey above remains required. |

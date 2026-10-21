@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict'
+import { randomBytes, randomUUID } from 'node:crypto'
+import { hashToken } from '../../src/modules/operator-auth/crypto.mjs'
 import { execFileSync } from 'node:child_process'
 import { mkdtemp, writeFile, rm, mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -114,7 +116,32 @@ export async function auditJourney({ origin, cookie, persist, restartWorker }) {
   assert.equal(health.status, 200); assert.equal((await health.json()).status, 'Unknown')
   await browserProof({ origin, cookie, paths: ['/app/audit'], name: 'audit-unavailable' })
  } finally { await restartWorker(() => sql('ALTER TABLE porthole_audit_unavailable RENAME TO porthole_audit_entries')) }
- console.log('Audit immutable guards and unavailable-store mutation refusal passed')
+ // Provision a synthetic native member/session as authorization setup in the
+ // real D1 store. This is not sign-in evidence: the public probes below exercise
+ // the production session verifier and native revocation without a mock server.
+ const memberId = randomUUID(), sessionId = randomUUID(), sessionToken = randomBytes(32).toString('base64url')
+ const sessionHash = await hashToken('runtime-session-secret-1234567890123456', 'session', sessionToken)
+ const now = Date.now()
+ await restartWorker(() => sql(`INSERT INTO oa_operators(id,email,display_name,role,status,version,created_at) VALUES('${memberId}','synthetic-porthole-5@example.com','synthetic-porthole-6','member','active',1,${now}); INSERT INTO oa_sessions(id,token_hash,operator_id,operator_version,kind,created_at,expires_at) VALUES('${sessionId}','${sessionHash}','${memberId}',1,'native',${now},${now + 3600000})`))
+ const memberCookie = `${cookie.split('=')[0]}=${sessionToken}`
+ const memberSession = await fetch(`${origin}/auth/session`, { headers: { cookie: memberCookie } })
+ assert.equal(memberSession.status, 200); assert.equal((await memberSession.json()).operator.role, 'member')
+ for (const path of ['/api/v1/audit', '/api/v1/audit/export', '/api/v1/health', '/app/audit', '/app/health']) {
+  const restricted = await fetch(origin + path, { headers: { cookie: memberCookie } })
+  assert.equal(restricted.status, 403); privateResponse(restricted)
+  assert.doesNotMatch(await restricted.text(), /records|actorRef|checkpoint/)
+ }
+ const deniedMutation = await fetch(`${origin}/auth/operator/role`, form(origin, memberCookie, { operatorId: memberId, role: 'admin' }))
+ assert.equal(deniedMutation.status, 403)
+ await browserProof({ origin, cookie: memberCookie, paths: ['/app/audit', '/app/health'], name: 'restricted' })
+ const revoked = await fetch(`${origin}/auth/session/revoke`, form(origin, cookie, { sessionId }))
+ assert.equal(revoked.status, 204)
+ for (const path of ['/api/v1/audit', '/api/v1/audit/export', '/api/v1/health']) assert.equal((await fetch(origin + path, { headers: { cookie: memberCookie } })).status, 401)
+ const refusedHistory = await packet(origin, cookie)
+ assert.ok(refusedHistory.records.some(row => row.entry.actorRef === memberId && row.entry.phase === 'denied' && row.entry.action === 'membership.role'))
+ assert.ok(!JSON.stringify(refusedHistory).includes(sessionToken))
+ assert.ok(!JSON.stringify(refusedHistory).includes('synthetic-porthole-5@example.com'))
+ console.log('Audit immutable guards, unavailable-store refusal, native non-owner refusal and immediate revocation passed')
  const unchanged = await packet(origin, cookie)
  assert.deepEqual(unchanged.records.slice(0, restored.records.length), restored.records)
  await browserProof({ origin, cookie, paths: ['/app/audit?limit=2', '/app/audit?after=0&through=0', '/app/audit?limit=0'], name: 'audit' })
