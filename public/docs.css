@@ -112,19 +112,27 @@ body.docs { margin: 0; background: #fff; color: var(--ink); font: 400 17px/1.6 v
 
 /* Tables: quiet rules; on a narrow column each row becomes a small card,
    every filled cell under its column's name. Prose in a cell breaks between
-   words, so no column is narrower than its longest word; code in a cell may
-   break at its hyphens, and anywhere as a last resort, so a table fits its
-   column. */
+   words, so no column is narrower than its longest word, and code keeps its
+   words whole as in prose; only in a narrow column (narrower still for
+   three columns or fewer) may code break at its hyphens, and anywhere as a
+   last resort, so a table still fits. */
 .docs-table { container-type: inline-size; }
 .docs-table table { width: 100%; border-collapse: collapse; font-size: 15px; line-height: 1.5; }
 .docs-cols-4 table { font-size: 14px; }
 .docs-table th { padding: 10px 12px; border-bottom: 1px solid var(--line-2); text-align: left; vertical-align: bottom; font-weight: 650; color: var(--ink); overflow-wrap: break-word; }
 .docs-table td { padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; overflow-wrap: break-word; }
-.docs-table code { overflow-wrap: anywhere; }
-.docs-table .docs-word { white-space: normal; }
+.docs-cols-4 :is(th, td) { padding-inline: 8px; }
 .docs-table .docs-right { text-align: right; }
 .docs-table .docs-center { text-align: center; }
 .docs-cell-label { display: none; }
+@container (max-width: 640px) {
+  .docs-table code { overflow-wrap: anywhere; }
+  .docs-table .docs-word { white-space: normal; }
+}
+@container (max-width: 736px) {
+  .docs-cols-4 code { overflow-wrap: anywhere; }
+  .docs-cols-4 .docs-word { white-space: normal; }
+}
 @container (max-width: 480px) {
   .docs-table :is(table, tbody, tr, td) { display: block; }
   .docs-table thead, .docs-table td.docs-empty { display: none; }
