@@ -2,7 +2,7 @@ import { document, escape } from '../document'
 import { actions, classes } from './policy'
 import { metadata, type CredentialRow } from './store'
 
-const style = 'fieldset{min-width:0}pre{white-space:pre-wrap;overflow-wrap:anywhere}textarea,select{box-sizing:border-box;max-width:100%;font:inherit}textarea{width:100%}ul{padding-left:20px}li{margin-bottom:32px}@media(max-width:480px){.rer-themed dl{grid-template-columns:minmax(0,1fr)}.rer-themed dt{font-weight:600}}'
+const style = 'fieldset{min-width:0}pre{white-space:pre-wrap;overflow-wrap:anywhere}textarea,select{box-sizing:border-box;max-width:100%;font:inherit}textarea{width:100%}ul{padding-left:20px}li{margin-bottom:32px}.rer-themed main dl{display:block}.rer-themed main dt{font-weight:600}.rer-themed main dd{margin:0 0 16px}'
 async function screen(title: string, body: string) {
  const response = await document(title, body,200,{forms:true})
  const hash = btoa(String.fromCharCode(...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(style)))))
