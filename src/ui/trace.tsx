@@ -24,7 +24,7 @@ export function EvidenceCard({ kind, children }: { kind: EvidenceKind; children:
 
 /** The agent, inline only: a small sea-glass speech tag with the mark. */
 export function AgentTag() {
-  return <span className="agent-tag"><img src="/brand/mark-32.svg" alt="" width={22} height={22} />{branding.name}</span>
+  return <span className="agent-tag"><picture><img src="/brand/mark-32.svg" alt="" width={22} height={22} /></picture>{branding.name}</span>
 }
 
 /** The agent's note under the opened span: what it says, the person who approves, the actions and one aside. People

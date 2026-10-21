@@ -5,7 +5,7 @@
    The Lobby (html[data-state]) keeps Base's door: the lockup, one line, the ink pill and the waterfall floor
    (/brand/band.svg). controls.css draws their buttons and fields. */
 html.rer-themed { background: #fff; color-scheme: light; }
-html.rer-themed body { display: block; min-height: 100vh; margin: 0; padding: 0 0 72px; background: #fff; color: var(--ink); font: 400 16px/1.55 var(--sans); line-height: 1.55; -webkit-font-smoothing: antialiased; }
+html.rer-themed body { display: block; place-items: normal; min-height: 100vh; margin: 0; padding: 0 0 72px; background: #fff; color: var(--ink); font: 400 16px/1.55 var(--sans); line-height: 1.55; -webkit-font-smoothing: antialiased; }
 html.rer-themed body > .topbar { margin-bottom: 64px; }
 html.rer-themed main { box-sizing: border-box; width: auto; max-width: 480px; margin: 0 auto; padding: 34px 36px 32px; border: 1px solid var(--line); border-radius: var(--radius); background: #fff; box-shadow: var(--shadow); overflow-wrap: anywhere; }
 /* the bar carries the lockup, so Base's own brand line inside the card goes */
@@ -23,9 +23,10 @@ html.rer-themed main label { display: grid; gap: 6px; margin: 0; color: var(--in
 html.rer-themed main label:has(input[type=checkbox]) { display: flex; align-items: flex-start; gap: 10px; font-weight: 500; }
 html.rer-themed main label.check { margin: 0 0 4px; }
 html.rer-themed main form > input:not([type=hidden]) { margin: 0; }
-html.rer-themed main :is(button, a.action):not(.secondary) { display: flex; justify-content: center; width: 100%; min-height: 48px; font-size: 17px; }
+html.rer-themed main :is(button, a.action):not(.secondary) { display: flex; justify-content: center; width: 100%; min-height: 48px; font-size: 17px; box-shadow: none; }
 html.rer-themed main button.secondary { width: 100%; min-height: 48px; }
 html.rer-themed main .stack { display: grid; gap: 12px; margin: 0 0 4px; }
+html.rer-themed main h1 + .stack { margin-top: 22px; }
 html.rer-themed main .divider { display: flex; align-items: center; gap: 12px; margin: 18px 0; color: var(--muted); font-size: 14px; }
 html.rer-themed main .divider::before, html.rer-themed main .divider::after { content: ""; flex: 1; border-top: 1px solid var(--line); }
 html.rer-themed main .notice { margin: 0 0 20px; padding: 12px 14px; border: 0; border-left: 4px solid var(--helio); border-radius: 6px; background: var(--helio-pale); color: var(--ink); }

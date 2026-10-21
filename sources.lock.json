@@ -297,7 +297,7 @@
       "executable": false
     },
     "public/look/frames.css": {
-      "sha256": "efcc336b846155b09b4a2a7b58b5b0c3442545afdd9b3cc2ca7f6fed7fcfe69a",
+      "sha256": "3c578d323183dc2fc3e223f3576705e2d84621f55b4127d8b3f12dcc36632e33",
       "executable": false
     },
     "public/look/lobby.css": {
@@ -313,7 +313,7 @@
       "executable": false
     },
     "public/look/shell.css": {
-      "sha256": "19f5dbfd3cbf222c78e3394ebb5fb170506076758e08034e2d1bba46cd494506",
+      "sha256": "f39dd0cbaeae9a4f939d2bee80dbe66d7009674de25b05f695496089e3cea2e7",
       "executable": false
     },
     "public/look/tokens.css": {
@@ -321,7 +321,7 @@
       "executable": false
     },
     "public/look/trace.css": {
-      "sha256": "2780fb79e45fd51951762ce77fe1688a71ac6434784cb021fc1ba58c20cf5d8d",
+      "sha256": "770181daf277f3290c0f5aae252d42aa2b4e41dac86ef3a3259a928f66f54ed1",
       "executable": false
     },
     "public/rer-theme.css": {
@@ -1861,11 +1861,11 @@
       "executable": false
     },
     "src/ui/bar.tsx": {
-      "sha256": "f42fc4e0026579b7933446849126bd6c005fdc92568d73bbd97b690f853a36ea",
+      "sha256": "c258cdab935907cf944dc7d1cacc4fe820eebf500b0b8ba740e38704423b746c",
       "executable": false
     },
     "src/ui/document.server.tsx": {
-      "sha256": "2f1768bb5a9ef6b9495ed9b79f78a9c57acf5e0e3ab59a9817bb215164d9e5c7",
+      "sha256": "91e8feb74e65ff30ccd0aa3e81b6a643bb58736132252757fe3226fe16981553",
       "executable": false
     },
     "src/ui/home.tsx": {
@@ -1885,7 +1885,7 @@
       "executable": false
     },
     "src/ui/trace.tsx": {
-      "sha256": "9ddb5517b45079887880e6336f3b51cd89b23d2118229ef212176389ebd0ffdd",
+      "sha256": "89a26a25fc4a9d0d8ff9d18bc92c94129b5078a52c2c85dfab4bf82e2980a0e5",
       "executable": false
     },
     "src/ui/viewer.ts": {

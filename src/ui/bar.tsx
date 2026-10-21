@@ -7,9 +7,10 @@ export interface BarQuery { placeholder: string; value?: string; disabled?: bool
 export interface BarAlert { text: string; fired: boolean }
 export interface BarProps { viewer?: Viewer; views?: View[]; query?: BarQuery; range?: string; alert?: BarAlert; home?: string }
 
-/** The approved mark beside the wordmark (data-rer-name: Base adds the Dev and Demo labels). */
+/** The approved mark beside the wordmark (data-rer-name: Base adds the Dev and Demo labels). The <picture> keeps
+ *  React's server renderer from writing an image preload into the body of a static document. */
 export function Lockup({ home }: { home: string }) {
-  return <a className="brandmark" href={home}><img src="/brand/mark.svg" alt="" width={44} height={44} /><span data-rer-name="">{branding.name}</span></a>
+  return <a className="brandmark" href={home}><picture><img src="/brand/mark.svg" alt="" width={44} height={44} /></picture><span data-rer-name="">{branding.name}</span></a>
 }
 
 /** A person as initials, name and role; the role is left out when it repeats the name. */
