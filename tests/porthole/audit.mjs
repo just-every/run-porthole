@@ -98,6 +98,19 @@ export async function auditJourney({ origin, cookie, persist, restartWorker }) {
  // a storage attack, not an application mock; public export must remain exact.
  const sql = command => execFileSync(process.execPath, ['node_modules/wrangler/bin/wrangler.js', 'd1', 'execute', 'foundation', '--local', '--persist-to', persist, '--config', 'dist/server/wrangler.json', '--command', command], { stdio: 'pipe', env: { ...process.env, CI: '1', WRANGLER_SEND_METRICS: 'false' } })
  for (const command of ['UPDATE porthole_audit_entries SET hash=hash WHERE sequence=1', 'DELETE FROM porthole_audit_entries WHERE sequence=1']) assert.throws(() => sql(command), /audit_append_only/)
+ // An unavailable audit ledger must gate the mutation while the separate
+ // health door still reports missing pipeline coverage truthfully.
+ sql('ALTER TABLE porthole_audit_entries RENAME TO porthole_audit_unavailable')
+ try {
+  const refusal = await fetch(`${origin}/auth/operator/role`, form(origin, cookie, { operatorId: target.id, role: 'member' }))
+  assert.equal(refusal.status, 503)
+  assert.equal((await refusal.json()).error, 'audit_unavailable')
+  const current = await (await fetch(`${origin}/auth/operators`, { headers: { cookie } })).json()
+  assert.equal(current.find(row => row.id === target.id).role, 'admin')
+  const health = await fetch(`${origin}/api/v1/health`, { headers: { cookie } })
+  assert.equal(health.status, 200); assert.equal((await health.json()).status, 'Unknown')
+  await browserProof({ origin, cookie, paths: ['/app/audit'], name: 'audit-unavailable' })
+ } finally { sql('ALTER TABLE porthole_audit_unavailable RENAME TO porthole_audit_entries') }
  const unchanged = await packet(origin, cookie)
  assert.deepEqual(unchanged.records.slice(0, restored.records.length), restored.records)
  await browserProof({ origin, cookie, paths: ['/app/audit?limit=2', '/app/audit?after=0&through=0', '/app/audit?limit=0'], name: 'audit' })

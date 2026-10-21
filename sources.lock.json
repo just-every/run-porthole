@@ -1942,11 +1942,11 @@
       "executable": false
     },
     "tests/porthole/audit.mjs": {
-      "sha256": "530cfe44bf913926991b001d10e644a570bef2b3fbf2150d2f0a1a3764a2570f",
+      "sha256": "f996976b3b8236aca11314a648844f61fa00c34f6184155b82a9ac6aa0a9580c",
       "executable": false
     },
     "tests/runtime.mjs": {
-      "sha256": "811bb30cf997393e2574df89af6c5cf498409f28cc07b5043ce87766e507802a",
+      "sha256": "d8e4060a23b0f4407a6c805049ee2af72057bcb8775c026da9662ba690a8a1ca",
       "executable": false
     },
     "tests/typecheck-checks.mjs": {
