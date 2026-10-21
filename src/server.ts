@@ -10,6 +10,8 @@ import { setupStateResponse } from './base/setup-state'
 import { authResponse, runtimeBindings, type Bindings } from './auth.server'
 import { identity } from './identity'
 import { seedDemo } from './demo'
+import { portholeResponse } from './porthole/http'
+import { capture } from './porthole/audit/capture'
 
 const api = new Hono<{ Bindings: Bindings }>()
 api.get('/health', (context) => context.json({ status: 'ok', ...deploymentHealth(context.env) }))
@@ -27,8 +29,10 @@ export default withDemo<Bindings, ExportedHandler<Bindings>>({
   async fetch(request, env, execution) {
     const asset = await staticAssetResponse(request, env)
     if (asset) return asset
-    const auth = await authResponse(request, env)
+    const auth = await capture(request, runtimeBindings(env), () => authResponse(request, env))
     if (auth) return auth
+    const product = await portholeResponse(request, env)
+    if (product) return product
     // The installed variant: the Lobby at / and the public claim state it reads.
     // Local dev serves the saved origin's data at its own port (RER_DEV_ORIGIN).
     const state = await setupStateResponse(request, runtimeBindings(env))

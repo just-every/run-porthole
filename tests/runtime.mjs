@@ -18,10 +18,27 @@ execFileSync(process.execPath, ['node_modules/wrangler/bin/wrangler.js', 'd1', '
 const origin = `http://127.0.0.1:${port}`
 // The emitted Worker's owner-claim setup token: a synthetic test value.
 const setupToken = 'synthetic-runtime-setup-token-1234567890123456789'
-const worker = spawn(process.execPath, ['node_modules/wrangler/bin/wrangler.js', 'dev', '--inspector-port', '0', '--local', '--persist-to', persist, '--ip', '127.0.0.1', '--config', 'dist/server/wrangler.json', '--port', String(port), '--var', `AUTH_ORIGIN:${origin}`, '--var', 'AUTH_LOCAL:true', '--var', 'OWNER_EMAIL:owner@example.com', '--var', 'SESSION_SECRET:runtime-session-secret-1234567890123456', '--var', `SETUP_TOKEN:${setupToken}`], { stdio: ['ignore', 'pipe', 'pipe'] })
+let worker
 let output = ''
+function startWorker() {
+ worker = spawn(process.execPath, ['node_modules/wrangler/bin/wrangler.js', 'dev', '--inspector-port', '0', '--local', '--persist-to', persist, '--ip', '127.0.0.1', '--config', 'dist/server/wrangler.json', '--port', String(port), '--var', `AUTH_ORIGIN:${origin}`, '--var', 'AUTH_LOCAL:true', '--var', 'OWNER_EMAIL:owner@example.com', '--var', 'SESSION_SECRET:runtime-session-secret-1234567890123456', '--var', `SETUP_TOKEN:${setupToken}`], { stdio: ['ignore', 'pipe', 'pipe'] })
 worker.stdout.on('data', chunk => { output += chunk })
 worker.stderr.on('data', chunk => { output += chunk })
+}
+async function stopWorker() {
+ worker.kill('SIGTERM')
+ await new Promise(resolve => worker.exitCode !== null ? resolve() : worker.once('exit', resolve))
+}
+async function restartWorker() {
+ await stopWorker(); output = ''; startWorker()
+ for (let attempt = 0; attempt < 120; attempt++) {
+  if (worker.exitCode !== null) throw Error(output)
+  try { if ((await fetch(`${origin}/health`)).ok) return } catch {}
+  await new Promise(resolve => setTimeout(resolve, 250))
+ }
+ throw Error('Worker did not restart')
+}
+startWorker()
 try {
   let ready = false
   for (let attempt = 0; attempt < 120; attempt++) {
@@ -74,9 +91,11 @@ try {
     assert.equal(sheet.status, 200, href)
     for (const [, imported] of (await sheet.text()).matchAll(/@import url\('(\/[^']+)'\)/g)) assert.equal((await fetch(`${origin}${imported}`)).status, 200, imported)
   }
+  const { auditJourney, healthJourney } = await import('./porthole/audit.mjs')
+  await auditJourney({ origin, cookie, persist, restartWorker })
+  await healthJourney({ origin, cookie })
   console.log('APP-HOME passed against emitted local Worker: /app behind sign-in and setup, then the trace view with its stylesheets')
 } finally {
-  worker.kill('SIGTERM')
-  await new Promise(resolve => worker.exitCode !== null ? resolve() : worker.once('exit', resolve))
+  await stopWorker()
   await rm(persist, { recursive: true, force: true })
 }

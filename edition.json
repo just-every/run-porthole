@@ -17,7 +17,8 @@
           "src/identity.ts",
           "src/branding.json",
           "src/routes",
-          "src/site"
+          "src/site",
+          "src/porthole"
         ]
       }
     },
