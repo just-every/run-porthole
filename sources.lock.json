@@ -134,7 +134,7 @@
       "executable": false
     },
     "docs/recovery.md": {
-      "sha256": "3e4f12d716a8095658cd7911e913719dbb15bd2cd3469860e265ad0ef400ca88",
+      "sha256": "e52c35d8f22fe44e294526498d610da3ea0f82de0aded6d9ddce5e5a2d2633c6",
       "executable": false
     },
     "edition.json": {
@@ -1794,11 +1794,11 @@
       "executable": false
     },
     "src/porthole/document.ts": {
-      "sha256": "5465bbc6b2d98f6d4bcfd25fe3f4b69ae858083be72c841e66ae8a1b939a5bad",
+      "sha256": "502c62423e7bdb3275eee3811d055dc7f2f49e83b4ff1a920e4f2b033b51ad41",
       "executable": false
     },
     "src/porthole/health/configuration.ts": {
-      "sha256": "6a6e590d8ca1b6f501224e4083621162c9aea7429127ae86d2f67b4da52795a0",
+      "sha256": "7ab7b91346f1272d1da7b121854d205286a199d9e6e9022f32aa97a23a3d51fc",
       "executable": false
     },
     "src/porthole/health/heartbeat.ts": {
@@ -1814,7 +1814,7 @@
       "executable": false
     },
     "src/porthole/health/observe.ts": {
-      "sha256": "de72e2de3ad484d99bc43cb8159ccd5af8e683968db734aaba19068e8960cc76",
+      "sha256": "22e9dbfb6723346bdbc7e7e994fcece491c04a48aadf1f7cfa7f6fc367c24f28",
       "executable": false
     },
     "src/porthole/health/page.ts": {
@@ -1898,7 +1898,7 @@
       "executable": false
     },
     "src/porthole/objects/page.ts": {
-      "sha256": "d7509894377f024f0c22b325843bb3b27511a30e7247fca7cadb6169df4803fe",
+      "sha256": "8aee1c37a7d718a77e19c7b73d85e959866f73d452ce29663b7aebbee0d094d6",
       "executable": false
     },
     "src/porthole/objects/schema.ts": {
@@ -1942,7 +1942,7 @@
       "executable": false
     },
     "src/porthole/query/http.ts": {
-      "sha256": "33f02768ef271e015c9295aa3ec88bbc785a4fd21486039b5807c3b2b5847071",
+      "sha256": "96579c8ec47cd824fa4bbe7e8e762faee7962f493466cecd79e8df7fb77be311",
       "executable": false
     },
     "src/porthole/recovery/monitors.ts": {
@@ -1950,7 +1950,7 @@
       "executable": false
     },
     "src/porthole/recovery/notices.ts": {
-      "sha256": "6477af22e90c1f1053d01a84b3f34e58059a8cb433f249edc3717a095ccf1da8",
+      "sha256": "419c930862321c76845c5d4bf2f4d02ad1c82ffb404319298176267f9c880cdb",
       "executable": false
     },
     "src/porthole/security/authority.ts": {

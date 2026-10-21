@@ -1,8 +1,9 @@
+import {frozenNotice,submitNotice,independentMailConfigured} from './mail'
 import { append, type AuditInput } from '../audit/store'
 import type { HealthBindings, HealthState } from '../health/model'
 import { healthConfiguration, recordComponentReceipt } from '../health/receipts'
 
-interface Notice {id:string;first_attempt_at:number|null;created_at:number;message:string;lease_id:string;configuration_revision:number}
+interface Notice {id:string;first_attempt_at:number|null;created_at:number;message:string;lease_id:string;configuration_revision:number;attempts:number}
 // Resend retains idempotency keys for 24 hours. Stop early rather than create a
 // second email after an uncertain request outlives provider deduplication.
 const retryWindow = 23*3600000
@@ -13,15 +14,15 @@ export async function reconcileHealthIncidents(env: HealthBindings, state: Healt
  for (const row of state.components) {
   if (row.component==='control-plane') continue // A dead control plane cannot notify itself.
   if (row.status==='Unknown' && (!row.observedAt || row.reason.startsWith('Not configured:'))) continue
-  const episode=crypto.randomUUID()
-  const message=JSON.stringify({from:env.MAIL_FROM??'',to:[config.recipient],subject:`Porthole ${row.status==='Unknown'?'failure':'recovery'}: ${row.component}`,
-   text:`${row.component}: ${row.status}\n${row.reason}\nObserved ${state.checkedAt}\nLast accepted: ${row.lastAcceptedAt??'unknown'}\nLast queryable: ${row.lastQueryableAt??'unknown'}\nInspect ${env.AUTH_ORIGIN}/app/health. Unknown means incomplete coverage. This notice authorizes no repair.`})
+  const episode=crypto.randomUUID(),noticeId=crypto.randomUUID()
+  const message=frozenNotice(env,noticeId,config.recipient,`Porthole ${row.status==='Unknown'?'failure':'recovery'}: ${row.component}`,
+   `${row.component}: ${row.status}\n${row.reason}\nObserved ${state.checkedAt}\nLast accepted: ${row.lastAcceptedAt??'unknown'}\nLast queryable: ${row.lastQueryableAt??'unknown'}\nInspect ${env.AUTH_ORIGIN}/app/health. Unknown means incomplete coverage. This notice authorizes no repair.`)
   if (row.status==='Unknown') {
    await env.DB.batch([
     env.DB.prepare(`INSERT INTO porthole_health_incidents(component,episode,opened_at) VALUES(?,?,?) ON CONFLICT(component) DO UPDATE SET episode=excluded.episode,opened_at=excluded.opened_at,resolved_at=NULL WHERE resolved_at IS NOT NULL`).bind(row.component,episode,now),
     env.DB.prepare(`INSERT OR IGNORE INTO porthole_health_notices(id,episode,component,phase,configuration_revision,created_at,next_attempt_at,message)
      SELECT ?,i.episode,i.component,'failure',?,?,?,? FROM porthole_health_incidents i WHERE i.component=? AND i.resolved_at IS NULL
-     AND EXISTS(SELECT 1 FROM porthole_health_configuration WHERE singleton=1 AND revision=? AND notices_enabled=1)`).bind(crypto.randomUUID(),config.revision,now,now,message,row.component,config.revision),
+     AND EXISTS(SELECT 1 FROM porthole_health_configuration WHERE singleton=1 AND revision=? AND notices_enabled=1)`).bind(noticeId,config.revision,now,now,message,row.component,config.revision),
    ])
   } else {
    await env.DB.batch([
@@ -29,7 +30,7 @@ export async function reconcileHealthIncidents(env: HealthBindings, state: Healt
     env.DB.prepare(`INSERT OR IGNORE INTO porthole_health_notices(id,episode,component,phase,configuration_revision,created_at,next_attempt_at,message)
      SELECT ?,i.episode,i.component,'recovery',?,?,?,? FROM porthole_health_incidents i WHERE i.component=? AND i.resolved_at=?
      AND EXISTS(SELECT 1 FROM porthole_health_notices n WHERE n.episode=i.episode AND n.phase='failure' AND n.state!='cancelled')
-     AND EXISTS(SELECT 1 FROM porthole_health_configuration WHERE singleton=1 AND revision=? AND notices_enabled=1)`).bind(crypto.randomUUID(),config.revision,now,now,message,row.component,now,config.revision),
+     AND EXISTS(SELECT 1 FROM porthole_health_configuration WHERE singleton=1 AND revision=? AND notices_enabled=1)`).bind(noticeId,config.revision,now,now,message,row.component,now,config.revision),
    ])
   }
  }
@@ -39,12 +40,13 @@ export async function reconcileHealthIncidents(env: HealthBindings, state: Healt
  * provider idempotency. The exact frozen body survives process termination. */
 export async function deliverHealthNotice(env: HealthBindings): Promise<{attempted:number;status:string}> {
  if (env.AUTH_LOCAL==='true' || env.RER_DEMO==='1') return {attempted:0,status:'development_suppressed'}
- if (env.MAIL_PROVIDER!=='resend' || !env.MAIL_API_KEY || !env.MAIL_FROM) return {attempted:0,status:'unconfigured'}
+ if (!independentMailConfigured(env)) return {attempted:0,status:'unconfigured'}
  const config=await healthConfiguration(env.DB)
  if (!config.notices_enabled) return {attempted:0,status:'disabled'}
  const owner=await env.DB.prepare(`SELECT 1 AS live FROM oa_operators o JOIN porthole_members m ON m.operator_id=o.id WHERE o.id=? AND o.status='active' AND o.role='owner' AND m.role='owner'`).bind(config.configured_by).first<{live:number}>()
  if (!owner) return {attempted:0,status:'configuring_owner_inactive'}
- const now=Date.now(), lease=crypto.randomUUID()
+ const now=Date.now(), lease=crypto.randomUUID(),idempotent=env.MAIL_PROVIDER==='resend'
+ if(!idempotent)await env.DB.prepare(`UPDATE porthole_health_notices SET state='uncertain',lease_id=NULL,lease_until=NULL WHERE first_attempt_at IS NOT NULL AND (state='pending' OR (state='sending' AND lease_until<?))`).bind(now).run()
  await env.DB.prepare(`UPDATE porthole_health_notices SET state='uncertain',lease_id=NULL,lease_until=NULL WHERE state IN ('pending','sending') AND first_attempt_at IS NOT NULL AND first_attempt_at<=?`).bind(now-retryWindow).run()
  const notice=await env.DB.prepare(`UPDATE porthole_health_notices SET state='sending',lease_id=?,lease_until=?,attempts=attempts+1,first_attempt_at=COALESCE(first_attempt_at,?)
   WHERE id=(SELECT n.id FROM porthole_health_notices n WHERE n.configuration_revision=? AND ((n.state='pending' AND n.next_attempt_at<=?) OR (n.state='sending' AND n.lease_until<?))
@@ -56,20 +58,18 @@ export async function deliverHealthNotice(env: HealthBindings): Promise<{attempt
  if (!notice) return {attempted:0,status:'idle'}
  const audit:AuditInput={operationRef:lease,actorRef:null,actorRevision:null,action:'health.notice',entityRef:notice.id,revision:notice.configuration_revision,phase:'attempted',status:null,occurredAt:now}
  try { await append(env.DB,audit) } catch {
-  await env.DB.prepare(`UPDATE porthole_health_notices SET state='pending',next_attempt_at=?,lease_id=NULL,lease_until=NULL WHERE id=? AND lease_id=?`).bind(Date.now()+60000,notice.id,lease).run()
+  await env.DB.prepare(`UPDATE porthole_health_notices SET state='pending',first_attempt_at=CASE WHEN attempts=1 THEN NULL ELSE first_attempt_at END,next_attempt_at=?,lease_id=NULL,lease_until=NULL WHERE id=? AND lease_id=?`).bind(Date.now()+60000,notice.id,lease).run()
   return {attempted:0,status:'audit_unavailable'}
  }
- let status:'accepted'|'rejected'|'pending'='pending', providerId:string|null=null
+ let status:'accepted'|'rejected'|'pending'|'uncertain'=idempotent?'pending':'uncertain', providerId:string|null=null
  try {
-  const response=await fetch('https://api.resend.com/emails',{method:'POST',redirect:'manual',signal:AbortSignal.timeout(15000),headers:{authorization:`Bearer ${env.MAIL_API_KEY}`,'content-type':'application/json','idempotency-key':`porthole-health/${notice.id}`},body:notice.message})
-  if (response.ok) {
-   const body=await response.json() as {id?:unknown}
-   if (typeof body.id==='string' && /^[A-Za-z0-9_-]{1,128}$/.test(body.id)) {status='accepted';providerId=body.id}
-  } else if (response.status>=400 && response.status<500 && ![408,409,429].includes(response.status)) status='rejected'
- } catch { /* Transport uncertainty remains pending under the same key/body. */ }
+  const result=await submitNotice(env,notice.message,config.recipient!)
+  providerId=result.providerMessageId
+  status=result.status==='accepted'?'accepted':result.status==='rejected'?'rejected':idempotent?'pending':'uncertain'
+ } catch { /* The frozen request stays uncertain; no provider is substituted. */ }
  await env.DB.prepare(`UPDATE porthole_health_notices SET state=?,provider_id=?,next_attempt_at=?,lease_id=NULL,lease_until=NULL WHERE id=? AND lease_id=?`).bind(status,providerId,Date.now()+60000,notice.id,lease).run()
  await append(env.DB,{...audit,phase:status==='accepted'?'succeeded':'failed',status:status==='accepted'?202:status==='rejected'?422:503})
- await recordComponentReceipt(env.DB,{component:'delivery',source:'independent-mail',status:status==='accepted'?'Healthy':'Unknown',reason:status==='accepted'?'Independent mail provider accepted the durable notice; mailbox delivery is not established.':status==='rejected'?'Independent mail provider rejected the notice; owner action required.':'Independent mail result uncertain; durable retry retains the exact idempotency key.',evidence:{noticeId:notice.id,providerStatus:status,providerId}})
+ await recordComponentReceipt(env.DB,{component:'delivery',source:'independent-mail',status:status==='accepted'?'Healthy':'Unknown',reason:status==='accepted'?'Independent mail provider accepted the durable notice; mailbox delivery is not established.':status==='rejected'?'Independent mail provider rejected the notice; owner action required.':idempotent?'Independent mail result uncertain; durable retry retains the exact idempotency key.':'Independent mail result uncertain; automatic resubmission is stopped because this provider does not guarantee deduplication.',evidence:{noticeId:notice.id,providerStatus:status,providerId}})
  return {attempted:1,status}
 }
 export async function noticeSummary(db:D1Database) {

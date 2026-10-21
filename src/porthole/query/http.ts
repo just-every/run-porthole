@@ -35,7 +35,7 @@ export async function queryResponse(request:Request,env:Bindings):Promise<Respon
   if(!response.ok) {if(!page)return response;const error=await response.json() as {error:string};return document('Query unavailable',`<p role="alert">${escape(error.error)}</p><p><a href="/app/explore">Return to Explore</a></p>`,response.status)}
   const result=await response.json() as Record<string,unknown>,reference=String(result.queryRef)
   const headers={...privateHeaders,'x-porthole-entity':reference}
-  if(page) {const view=await document('Query results',`<p>Snapshot reference: ${reference}</p><p><a href="/api/porthole/v1/query/${reference}">Repeat this snapshot</a> · <a href="/app/explore">New query</a></p><pre style="white-space:pre-wrap;overflow-wrap:anywhere">${escape(JSON.stringify(result,null,2))}</pre>`);view.headers.set('x-porthole-entity',reference);return view}
+  if(page) {const view=await document('Query results',`<p>Snapshot reference: ${reference}</p><p><a href="/api/porthole/v1/query/${reference}">Repeat this snapshot</a> · <a href="/app/explore">New query</a></p><pre>${escape(JSON.stringify(result,null,2))}</pre>`);view.headers.set('x-porthole-entity',reference);return view}
   return Response.json({...result,queryRef:reference,replay:`/api/porthole/v1/query/${reference}`},{headers})
  }catch(error) {
   const code=error instanceof AuthError?error.code:'query_unavailable',status=error instanceof AuthError?error.status:503

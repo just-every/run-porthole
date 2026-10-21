@@ -1,0 +1,4 @@
+/* Operational documents use the established Base frame. */
+.rer-themed pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+.rer-themed select, .rer-themed textarea { box-sizing: border-box; width: 100%; min-width: 0; max-width: 100%; font: inherit; color: inherit; background: var(--rer-surface, #fff); }
+.rer-themed form, .rer-themed label { min-width: 0; }

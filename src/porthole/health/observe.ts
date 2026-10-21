@@ -1,3 +1,4 @@
+import {independentMailConfigured} from '../recovery/mail'
 import { components, iso, type Component, type HealthBindings, type HealthComponent, type HealthState, type ReceiptRow } from './model'
 import { healthConfiguration, healthReceipts, recordComponentReceipt } from './receipts'
 
@@ -62,7 +63,7 @@ export async function observeHealth(env: HealthBindings): Promise<HealthState> {
     if (queue?.paused || queue?.oldest && !fresh(queue.oldest)) {status='Unknown';reason=queue?.paused?'Durable ingest drain is paused.':'Pending ingest exceeds the freshness window.'}
    } catch {status='Unknown';reason='Durable ingest queue could not be read.'}
   }
-  if (component === 'delivery' && (!config.notices_enabled || env.AUTH_LOCAL==='true' || env.RER_DEMO==='1' || env.MAIL_PROVIDER!=='resend' || !env.MAIL_API_KEY || !env.MAIL_FROM)) {status='Unknown';reason=config.notices_enabled?transportState(env):'Independent failure notices are disabled until the owner explicitly configures them.'}
+  if (component === 'delivery' && (!config.notices_enabled || env.AUTH_LOCAL==='true' || env.RER_DEMO==='1' || !independentMailConfigured(env))) {status='Unknown';reason=config.notices_enabled?transportState(env):'Independent failure notices are disabled until the owner explicitly configures them.'}
   rows.push({component,status,reason,checkedAt,observedAt:iso(row?.observed_at),lastAcceptedAt:iso(max(receipts.filter(r=>r.component===component).map(r=>r.last_accepted_at))),lastQueryableAt:iso(max(receipts.filter(r=>r.component===component).map(r=>r.last_queryable_at))),evidence})
  }
  return {version:2,status:rows.every(row=>row.status==='Healthy')?'Healthy':'Unknown',checkedAt,lastAcceptedAt:iso(max(receipts.map(row=>row.last_accepted_at))),lastQueryableAt:iso(max(receipts.map(row=>row.last_queryable_at))),components:rows,configuration:{revision:config.revision,freshnessSeconds:config.freshness_ms/1000,noticesEnabled:config.notices_enabled===1,recipient:config.recipient,transport:transportState(env)}}
