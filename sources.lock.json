@@ -1730,7 +1730,7 @@
       "executable": false
     },
     "src/porthole/credentials/view.ts": {
-      "sha256": "70d7eda85b941dd974345f0a69e62fafe1450ce81f668bd43038e455c1305b9f",
+      "sha256": "2bdc8b06e5962c2842154804ea30e9591c0656941e1b40ecdcdc21aecfb6abd2",
       "executable": false
     },
     "src/porthole/document.ts": {
