@@ -1,0 +1,87 @@
+/* Porthole homepage: one display face (Inter Display, heavy and tight), Inter
+   for text with tabular figures, JetBrains Mono for queries, logs, config and
+   paths, Departure Mono for the team tags and Caveat for the hand notes. */
+@font-face { font-family: 'Porthole Inter'; font-style: normal; font-weight: 400 900; font-display: swap; src: url('/fonts/porthole/inter-var.woff2') format('woff2'); }
+@font-face { font-family: 'Porthole Mono'; font-style: normal; font-weight: 400 600; font-display: swap; src: url('/fonts/porthole/jetbrains-mono-var.woff2') format('woff2'); }
+@font-face { font-family: 'Porthole Pixel'; font-style: normal; font-weight: 400; font-display: swap; src: url('/fonts/porthole/departure-mono.woff2') format('woff2'); }
+@font-face { font-family: 'Porthole Hand'; font-style: normal; font-weight: 600; font-display: swap; src: url('/fonts/porthole/caveat-600.woff2') format('woff2'); }
+
+/* --u is one desk pixel of the 1536 px images: 1 px from 1536 up, the screen's
+   share from 1180 to 1535, and fixed below, where each section has its own
+   tablet and phone layout. Text tokens never fall under their floor. */
+:root {
+  --u: 1px;
+  --ink: #16151b; --ink-2: #3a3843; --muted: #5f5d66; --line: rgba(22, 21, 27, .11); --line-2: rgba(22, 21, 27, .18);
+  --helio: #c86be6; --helio-ink: #9333c8; --helio-pale: #f6ebfb; --violet-bar: #a77cf0;
+  --scarlet: #e3302b; --scarlet-ink: #d02a24; --brass: #c2963a; --brass-ink: #8a6418; --bolt: #dcad3e;
+  --sea: #a3dacb; --sea-ink: #1f7a62; --sea-check: #2e9c7e; --sea-pale: #eaf6f1; --sea-field: #eef8f4;
+  --night: #111111; --slate-1: #5c6170; --slate-2: #7d8291; --slate-3: #9a9eab; --slate-4: #b5b8c2; --slate-5: #cdd0d7; --slate-6: #e1e3e8;
+  --sans: 'Porthole Inter', 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+  --mono: 'Porthole Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --pixel: 'Porthole Pixel', 'Porthole Mono', ui-monospace, monospace;
+  --hand: 'Porthole Hand', 'Segoe Print', 'Bradley Hand', cursive;
+  --gradient: linear-gradient(90deg, #c86be6 0%, #c54fc4 30%, #d23d86 64%, #e7293b 100%);
+  --t11: max(11px, calc(13 * var(--u)));
+  --t12: max(11px, calc(14 * var(--u)));
+  --t13: max(12px, calc(15 * var(--u)));
+  --t14: max(12.5px, calc(16 * var(--u)));
+  --t15: max(13px, calc(17 * var(--u)));
+  --t16: max(13.5px, calc(18 * var(--u)));
+  --t18: max(14px, calc(20 * var(--u)));
+  --lead: max(16px, calc(24 * var(--u)));
+  --h2: calc(88 * var(--u));
+  --gutter: calc(48 * var(--u));
+  --radius: calc(14 * var(--u));
+  --shadow: 0 1px 2px rgba(22, 21, 27, .05), 0 calc(10 * var(--u)) calc(28 * var(--u)) calc(-14 * var(--u)) rgba(22, 21, 27, .16);
+}
+@media (min-width: 1180px) and (max-width: 1535px) { :root { --u: calc(100vw / 1536); } }
+@media (max-width: 1179px) { :root { --u: .8px; --h2: 60px; --lead: 18px; --gutter: 32px; } }
+@media (max-width: 760px) {
+  :root { --u: .8px; --gutter: 16px; --h2: clamp(30px, calc((100vw - 32px) / 10.3), 44px); --lead: 15px; --radius: 12px;
+    --t11: 13px; --t12: 13px; --t13: 14px; --t14: 14px; --t15: 15px; --t16: 15px; --t18: 16px; }
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; scroll-padding-top: 16px; }
+body.home { margin: 0; background: #fff; color: var(--ink); font: 400 var(--t15)/1.5 var(--sans);  -webkit-font-smoothing: antialiased; overflow-x: clip; }
+:where(.home) :where(h1, h2, h3, p, ul, ol, figure, dl, dd, blockquote) { margin: 0; padding: 0; }
+:where(.home) :where(ul, ol) { list-style: none; }
+:where(.home) a { color: inherit; }
+:where(.home) img { display: block; max-width: 100%; height: auto; }
+:where(.home) picture { display: block; }
+:where(.home) :where(code, pre, .mono) { font-family: var(--mono); font-feature-settings: normal; }
+.home a:focus-visible { outline: 3px solid var(--helio); outline-offset: 3px; border-radius: 6px; }
+:where(.home) :where(b, strong) { font-weight: 650; }
+
+.frame { width: min(100%, calc(1536 * var(--u))); margin-inline: auto; padding-inline: var(--gutter); }
+.sec { position: relative; padding-block: calc(96 * var(--u)); }
+@media (max-width: 760px) { .sec { padding-block: 56px; } }
+
+/* Section heads: one face, one size, two lines (ink, then the hero's gradient). */
+.head { display: grid; gap: calc(14 * var(--u)); }
+.head-center { text-align: center; justify-items: center; }
+.eyebrow { font: 600 var(--t13)/1.4 var(--sans); letter-spacing: .2em; text-transform: uppercase; color: var(--helio-ink); text-wrap: balance; }
+.home h2 { font: 860 var(--h2)/.98 var(--sans); font-variation-settings: 'opsz' 32; letter-spacing: -.045em; color: var(--ink); }
+.home h2 .l1, .home h2 .l2, .hero h1 .l1, .hero h1 .l2 { display: block; width: fit-content; max-width: 100%; text-wrap: balance; }
+.head-center h2 .l1, .head-center h2 .l2, .hero h1 .l1, .hero h1 .l2 { margin-inline: auto; }
+.l2 { background: var(--gradient); -webkit-background-clip: text; background-clip: text; color: transparent; padding-bottom: .08em; margin-bottom: -.08em; }
+.lead { font-size: var(--lead); line-height: 1.38; color: var(--ink-2); max-width: calc(1180 * var(--u)); text-wrap: pretty; }
+.head-center .lead { margin-inline: auto; }
+@media (max-width: 760px) { .eyebrow { font-size: 13px; letter-spacing: .08em; } .head { gap: 10px; } }
+
+/* Data cards: crisp white, a thin hairline, a soft shadow. */
+:where(.home) h3 { text-wrap: balance; }
+.card { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); min-width: 0; }
+
+/* The team tag: the hero's hanging sign, a black plate, thin grey rim, mint pixel type. */
+.tag { display: inline-flex; align-items: center; flex: none; height: calc(30 * var(--u)); min-height: 22px; padding: 0 calc(10 * var(--u)); background: #171822; color: #6ef2bd; border: 1px solid #5a5e6e; border-radius: 3px; box-shadow: inset 0 0 0 1px #0b0b10; font: 400 max(13px, calc(18 * var(--u)))/1 var(--pixel); letter-spacing: .02em; white-space: nowrap; }
+@media (max-width: 760px) { .tag { height: 24px; padding: 0 8px; font-size: 14px; } }
+
+.ok { display: inline-block; width: 1.05em; height: 1.05em; margin-left: .15em; vertical-align: -.16em; fill: none; stroke: var(--sea-check); stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.num, .svc-stats { font-variant-numeric: tabular-nums; }
+.slow { color: var(--scarlet-ink); font-weight: 650; }
+.brass { color: var(--brass-ink); }
+.dim { color: var(--muted); }
+.nowrap { white-space: nowrap; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.hand { font-family: var(--hand); font-weight: 600; }

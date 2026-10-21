@@ -274,6 +274,46 @@ PORT-088 is a complete read-only legacy archive reader, not ownership of or writ
 
 PORT-062’s healthy Remote Configuration housekeeping is distinct from Datadog’s proprietary signed product policies. Native security/SIEM, AppSec, live debugger/dynamic instrumentation and other vendor-only remote controls keep their existing sibling/source handoffs or the previously recorded target-design Gaps; no forged vendor signature, disabled verifier or empty update counts as replacing those controls. Inventory each dependent policy and retain its source until its named handoff/replacement is accepted. The expanded widget catalog preserves source grouping and safe embeds but does not execute arbitrary unapproved third-party code or acquire another product’s workflow authority.
 
+## Homepage claims
+
+Every capability claim on the run site's homepage (run-porthole.com, `src/site/home/`), the section that makes it and the clauses that back it. The homepage shows the product this contract targets; the Status section below is the progress. "Contract, not yet in code" means a target clause backs the claim and no code does yet.
+
+| Claim | Section | Clauses | Backed by |
+| --- | --- | --- | --- |
+| Porthole collects every trace, metric, log and profile | 01 hero | PORT-001, PORT-009, PORT-011, PORT-014, PORT-015 | contract, not yet in code |
+| It follows each slow request to the query or deploy behind it | 01, 03 | PORT-009, PORT-016, PORT-022 | contract, not yet in code |
+| It readies the fix (a rollback a named person approves) and proves recovery against the SLO | 01, 04 | PORT-028, PORT-029, PORT-021 | contract, not yet in code |
+| Logs are archived in the customer's own bucket (R2, Parquet), readable without Porthole | 01, 09, 11 | PORT-013, PORT-061 | contract, not yet in code |
+| An alternative to Datadog, New Relic and Grafana Cloud | 01 | PORT-024, PORT-039, PORT-040, PORT-041 | contract, not yet in code |
+| Every service is discovered from its own traffic with owner, rate, p95 and errors, on one service map | 02 | PORT-008, PORT-001 | contract, not yet in code |
+| Services keep their OpenTelemetry SDKs and the Datadog Agent unchanged | 02, 10 | PORT-001, PORT-002 | contract, not yet in code |
+| A trace opens down to its slow span, the query, its plan (Seq Scan, rows removed) and the deploy that changed it | 03 | PORT-009, PORT-016, PORT-022 | contract, not yet in code |
+| A log line is linked to its trace by traceparent | 03, 09 | PORT-011 | contract, not yet in code |
+| A profile shows where the slow span's time went (off-CPU, pgx Query) | 03 | PORT-015 | contract, not yet in code |
+| Slow traces are compared with the baseline by attribute (db.statement, service.version) | 03 | PORT-009, PORT-085 | contract, not yet in code |
+| A p95 monitor fires and pages the on-call through Oncall and Slack | 04 | PORT-019, PORT-020, PORT-051, PORT-066 | contract, not yet in code |
+| The agent tests causes and posts the one that held with its cited queries, Spool errors included | 04 | PORT-028, PORT-050 | contract, not yet in code |
+| The readied rollback rebuilds the index without changing data, after a person approves it in Slack | 04 | PORT-029, PORT-077 | contract, not yet in code |
+| SLO error budget is tracked (43.2 min budget, 11.4 used, 31.8 left) | 04 | PORT-021, PORT-084 | contract, not yet in code |
+| Lamp's status component and Vector's follow-up get the incident's evidence | 04 | PORT-051, PORT-053, PORT-059 | contract, not yet in code |
+| Kubernetes OOM kills arrive as events with pod memory, owner and cluster | 05 | PORT-007 | contract, not yet in code |
+| The agent explains a quiet failure without paging and opens the resize pull request a team merges | 05, 06 | PORT-020, PORT-028, PORT-029, PORT-082 | contract, not yet in code |
+| The agent instruments an untraced service by pull request; coverage goes to 46 of 46 | 07 | PORT-030, PORT-004, PORT-008 | contract, not yet in code |
+| Noisy monitors are retuned by pull request after a replay against history | 07 | PORT-030, PORT-019, PORT-026 | contract, not yet in code |
+| A tag that multiplies a metric's series is caught and fixed by a merged pull request | 08 | PORT-023, PORT-083, PORT-014 | contract, not yet in code |
+| A debug log nobody reads is dropped by an approved rule, error lines kept | 08 | PORT-023, PORT-012, PORT-030 | contract, not yet in code |
+| Logs a day by team are shown against the old total | 08 | PORT-023 | contract, not yet in code |
+| Card numbers and SSNs are masked before indexing, with raw storage searched to prove it | 09 | PORT-012, PORT-025 | contract, not yet in code |
+| Fifteen days stay hot; older logs are rehydrated from the archive and searchable in minutes | 09 | PORT-013, PORT-073 | contract, not yet in code |
+| An auditor gets a read-only role over auth logs, and the answer is sent to Evidence | 09 | PORT-025, PORT-052 | contract, not yet in code |
+| Datadog dashboards, monitors and SLOs come across, with the ones that cannot translate flagged | 10 | PORT-024, PORT-039, PORT-086 | contract, not yet in code |
+| The Datadog Agent dual-ships metrics, logs and traces to Porthole by three Helm values entries | 10 | PORT-002, PORT-045, PORT-062 | contract, not yet in code |
+| Every alert fired in both tools during the dual-ship week | 10 | PORT-024, PORT-045, PORT-080 | contract, not yet in code |
+| New Relic and Grafana move the same way | 10 | PORT-040, PORT-041 | contract, not yet in code |
+| Every service stays in view on the busiest day | 11 | PORT-057, PORT-072 | contract, not yet in code |
+| 100% free and open source | 01, 11 | — | code: `LICENSE` (MIT) |
+| One line starts Porthole on your computer (`npx -y @runeditrun/rer dev just-every/run-porthole` → ready) | 10 | PORT-031 | partly: `src/site/run.json`, `RUN-LOCALLY.md` start the Base installation; the observability product is contract |
+
 ## Status
 
 Judged from the code and tests at commit `d02b6f99dc3419675b237ed20f9472671dbcddd2` (20 October 2026).

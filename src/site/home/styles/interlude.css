@@ -1,0 +1,13 @@
+/* 06 interlude: a vignette, never full-bleed. */
+.interlude { position: relative; max-width: calc(1536 * var(--u)); margin-inline: auto; padding-bottom: calc(40 * var(--u)); }
+.interlude .street img { width: 100%; }
+.interlude .street { -webkit-mask-image: linear-gradient(#000 84%, transparent); mask-image: linear-gradient(#000 84%, transparent); }
+@media (min-width: 1537px) {
+  .interlude { max-width: 1536px; }
+  .interlude .street { -webkit-mask-image: linear-gradient(#000 84%, transparent), linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); -webkit-mask-composite: source-in; mask-image: linear-gradient(#000 84%, transparent), linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); mask-composite: intersect; }
+}
+.street-tag { position: relative; width: fit-content; max-width: calc(100% - 32px); margin: calc(-34 * var(--u)) auto 0; padding: calc(12 * var(--u)) calc(22 * var(--u)); background: #fff; border: 1px solid var(--line); border-radius: 999px; box-shadow: var(--shadow); font-size: max(13px, calc(18 * var(--u))); color: var(--ink); text-align: center; text-wrap: balance; }
+@media (max-width: 760px) {
+  .interlude .street img { height: 300px; object-fit: cover; object-position: 66% 50%; }
+  .street-tag { margin-top: -18px; border-radius: 16px; font-size: 14.5px; padding: 10px 16px; }
+}

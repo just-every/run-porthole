@@ -1,0 +1,28 @@
+/* 11 closing: the arcade as a vignette, then the promise. */
+.closing { position: relative; max-width: calc(1536 * var(--u)); margin: calc(24 * var(--u)) auto 0; padding-bottom: calc(96 * var(--u)); text-align: center; }
+.arcade img { width: 100%; }
+.arcade { -webkit-mask-image: linear-gradient(transparent, #000 5%, #000 80%, transparent); mask-image: linear-gradient(transparent, #000 5%, #000 80%, transparent); }
+@media (min-width: 1537px) {
+  .closing { max-width: 1536px; }
+  .arcade { -webkit-mask-image: linear-gradient(transparent, #000 5%, #000 80%, transparent), linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); -webkit-mask-composite: source-in; mask-image: linear-gradient(transparent, #000 5%, #000 80%, transparent), linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); mask-composite: intersect; }
+}
+.close-cards { position: relative; display: grid; grid-template-columns: repeat(3, 1fr); gap: calc(26 * var(--u)); margin: calc(-112 * var(--u)) auto 0; padding-inline: calc(68 * var(--u)); text-align: left; }
+.close-cards li { display: grid; align-content: center; gap: calc(4 * var(--u)); min-height: calc(94 * var(--u)); padding: calc(14 * var(--u)) calc(22 * var(--u)); font-size: max(13.5px, calc(18 * var(--u))); font-weight: 500; line-height: 1.45; border-radius: calc(10 * var(--u)); }
+.close-copy { display: grid; justify-items: center; padding: calc(56 * var(--u)) var(--gutter) 0; }
+.closing h2 { --h2: calc(88 * var(--u)); }
+.closing h2 .l1, .closing h2 .l2 { margin-inline: auto; }
+.close-free { margin-top: calc(28 * var(--u)); font-size: max(16px, calc(24 * var(--u))); color: var(--ink-2); }
+.closing .hero-actions { margin-top: calc(34 * var(--u)); }
+@media (max-width: 1179px) {
+  .closing h2 { --h2: 60px; }
+  .close-cards { margin-top: -60px; padding-inline: 32px; gap: 14px; }
+}
+@media (max-width: 760px) {
+  .closing { padding-bottom: 64px; margin-top: 0; }
+  .arcade img { height: 320px; object-fit: cover; object-position: 50% 40%; }
+  .close-cards { grid-template-columns: 1fr; margin-top: -40px; padding-inline: 16px; gap: 10px; }
+  .close-cards li { min-height: 0; font-size: 15px; padding: 14px 16px; }
+  .closing h2 { --h2: clamp(30px, calc((100vw - 32px) / 10.3), 44px); }
+  .close-copy { padding-top: 40px; }
+  .close-free { font-size: 17px; margin-top: 18px; }
+}

@@ -1,0 +1,19 @@
+/* Header and footer: the approved mark beside "Porthole" in the display face;
+   Docs, Contract and Source at right. */
+.site-header { display: flex; align-items: center; justify-content: space-between; gap: 12px 24px; flex-wrap: wrap; padding: calc(12 * var(--u)) calc(38 * var(--u)) 0 calc(36 * var(--u)); position: relative; z-index: 2; }
+.lockup { display: inline-flex; align-items: center; gap: calc(12 * var(--u)); text-decoration: none; color: var(--ink); }
+.lockup img { width: max(32px, calc(44 * var(--u))); height: max(32px, calc(44 * var(--u))); }
+.lockup span { font: 880 max(22px, calc(30 * var(--u)))/1 var(--sans); font-variation-settings: 'opsz' 32; letter-spacing: -.035em; }
+.site-header nav, .site-footer nav { display: flex; flex-wrap: wrap; gap: 8px calc(40 * var(--u)); font: 500 max(15px, calc(18 * var(--u)))/1.2 var(--sans); }
+.site-header nav a, .site-footer nav a { text-decoration: none; padding-block: 6px; }
+.site-header nav a:hover, .site-footer nav a:hover { text-decoration: underline; text-underline-offset: 5px; }
+@media (max-width: 1179px) { .site-header { padding: 18px 32px 0; } .site-header nav { gap: 8px 28px; } }
+@media (max-width: 760px) { .site-header { padding: 14px 16px 0; gap: 8px 16px; } .site-header nav { gap: 6px 20px; font-size: 15px; } .lockup { gap: 9px; } }
+
+.site-footer { padding: 0 0 calc(56 * var(--u)); }
+.foot { display: flex; align-items: center; gap: 12px calc(24 * var(--u)); flex-wrap: wrap; border-top: 1px solid var(--line); padding-top: calc(36 * var(--u)); }
+.lockup-small img { width: max(32px, calc(40 * var(--u))); height: max(32px, calc(40 * var(--u))); }
+.lockup-small span { font-size: max(20px, calc(24 * var(--u))); }
+.foot-line { color: var(--muted); font-size: var(--t15); flex: 1 1 auto; }
+.site-footer nav { font-size: var(--t15); }
+@media (max-width: 760px) { .site-footer { padding-bottom: 40px; } .foot { padding-top: 28px; } .foot-line { flex-basis: 100%; order: 2; } .site-footer nav { order: 3; } }

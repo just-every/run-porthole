@@ -1,0 +1,104 @@
+/* 08 cost control: the one pale sea-glass field. */
+.cost { background: var(--sea-field); padding-block: calc(44 * var(--u)) calc(44 * var(--u)); }
+.cost .lead { max-width: calc(1010 * var(--u)); color: var(--ink); }
+.cost-pair { display: grid; gap: calc(26 * var(--u)); margin-top: calc(36 * var(--u)); }
+.cost-panel { padding: calc(14 * var(--u)) calc(14 * var(--u)) calc(22 * var(--u)); box-shadow: none; border-color: rgba(22, 21, 27, .06); }
+.cost-inner { padding: calc(18 * var(--u)) calc(20 * var(--u)) calc(14 * var(--u)); box-shadow: none; }
+.cost-title { display: flex; align-items: center; flex-wrap: wrap; gap: 6px calc(14 * var(--u)); font-size: max(13px, calc(16 * var(--u))); }
+.cost .tag { height: calc(28 * var(--u)); min-height: 22px; font-size: max(13px, calc(17 * var(--u))); }
+.cost-sub { margin-top: calc(12 * var(--u)); color: #7f2fd0; font-weight: 600; font-size: max(12px, calc(13.5 * var(--u))); }
+.cost-text { display: grid; gap: calc(8 * var(--u)); padding: calc(20 * var(--u)) calc(4 * var(--u)) 0; font-size: max(13px, calc(17.5 * var(--u))); line-height: 1.45; }
+.cost-chart, .log-chart { margin: 0; }
+.cc-plot, .lc-plot { position: relative; margin: calc(44 * var(--u)) calc(16 * var(--u)) calc(34 * var(--u)) calc(52 * var(--u)); height: calc(138 * var(--u)); min-height: 120px; }
+.cc-area { position: absolute; inset: 0; }
+.cc-area > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.cc-area path { fill: none; vector-effect: non-scaling-stroke; }
+.cc-grid { stroke: #e7e8ec; stroke-dasharray: 3 3; }
+.cc-axis { stroke: #b9bac2; }
+.cc-line { stroke: #9a52e8; stroke-width: 2; }
+.cc-y span { position: absolute; right: calc(100% + 8px); transform: translateY(50%); font-size: max(11px, calc(12.5 * var(--u))); color: var(--muted); white-space: nowrap; }
+.cc-y { position: absolute; inset: 0 auto 0 0; }
+.cc-x { position: absolute; left: 0; right: 0; top: calc(100% + 8px); }
+.cc-x span { position: absolute; transform: translateX(-50%); font-size: max(11px, calc(12.5 * var(--u))); color: var(--muted); white-space: nowrap; }
+.cc-x span:first-child { transform: none; }
+.cc-x span:last-child { transform: translateX(-90%); }
+.cc-mark { position: absolute; top: calc(-26 * var(--u)); bottom: 0; border-left: 1.5px dashed var(--brass); }
+.cc-short { top: 4%; }
+.cc-short2 { top: 30%; }
+.cc-sea { border-color: var(--sea-check); }
+.cc-label { position: absolute; left: 6px; top: -4px; font-size: max(11px, calc(12.5 * var(--u))); line-height: 1.25; font-weight: 600; color: var(--brass-ink); white-space: nowrap; }
+.cc-l-1020 { top: calc(-20 * var(--u)); }
+.cc-l-flag { top: 14%; }
+.cc-l-v406 { top: 34%; left: 9px; color: var(--sea-ink); }
+.cc-note { position: absolute; bottom: calc(93.5% + 5px); transform: translateX(6px); font-size: max(11px, calc(12.5 * var(--u))); color: #7f2fd0; white-space: nowrap; }
+.cc-key { display: none; }
+.cc-dot { position: absolute; width: 8px; height: 8px; margin: 0 0 -4px -4px; border-radius: 50%; }
+.cc-dot-brass { background: var(--brass); } .cc-dot-sea { background: var(--sea-check); }
+.lc-legend { position: absolute; right: calc(20 * var(--u)); display: grid; gap: 2px; font-size: max(11px, calc(12.5 * var(--u))); color: var(--ink-2); margin-top: calc(6 * var(--u)); }
+.log-chart { position: relative; }
+.lc-legend span { display: flex; align-items: center; gap: 6px; }
+.sw { width: 11px; height: 11px; display: inline-block; }
+.sw-debug { background: #cdb4f6; } .sw-base { background: var(--ink); }
+.lc-plot { margin-top: calc(56 * var(--u)); }
+.lc-bars { position: absolute; inset: 0; display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 1px solid #b9bac2; background: linear-gradient(#e7e8ec, #e7e8ec) 0 calc(100% - 100% * 100 / 440) / 100% 1px no-repeat; }
+.lc-day { position: relative; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
+.lc-after { margin-left: calc(26 * var(--u)); border-left: 1.5px dotted #b9bac2; }
+.lc-stack { display: flex; flex-direction: column; width: 56%; }
+.lc-debug { background: #cdb4f6; } .lc-base { background: var(--ink); min-height: 3px; }
+.lc-date { position: absolute; top: calc(100% + 6px); font-size: max(11px, calc(11.5 * var(--u))); line-height: 1.15; color: var(--muted); text-align: center; white-space: nowrap; }
+.lc-fixed { position: absolute; left: 62%; bottom: 30%; font-weight: 600; color: var(--sea-ink); font-size: max(11px, calc(13 * var(--u))); white-space: nowrap; }
+.cost-foot { margin-top: calc(26 * var(--u)); padding: calc(22 * var(--u)) calc(24 * var(--u)) calc(24 * var(--u)); box-shadow: none; border-color: rgba(22, 21, 27, .06); }
+.cost-foot h3 { font: 650 max(15px, calc(19 * var(--u)))/1.3 var(--sans); }
+.cf-row { display: flex; align-items: flex-end; gap: calc(22 * var(--u)); margin-top: calc(10 * var(--u)); }
+.cf-bar { flex: 1; display: flex; gap: 2px; min-width: 0; }
+.cf-seg { display: grid; justify-items: start; gap: calc(6 * var(--u)); min-width: 0; }
+.cf-gb { font-size: max(12px, calc(15 * var(--u))); white-space: nowrap; }
+.cf-fill { justify-self: stretch; height: calc(26 * var(--u)); min-height: 18px; border-radius: 2px; }
+.cf-1 .cf-fill { background: var(--slate-1); } .cf-2 .cf-fill { background: var(--slate-2); } .cf-3 .cf-fill { background: var(--slate-3); }
+.cf-4 .cf-fill { background: var(--slate-4); } .cf-5 .cf-fill { background: var(--slate-5); } .cf-6 .cf-fill { background: var(--slate-6); }
+.cf-was { padding: 0 0 2px calc(22 * var(--u)); border-left: 1px solid var(--line-2); font-size: max(13px, calc(17 * var(--u))); color: var(--ink-2); white-space: nowrap; }
+@media (min-width: 1180px) {
+  .cost .frame { padding-inline: calc(56 * var(--u)); }
+  .cost-pair { grid-template-columns: 1fr 1fr; }
+}
+.cf-scale { display: none; }
+@media (max-width: 1179px) {
+  .cf-row { flex-direction: column; align-items: stretch; }
+  .cf-scale { display: flex; gap: 2px; height: 22px; margin-top: 14px; }
+  .cf-scale span { border-radius: 2px; }
+  .cf-scale span:nth-child(1) { background: var(--slate-1); } .cf-scale span:nth-child(2) { background: var(--slate-2); } .cf-scale span:nth-child(3) { background: var(--slate-3); }
+  .cf-scale span:nth-child(4) { background: var(--slate-4); } .cf-scale span:nth-child(5) { background: var(--slate-5); } .cf-scale span:nth-child(6) { background: var(--slate-6); }
+  .cf-bar { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 16px; }
+  .cf-seg { grid-template-columns: 14px auto; align-items: center; column-gap: 8px; }
+  .cf-seg .tag { grid-column: 2; }
+  .cf-gb { grid-column: 2; }
+  .cf-fill { grid-row: 1; grid-column: 1; width: 14px; height: 14px; min-height: 0; }
+  .cf-was { border: 0; padding: 0; }
+}
+@media (max-width: 760px) {
+  .cost-panel { padding: 10px 10px 16px; }
+  .cost-inner { padding: 14px 12px 10px; }
+  .cost-sub, .cc-y span, .cc-x span, .cc-label, .cc-note,
+  .lc-legend, .lc-date, .lc-fixed, .cf-gb { font-size: 13px; }
+  .cost-sub { line-height: 1.45; }
+  .cc-plot, .lc-plot { margin-left: 52px; margin-right: 6px; }
+  .cc-plot { height: 190px; }
+  .lc-mon { display: none; }
+  .cc-note, .cc-label { display: none; }
+  .cc-plot { margin-top: 24px; }
+  .cc-mark { top: 0; }
+  .cc-key { display: grid; gap: 6px; margin-top: 44px; font-size: 13px; line-height: 1.35; font-weight: 600; }
+  .cc-key li { position: relative; padding-left: 16px; }
+  .cc-key li::before { content: ''; position: absolute; left: 0; top: .42em; width: 8px; height: 8px; border-radius: 50%; }
+  .cc-key-brass { color: var(--brass-ink); } .cc-key-brass::before { background: var(--brass); }
+  .cc-key-violet { color: #7f2fd0; } .cc-key-violet::before { background: #9a52e8; }
+  .cc-key-sea { color: var(--sea-ink); } .cc-key-sea::before { background: var(--sea-check); }
+  .cc-x span:nth-child(even) { display: none; }
+  .lc-legend { position: static; display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 16px; }
+  .lc-plot { height: 220px; margin-top: 28px; margin-bottom: 132px; }
+  /* Alternate date rows keep every weekday readable without widening the bars. */
+  .lc-date { top: calc(100% + 8px); line-height: 1.25; }
+  .lc-day:nth-child(even) .lc-date { top: calc(100% + 44px); }
+  .lc-fixed { left: 0; top: calc(100% + 88px); bottom: auto; white-space: nowrap; width: 100%; line-height: 1.35; }
+  .cf-bar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
