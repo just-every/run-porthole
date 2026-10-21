@@ -3,7 +3,7 @@ import {randomBytes,randomUUID} from 'node:crypto'
 import {hashToken} from '../../src/modules/operator-auth/crypto.mjs'
 import {form,literal} from './fixture.mjs'
 
-export async function membershipJourney({origin,cookie,sql,mutate,link,signIn,freshOwner,sessionSecret}) {
+export async function membershipJourney({origin,cookie,foreignCookie,sql,mutate,link,signIn,freshOwner,sessionSecret}) {
  const get=(path,c=cookie)=>fetch(origin+path,{headers:{cookie:c},redirect:'manual'})
  const post=(path,data,c=cookie)=>fetch(origin+path,form(origin,c,data))
  const members=async()=>{const r=await get('/auth/operators');assert.equal(r.status,200);return r.json()}
@@ -40,8 +40,8 @@ export async function membershipJourney({origin,cookie,sql,mutate,link,signIn,fr
  assert.equal(forged.status,403)
  const noOrigin=await fetch(origin+'/auth/operator/role',{method:'POST',headers:{cookie,'content-type':'application/json'},body:JSON.stringify({operatorId:target.id,role:'admin'})});assert.equal(noOrigin.status,403)
  assert.equal((await fetch(origin+'/app/settings/members',{headers:{cookie,'sec-fetch-site':'cross-site'}})).status,403)
- const otherInstallation=`operator_session_local_${new URL(origin).port}=${randomBytes(32).toString('base64url')}`
- assert.equal((await get('/auth/session',otherInstallation)).status,401)
+ assert.ok(foreignCookie,'the harness bootstraps an independent installation')
+ for(const path of ['/auth/session','/app/settings/members','/app/settings/credentials']) assert.equal((await get(path,foreignCookie)).status,401)
  const adminCookie=await signIn(admin.email)
  assert.equal((await get('/api/v1/audit',adminCookie)).status,200)
  assert.equal((await get('/api/v1/audit/export',adminCookie)).status,403)

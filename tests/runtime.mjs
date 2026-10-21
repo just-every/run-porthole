@@ -16,7 +16,8 @@ const port = socket.address().port
 await new Promise(resolve => socket.close(resolve))
 // The installed homepage reads the claim state from D1: run the emitted Worker
 // on its own migrated store, never the checkout's local data.
-const persist = await mkdtemp(join(tmpdir(), 'foundation-runtime-'))
+let persist = await mkdtemp(join(tmpdir(), 'foundation-runtime-'))
+const stores=[persist]
 const migrationEnv={...process.env,CI:'1',WRANGLER_SEND_METRICS:'false'}
 const migrate=config=>execFileSync(process.execPath,['node_modules/wrangler/bin/wrangler.js','d1','migrations','apply','foundation','--local','--persist-to',persist,'--config',config],{stdio:'pipe',env:migrationEnv})
 const sql=async command=>JSON.parse((await execute(process.execPath,['node_modules/wrangler/bin/wrangler.js','d1','execute','foundation','--local','--persist-to',persist,'--config','dist/server/wrangler.json','--json','--command',command],{encoding:'utf8',env:migrationEnv})).stdout).flatMap(result=>result.results??[])
@@ -108,12 +109,24 @@ try {
     assert.equal(sheet.status, 200, href)
     for (const [, imported] of (await sheet.text()).matchAll(/@import url\('(\/[^']+)'\)/g)) assert.equal((await fetch(`${origin}${imported}`)).status, 200, imported)
   }
+  // Obtain a valid native session from a second, independently bootstrapped
+  // installation. Even with the same fixture secret, its account/session rows
+  // belong only to its own store and cannot authenticate in the first one.
+  const originalStore=persist
+  const foreignStore=await mkdtemp(join(tmpdir(),'porthole-other-installation-'));stores.push(foreignStore)
+  await restartWorker(async()=>{persist=foreignStore;migrate('dist/server/wrangler.json')})
+  const foreignOwner=await fetch(origin+'/auth/bootstrap',form({token:setupToken,displayName:'Other installation owner'}))
+  assert.equal(foreignOwner.status,303)
+  const foreignCookie=foreignOwner.headers.getSetCookie().map(value=>value.split(';')[0]).join('; ')
+  assert.equal((await fetch(origin+'/auth/session',{headers:{cookie:foreignCookie}})).status,200)
+  await restartWorker(()=>{persist=originalStore})
+  assert.equal((await fetch(origin+'/auth/session',{headers:{cookie:foreignCookie}})).status,401)
   const {fixture}=await import('./porthole/fixture.mjs')
   const helpers=fixture({origin,sql,restartWorker,sessionSecret:'runtime-session-secret-1234567890123456'})
   cookie=await helpers.freshOwner()
   const {membershipJourney}=await import('./porthole/membership.mjs')
   const {credentialJourney}=await import('./porthole/credentials.mjs')
-  const membership=await membershipJourney({origin,cookie,persist,restartWorker,...helpers,sessionSecret:'runtime-session-secret-1234567890123456'})
+  const membership=await membershipJourney({origin,cookie,foreignCookie,persist,restartWorker,...helpers,sessionSecret:'runtime-session-secret-1234567890123456'})
   cookie=membership.cookie
   await credentialJourney({origin,cookie,persist,restartWorker,...helpers,getLogs:()=>allOutput})
   cookie=await helpers.freshOwner()
@@ -126,5 +139,5 @@ try {
   throw error
 } finally {
   await stopWorker()
-  await rm(persist, { recursive: true, force: true })
+  for(const store of stores) await rm(store, { recursive: true, force: true })
 }

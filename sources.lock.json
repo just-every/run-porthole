@@ -2014,11 +2014,11 @@
       "executable": false
     },
     "tests/porthole/membership.mjs": {
-      "sha256": "76e538e4811a667b87b049f1f793a14e9c761bae1503c47322acf49c9e25ad41",
+      "sha256": "d522913235bba48f811583634eabbe6c8c75499c2ae6d30e673876452633b746",
       "executable": false
     },
     "tests/runtime.mjs": {
-      "sha256": "ea1e434f24be130627e891de724288934f14e271cc23e74be9d0c6c43343a8ce",
+      "sha256": "62acf04c38db43ba75ebc1cbd66e6c640e4b52e97f0b1818b131fb77e8d59e84",
       "executable": false
     },
     "tests/typecheck-checks.mjs": {
