@@ -12,14 +12,14 @@ async function freePort(){const socket=createServer();await new Promise(resolve=
  * is used only to reach these loopback test services, never for external access. */
 export async function polyglotEstate(){
  const prefix='porthole-c7-'+randomUUID().slice(0,8),containers=[],gateway=httpServer()
- async function stop(){await pause(1000);for(const name of containers.reverse())await execute('docker',['rm','-f',name]).catch(()=>{});if(gateway.listening)await new Promise(resolve=>gateway.close(resolve))}
+ async function stop(){await pause(1000);await Promise.all(containers.map(name=>execute('docker',['stop','--time','5',name]).catch(()=>{})));for(const name of containers.reverse())await execute('docker',['rm','-f',name]).catch(()=>{});if(gateway.listening)await new Promise(resolve=>gateway.close(resolve))}
  async function container(name,args){containers.push(name);await execute('docker',['run','--detach','--name',name,'--network','host',...args],{maxBuffer:1024*1024})}
  async function environment({origin,secret}) {
   try {
    gateway.on('request',async(req,res)=>{
     try{
      const chunks=[];for await(const chunk of req)chunks.push(chunk)
-     const response=await fetch(origin+req.url,{method:req.method,headers:{'content-type':req.headers['content-type']??'application/x-protobuf',authorization:'Bearer '+secret},body:Buffer.concat(chunks)})
+     const response=await fetch(origin+req.url,{method:req.method,headers:{'content-type':req.headers['content-type']??'application/x-protobuf',...(req.headers['content-encoding']?{'content-encoding':req.headers['content-encoding']}:{}),authorization:'Bearer '+secret},body:Buffer.concat(chunks)})
      res.writeHead(response.status,{'content-type':response.headers.get('content-type')??'application/x-protobuf'});res.end(Buffer.from(await response.arrayBuffer()))
     }catch{res.writeHead(503);res.end()}
    })
