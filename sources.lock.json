@@ -2250,7 +2250,7 @@
       "executable": false
     },
     "tests/porthole/archive.mjs": {
-      "sha256": "4ae2fb5c244c444a8c82bcd93c0f2eb30adb7cf7e42789115c88e5a870b298b7",
+      "sha256": "eb9633bd9b33f5e5d46729762e1d3881621c04bd397d5052252870cc06aea2e9",
       "executable": false
     },
     "tests/porthole/audit.mjs": {

@@ -40,6 +40,14 @@ export async function archiveJourney({origin,cookie,sql,restartWorker,freshOwner
   definitions.push(definition)
   if(kind==='repair')assert.equal((await post(origin,cookie,'/api/porthole/v1/approvals',{id:definition.id,revision:definition.revision,confirm:'approve'})).status,200)
  }
+ // Archive both a confirmed own-address grant and its unconfirmed replacement.
+ const ownerSession=await value(await get(origin,cookie,'/auth/session'))
+ for(const recipient of [ownerSession.operator.email,'synthetic-porthole-960@example.com']) {
+  const health=await value(await get(origin,cookie,'/api/v1/health'))
+  await value(await post(origin,cookie,'/api/v1/health/configuration',{revision:health.configuration.revision,freshnessSeconds:300,noticesEnabled:true,recipient,confirm:'enable-independent-notices'}))
+ }
+ const confirmationHash=(await sql('SELECT token_hash FROM porthole_health_recipients WHERE removed_at IS NULL'))[0].token_hash
+ assert.equal(confirmationHash.length,64)
  await archiveBrowserJourney({origin,cookie})
  const settings=await get(origin,cookie,'/app/settings/archive');assert.equal(settings.status,200)
  assert.match(await settings.text(),/Restore an archive/)
@@ -55,7 +63,8 @@ export async function archiveJourney({origin,cookie,sql,restartWorker,freshOwner
  for(let index=1;index<status.totalChunks;index++)chunks.push(await value(await get(origin,cookie,`${api}/exports/${jobId}/chunks/${index}`)))
  const manifest=await value(await get(origin,cookie,`${api}/exports/${jobId}/manifest`)),rows=chunks.flatMap(chunk=>chunk.rows),source={manifest,chunks,rows}
  const encoded=JSON.stringify(source),credential=(await sql(`SELECT secret_hash FROM porthole_credentials WHERE id=${literal(key.credential.id)}`))[0]
- for(const privateValue of [key.secret,credential.secret_hash,...cookie.split('; ').map(part=>part.slice(part.indexOf('=')+1))])assert.ok(!encoded.includes(privateValue),'archive excludes native secret/hash/session/identity fields')
+ for(const privateValue of [confirmationHash,key.secret,credential.secret_hash,...cookie.split('; ').map(part=>part.slice(part.indexOf('=')+1))])assert.ok(!encoded.includes(privateValue),'archive excludes native secret/hash/session/identity fields')
+ assert.ok(rows.some(row=>row.table==='porthole_archive_health_history'&&row.row.table_name==='porthole_health_recipients'),'recipient history is retained as inert evidence')
  assert.ok(rows.some(row=>row.table==='porthole_objects'&&row.row.state==='approved'),'pending rollback history preserved without approval grant')
  assert.ok(!rows.some(row=>['porthole_credentials','porthole_object_approvals','oa_sessions'].includes(row.table)))
  assert.ok(rows.filter(row=>row.table==='porthole_archive_actors').every(row=>row.row.state==='inactive'&&Object.keys(row.row).sort().join(',')==='actor_ref,role,scope,state'))
