@@ -5,7 +5,7 @@ import {cp,mkdtemp,rm} from 'node:fs/promises'
 import {createServer} from 'node:net'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
-import {randomUUID,createHash} from 'node:crypto'
+import {randomBytes,randomUUID,createHash} from 'node:crypto'
 import {stageAnalytics} from '../../scripts/analytical/stage.mjs'
 
 export async function analyticalKernelJourney() {
@@ -96,11 +96,11 @@ export async function analyticalEstate() {
 
 export async function analyticalConnectionJourney() {
  await analyticalKernelJourney()
- const estate=await analyticalEstate()
+ const estate=await analyticalEstate();let collector
  try {
   const {recipientMailJourney}=await import('./health.mjs')
   await recipientMailJourney({bindings:estate.bindings,services:estate.services,run:async context=>{
-   const {origin,call,post,health,messages,ownerEmail,browser,restart,getDb,cookie}=context
+   const {origin,call,post,health,messages,ownerEmail,sessionSecret,browser,restart,getDb,cookie}=context
    const send=async(path,data,status=200)=> (await post(path,data,status)).json()
    const read=async path=>{const response=await call(path,{headers:{cookie}});assert.equal(response.status,200,await response.clone().text());return response.json()}
    const config=()=>read('/api/porthole/v1/analytics/configuration'),component=(state,name)=>state.components.find(row=>row.component===name)
@@ -138,10 +138,10 @@ export async function analyticalConnectionJourney() {
    await browser('/app/settings/analytics','analytics-primary-connected','Caught up')
    // The existing real collector process uses the authenticated control-plane
    // heartbeat door; no collector or analytical response is fabricated.
-   const collector=spawn(process.execPath,[new URL('./collector-process.mjs',import.meta.url).pathname],{stdio:['pipe','pipe','pipe']})
+   collector=spawn(process.execPath,[new URL('./collector-process.mjs',import.meta.url).pathname],{stdio:['pipe','pipe','pipe']})
    collector.stdin.end(JSON.stringify({origin,secret:credential.secret,heartbeat}))
    await new Promise((resolve,reject)=>{collector.stdout.once('data',resolve);collector.once('exit',()=>reject(Error('collector_failed')))})
-   const stopped=new Promise(resolve=>collector.once('exit',resolve));collector.kill('SIGTERM');await stopped
+   const stopped=new Promise(resolve=>collector.once('exit',resolve));collector.kill('SIGTERM');await stopped;collector=null
    const current=await health();await send('/api/v1/health/configuration',{revision:current.configuration.revision,freshnessSeconds:10,noticesEnabled:true,recipient:ownerEmail,confirm:'enable-independent-notices'})
    await estate.stop('primary');await estate.stop('standby')
    await assert.rejects(()=>fetch(estate.origin('primary')+'/health'))
@@ -162,6 +162,9 @@ export async function analyticalConnectionJourney() {
    await send('/api/porthole/v1/ingest/control',{paused:false});await beat()
    let drain=await send('/api/porthole/v1/ingest/drain',{});assert.equal(drain.processedBatches,20);assert.equal(drain.pendingBatches,3)
    drain=await send('/api/porthole/v1/ingest/drain',{});assert.equal(drain.processedBatches,3);assert.equal(drain.pendingBatches,0)
+   collector=spawn(process.execPath,[new URL('./collector-process.mjs',import.meta.url).pathname],{stdio:['pipe','pipe','pipe']})
+   collector.stdin.end(JSON.stringify({origin,secret:credential.secret,heartbeat}))
+   await new Promise((resolve,reject)=>{collector.stdout.once('data',resolve);collector.once('exit',()=>reject(Error('collector_restart_failed')))})
    await estate.start('standby')
    await configure('standby',409)
    assert.equal((await config()).role,'primary','a behind standby never becomes selected')
@@ -176,6 +179,9 @@ export async function analyticalConnectionJourney() {
    await estate.start('primary');await configure('primary',409)
    await send('/api/porthole/v1/analytics/reconcile',{});await send('/api/porthole/v1/analytics/reconcile',{})
    await configure('primary');await beat()
+   const snapshotQuery=await send('/api/porthole/v1/query',{signal:'logs',service:'checkout-api',environment:'production',team:'commerce-us'})
+   assert.equal(snapshotQuery.analytical.role,'primary');assert.equal(snapshotQuery.records.length,24)
+   assert.deepEqual((await read('/api/porthole/v1/query/'+snapshotQuery.queryRef)).records,snapshotQuery.records)
    product=await read('/api/porthole/v1/ingest/records?signal=logs&service=checkout-api')
    assert.equal(product.analytical.role,'primary');assert.equal(product.records.length,24)
    for(let index=0;index<24;index++)await ingest(index)
@@ -187,8 +193,41 @@ export async function analyticalConnectionJourney() {
    const audit=await read('/api/v1/audit/export');assert.ok(audit.records.some(row=>row.entry.action==='analytics.configure'&&row.entry.phase==='committed'))
    assert.ok(!JSON.stringify(audit).includes(estate.bindings.ANALYTICS_PRIMARY_TOKEN))
    await browser('/app/settings/analytics','analytics-failed-back','selected primary')
+   const {hashToken}=await import('../../src/modules/operator-auth/crypto.mjs')
+   const owner=await read('/auth/session')
+   const invite=async(role,email)=>{
+    await send('/app/settings/members/invite',{email,displayName:role==='owner'?'Recovery destination owner':'Recovery administrator',role,scope:{services:['*'],environments:['*'],teams:['*']}},202)
+    const db=getDb(),member=await db.prepare('SELECT id,version FROM oa_operators WHERE email=?').bind(email).first(),token=randomBytes(32).toString('base64url'),now=Date.now()
+    await db.prepare("INSERT INTO oa_tokens(id,token_hash,kind,operator_id,operator_version,issuer_id,issuer_version,return_to,created_at,expires_at) VALUES(?,?,'invite',?,?,?,?, '/app',?,?)").bind(randomUUID(),await hashToken(sessionSecret,'link',token),member.id,member.version,owner.operator.id,owner.operator.version,now,now+120000).run()
+    const response=await post('/auth/confirm',{token},303,'')
+    return response.headers.getSetCookie().map(value=>value.split(';')[0]).join('; ')
+   }
+   const adminCookie=await invite('admin','synthetic-porthole-1280@example.com')
+   assert.equal((await call('/api/porthole/v1/analytics/configuration',{headers:{cookie:adminCookie}})).status,403)
+   const nextOwner=await invite('owner','synthetic-porthole-1281@example.com')
+   await send('/app/settings/members/change',{operatorId:owner.operator.id,role:'admin',scope:{services:['*'],environments:['*'],teams:['*']}})
+   assert.equal((await call('/api/porthole/v1/ingest/records?signal=logs',{headers:{cookie:nextOwner}})).status,503,'demoting the connection configurer suspends the connection before a new read')
+   const nextConfig=await (await call('/api/porthole/v1/analytics/configuration',{headers:{cookie:nextOwner}})).json()
+   await post('/api/porthole/v1/analytics/configuration',{revision:nextConfig.revision,role:'primary',enabled:true,confirm:'connect-analytical-workers'},200,nextOwner)
+   assert.equal((await call('/api/porthole/v1/ingest/records?signal=logs',{headers:{cookie:nextOwner}})).status,200,'a current owner explicitly reauthorizes the connection')
+   const {analyticalArchiveSnapshot,restoreAnalyticalSnapshot}=await import('./archive.mjs')
+   const saved=await analyticalArchiveSnapshot({origin,cookie:nextOwner}),destination=await analyticalEstate()
+   try {
+    await recipientMailJourney({bindings:destination.bindings,services:destination.services,ownerEmail:'synthetic-porthole-1282@example.com',run:async restored=>{
+     const inactive=await restoreAnalyticalSnapshot({context:restored,saved,times})
+     const original=(await getDb().prepare('SELECT source_identity FROM porthole_analytical_configuration').first()).source_identity
+     assert.notEqual(inactive.source_identity,original,'restored destination has a new installation identity')
+     const configure=async(path,data)=>(await restored.post(path,data)).json()
+     await configure('/api/porthole/v1/analytics/configuration',{revision:inactive.revision,role:'primary',enabled:true,confirm:'connect-analytical-workers'})
+     await configure('/api/porthole/v1/analytics/reconcile',{});await configure('/api/porthole/v1/analytics/reconcile',{})
+     const result=await (await restored.call('/api/porthole/v1/ingest/records?signal=logs',{headers:{cookie:restored.cookie}})).json()
+     assert.equal(result.records.length,24);assert.equal(result.analytical.role,'primary')
+     assert.equal((await restored.health()).status,'Unknown','reauthorizing historical storage cannot fabricate fresh collector/data coverage')
+     await restored.browser('/app/settings/analytics','analytics-inactive-destination','Connection authorized')
+    }})
+   } finally {await destination.dispose()}
    console.log('analyticalConnectionJourney passed: real independent primary/standby processes, product query/health/monitor, collector outage and direct provider-edge notice, behind refusal, explicit failover/failback, bounded 20/3 backlog, original ns and no duplicate records/notices')
   }})
- }finally{await estate.dispose()}
+ }finally{if(collector?.exitCode===null){const stopped=new Promise(resolve=>collector.once('exit',resolve));collector.kill('SIGTERM');await stopped}await estate.dispose()}
 }
 if(process.argv[1]===new URL(import.meta.url).pathname)await analyticalKernelJourney()

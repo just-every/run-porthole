@@ -212,7 +212,7 @@ export async function recipientMailJourney(analyticalProof) {
  await new Promise(resolve=>socket.listen(0,'127.0.0.1',resolve))
  const port=socket.address().port
  await new Promise(resolve=>socket.close(resolve))
- const origin=`https://127.0.0.1:${port}`,ownerEmail='synthetic-porthole-940@example.com',recipient='synthetic-porthole-941@example.com'
+ const origin=`https://127.0.0.1:${port}`,ownerEmail=analyticalProof?.ownerEmail??'synthetic-porthole-940@example.com',recipient='synthetic-porthole-941@example.com'
  const sessionSecret='synthetic-porthole-942-synthetic-porthole-942',setupToken='synthetic-porthole-943-synthetic-porthole-943'
  const scratch=await mkdtemp(join(tmpdir(),'porthole-recipient-')),messages=[]
  let providerStatus=202,mf,cookie
@@ -284,7 +284,7 @@ export async function recipientMailJourney(analyticalProof) {
   const sign=await post('/auth/owner-signin',{token},303,'');cookie=sign.headers.getSetCookie().map(value=>value.split(';')[0]).join('; ')
   if(analyticalProof){
    await call('/setup',{method:'POST',redirect:'manual',headers:{origin,cookie,'content-type':'application/x-www-form-urlencoded'},body:'confirm=yes'})
-   await analyticalProof.run({origin,cookie,call,post,health,messages,ownerEmail,getDb:()=>db,restart:async()=>{await mf.dispose();mf=new Miniflare(options);db=await mf.getD1Database('DB')},browser:(path,name,contains)=>healthBrowser({origin,cookie,path,name,contains,dispatch:(url,options)=>call(new URL(url).pathname+new URL(url).search,options)})})
+   await analyticalProof.run({origin,cookie,call,post,health,messages,ownerEmail,sessionSecret,getDb:()=>db,restart:async()=>{await mf.dispose();mf=new Miniflare(options);db=await mf.getD1Database('DB')},browser:(path,name,contains)=>healthBrowser({origin,cookie,path,name,contains,dispatch:(url,options)=>call(new URL(url).pathname+new URL(url).search,options)})})
    return
   }
   assert.equal((await configure(ownerEmail)).noticesEnabled,true)

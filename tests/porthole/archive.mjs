@@ -198,3 +198,25 @@ export async function traceArchiveJourney({origin,cookie,traceId,snapshot,expect
  })
  console.log('traceArchiveJourney passed: source snapshot descriptor and original graph/ns replay after independent inactive restore; no source session or credential authority')
 }
+
+export async function analyticalArchiveSnapshot({origin,cookie}) {
+ return savedExport(origin,cookie,await post(origin,cookie,api+'/exports',{}))
+}
+export async function restoreAnalyticalSnapshot({context,saved,times}) {
+ const {post,call,cookie,getDb,health}=context
+ const valueOf=async(path,data,status=200)=>(await post(path,data,status)).json()
+ const restore=await valueOf(api+'/restores',{manifest:saved.manifest},201)
+ for(const chunk of saved.chunks)await valueOf(`${api}/restores/${restore.id}/chunks`,{chunk})
+ await valueOf(`${api}/restores/${restore.id}/commit`,{confirm:saved.manifest.rootHash})
+ const db=getDb(),config=await db.prepare('SELECT * FROM porthole_analytical_configuration').first()
+ assert.equal(config.enabled,0);assert.equal(config.configured_by,null,'source connection authority never becomes live')
+ assert.equal((await db.prepare('SELECT COUNT(*) AS n FROM porthole_credentials').first()).n,0)
+ assert.equal((await db.prepare('SELECT paused FROM porthole_ingest_control').first()).paused,1)
+ const history=(await db.prepare("SELECT row FROM porthole_archive_health_history WHERE table_name='porthole_analytical_configuration'").all()).results
+ assert.ok(history.some(row=>JSON.parse(row.row).enabled===1),'owner connection history is retained only as quarantined evidence')
+ assert.equal((await health()).status,'Unknown')
+ const retained=(await db.prepare("SELECT event_time_ns FROM porthole_telemetry_records WHERE service='checkout-api'").all()).results
+ assert.deepEqual(retained.map(row=>row.event_time_ns).sort(),times.map(time=>time.padStart(20,'0')).sort())
+ assert.equal((await call('/api/porthole/v1/ingest/records?signal=logs',{headers:{cookie}})).status,503,'destination requires its own explicit analytical connection')
+ return config
+}
