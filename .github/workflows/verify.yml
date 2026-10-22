@@ -70,7 +70,11 @@ jobs:
       - run: pnpm run deps
       - name: Install Chromium and system libraries
         if: matrix.browser
-        run: pnpm exec playwright install --with-deps --only-shell chromium
+        run: |
+          # The runner's Azure package mirror can stall long enough to consume
+          # the entire push budget. Keep the same signed Ubuntu packages.
+          sudo sed -i 's|http://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' /etc/apt/sources.list.d/ubuntu.sources
+          pnpm exec playwright install --with-deps --only-shell chromium
       - name: Reserve disk for native runtime journeys
         if: matrix.browser
         run: |
