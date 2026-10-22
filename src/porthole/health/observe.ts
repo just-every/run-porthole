@@ -1,3 +1,5 @@
+import {configuration as analyticalConfiguration,selected as analyticalSelected,coverage as analyticalCoverage,query as analyticalQuery,type AnalyticalRecord} from '../analytical/client'
+import {allScope} from '../security/authority'
 import {independentMailConfigured} from '../recovery/mail'
 import { confirmedRecipient, liveConfigurer } from './recipients'
 import { components, iso, type Component, type HealthBindings, type HealthComponent, type HealthState, type ReceiptRow } from './model'
@@ -13,6 +15,8 @@ export function transportState(env: HealthBindings) {
 /** Uses only the authenticated control-plane store. Every backend read can fail
  * independently; durable earlier evidence stays visible with Unknown status. */
 export async function observeHealth(env: HealthBindings): Promise<HealthState> {
+ const analytical=await analyticalConfiguration(env),separate=analyticalSelected(env,analytical)
+ const active=separate?analyticalCoverage(env,analytical).catch(()=>null):Promise.resolve(null)
  const config = await healthConfiguration(env.DB), now = Date.now(), checkedAt = new Date(now).toISOString()
  const grant=await env.DB.prepare(`SELECT r.confirmed_at,r.confirmation_delivery,r.expires_at,${liveConfigurer} AS live,${confirmedRecipient} AS confirmed FROM porthole_health_configuration c LEFT JOIN porthole_health_recipients r ON r.configuration_revision=c.revision AND r.removed_at IS NULL WHERE c.singleton=1`).first<{confirmed_at:number|null;confirmation_delivery:string|null;expires_at:number|null;live:number;confirmed:number}>()
  const enabled=config.notices_enabled===1 && grant?.live===1 && grant?.confirmed===1
@@ -42,11 +46,20 @@ export async function observeHealth(env: HealthBindings): Promise<HealthState> {
    return {status:fresh(row?.accepted??null)?'Healthy':'Unknown',reason:row?.accepted==null?'Not configured: no accepted telemetry envelope.':fresh(row.accepted)?'Recent envelope durably accepted.':'Accepted telemetry is stale; intake coverage is incomplete.',lastAcceptedAt:row?.accepted}
   }),
   observe('storage', async () => {
+   if(separate){const state=await active;if(!state)throw Error('analytics_unavailable');return {status:fresh(state.lastQueryableAt)?'Healthy':'Unknown',reason:'Separate '+analytical.active_role+' analytical worker coverage watermark '+state.watermark+'.',lastAcceptedAt:state.lastAcceptedAt,lastQueryableAt:state.lastQueryableAt,evidence:{role:analytical.active_role,watermark:state.watermark,requiredWatermark:state.requiredWatermark}}}
+
    const row = await env.DB.prepare('SELECT MAX(indexed_at) AS queryable,(SELECT MAX(archived_at) FROM porthole_telemetry_archive) AS archived FROM porthole_telemetry_records').first<{queryable:number|null;archived:number|null}>()
    const recent = fresh(row?.queryable??null)
    return {status:recent?'Healthy':'Unknown',reason:recent?'Indexed storage answered with recent real records.':'Storage has no fresh indexed records; retained evidence is last-known only.',lastQueryableAt:row?.queryable,evidence:{lastArchivedAt:iso(row?.archived)}}
   }),
   observe('query', async () => {
+   if(separate){
+    const state=await active;if(!state)throw Error('analytics_unavailable')
+    const pages=await Promise.all(['logs','metrics','traces'].map(signal=>analyticalQuery(env,analytical,{signal,scope:allScope,from:'0',through:'18446744073709551615',limit:5})))
+    const rows:AnalyticalRecord[]=pages.flatMap(page=>page.records).sort((a,b)=>b.indexed_at-a.indexed_at).slice(0,5)
+    return {status:fresh(state.lastQueryableAt)?'Healthy':'Unknown',reason:'Product query answered from separate '+analytical.active_role+' worker with complete coverage.',lastQueryableAt:state.lastQueryableAt,evidence:{role:analytical.active_role,watermark:state.watermark,lastKnown:rows.map(row=>({signal:row.signal,team:row.team,service:row.service,environment:row.environment,eventTimeNs:row.event_time_ns,indexedAt:iso(row.indexed_at)}))}}
+   }
+
    const rows = (await env.DB.prepare('SELECT signal,team,service,environment,event_time_ns,indexed_at FROM porthole_telemetry_records ORDER BY indexed_at DESC,id DESC LIMIT 5').all<{signal:string;team:string;service:string;environment:string;event_time_ns:string;indexed_at:number}>()).results
    const queryable = max(rows.map(row => row.indexed_at))
    return {status:fresh(queryable)?'Healthy':'Unknown',reason:fresh(queryable)?'Real indexed telemetry query answered with fresh records.':'No fresh queryable telemetry; last-known data does not establish current health.',lastQueryableAt:queryable,evidence:{lastKnown:rows.map(row => ({signal:row.signal,team:row.team,service:row.service,environment:row.environment,eventTimeNs:row.event_time_ns,indexedAt:iso(row.indexed_at)}))}}

@@ -10,18 +10,22 @@ function cursor(value) {
  } catch { fail('invalid_query_cursor'); }
 }
 export async function query(db, input) {
- keys(input, ['sourceIdentity', 'requiredWatermark', 'signal', 'from', 'through', 'scope', 'team', 'service', 'environment', 'limit', 'cursor', 'snapshot', 'archive', 'mode']);
+ keys(input, ['sourceIdentity', 'requiredWatermark', 'signal', 'from', 'through', 'scope', 'team', 'service', 'environment', 'limit', 'cursor', 'snapshot', 'archive', 'mode', 'trace', 'uncertain']);
  signal(input.signal); object(input.scope); keys(input.scope, ['teams', 'services', 'environments']);
  const from = nano(input.from), through = nano(input.through);
  if (from > through) fail('invalid_query_range');
  if (input.mode !== undefined && !['records', 'count'].includes(input.mode)) fail('invalid_query_mode');
  if (input.archive !== undefined && typeof input.archive !== 'boolean') fail('invalid_archive');
- const limit = input.limit ?? 100; integer(limit, 1, limits.page);
- const clauses = ['r.signal=?', 'r.event_time_ns>=?', 'r.event_time_ns<=?', 'b.completion_sequence<=?'];
+ const limit = input.limit ?? 100; integer(limit, 1, input.trace ? 2000 : limits.page);
+ const time=input.uncertain?"printf('%020d',CAST(json_extract(r.payload,'$.delivery.receivedTimeUnixNano') AS INTEGER))":'r.event_time_ns';
+ const clauses = ['r.signal=?', `${time}>=?`, `${time}<=?`, 'b.completion_sequence<=?'];
+ if(input.uncertain!==undefined){if(input.uncertain!==true||input.mode!=='count')fail('invalid_query');clauses.push("json_extract(r.payload,'$.delivery.uncertainTime')=1")}
+ if(input.trace!==undefined){if(input.signal!=='traces'||typeof input.trace!=='string'||!/^[a-f0-9]{32}$/.test(input.trace))fail('invalid_trace_id');clauses.push('r.trace_id=?')}
  const snapshot = input.snapshot ?? input.requiredWatermark;
  integer(snapshot); integer(input.requiredWatermark);
  if (snapshot > input.requiredWatermark) fail('invalid_query_snapshot');
  const args = [input.signal, from, through, snapshot];
+ if(input.trace!==undefined)args.push(input.trace);
  for (const [column, plural] of [['team', 'teams'], ['service', 'services'], ['environment', 'environments']]) {
   const granted = input.scope[plural];
   if (!Array.isArray(granted) || granted.length > 100) fail('invalid_query_scope');

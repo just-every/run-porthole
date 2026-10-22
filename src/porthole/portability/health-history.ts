@@ -2,6 +2,7 @@ import { fail } from '../security/authority'
 const uuid=(value:unknown):value is string=>typeof value==='string'&&/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(value)
 interface Projection {table:string;columns:string[];keys:string[]}
 export const healthHistory:Projection[]=[
+ {table:'porthole_analytical_configuration',columns:['singleton','source_identity','enabled','active_role','revision','changed_at','configured_by','configurer_revision','configurer_version'],keys:['singleton']},
  {table:'porthole_health_receipts',columns:['component','source','status','reason','observed_at','expires_at','last_accepted_at','last_queryable_at','evidence'],keys:['component','source']},
  {table:'porthole_health_collectors',columns:['credential_id','collector_id','team','service','environment','signal','observed_at'],keys:['credential_id','collector_id','team','service','environment','signal']},
  {table:'porthole_health_configuration',columns:['singleton','revision','freshness_ms','notices_enabled','recipient','configured_by','changed_at'],keys:['singleton']},

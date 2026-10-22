@@ -1,3 +1,5 @@
+import {configuration as analyticalConfiguration,selected as analyticalSelected} from '../analytical/client'
+import {readAnalytical} from '../analytical/read'
 import type { Bindings } from '../../auth.server'
 import { AuthError } from '../../modules/operator-auth/index.mjs'
 import { CredentialLimit, verifyCredential } from '../credentials/verify'
@@ -66,6 +68,8 @@ export async function readTelemetry(request: Request, env: Bindings, options: {a
   const table=archive ? 'porthole_telemetry_archive' : 'porthole_telemetry_records'
   const select=`SELECT r.* FROM ${table} r JOIN porthole_ingest_batches b ON b.id=r.batch_id WHERE ${clauses.join(' AND ')} AND `
   const queryRef=crypto.randomUUID(),queryScope=JSON.stringify(Object.fromEntries([...params].filter(([key])=>['service','environment','team','cursor','limit','trace'].includes(key))))
+  const analytical=await analyticalConfiguration(env)
+  if(analyticalSelected(env,analytical))return await readAnalytical(request,env,analytical,{scope,actorRef,actorRevision,fence,snapshot,queryRef,queryScope,from,through,signal,limit,archive})
   const snapshotInsert=(live:{sql:string;args:unknown[]})=>env.DB.prepare(`INSERT INTO porthole_query_snapshots SELECT ?,?,?,?,?,?,?,? WHERE ${live.sql}`).bind(queryRef,actorRef,queryScope,signal,from,through,snapshot,Date.now(),...live.args)
   let rows: Record<string,unknown>[]
   if (request.headers.has('authorization')) {

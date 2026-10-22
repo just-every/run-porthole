@@ -195,7 +195,7 @@ export async function healthBrowser({origin,cookie,name,readOnly=false,path='/ap
  * documented 202/403 envelope. Schema: SendGrid v3 Mail Send, reviewed 2026-10-22,
  * https://www.twilio.com/docs/sendgrid/api-reference/mail-send/mail-send
  * No health, notice or evaluation results are faked. */
-export async function recipientMailJourney() {
+export async function recipientMailJourney(analyticalProof) {
  const {createRequire}=await import('node:module'),{readdir,readFile,mkdtemp,rm}=await import('node:fs/promises')
  const {resolve,join,extname}=await import('node:path'),{tmpdir}=await import('node:os'),{randomBytes,randomUUID}=await import('node:crypto')
  const require=createRequire(import.meta.url),{Miniflare,convertV4MiniflareOptions}=require(require.resolve('miniflare',{paths:[require.resolve('wrangler/package.json')]}))
@@ -218,8 +218,8 @@ export async function recipientMailJourney() {
  let providerStatus=202,mf,cookie
  const names=['index.js',...(await readdir('dist/server/assets')).filter(name=>name.endsWith('.js')).map(name=>'assets/'+name)]
  const modules=await Promise.all(names.map(async name=>({type:'ESModule',path:resolve('dist/server',name),contents:await readFile('dist/server/'+name,'utf8')})))
- const options=convertV4MiniflareOptions({host:'127.0.0.1',port,https:true,name:'porthole',modules,modulesRoot:resolve('dist/server'),compatibilityDate:'2026-09-08',compatibilityFlags:['nodejs_compat'],d1Databases:{DB:'recipient-proof'},resourcePersistencePath:join(scratch,'db'),r2Buckets:['ARCHIVE_BUCKET'],bindings:{AUTH_ORIGIN:origin,AUTH_LOCAL:'false',OWNER_EMAIL:ownerEmail,SESSION_SECRET:sessionSecret,SETUP_TOKEN:setupToken,MAIL_PROVIDER:'sendgrid',MAIL_API_KEY:'synthetic-porthole-944',MAIL_FROM:'synthetic-porthole-945@example.com'},
-  serviceBindings:{ASSETS:async request=>{
+ const options=convertV4MiniflareOptions({host:'127.0.0.1',port,https:true,name:'porthole',modules,modulesRoot:resolve('dist/server'),compatibilityDate:'2026-09-08',compatibilityFlags:['nodejs_compat'],d1Databases:{DB:'recipient-proof'},resourcePersistencePath:join(scratch,'db'),r2Buckets:['ARCHIVE_BUCKET'],bindings:{AUTH_ORIGIN:origin,AUTH_LOCAL:'false',OWNER_EMAIL:ownerEmail,SESSION_SECRET:sessionSecret,SETUP_TOKEN:setupToken,...analyticalProof?.bindings,MAIL_PROVIDER:'sendgrid',MAIL_API_KEY:'synthetic-porthole-944',MAIL_FROM:'synthetic-porthole-945@example.com'},
+  serviceBindings:{...analyticalProof?.services,ASSETS:async request=>{
    const path=new URL(request.url).pathname
    if(path.includes('..'))return new Response(null,{status:404})
    const types={'.css':'text/css','.woff2':'font/woff2','.svg':'image/svg+xml','.png':'image/png','.webp':'image/webp','.avif':'image/avif','.ico':'image/x-icon','.js':'text/javascript'}
@@ -282,6 +282,11 @@ export async function recipientMailJourney() {
   const token=randomBytes(32).toString('base64url'),now=Date.now()
   await db.prepare('INSERT INTO oa_owner_signins(id,token_hash,operator_id,operator_version,created_at,expires_at) VALUES(?,?,?,?,?,?)').bind(randomUUID(),await ownerSigninDigest(token),session.operator.id,session.operator.version,now,now+120000).run()
   const sign=await post('/auth/owner-signin',{token},303,'');cookie=sign.headers.getSetCookie().map(value=>value.split(';')[0]).join('; ')
+  if(analyticalProof){
+   await call('/setup',{method:'POST',redirect:'manual',headers:{origin,cookie,'content-type':'application/x-www-form-urlencoded'},body:'confirm=yes'})
+   await analyticalProof.run({origin,cookie,call,post,health,messages,ownerEmail,getDb:()=>db,restart:async()=>{await mf.dispose();mf=new Miniflare(options);db=await mf.getD1Database('DB')},browser:(path,name,contains)=>healthBrowser({origin,cookie,path,name,contains,dispatch:(url,options)=>call(new URL(url).pathname+new URL(url).search,options)})})
+   return
+  }
   assert.equal((await configure(ownerEmail)).noticesEnabled,true)
   assert.equal(messages.length,0,'verified configurer needs no extra confirmation email')
   assert.equal((await configure()).noticesEnabled,false)

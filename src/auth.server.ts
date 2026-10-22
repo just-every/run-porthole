@@ -18,6 +18,12 @@ import { observeHealth } from './porthole/health/observe'
 const theme = { href: '/rer-theme.css', productName: branding.name, accentColor: branding.primaryColor }
 
 export interface Bindings {
+ ANALYTICS_PRIMARY?: Fetcher
+ ANALYTICS_STANDBY?: Fetcher
+ ANALYTICS_PRIMARY_URL?: string
+ ANALYTICS_STANDBY_URL?: string
+ ANALYTICS_PRIMARY_TOKEN?: string
+ ANALYTICS_STANDBY_TOKEN?: string
  DB: D1Database
  ARCHIVE_BUCKET?: R2Bucket
  /** Built browser files; hosted deploys run the Worker first (staticAssetResponse). */

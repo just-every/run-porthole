@@ -1,3 +1,4 @@
+import {reconcile as reconcileAnalytical} from '../analytical/client'
 import type { Bindings } from '../../auth.server'
 import { recordComponentReceipt } from '../health/receipts'
 
@@ -41,7 +42,8 @@ async function drain(env: Bindings, options: {force?:boolean}, limit:number) {
   }
  }
  const pending = await env.DB.prepare("SELECT COUNT(*) AS count FROM porthole_ingest_batches WHERE state='pending'").first<{count:number}>()
- const result={processedBatches,processedRecords,pendingBatches:pending?.count ?? 0,paused:!!control.paused}
- await recordComponentReceipt(env.DB,{component:'queue',source:'ingest-worker',status:result.paused||result.pendingBatches>0?'Unknown':'Healthy',reason:result.paused?'Durable ingest processing is paused.':result.pendingBatches>0?'Durable ingest work remains buffered.':'Durable ingest drain completed.',evidence:result})
+ const analytical=await reconcileAnalytical(env)
+ const result={analytical,processedBatches,processedRecords,pendingBatches:pending?.count ?? 0,paused:!!control.paused}
+ await recordComponentReceipt(env.DB,{component:'queue',source:'ingest-worker',status:result.paused||result.pendingBatches>0||!analytical.complete?'Unknown':'Healthy',reason:!analytical.complete?'Analytical replication is incomplete; accepted envelopes remain durable.':result.paused?'Durable ingest processing is paused.':result.pendingBatches>0?'Durable ingest work remains buffered.':'Durable ingest drain completed.',evidence:result})
  return result
 }

@@ -18,6 +18,7 @@ try {
  if(process.argv[2]) {
   const event=JSON.parse(process.argv[2])
   if(event.kind==='snapshot-actors') {
+   await proxy.env.DB.prepare("INSERT INTO porthole_archive_health_history(stream,table_name,row_key,row,state) SELECT ?, 'porthole_analytical_configuration','[1]',json_object('singleton',singleton,'source_identity',source_identity,'enabled',enabled,'active_role',active_role,'revision',revision,'changed_at',changed_at,'configured_by',configured_by,'configurer_revision',configurer_revision,'configurer_version',configurer_version),'quarantined' FROM porthole_analytical_configuration").bind(crypto.randomUUID()).run()
    await proxy.env.DB.prepare("INSERT INTO porthole_archive_actors(actor_ref,role,scope,state) SELECT operator_id,role,scope,'inactive' FROM porthole_members WHERE 1 ON CONFLICT(actor_ref) DO UPDATE SET role=excluded.role,scope=excluded.scope").run()
   } else {
   if(!/^[a-f0-9-]{36}$/.test(event.operationRef)||!['export','import'].includes(event.kind)||!['succeeded','failed'].includes(event.phase)||!Number.isSafeInteger(event.occurredAt))throw Error('invalid_native_audit_event')

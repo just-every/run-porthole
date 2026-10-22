@@ -1,3 +1,4 @@
+import {configuration as analyticalConfiguration,selected as analyticalSelected,query as analyticalQuery} from '../analytical/client'
 import type { Scope } from '../security/authority'
 import type { HealthBindings } from '../health/model'
 import { observeHealth } from '../health/observe'
@@ -12,7 +13,8 @@ const ns=(value:number)=>(BigInt(value)*1000000n).toString().padStart(20,'0')
 /** Counts actual normalized records in the original event-time window. Unknown
  * retains the previous count and firing episode and never resolves an alert. */
 export async function evaluateMonitors(env:HealthBindings) {
- const health=await observeHealth(env), now=Date.now()
+ const health=await observeHealth(env), now=Date.now(),analytical=await analyticalConfiguration(env)
+ const separate=analyticalSelected(env,analytical)
  const inputs=health.components.filter(row=>['collector','ingest','queue','storage','query'].includes(row.component))
  const monitors=(await env.DB.prepare("SELECT id,revision,scope,body FROM porthole_objects WHERE kind='monitor' AND state='active' ORDER BY id LIMIT 101").all<Monitor>()).results
  const outcomes: Record<string,unknown>[]=[]
@@ -27,8 +29,8 @@ export async function evaluateMonitors(env:HealthBindings) {
    const collectors=await env.DB.prepare(`SELECT COUNT(*) AS count,MIN(h.observed_at) AS oldest FROM porthole_health_collectors h JOIN porthole_credentials c ON c.id=h.credential_id JOIN porthole_members m ON m.operator_id=c.custodian_id JOIN oa_operators o ON o.id=m.operator_id
     WHERE h.signal=? AND ${collectorScope.sql} AND c.status='active' AND c.expires_at>? AND o.status='active' AND m.role IN ('owner','admin') AND o.role=m.role`).bind(definition.signal,...collectorScope.args,now).first<{count:number;oldest:number|null}>()
    const lost=await env.DB.prepare(`SELECT COUNT(*) AS count FROM porthole_ingest_events r WHERE r.kind IN ('source_loss','buffer_loss') AND r.signal=? AND (r.range_start_ns IS NULL OR r.range_end_ns IS NULL OR (r.range_start_ns<=? AND r.range_end_ns>=?)) AND ${where.sql}`).bind(definition.signal,through,from,...where.args).first<{count:number}>()
-   const uncertain=await env.DB.prepare(`SELECT COUNT(*) AS count FROM porthole_telemetry_records r WHERE r.signal=? AND json_extract(r.payload,'$.delivery.uncertainTime')=1 AND printf('%020d',CAST(json_extract(r.payload,'$.delivery.receivedTimeUnixNano') AS INTEGER)) BETWEEN ? AND ? AND ${where.sql}`).bind(definition.signal,from,through,...where.args).first<{count:number}>()
-   const result=await env.DB.prepare(`SELECT COUNT(*) AS count FROM porthole_telemetry_records r JOIN porthole_ingest_batches b ON b.id=r.batch_id WHERE b.state='complete' AND r.signal=? AND r.event_time_ns>=? AND r.event_time_ns<=? AND ${where.sql}`).bind(definition.signal,from,through,...where.args).first<{count:number}>()
+   const uncertain=separate?await analyticalQuery(env,analytical,{signal:definition.signal,scope,from,through,mode:'count',uncertain:true}):await env.DB.prepare(`SELECT COUNT(*) AS count FROM porthole_telemetry_records r WHERE r.signal=? AND json_extract(r.payload,'$.delivery.uncertainTime')=1 AND printf('%020d',CAST(json_extract(r.payload,'$.delivery.receivedTimeUnixNano') AS INTEGER)) BETWEEN ? AND ? AND ${where.sql}`).bind(definition.signal,from,through,...where.args).first<{count:number}>()
+   const result=separate?await analyticalQuery(env,analytical,{signal:definition.signal,scope,from,through,mode:'count'}):await env.DB.prepare(`SELECT COUNT(*) AS count FROM porthole_telemetry_records r JOIN porthole_ingest_batches b ON b.id=r.batch_id WHERE b.state='complete' AND r.signal=? AND r.event_time_ns>=? AND r.event_time_ns<=? AND ${where.sql}`).bind(definition.signal,from,through,...where.args).first<{count:number}>()
    const freshCollector=!!collectors?.count && collectors.oldest!==null && now-collectors.oldest<=health.configuration.freshnessSeconds*1000
    if (inputs.some(row=>row.status!=='Healthy') || !freshCollector || lost?.count || uncertain?.count || !result) {
     reason=uncertain?.count?'Source clock uncertainty makes this window incomplete.':lost?.count?'Recorded source or buffer loss makes this window incomplete.':!freshCollector?'No fresh authenticated collector covers this monitor scope.':'Telemetry component coverage is incomplete.'

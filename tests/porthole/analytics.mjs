@@ -8,6 +8,7 @@ import {join} from 'node:path'
 import {randomUUID,createHash} from 'node:crypto'
 import {stageAnalytics} from '../../scripts/analytical/stage.mjs'
 
+export async function analyticalKernelJourney() {
 const execute=promisify(execFile),root=process.cwd(),scratch=await mkdtemp(join(tmpdir(),'porthole-analytics-'))
 const wrangler=join(root,'node_modules/wrangler/bin/wrangler.js'),token='synthetic-porthole-1000',sourceIdentity=randomUUID()
 const env={...process.env,CI:'1',WRANGLER_SEND_METRICS:'false'}
@@ -64,8 +65,123 @@ try {
  read=await value(await post(primary,'/v1/query',{...query,requiredWatermark:2,snapshot:1}))
  assert.equal(read.records.length,1);assert.equal(read.records[0].id,first.records[0].id)
  const count=await value(await post(primary,'/v1/query',{...query,requiredWatermark:2,mode:'count'}));assert.equal(count.count,2)
- console.log('analyticalKernelJourney passed: separate Worker/D1 processes, private auth, exact replication/replay, stale standby refusal, actual process stop and original snapshot recovery; control-plane integration remains unqualified')
+ console.log('analyticalKernelJourney passed: separate Worker/D1 processes, private auth, exact replication/replay, stale standby refusal, actual process stop and original snapshot recovery; kernel-only probe; product integration is checked separately')
 } finally {
  for(const server of servers)await stop(server)
  await rm(scratch,{recursive:true,force:true})
 }
+
+}
+
+export async function analyticalEstate() {
+ const execute=promisify(execFile),root=process.cwd(),scratch=await mkdtemp(join(tmpdir(),'porthole-connection-')),servers=[]
+ const wrangler=join(root,'node_modules/wrangler/bin/wrangler.js'),env={...process.env,CI:'1',WRANGLER_SEND_METRICS:'false'}
+ const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms))
+ async function port(){const server=createServer();await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));const value=server.address().port;await new Promise(resolve=>server.close(resolve));return value}
+ async function start(server){server.output='';server.child=spawn(process.execPath,[wrangler,'dev','--local','--config',server.config,'--persist-to',server.persist,'--port',String(server.port),'--inspector-port','0','--ip','127.0.0.1','--var',`ANALYTICS_TOKEN:${server.token}`],{cwd:scratch,env,stdio:['ignore','pipe','pipe']});const record=chunk=>server.output=(server.output+chunk).slice(-5000);server.child.stdout.on('data',record);server.child.stderr.on('data',record);for(let i=0;i<120;i++){if(server.child.exitCode!==null)throw Error('analytical_process_exited');try{if((await fetch(server.origin+'/health')).ok)return}catch{}await pause(250)}throw Error('analytical_process_not_ready')}
+ async function stop(server){if(server.child?.exitCode===null){const exited=new Promise(resolve=>server.child.once('exit',resolve));server.child.kill('SIGTERM');await exited}}
+ async function dispose(){for(const server of servers)await stop(server);await rm(scratch,{recursive:true,force:true})}
+ try{
+  await cp(join(root,'workers/analytics'),join(scratch,'workers/analytics'),{recursive:true,filter:path=>!path.includes('/.staged')&&!path.includes('/.state')})
+  for(const product of await stageAnalytics(scratch)){
+   const listener=await port(),server={role:product.role,config:join(scratch,product.config),persist:join(scratch,product.role),port:listener,origin:'http://127.0.0.1:'+listener,token:'synthetic-porthole-'+(product.role==='primary'?1200:1201)};servers.push(server)
+   await execute(process.execPath,[wrangler,'d1','migrations','apply','DB','--local','--config',server.config,'--persist-to',server.persist],{cwd:scratch,env});await start(server)
+  }
+  const find=role=>servers.find(server=>server.role===role)
+  const services=Object.fromEntries(servers.map(server=>['ANALYTICS_'+server.role.toUpperCase(),async request=>fetch(server.origin+new URL(request.url).pathname,{method:request.method,headers:request.headers,...(request.method==='POST'?{body:Buffer.from(await request.arrayBuffer())}:{}),redirect:'manual',signal:request.signal})]))
+  const bindings=Object.fromEntries(servers.map(server=>['ANALYTICS_'+server.role.toUpperCase()+'_TOKEN',server.token]))
+  return {bindings,services,stop:role=>stop(find(role)),start:role=>start(find(role)),dispose,origin:role=>find(role).origin}
+ }catch(error){await dispose();throw error}
+}
+
+export async function analyticalConnectionJourney() {
+ await analyticalKernelJourney()
+ const estate=await analyticalEstate()
+ try {
+  const {recipientMailJourney}=await import('./health.mjs')
+  await recipientMailJourney({bindings:estate.bindings,services:estate.services,run:async context=>{
+   const {origin,call,post,health,messages,ownerEmail,browser,restart,getDb,cookie}=context
+   const send=async(path,data,status=200)=> (await post(path,data,status)).json()
+   const read=async path=>{const response=await call(path,{headers:{cookie}});assert.equal(response.status,200,await response.clone().text());return response.json()}
+   const config=()=>read('/api/porthole/v1/analytics/configuration'),component=(state,name)=>state.components.find(row=>row.component===name)
+   await browser('/app/settings/analytics','analytics-not-connected','Explicit owner connection required')
+   assert.equal((await call('/api/porthole/v1/analytics/configuration')).status,401)
+   const configure=async(role,expected=200)=>{const current=await config();return send('/api/porthole/v1/analytics/configuration',{revision:current.revision,role,enabled:true,confirm:'connect-analytical-workers'},expected)}
+   await configure('primary')
+   const scope={services:['checkout-api'],teams:['commerce-us'],environments:['production']}
+   const credential=await send('/app/settings/credentials/mint',{name:'Independent analytical collector',class:'ingest',scope:{...scope,signals:['logs'],actions:['telemetry.write']}},201)
+   const heartbeat={collectorId:'checkout-analytical',service:scope.services[0],team:scope.teams[0],environment:'production',signal:'logs'}
+   const beat=async()=>{const response=await call('/api/v1/health/heartbeat',{method:'POST',headers:{authorization:'Bearer '+credential.secret,'content-type':'application/json'},body:JSON.stringify(heartbeat)});assert.equal(response.status,200)}
+   const times=[],batchIds=[]
+   const ingest=async index=>{
+    const time=times[index]??=(BigInt(Date.now())*1000000n+BigInt(index+1200)).toString()
+    const packet={resourceLogs:[{resource:{attributes:[{key:'service.name',value:{stringValue:'checkout-api'}},{key:'team.name',value:{stringValue:'commerce-us'}},{key:'deployment.environment.name',value:{stringValue:'production'}}]},scopeLogs:[{logRecords:[{timeUnixNano:time,body:{stringValue:'Checkout analytical recovery order US-'+(85000+index)},severityNumber:17}]}]}]}
+    const response=await call('/v1/logs',{method:'POST',headers:{authorization:'Bearer '+credential.secret,'content-type':'application/json','x-porthole-batch-id':'synthetic-porthole-'+(1220+index)},body:JSON.stringify(packet)})
+    assert.equal(response.status,200);const id=response.headers.get('x-porthole-batch');if(batchIds[index])assert.equal(id,batchIds[index]);else batchIds[index]=id
+   }
+   const mailConfig=await health()
+   await send('/api/v1/health/configuration',{revision:mailConfig.configuration.revision,freshnessSeconds:60,noticesEnabled:true,recipient:ownerEmail,confirm:'enable-independent-notices'})
+   await beat();await ingest(0);await send('/api/porthole/v1/ingest/drain',{})
+   const monitor=await send('/api/porthole/v1/objects',{kind:'monitor',name:'Checkout analytical errors',scope,body:{signal:'logs',operator:'above',threshold:0,windowSeconds:3600}},201)
+   await send('/api/porthole/v1/objects/activate',{id:monitor.id,revision:monitor.revision,confirm:'activate'})
+   const tick=()=>send('/api/v1/health/tick',{}),evaluation=state=>component(state,'monitor-evaluation').evidence.monitors.find(row=>row.monitorId===monitor.id)
+   const first=await tick();assert.equal(evaluation(first.state).status,'Firing');const episode=evaluation(first.state).firingEpisode
+   let product=await read('/api/porthole/v1/ingest/records?signal=logs&service=checkout-api')
+   assert.equal(product.records.length,1);assert.equal(product.analytical.role,'primary');assert.equal(product.analytical.watermark,1)
+   await browser('/app/settings/analytics','analytics-primary-connected','Caught up')
+   // The existing real collector process uses the authenticated control-plane
+   // heartbeat door; no collector or analytical response is fabricated.
+   const collector=spawn(process.execPath,[new URL('./collector-process.mjs',import.meta.url).pathname],{stdio:['pipe','pipe','pipe']})
+   collector.stdin.end(JSON.stringify({origin,secret:credential.secret,heartbeat}))
+   await new Promise((resolve,reject)=>{collector.stdout.once('data',resolve);collector.once('exit',()=>reject(Error('collector_failed')))})
+   const stopped=new Promise(resolve=>collector.once('exit',resolve));collector.kill('SIGTERM');await stopped
+   const current=await health();await send('/api/v1/health/configuration',{revision:current.configuration.revision,freshnessSeconds:10,noticesEnabled:true,recipient:ownerEmail,confirm:'enable-independent-notices'})
+   await estate.stop('primary');await estate.stop('standby')
+   await assert.rejects(()=>fetch(estate.origin('primary')+'/health'))
+   await new Promise(resolve=>setTimeout(resolve,10250))
+   const failed=await tick()
+   assert.equal(component(failed.state,'control-plane').status,'Healthy');assert.equal(component(failed.state,'collector').status,'Unknown')
+   for(const name of ['storage','query','monitor-evaluation'])assert.equal(component(failed.state,name).status,'Unknown')
+   assert.equal(evaluation(failed.state).firingEpisode,episode)
+   assert.equal((await call('/api/porthole/v1/ingest/records?signal=logs',{headers:{cookie}})).status,503,'no local analytical fallback during a real process stop')
+   assert.ok(component(failed.state,'query').evidence.lastKnown.some(row=>row.eventTimeNs===times[0].padStart(20,'0')))
+   for(let i=0;i<12;i++){const response=await tick();if(response.delivery.status==='idle')break}
+   const notices=messages.filter(message=>message.custom_args.rer_delivery_id.startsWith('porthole-health/'))
+   assert.ok(notices.some(message=>message.content.some(part=>part.value.includes('query'))),'the independent provider edge receives analytical failure notices')
+   await browser('/app/health','analytics-process-outage','Unknown')
+   await send('/api/porthole/v1/ingest/control',{paused:true});for(let index=1;index<=23;index++)await ingest(index)
+   await restart()
+   assert.equal((await health()).components.find(row=>row.component==='queue').evidence.pendingBatches,23)
+   await send('/api/porthole/v1/ingest/control',{paused:false});await beat()
+   let drain=await send('/api/porthole/v1/ingest/drain',{});assert.equal(drain.processedBatches,20);assert.equal(drain.pendingBatches,3)
+   drain=await send('/api/porthole/v1/ingest/drain',{});assert.equal(drain.processedBatches,3);assert.equal(drain.pendingBatches,0)
+   await estate.start('standby')
+   await configure('standby',409)
+   assert.equal((await config()).role,'primary','a behind standby never becomes selected')
+   await browser('/app/settings/analytics','analytics-standby-behind','Unavailable or behind')
+   let reconciliation=await send('/api/porthole/v1/analytics/reconcile',{});assert.equal(reconciliation.complete,false)
+   reconciliation=await send('/api/porthole/v1/analytics/reconcile',{});assert.equal(reconciliation.complete,false,'stopped primary keeps replication coverage incomplete')
+   await configure('standby')
+   product=await read('/api/porthole/v1/ingest/records?signal=logs&service=checkout-api')
+   assert.equal(product.analytical.role,'standby');assert.equal(product.analytical.watermark,24);assert.equal(product.records.length,24)
+   assert.deepEqual(product.records.map(row=>row.event_time_ns).sort(),times.map(time=>time.padStart(20,'0')).sort());assert.equal(new Set(product.records.map(row=>row.id)).size,24)
+   await browser('/app/settings/analytics','analytics-standby-selected','selected standby')
+   await estate.start('primary');await configure('primary',409)
+   await send('/api/porthole/v1/analytics/reconcile',{});await send('/api/porthole/v1/analytics/reconcile',{})
+   await configure('primary');await beat()
+   product=await read('/api/porthole/v1/ingest/records?signal=logs&service=checkout-api')
+   assert.equal(product.analytical.role,'primary');assert.equal(product.records.length,24)
+   for(let index=0;index<24;index++)await ingest(index)
+   await send('/api/porthole/v1/ingest/drain',{});await send('/api/porthole/v1/analytics/reconcile',{})
+   assert.equal((await read('/api/porthole/v1/ingest/records?signal=logs&service=checkout-api')).records.length,24)
+   const after=await tick();assert.equal(evaluation(after.state).status,'Firing');assert.equal(evaluation(after.state).firingEpisode,episode)
+   const ids=messages.filter(message=>message.custom_args.rer_delivery_id.startsWith('porthole-health/')).map(message=>message.custom_args.rer_delivery_id)
+   assert.equal(new Set(ids).size,ids.length,'restart, reconciliation and health replay never submit the same notice twice')
+   const audit=await read('/api/v1/audit/export');assert.ok(audit.records.some(row=>row.entry.action==='analytics.configure'&&row.entry.phase==='committed'))
+   assert.ok(!JSON.stringify(audit).includes(estate.bindings.ANALYTICS_PRIMARY_TOKEN))
+   await browser('/app/settings/analytics','analytics-failed-back','selected primary')
+   console.log('analyticalConnectionJourney passed: real independent primary/standby processes, product query/health/monitor, collector outage and direct provider-edge notice, behind refusal, explicit failover/failback, bounded 20/3 backlog, original ns and no duplicate records/notices')
+  }})
+ }finally{await estate.dispose()}
+}
+if(process.argv[1]===new URL(import.meta.url).pathname)await analyticalKernelJourney()
