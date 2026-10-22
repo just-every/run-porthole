@@ -43,6 +43,12 @@
   "devDependencies": {
     "@cloudflare/vite-plugin": "1.54.5",
     "@cloudflare/workers-types": "5.20260908.1",
+    "@grpc/grpc-js": "1.14.6",
+    "@opentelemetry/api": "1.10.0",
+    "@opentelemetry/exporter-trace-otlp-proto": "0.300.0",
+    "@opentelemetry/instrumentation-grpc": "0.300.0",
+    "@opentelemetry/instrumentation-http": "0.300.0",
+    "@opentelemetry/sdk-node": "0.300.0",
     "@playwright/test": "1.63.0",
     "@runeditrun/rer": "0.2.76",
     "@types/node": "22.18.8",

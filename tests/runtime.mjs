@@ -101,7 +101,7 @@ try {
   const setupPage=await fetch(`${origin}/setup`, { headers: { cookie } })
   assert.equal(setupPage.status,200)
   assert.match(await setupPage.text(),/Independent notices off — incomplete coverage/)
-  if(process.env.PORTHOLE_HEALTH_ONLY==='1' || !process.env.PORTHOLE_AUDIT_ONLY && !process.env.PORTHOLE_STOCK_ONLY) {
+  if(!process.env.PORTHOLE_TRACE_ONLY && (process.env.PORTHOLE_HEALTH_ONLY==='1' || !process.env.PORTHOLE_AUDIT_ONLY && !process.env.PORTHOLE_STOCK_ONLY)) {
    const {healthBrowser}=await import('./porthole/health.mjs')
    await healthBrowser({origin,cookie,name:'setup-notices-off',path:'/setup',contains:'Independent notices off — incomplete coverage'})
   }
@@ -145,7 +145,10 @@ try {
     return await run({origin,cookie:destinationCookie,persist,...destinationHelpers,restartWorker})
    } finally {await restartWorker(()=>{persist=savedStore;ownerEmail=savedOwner})}
   }
-  if(process.env.PORTHOLE_HEALTH_ONLY==='1') {
+  if(process.env.PORTHOLE_TRACE_ONLY==='1') {
+   const {traceJourney}=await import('./porthole/traces.mjs')
+   await traceJourney({origin,cookie,persist,restartWorker,...helpers})
+  } else if(process.env.PORTHOLE_HEALTH_ONLY==='1') {
    const {recoveryJourney,recipientMailJourney}=await import('./porthole/health.mjs')
    await recoveryJourney({origin,cookie,persist,restartWorker,...helpers})
    await recipientMailJourney()
@@ -160,6 +163,9 @@ try {
    const {archiveJourney}=await import('./porthole/archive.mjs')
    await archiveJourney({origin,cookie,persist,restartWorker,withEmptyDestination,...helpers})
   } else {
+  const {traceJourney}=await import('./porthole/traces.mjs')
+  await traceJourney({origin,cookie,persist,restartWorker,...helpers})
+  cookie=await helpers.freshOwner()
   const {membershipJourney}=await import('./porthole/membership.mjs')
   const {credentialJourney}=await import('./porthole/credentials.mjs')
   const membership=await membershipJourney({origin,cookie,foreignCookie,persist,restartWorker,...helpers,sessionSecret:'runtime-session-secret-1234567890123456'})

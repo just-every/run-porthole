@@ -4,7 +4,7 @@ import { authority,fail } from '../security/authority'
 import { input } from '../security/input'
 import { readTelemetry } from '../ingest/read'
 import { operationDocument as document,escape,privateHeaders } from '../document'
-const keys=['signal','service','environment','team','from','through','cursor','limit','snapshot']
+const keys=['signal','service','environment','team','from','through','cursor','limit','snapshot','trace']
 function queryRequest(request:Request,data:Record<string,unknown>):Request {
  const url=new URL('/api/porthole/v1/ingest/records',request.url)
  for(const [key,value] of Object.entries(data)) {
