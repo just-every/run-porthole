@@ -1,4 +1,5 @@
 import {independentMailConfigured} from '../recovery/mail'
+import { confirmedRecipient, liveConfigurer } from './recipients'
 import { components, iso, type Component, type HealthBindings, type HealthComponent, type HealthState, type ReceiptRow } from './model'
 import { healthConfiguration, healthReceipts, recordComponentReceipt } from './receipts'
 
@@ -13,6 +14,9 @@ export function transportState(env: HealthBindings) {
  * independently; durable earlier evidence stays visible with Unknown status. */
 export async function observeHealth(env: HealthBindings): Promise<HealthState> {
  const config = await healthConfiguration(env.DB), now = Date.now(), checkedAt = new Date(now).toISOString()
+ const grant=await env.DB.prepare(`SELECT r.confirmed_at,r.confirmation_delivery,r.expires_at,${liveConfigurer} AS live,${confirmedRecipient} AS confirmed FROM porthole_health_configuration c LEFT JOIN porthole_health_recipients r ON r.configuration_revision=c.revision AND r.removed_at IS NULL WHERE c.singleton=1`).first<{confirmed_at:number|null;confirmation_delivery:string|null;expires_at:number|null;live:number;confirmed:number}>()
+ const enabled=config.notices_enabled===1 && grant?.live===1 && grant?.confirmed===1
+ const recipientStatus=enabled?'confirmed':!grant?.live&&config.recipient?'configurer inactive':grant?.confirmation_delivery==='failed'?'confirmation delivery failed':grant?.expires_at && grant.expires_at<=now?'confirmation expired':config.recipient?'awaiting confirmation':'off'
  const control = await env.DB.prepare('SELECT paused FROM porthole_ingest_control WHERE singleton=1').first<{paused:number}>().catch(()=>null)
  const fresh = (value: number | null) => value !== null && value <= now && now-value <= config.freshness_ms
  const observe = async (component: Component, action: () => Promise<{status:'Healthy'|'Unknown';reason:string;lastAcceptedAt?:number|null;lastQueryableAt?:number|null;evidence?:Record<string,unknown>}>) => {
@@ -63,8 +67,8 @@ export async function observeHealth(env: HealthBindings): Promise<HealthState> {
     if (queue?.paused || queue?.oldest && !fresh(queue.oldest)) {status='Unknown';reason=queue?.paused?'Durable ingest drain is paused.':'Pending ingest exceeds the freshness window.'}
    } catch {status='Unknown';reason='Durable ingest queue could not be read.'}
   }
-  if (component === 'delivery' && (!config.notices_enabled || env.AUTH_LOCAL==='true' || env.RER_DEMO==='1' || !independentMailConfigured(env))) {status='Unknown';reason=config.notices_enabled?transportState(env):'Independent failure notices are disabled until the owner explicitly configures them.'}
+  if (component === 'delivery' && (!enabled || env.AUTH_LOCAL==='true' || env.RER_DEMO==='1' || !independentMailConfigured(env))) {status='Unknown';reason=enabled?transportState(env):'Independent notices off — incomplete coverage. An owner or admin must configure a confirmed recipient.'}
   rows.push({component,status,reason,checkedAt,observedAt:iso(row?.observed_at),lastAcceptedAt:iso(max(receipts.filter(r=>r.component===component).map(r=>r.last_accepted_at))),lastQueryableAt:iso(max(receipts.filter(r=>r.component===component).map(r=>r.last_queryable_at))),evidence})
  }
- return {version:2,status:rows.every(row=>row.status==='Healthy')?'Healthy':'Unknown',checkedAt,lastAcceptedAt:iso(max(receipts.map(row=>row.last_accepted_at))),lastQueryableAt:iso(max(receipts.map(row=>row.last_queryable_at))),components:rows,configuration:{revision:config.revision,freshnessSeconds:config.freshness_ms/1000,noticesEnabled:config.notices_enabled===1,recipient:config.recipient,transport:transportState(env)}}
+ return {version:2,status:rows.every(row=>row.status==='Healthy')?'Healthy':'Unknown',checkedAt,lastAcceptedAt:iso(max(receipts.map(row=>row.last_accepted_at))),lastQueryableAt:iso(max(receipts.map(row=>row.last_queryable_at))),components:rows,configuration:{revision:config.revision,freshnessSeconds:config.freshness_ms/1000,noticesEnabled:enabled,recipient:config.recipient,transport:transportState(env),recipientStatus}}
 }

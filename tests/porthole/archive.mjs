@@ -102,6 +102,7 @@ export async function archiveJourney({origin,cookie,sql,restartWorker,freshOwner
    assert.equal((await destination.sql('SELECT COUNT(*) AS n FROM porthole_credentials'))[0].n,0)
    assert.equal((await destination.sql('SELECT COUNT(*) AS n FROM porthole_object_approvals'))[0].n,0)
    assert.equal((await destination.sql('SELECT COUNT(*) AS n FROM porthole_health_notices'))[0].n,0,'archived pending sends never enter the live outbox')
+   assert.equal((await destination.sql('SELECT COUNT(*) AS n FROM porthole_health_recipients'))[0].n,0,'recipient grants and bearer tokens never become live after restore')
    assert.equal((await destination.sql('SELECT notices_enabled FROM porthole_health_configuration'))[0].notices_enabled,0,'source delivery consent cannot transfer')
    assert.equal((await destination.sql('SELECT COUNT(*) AS n FROM porthole_archive_health_history'))[0].n,manifest.tables.porthole_archive_health_history)
    const deliveryHistory=(await destination.sql("SELECT row,state FROM porthole_archive_health_history WHERE table_name='porthole_health_notices'"))

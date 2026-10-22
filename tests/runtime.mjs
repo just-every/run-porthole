@@ -98,7 +98,13 @@ try {
    migrate('dist/server/wrangler.json')
   })
   assert.equal((await fetch(`${origin}/app`, { redirect: 'manual', headers: { cookie } })).headers.get('location'), '/setup')
-  assert.equal((await fetch(`${origin}/setup`, { headers: { cookie } })).status, 200)
+  const setupPage=await fetch(`${origin}/setup`, { headers: { cookie } })
+  assert.equal(setupPage.status,200)
+  assert.match(await setupPage.text(),/Independent notices off — incomplete coverage/)
+  if(process.env.PORTHOLE_HEALTH_ONLY==='1' || !process.env.PORTHOLE_AUDIT_ONLY && !process.env.PORTHOLE_STOCK_ONLY) {
+   const {healthBrowser}=await import('./porthole/health.mjs')
+   await healthBrowser({origin,cookie,name:'setup-notices-off',path:'/setup',contains:'Independent notices off — incomplete coverage'})
+  }
   assert.equal((await fetch(`${origin}/setup`, form({ confirm: 'yes' }, cookie))).headers.get('location'), '/app')
   const home = await fetch(`${origin}/app`, { headers: { cookie } })
   assert.equal(home.status, 200)
@@ -139,7 +145,11 @@ try {
     return await run({origin,cookie:destinationCookie,persist,...destinationHelpers,restartWorker})
    } finally {await restartWorker(()=>{persist=savedStore;ownerEmail=savedOwner})}
   }
-  if(process.env.PORTHOLE_STOCK_ONLY==='1') {
+  if(process.env.PORTHOLE_HEALTH_ONLY==='1') {
+   const {recoveryJourney,recipientMailJourney}=await import('./porthole/health.mjs')
+   await recoveryJourney({origin,cookie,persist,restartWorker,...helpers})
+   await recipientMailJourney()
+  } else if(process.env.PORTHOLE_STOCK_ONLY==='1') {
    const {stockIngestJourney}=await import('./porthole/stock-ingest.mjs')
    await stockIngestJourney({origin,cookie,persist,restartWorker,...helpers})
   } else if(process.env.PORTHOLE_AUDIT_ONLY==='1') {
@@ -168,8 +178,9 @@ try {
   await auditJourney({ origin, cookie, persist, restartWorker })
   const {actionJourney}=await import('./porthole/actions.mjs')
   const actions=await actionJourney({origin,cookie,persist,restartWorker,...helpers});cookie=actions.cookie
-  const { recoveryJourney }=await import('./porthole/health.mjs')
+  const { recoveryJourney,recipientMailJourney }=await import('./porthole/health.mjs')
   await recoveryJourney({origin,cookie,persist,restartWorker,...helpers})
+   await recipientMailJourney()
   cookie=await helpers.freshOwner()
   await browserProof({origin,cookie,paths:['/app/health'],name:'health-recovered'})
   cookie=await helpers.freshOwner()

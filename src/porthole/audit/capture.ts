@@ -13,6 +13,7 @@ const actions: Record<string, string> = {
  '/api/porthole/v1/query':'telemetry.query', '/app/explore':'telemetry.query',
  '/api/porthole/v1/objects':'objects.change', '/app/operations/save':'objects.change',
  '/api/porthole/v1/objects/activate':'objects.monitor-activate', '/app/operations/activate':'objects.monitor-activate',
+ '/app/health/confirm':'health.recipient-confirm',
  '/api/v1/health/configuration':'health.configure', '/app/health/configuration':'health.configure', '/api/v1/health/tick':'health.reconcile', '/app/health/tick':'health.reconcile',
  '/api/porthole/v1/approvals':'repair.approve', '/app/operations/approve':'repair.approve',
  '/api/porthole/v1/actors/erase':'privacy.erase-actor', '/app/settings/privacy/erase':'privacy.erase-actor',

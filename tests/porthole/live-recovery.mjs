@@ -101,7 +101,7 @@ export async function liveRecoveryJourney() {
   const config=join(scratch,'wrangler.json'),persist=join(scratch,'state'),cert=join(scratch,'localhost.pem'),key=join(scratch,'localhost.key')
   const origin=`https://127.0.0.1:${await unusedPort()}`
   const setupToken=randomBytes(32).toString('base64url'),sessionSecret=randomBytes(32).toString('base64url')
-  const ownerEmail='synthetic-porthole-800@example.com'
+  const ownerEmail=recipient // Held controlled mailbox is the configurer's verified sign-in address.
   const privateVars={AUTH_ORIGIN:origin,AUTH_LOCAL:'false',RER_DEMO:'0',OWNER_EMAIL:ownerEmail,SESSION_SECRET:sessionSecret,SETUP_TOKEN:setupToken,MAIL_PROVIDER:'sendgrid',MAIL_API_KEY:apiKey,MAIL_FROM:from}
   await writeFile(join(scratch,'.dev.vars'),Object.entries(privateVars).map(([name,value])=>`${name}=${JSON.stringify(value)}`).join('\n')+'\n',{mode:0o600})
   const compiledDirectory=dirname(emittedPath)

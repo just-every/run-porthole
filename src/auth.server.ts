@@ -12,6 +12,7 @@ import { homeViews, settingsPath } from './ui/home'
 import { productAuth, rolePolicy, guardNativeRequest } from './porthole/membership/auth'
 import { settingsNav } from './porthole/membership/page'
 import { document } from './porthole/document'
+import { observeHealth } from './porthole/health/observe'
 
 // The edition's declared theme (public/rer-theme.css), as Base frames link it.
 const theme = { href: '/rer-theme.css', productName: branding.name, accentColor: branding.primaryColor }
@@ -61,6 +62,7 @@ const privateHeaders = { 'cache-control': 'no-store', 'referrer-policy': 'no-ref
 
 async function handleAuthResponse(request: Request, original: Bindings): Promise<Response | null> {
  const env = runtimeBindings(original), url = new URL(request.url)
+ if(url.pathname==='/app/health/confirm')return null
  if (url.pathname.startsWith('/.well-known/rer-') || url.pathname.startsWith('/auth/dependencies/')) {
   const linked = await createDependencies({ db: env.DB, origin: env.AUTH_ORIGIN, name: branding.name, provider: env.IDENTITY_PROVIDER, local: env.AUTH_LOCAL === 'true', auth: operatorAuth(env), claimOwner: token => createIdpOwnerClaimHandler({db:env.DB,authConfig:authConfig(env),clientIp:()=>request.headers.get('CF-Connecting-IP')??''})(new Request(env.AUTH_ORIGIN+'/auth/owner-claim',{method:'POST',headers:{Host:new URL(env.AUTH_ORIGIN).host,Origin:env.AUTH_ORIGIN,'Content-Type':'application/json'},body:JSON.stringify({token})})) }).handle(request)
   if (linked) return linked
@@ -104,8 +106,11 @@ async function handleAuthResponse(request: Request, original: Bindings): Promise
   if (setup) {
    if(url.pathname.startsWith('/app/settings') && setup.status>=500) return settingsUnavailable(setup.status)
    if (url.pathname !== '/setup' || setup.status !== 200) return setup
+   const state=await observeHealth(env)
+   const coverage=state.configuration.noticesEnabled?'Independent notices enabled — recipient confirmed.':'Independent notices off — incomplete coverage. Confirm a recipient in Pipeline health after setup.'
+   const covered=new Response((await setup.text()).replace('</main>',`<section aria-label="Pipeline coverage"><h2>Pipeline coverage</h2><p role="status">${coverage}</p><p>Finishing owner setup does not establish production observability coverage.</p></section></main>`),setup)
    const session = await operatorAuth(env).getSession(request)
-   return withBar(setup, session ? { viewer: session.operator, home: '/setup' } : {})
+   return withBar(covered, session ? { viewer: session.operator, home: '/setup' } : {})
   }
  }
  if (url.pathname === '/app') {

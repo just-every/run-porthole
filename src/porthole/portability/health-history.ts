@@ -5,6 +5,7 @@ export const healthHistory:Projection[]=[
  {table:'porthole_health_receipts',columns:['component','source','status','reason','observed_at','expires_at','last_accepted_at','last_queryable_at','evidence'],keys:['component','source']},
  {table:'porthole_health_collectors',columns:['credential_id','collector_id','team','service','environment','signal','observed_at'],keys:['credential_id','collector_id','team','service','environment','signal']},
  {table:'porthole_health_configuration',columns:['singleton','revision','freshness_ms','notices_enabled','recipient','configured_by','changed_at'],keys:['singleton']},
+ {table:'porthole_health_recipients',columns:['id','configuration_revision','recipient','configured_by','created_at','expires_at','confirmed_at','removed_at','confirmation_delivery'],keys:['id']},
  {table:'porthole_health_incidents',columns:['component','episode','opened_at','resolved_at'],keys:['component']},
  {table:'porthole_health_notices',columns:['id','episode','component','phase','configuration_revision','created_at','first_attempt_at','next_attempt_at','attempts','state','message','provider_id'],keys:['id']},
  {table:'porthole_monitor_state',columns:['object_id','revision','status','evaluated_at','last_known_count','last_known_at','firing_episode','reason'],keys:['object_id']},

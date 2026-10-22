@@ -1,3 +1,4 @@
+import { confirmedRecipient, liveConfigurer } from '../health/recipients'
 import {frozenNotice,submitNotice,independentMailConfigured} from './mail'
 import { append, type AuditInput } from '../audit/store'
 import type { HealthBindings, HealthState } from '../health/model'
@@ -9,7 +10,7 @@ interface Notice {id:string;first_attempt_at:number|null;created_at:number;messa
 const retryWindow = 23*3600000
 export async function reconcileHealthIncidents(env: HealthBindings, state: HealthState) {
  const config=await healthConfiguration(env.DB)
- if (!config.notices_enabled || !config.recipient) return
+ if (!config.notices_enabled || !config.recipient || !await env.DB.prepare(`SELECT 1 FROM porthole_health_configuration c WHERE c.singleton=1 AND ${confirmedRecipient} AND ${liveConfigurer}`).first()) return
  const now=Date.now()
  for (const row of state.components) {
   if (row.component==='control-plane') continue // A dead control plane cannot notify itself.
@@ -22,7 +23,7 @@ export async function reconcileHealthIncidents(env: HealthBindings, state: Healt
     env.DB.prepare(`INSERT INTO porthole_health_incidents(component,episode,opened_at) VALUES(?,?,?) ON CONFLICT(component) DO UPDATE SET episode=excluded.episode,opened_at=excluded.opened_at,resolved_at=NULL WHERE resolved_at IS NOT NULL`).bind(row.component,episode,now),
     env.DB.prepare(`INSERT OR IGNORE INTO porthole_health_notices(id,episode,component,phase,configuration_revision,created_at,next_attempt_at,message)
      SELECT ?,i.episode,i.component,'failure',?,?,?,? FROM porthole_health_incidents i WHERE i.component=? AND i.resolved_at IS NULL
-     AND EXISTS(SELECT 1 FROM porthole_health_configuration WHERE singleton=1 AND revision=? AND notices_enabled=1)`).bind(noticeId,config.revision,now,now,message,row.component,config.revision),
+     AND EXISTS(SELECT 1 FROM porthole_health_configuration c WHERE singleton=1 AND revision=? AND notices_enabled=1 AND ${confirmedRecipient} AND ${liveConfigurer})`).bind(noticeId,config.revision,now,now,message,row.component,config.revision),
    ])
   } else {
    await env.DB.batch([
@@ -30,7 +31,7 @@ export async function reconcileHealthIncidents(env: HealthBindings, state: Healt
     env.DB.prepare(`INSERT OR IGNORE INTO porthole_health_notices(id,episode,component,phase,configuration_revision,created_at,next_attempt_at,message)
      SELECT ?,i.episode,i.component,'recovery',?,?,?,? FROM porthole_health_incidents i WHERE i.component=? AND i.resolved_at=?
      AND EXISTS(SELECT 1 FROM porthole_health_notices n WHERE n.episode=i.episode AND n.phase='failure' AND n.state!='cancelled')
-     AND EXISTS(SELECT 1 FROM porthole_health_configuration WHERE singleton=1 AND revision=? AND notices_enabled=1)`).bind(noticeId,config.revision,now,now,message,row.component,now,config.revision),
+     AND EXISTS(SELECT 1 FROM porthole_health_configuration c WHERE singleton=1 AND revision=? AND notices_enabled=1 AND ${confirmedRecipient} AND ${liveConfigurer})`).bind(noticeId,config.revision,now,now,message,row.component,now,config.revision),
    ])
   }
  }
@@ -43,8 +44,8 @@ export async function deliverHealthNotice(env: HealthBindings): Promise<{attempt
  if (!independentMailConfigured(env)) return {attempted:0,status:'unconfigured'}
  const config=await healthConfiguration(env.DB)
  if (!config.notices_enabled) return {attempted:0,status:'disabled'}
- const owner=await env.DB.prepare(`SELECT 1 AS live FROM oa_operators o JOIN porthole_members m ON m.operator_id=o.id WHERE o.id=? AND o.status='active' AND o.role='owner' AND m.role='owner'`).bind(config.configured_by).first<{live:number}>()
- if (!owner) return {attempted:0,status:'configuring_owner_inactive'}
+ const authorized=await env.DB.prepare(`SELECT 1 FROM porthole_health_configuration c WHERE c.singleton=1 AND ${confirmedRecipient} AND ${liveConfigurer}`).first()
+ if (!authorized) return {attempted:0,status:'recipient_not_authorized'}
  const now=Date.now(), lease=crypto.randomUUID(),idempotent=env.MAIL_PROVIDER==='resend'
  if(!idempotent)await env.DB.prepare(`UPDATE porthole_health_notices SET state='uncertain',lease_id=NULL,lease_until=NULL WHERE first_attempt_at IS NOT NULL AND (state='pending' OR (state='sending' AND lease_until<?))`).bind(now).run()
  await env.DB.prepare(`UPDATE porthole_health_notices SET state='uncertain',lease_id=NULL,lease_until=NULL WHERE state IN ('pending','sending') AND first_attempt_at IS NOT NULL AND first_attempt_at<=?`).bind(now-retryWindow).run()
@@ -53,7 +54,7 @@ export async function deliverHealthNotice(env: HealthBindings): Promise<{attempt
    AND (n.first_attempt_at IS NULL OR n.first_attempt_at>?)
    AND (n.phase='failure' OR EXISTS(SELECT 1 FROM porthole_health_notices f WHERE f.episode=n.episode AND f.phase='failure' AND f.state='accepted'))
    ORDER BY n.created_at,n.id LIMIT 1)
-  AND EXISTS(SELECT 1 FROM porthole_health_configuration c JOIN oa_operators o ON o.id=c.configured_by JOIN porthole_members m ON m.operator_id=o.id WHERE c.singleton=1 AND c.notices_enabled=1 AND c.revision=? AND o.status='active' AND o.role='owner' AND m.role='owner') RETURNING *`)
+  AND EXISTS(SELECT 1 FROM porthole_health_configuration c JOIN oa_operators o ON o.id=c.configured_by JOIN porthole_members m ON m.operator_id=o.id WHERE c.singleton=1 AND c.notices_enabled=1 AND c.revision=? AND o.status='active' AND o.role=m.role AND m.role IN ('owner','admin') AND ${confirmedRecipient}) RETURNING *`)
  .bind(lease,now+60000,now,config.revision,now,now,now-retryWindow,config.revision).first<Notice>()
  if (!notice) return {attempted:0,status:'idle'}
  const audit:AuditInput={operationRef:lease,actorRef:null,actorRevision:null,action:'health.notice',entityRef:notice.id,revision:notice.configuration_revision,phase:'attempted',status:null,occurredAt:now}

@@ -22,6 +22,6 @@ export interface HealthComponent {
 }
 export interface HealthState {
  version: number; status: HealthStatus; checkedAt: string; lastAcceptedAt: string | null; lastQueryableAt: string | null
- components: HealthComponent[]; configuration: { revision: number; freshnessSeconds: number; noticesEnabled: boolean; recipient: string | null; transport: string }
+ components: HealthComponent[]; configuration: { revision: number; freshnessSeconds: number; noticesEnabled: boolean; recipient: string | null; transport: string; recipientStatus: string }
 }
 export const iso = (value: number | null | undefined) => value == null ? null : new Date(value).toISOString()
