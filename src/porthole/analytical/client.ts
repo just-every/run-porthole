@@ -54,9 +54,10 @@ export async function reconcile(env:Bindings) {
  if(!selected(env,config))return {enabled:false,complete:true,roles:[]}
  if(!config.enabled||!config.live)return {enabled:false,complete:false,roles:[]}
  const outcomes=[]
- for(const role of roles)try{
+ for(const role of roles){let stage='health';try{
   const state=await rpc<Coverage>(env,role,'/v1/health')
   if(state.sourceIdentity&&state.sourceIdentity!==config.source_identity)fail('analytics_source_mismatch',409)
+  stage='read_sealed_envelopes'
   const batches=(await env.DB.prepare("SELECT id,completion_sequence,source_id,signal,digest,accepted_at,completed_at FROM porthole_ingest_batches WHERE state='complete' AND completion_sequence>? ORDER BY completion_sequence LIMIT 20").bind(state.watermark).all<{id:string;completion_sequence:number;source_id:string;signal:string;digest:string;accepted_at:number;completed_at:number}>()).results
   const packets=[];let bytes=0
   for(const batch of batches){
@@ -69,9 +70,11 @@ export async function reconcile(env:Bindings) {
   const live=fence(config)
   if(!await env.DB.prepare(`SELECT 1 AS live WHERE ${live.sql}`).bind(...live.args).first())fail('analytics_connection_changed',409)
   // Even an empty replication pins a newly selected worker to this source.
+  stage='replicate'
   const replicated=await rpc<Coverage>(env,role,'/v1/replicate',{sourceIdentity:config.source_identity,batches:packets})
   outcomes.push({role,watermark:replicated.watermark,requiredWatermark:await watermark(env),batches:packets.length,status:'reachable'})
- }catch(error){outcomes.push({role,error:error instanceof AuthError?error.code:'analytics_unavailable',status:'unavailable',watermark:null,requiredWatermark:await watermark(env),batches:0})}
+ }catch(error){outcomes.push({role,stage,error:error instanceof AuthError?error.code:'analytics_runtime_failure',status:'unavailable',watermark:null,requiredWatermark:await watermark(env),batches:0})}
+ }
  const required=await watermark(env)
  return {enabled:true,complete:outcomes.every(row=>row.watermark!==null&&row.watermark>=required),roles:outcomes.map(row=>({...row,requiredWatermark:required}))}
 }
