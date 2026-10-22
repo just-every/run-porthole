@@ -173,3 +173,28 @@ async function archiveBrowserJourney({origin,cookie}) {
   }
  } finally {await browser.close()}
 }
+
+/** A trace read extends the closed query descriptor. Prove its original scope,
+ * sequence and nanoseconds through the real archive door and an independent
+ * inactive destination; this is not a validator-only assertion. */
+export async function traceArchiveJourney({origin,cookie,traceId,snapshot,expected,withEmptyDestination}) {
+ const query=await value(await post(origin,cookie,'/api/porthole/v1/query',{signal:'traces',trace:traceId,limit:2000,snapshot}))
+ assert.equal(query.records.length,expected.recordCount)
+ const saved=await savedExport(origin,cookie,await post(origin,cookie,api+'/exports',{}))
+ assert.ok(saved.rows.some(row=>row.table==='porthole_query_snapshots'&&JSON.parse(row.row.scope).trace===traceId))
+ await withEmptyDestination(async destination=>{
+  const acting=await destination.freshOwner(),restore=await value(await post(destination.origin,acting,api+'/restores',{manifest:saved.manifest}),201)
+  for(const chunk of saved.chunks)await value(await post(destination.origin,acting,`${api}/restores/${restore.id}/chunks`,{chunk}))
+  await value(await post(destination.origin,acting,`${api}/restores/${restore.id}/commit`,{confirm:saved.manifest.rootHash}))
+  const restored=await value(await get(destination.origin,acting,`/api/porthole/v1/traces/${traceId}?snapshot=${snapshot}`))
+  assert.deepEqual(restored,expected,'original trace graph, source metadata and nanoseconds survive an independently owned inactive restore')
+  const replay=await value(await get(destination.origin,acting,'/api/porthole/v1/query/'+query.queryRef))
+  assert.deepEqual(replay.records,query.records,'the archived bounded trace descriptor replays through the product query door')
+  assert.equal(replay.snapshot,snapshot)
+  assert.equal((await destination.sql('SELECT paused FROM porthole_ingest_control'))[0].paused,1)
+  assert.equal((await destination.sql('SELECT COUNT(*) AS n FROM porthole_credentials'))[0].n,0)
+  assert.equal((await get(destination.origin,cookie,`/api/porthole/v1/traces/${traceId}`)).status,401)
+  await browserProof({origin:destination.origin,cookie:acting,paths:[`/app/traces/${traceId}?snapshot=${snapshot}`],name:'trace-inactive-restored'})
+ })
+ console.log('traceArchiveJourney passed: source snapshot descriptor and original graph/ns replay after independent inactive restore; no source session or credential authority')
+}

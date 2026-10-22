@@ -147,7 +147,7 @@ try {
   }
   if(process.env.PORTHOLE_TRACE_ONLY==='1') {
    const {traceJourney}=await import('./porthole/traces.mjs')
-   await traceJourney({origin,cookie,persist,restartWorker,...helpers})
+   await traceJourney({origin,cookie,persist,restartWorker,withEmptyDestination,...helpers})
   } else if(process.env.PORTHOLE_HEALTH_ONLY==='1') {
    const {recoveryJourney,recipientMailJourney}=await import('./porthole/health.mjs')
    await recoveryJourney({origin,cookie,persist,restartWorker,...helpers})

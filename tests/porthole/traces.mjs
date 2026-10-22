@@ -6,7 +6,7 @@ import {healthBrowser} from './health.mjs'
 const execute=promisify(execFile)
 const path='/api/porthole/v1/traces/'
 
-export async function traceJourney({origin,freshOwner,signIn,restartWorker,sql}) {
+export async function traceJourney({origin,freshOwner,signIn,restartWorker,sql,withEmptyDestination}) {
  let cookie=await freshOwner()
  const post=async(route,data,status=200,acting=cookie)=>{const response=await fetch(origin+route,form(origin,acting,data));assert.equal(response.status,status,await response.clone().text());return response.json()}
  const get=async(route,acting=cookie)=>{const response=await fetch(origin+route,{headers:{cookie:acting}});assert.equal(response.status,200,await response.clone().text());return response.json()}
@@ -16,6 +16,8 @@ export async function traceJourney({origin,freshOwner,signIn,restartWorker,sql})
  // client/server. No span payloads or expected timings are generated here.
  const {polyglotEstate}=process.env.PORTHOLE_POLYGLOT==='1'?await import('./polyglot/estate.mjs'):{polyglotEstate:null}
  const estate=polyglotEstate?await polyglotEstate():null
+ const candidate=(await execute('git',['rev-parse','HEAD'])).stdout.trim()
+ if(process.env.PORTHOLE_CANDIDATE_SHA)assert.equal(candidate,process.env.PORTHOLE_CANDIDATE_SHA)
  let child
  try {child=await execute(process.execPath,['tests/porthole/polyglot/node.cjs'],{timeout:60000,env:{...process.env,
   OTEL_SERVICE_NAME:'checkout',OTEL_RESOURCE_ATTRIBUTES:'deployment.environment.name=production,team.name=commerce,service.version=synthetic-porthole-1101',
@@ -50,7 +52,7 @@ export async function traceJourney({origin,freshOwner,signIn,restartWorker,sql})
  if(estate){
   assert.deepEqual([...new Set(graph.spans.map(span=>span.service))].sort(),scope.services.slice().sort(),'all seven real runtimes participate in one trace')
   assert.ok(graph.spans.some(span=>span.attributes.some(attr=>['messaging.system'].includes(attr.key)&&attr.value.stringValue==='kafka')),'actual stock Kafka producer/consumer spans')
-  console.log('polyglotEstate passed on '+process.env.PORTHOLE_CANDIDATE_SHA+': seven runtimes, real Kafka, HTTP/gRPC and one connected graph')
+  console.log('polyglotEstate passed on '+candidate+': seven runtimes, real Kafka, HTTP/gRPC and one connected graph')
  }
  const broken=await get(path+receipt.brokenTraceId)
  assert.equal(broken.status,'Incomplete')
@@ -101,5 +103,7 @@ export async function traceJourney({origin,freshOwner,signIn,restartWorker,sql})
  await restartWorker(()=>sql('ALTER TABLE porthole_telemetry_records RENAME TO synthetic_porthole_unavailable_traces'))
  try {assert.equal((await fetch(origin+path+traceId,{headers:{cookie}})).status,503);await healthBrowser({origin,cookie,path:'/app/traces/'+traceId,name:'trace-unavailable',contains:'telemetry unavailable',expectedStatus:503})}
  finally {await restartWorker(()=>sql('ALTER TABLE synthetic_porthole_unavailable_traces RENAME TO porthole_telemetry_records'))}
- console.log('traceJourney passed: actual stock Node HTTP/gRPC instrumentation, async fanout, original graph/ns/restart/snapshot, explicit conflicting/missing/cyclic parent diagnostics, live scope/revocation and 1440/390 states; seven-language/Kafka qualification remains pending')
+ const {traceArchiveJourney}=await import('./archive.mjs')
+ await traceArchiveJourney({origin,cookie:await freshOwner(),traceId,snapshot,expected:original,withEmptyDestination})
+ console.log('traceJourney passed: actual stock Node HTTP/gRPC instrumentation, async fanout, original graph/ns/restart/snapshot, explicit conflicting/missing/cyclic parent diagnostics, live scope/revocation and 1440/390 states; seven-language/Kafka qualification '+(estate?'passed on '+candidate:'runs separately outside Verify'))
 }

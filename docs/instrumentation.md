@@ -35,7 +35,7 @@ HTTP. The stock libraries create the spans and inject/extract context.
   `@opentelemetry/exporter-trace-otlp-proto`,
   `@opentelemetry/instrumentation-http` and
   `@opentelemetry/instrumentation-grpc` versions in the root package manifest
-  (0.300.0), plus `@opentelemetry/api` 1.10.0. Load
+  (0.300.0), plus `@opentelemetry/api` 1.10.0. The supplied register also loads `@opentelemetry/instrumentation-kafkajs` 0.33.0; install that package even if the application has no Kafka client. Load
   `instrumentation/node/register.cjs` before importing `node:http`, `node:https`
   or `@grpc/grpc-js`, for example with Node's `--require` flag. Applications with
   an ESM dependency graph must use OpenTelemetry's supported ESM instrumentation
@@ -118,7 +118,7 @@ Push Verify's parallel `traces` shard runs `traceJourney` in
 `tests/porthole/traces.mjs` through the emitted Worker and native auth. It drives
 stock Node HTTP/gRPC, real overlapping operations and a real TCP forwarder with
 a deliberately incorrect parent, plus schema-edge conflicting/cyclic identities.
-It checks original timing/restart/snapshot, role/scope/revocation and all changed
+It checks original timing/restart/snapshot, role/scope/revocation, independently owned inactive archive restore/replay, and all changed
 screen states at 1440 and 390. It does not stand in for the seven-runtime drill.
 
 For that drill, on a dedicated Docker-capable machine, build the six examples
