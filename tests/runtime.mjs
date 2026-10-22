@@ -163,9 +163,6 @@ try {
    const {archiveJourney}=await import('./porthole/archive.mjs')
    await archiveJourney({origin,cookie,persist,restartWorker,withEmptyDestination,...helpers})
   } else {
-  const {traceJourney}=await import('./porthole/traces.mjs')
-  await traceJourney({origin,cookie,persist,restartWorker,...helpers})
-  cookie=await helpers.freshOwner()
   const {membershipJourney}=await import('./porthole/membership.mjs')
   const {credentialJourney}=await import('./porthole/credentials.mjs')
   const membership=await membershipJourney({origin,cookie,foreignCookie,persist,restartWorker,...helpers,sessionSecret:'runtime-session-secret-1234567890123456'})

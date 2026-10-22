@@ -31,6 +31,7 @@ RUN --mount=type=secret,id=proxy_ca,required=true cp /run/secrets/proxy_ca /usr/
 CMD ["dotnet", "/app/out/Polyglot.dll"]
 
 FROM ruby:3.3-slim AS ruby
+RUN --mount=type=secret,id=proxy_ca,required=true apt-get -o Acquire::https::CaInfo=/run/secrets/proxy_ca update && apt-get -o Acquire::https::CaInfo=/run/secrets/proxy_ca install -y --no-install-recommends gcc make libc6-dev && rm -rf /var/lib/apt/lists
 WORKDIR /app
 COPY ruby/Gemfile ./
 RUN --mount=type=secret,id=proxy_ca,required=true SSL_CERT_FILE=/run/secrets/proxy_ca bundle install
@@ -42,6 +43,7 @@ FROM php:8.3-cli AS php
 WORKDIR /app
 COPY --from=composer /usr/bin/composer /usr/local/bin/composer
 RUN --mount=type=secret,id=proxy_ca,required=true curl --cacert /run/secrets/proxy_ca -fsSL https://pecl.php.net/get/opentelemetry-1.4.2.tgz -o /tmp/opentelemetry.tgz && pecl install /tmp/opentelemetry.tgz && docker-php-ext-enable opentelemetry && rm /tmp/opentelemetry.tgz
+RUN --mount=type=secret,id=proxy_ca,required=true apt-get -o Acquire::https::CaInfo=/run/secrets/proxy_ca update && apt-get -o Acquire::https::CaInfo=/run/secrets/proxy_ca install -y --no-install-recommends unzip && rm -rf /var/lib/apt/lists
 COPY php/composer.json ./
 RUN --mount=type=secret,id=proxy_ca,required=true COMPOSER_CAFILE=/run/secrets/proxy_ca composer install --no-dev --no-interaction --prefer-dist
 COPY php/app.php ./

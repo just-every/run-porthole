@@ -12,14 +12,15 @@ const request=(url,headers={})=>new Promise((resolve,reject)=>{
 const rpc={check:{path:'/checkout.Inventory/Check',requestStream:false,responseStream:false,requestSerialize:Buffer.from,responseSerialize:Buffer.from,requestDeserialize:Buffer.from,responseDeserialize:Buffer.from}}
 async function main(){
  const server=new grpc.Server();servers.push(server)
- server.addService(rpc,{check:async(call,callback)=>{await pause(20);callback(null,Buffer.from('reserved'))}})
+ server.addService(rpc,{check:async(call,callback)=>{await pause(20);if(call.request.toString()==='decline'){callback({code:grpc.status.UNAVAILABLE,details:'inventory unavailable'});return};callback(null,Buffer.from('reserved'))}})
  const rpcPort=await new Promise((resolve,reject)=>server.bindAsync('127.0.0.1:0',grpc.ServerCredentials.createInsecure(),(error,port)=>error?reject(error):resolve(port)))
  const Client=grpc.makeGenericClientConstructor(rpc,'Inventory'),client=new Client('127.0.0.1:'+rpcPort,grpc.credentials.createInsecure())
  const web=http.createServer(async(req,res)=>{
+  if(req.url==='/error'){res.statusCode=503;res.end('payment unavailable');return}
   if(req.url==='/fulfillment'){await pause(35);res.end('shipped');return}
   if(req.url==='/payment'){await pause(25);res.end('paid');return}
   if(req.url==='/broken'){res.end(JSON.stringify({traceId:trace.getSpan(context.active()).spanContext().traceId}));return}
-  await Promise.all([request(base+'/fulfillment'),request(base+'/payment'),new Promise((resolve,reject)=>client.check(Buffer.from('reserve'),(error)=>error?reject(error):resolve()))])
+  await Promise.all([request(base+'/fulfillment'),request(base+'/payment'),request(base+'/error'),new Promise(resolve=>client.check(Buffer.from('decline'),error=>{if(error?.code!==grpc.status.UNAVAILABLE)throw Error('Expected actual gRPC failure');resolve()})),new Promise((resolve,reject)=>client.check(Buffer.from('reserve'),(error)=>error?reject(error):resolve()))])
   res.end('checkout complete')
  })
  servers.push(web);await new Promise(resolve=>web.listen(0,'127.0.0.1',resolve));const base='http://127.0.0.1:'+web.address().port

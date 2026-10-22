@@ -331,8 +331,8 @@ Judged from the code and tests at commit `a0f1cc9f100630f413461e13ba6e47bc6d6362
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 0 | 0 | 0 | 0 |
-| Target and push further | 6 | 0 | 89 | 95 |
-| All | 6 | 0 | 89 | 95 |
+| Target and push further | 6 | 1 | 88 | 95 |
+| All | 6 | 1 | 88 | 95 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -352,7 +352,7 @@ Judged from the code and tests at commit `a0f1cc9f100630f413461e13ba6e47bc6d6362
 | `PORT-001` | OpenTelemetry-native ingest | target | missing |  | No implementation for opentelemetry-native ingest; the complete public-door journey above remains required. |
 | `PORT-002` | Drop-in compatible intake | target | missing |  | No implementation for drop-in compatible intake; the complete public-door journey above remains required. |
 | `PORT-003` | One-command collector | target | missing |  | No implementation for one-command collector; the complete public-door journey above remains required. |
-| `PORT-004` | Language auto-instrumentation | target | missing |  | No implementation for language auto-instrumentation; the complete public-door journey above remains required. |
+| `PORT-004` | Language auto-instrumentation | target | partial | `tests/porthole/traces.mjs` traceJourney via `tests/runtime.mjs`: stock Node HTTP/gRPC auto-instrumentation, async overlap, explicit retained parent graph and original nanoseconds; actual TCP broken-parent boundary, schema-edge conflicting/cyclic identities, restart and frozen snapshot, scoped reads and next-request revocation, empty/invalid/unavailable/denied/incomplete and connected screens at 1440/390. `docs/instrumentation.md` documents the native trace API/browser and seven executable install paths. | Seven-runtime/Kafka combined execution and exact known-graph/error assertions are pending. Conservative default ADOPTED: tracecontext only; no automatic baggage forwarding or baggage-to-span copying. Baggage policy awaits ct approval; no DONE claim until the complete acceptance passes and ct approves. |
 | `PORT-005` | Cloud and serverless integrations | target | missing |  | No implementation for cloud and serverless integrations; the complete public-door journey above remains required. |
 | `PORT-006` | Technology integration library | target | missing |  | No implementation for technology integration library; the complete public-door journey above remains required. |
 | `PORT-007` | Infrastructure and Kubernetes explorer | target | missing |  | No implementation for infrastructure and kubernetes explorer; the complete public-door journey above remains required. |
