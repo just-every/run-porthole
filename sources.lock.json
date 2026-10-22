@@ -74,7 +74,7 @@
       "executable": false
     },
     ".github/workflows/verify.yml": {
-      "sha256": "a3f2b63686dea865174bc0c1eaec471c391bc2df96b598433bd7fe8aaf32b720",
+      "sha256": "589c67216ae30891a84ce14b1e98f925f9beac789f21edbb3a74614149df1feb",
       "executable": false
     },
     ".gitignore": {
@@ -1842,7 +1842,7 @@
       "executable": false
     },
     "src/porthole/analytical/client.ts": {
-      "sha256": "de4f6523397662ccec3f0aeb29c14be474265e2265f6367892d45679a604f339",
+      "sha256": "3562f960e1d987da0e0109fc9ae1b2185bff1f237bac7d5415162e56c58c8864",
       "executable": false
     },
     "src/porthole/analytical/http.ts": {
@@ -2338,7 +2338,7 @@
       "executable": false
     },
     "tests/porthole/analytics.mjs": {
-      "sha256": "97874fe86ebed426cc9b1e972787eb7b3e546a7e526e0a06cfae81f27c755bc9",
+      "sha256": "57281c71e251f09b5e9257816a93eb0a1b3c9aaf3907bc74883525747defbbf4",
       "executable": false
     },
     "tests/porthole/archive.mjs": {
