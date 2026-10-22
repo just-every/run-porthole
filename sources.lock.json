@@ -202,7 +202,7 @@
       "executable": false
     },
     "instrumentation/polyglot/ruby/app.rb": {
-      "sha256": "d852bda58038d071d4daec32afdd80b09bef2f9b97f54c3d2b580eafe8752705",
+      "sha256": "10e9e72c6bd80ade216b0fa3cce19fcaf674eb2b4cb3ec0fc43b44fd9ff64ba3",
       "executable": false
     },
     "instrumentation/polyglot/ruby/Gemfile": {
@@ -2378,7 +2378,7 @@
       "executable": false
     },
     "tests/porthole/polyglot/estate.mjs": {
-      "sha256": "8cf104f4215861019d6e1225bb1b756144f5afa6947d5eea7a262c31acd1247b",
+      "sha256": "6464c86d1c9c5e762fb8a59386c41cd6af255c314a76f82ba2a40524af2764cb",
       "executable": false
     },
     "tests/porthole/polyglot/node.cjs": {
