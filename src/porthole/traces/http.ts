@@ -23,12 +23,17 @@ export async function traceResponse(request:Request,env:Bindings):Promise<Respon
   // accumulation of earlier pages across a membership/credential revocation.
   const response=await readTelemetry(new Request(target,{headers:request.headers}),env,{trace:true})
   if(!response.ok) {
+   if(!page)return response
    const body=await response.json() as {error:string}
    return page?tracePage(undefined,undefined,response.status,body.error):response
   }
   const {records,snapshot,cursor}=await response.json() as {records:TraceRecord[];snapshot:number;cursor:string|null}
   const graph=traceGraph(traceId,records,!!cursor)
-  return page?tracePage(graph,snapshot):Response.json({...graph,snapshot},{headers:privateHeaders})
+  const result=page?await tracePage(graph,snapshot):Response.json({...graph,snapshot},{headers:privateHeaders})
+  for(const header of ['x-porthole-entity','x-porthole-actor','x-porthole-actor-revision']) {
+   const value=response.headers.get(header);if(value)result.headers.set(header,value)
+  }
+  return result
  }catch(error) {
   const code=error instanceof AuthError?error.code:'trace_unavailable',status=error instanceof AuthError?error.status:503
   return page?tracePage(undefined,undefined,status,code):Response.json({error:code},{status,headers:privateHeaders})
