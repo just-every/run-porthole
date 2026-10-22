@@ -180,6 +180,7 @@ export async function healthBrowser({origin,cookie,name,readOnly=false,path='/ap
   if(cookie)await context.addCookies(cookie.split('; ').map(value=>({name:value.slice(0,value.indexOf('=')),value:value.slice(value.indexOf('=')+1),url:origin})))
   const page=await context.newPage(),errors=[];page.on('pageerror',error=>errors.push(error.message))
   const response=await page.goto(origin+path);assert.equal(response.status(),expectedStatus)
+  assert.ok(await page.locator('img').evaluateAll(images=>images.every(img=>img.complete&&img.naturalWidth>0)),'page images load from actual built assets')
   if(contains)assert.ok((await page.locator('body').innerText()).includes(contains))
   if(readOnly)assert.equal(await page.locator('form').count(),0)
   await page.keyboard.press('Tab')
@@ -196,7 +197,7 @@ export async function healthBrowser({origin,cookie,name,readOnly=false,path='/ap
  * No health, notice or evaluation results are faked. */
 export async function recipientMailJourney() {
  const {createRequire}=await import('node:module'),{readdir,readFile,mkdtemp,rm}=await import('node:fs/promises')
- const {resolve,join}=await import('node:path'),{tmpdir}=await import('node:os'),{randomBytes,randomUUID}=await import('node:crypto')
+ const {resolve,join,extname}=await import('node:path'),{tmpdir}=await import('node:os'),{randomBytes,randomUUID}=await import('node:crypto')
  const require=createRequire(import.meta.url),{Miniflare,convertV4MiniflareOptions}=require(require.resolve('miniflare',{paths:[require.resolve('wrangler/package.json')]}))
  const {execFileSync}=await import('node:child_process')
  // Wrangler configures a process-wide HTTP dispatcher at import time. Parse
@@ -221,7 +222,8 @@ export async function recipientMailJourney() {
   serviceBindings:{ASSETS:async request=>{
    const path=new URL(request.url).pathname
    if(path.includes('..'))return new Response(null,{status:404})
-   try{return new Response(await readFile(resolve('dist/client','.'+path)),{headers:{'content-type':path.endsWith('.css')?'text/css':path.endsWith('.woff2')?'font/woff2':'application/octet-stream'}})}catch{return new Response(null,{status:404})}
+   const types={'.css':'text/css','.woff2':'font/woff2','.svg':'image/svg+xml','.png':'image/png','.webp':'image/webp','.avif':'image/avif','.ico':'image/x-icon','.js':'text/javascript'}
+   try{return new Response(await readFile(resolve('dist/client','.'+path)),{headers:{'content-type':types[extname(path)]??'application/octet-stream'}})}catch{return new Response(null,{status:404})}
   }},
   outboundService:async request=>{
    assert.equal(request.url,'https://api.sendgrid.com/v3/mail/send');assert.equal(request.method,'POST')
