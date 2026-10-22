@@ -42,7 +42,8 @@ try {
  assert.equal((await sql(destination,'SELECT COUNT(*) AS n FROM porthole_credentials'))[0].n,0)
  assert.equal((await sql(destination,`SELECT state FROM porthole_objects WHERE id='${objectId}'`))[0].state,'quarantined')
  assert.equal((await sql(destination,'SELECT paused FROM porthole_ingest_control'))[0].paused,1)
- assert.ok((await sql(destination,"SELECT status FROM oa_operators")).every(row=>row.status==='inactive'))
+ assert.equal((await sql(destination,"SELECT COUNT(*) AS n FROM oa_operators"))[0].n,0,'source native identities do not block the destination bootstrap')
+ assert.equal((await sql(destination,`SELECT state FROM porthole_archive_actors WHERE actor_ref='${owner.id}'`))[0].state,'inactive','source actor metadata remains opaque and inactive')
  await command(destination,['setup','--owner-email','synthetic-porthole-603@example.com','--non-interactive'])
  const newOwner=(await sql(destination,"SELECT id FROM oa_operators WHERE email='synthetic-porthole-603@example.com' AND role='owner' AND status='active'"))[0]
  assert.ok(newOwner && newOwner.id!==owner.id,'destination has its own new native owner')

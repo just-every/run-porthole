@@ -36,11 +36,11 @@ export async function objectsResponse(request:Request,env:Bindings):Promise<Resp
    if(data.confirm!=='approve')fail('confirmation_required',400)
    const row=await env.DB.prepare('SELECT * FROM porthole_objects WHERE id=?').bind(text(data.id,36)).first<ObjectRow>()
    if(!row || row.kind!=='repair')fail('repair_not_found',404)
-   if(row.state==='quarantined' || Number(data.revision)!==row.revision || Number(JSON.parse(row.body).expiresAt)<=now)fail('plan_not_approvable',409)
+   if(row.state!=='inactive' || Number(data.revision)!==row.revision || Number(JSON.parse(row.body).expiresAt)<=now)fail('plan_not_approvable',409)
    if(!scopeWithin(JSON.parse(row.scope),actor.member.scope))fail('scope_forbidden')
    const result=await env.DB.batch([
-    env.DB.prepare(`INSERT INTO porthole_object_approvals(id,object_id,revision,actor_ref,approved_at) SELECT ?,id,revision,?,? FROM porthole_objects WHERE id=? AND revision=? AND state!='quarantined' AND ${actor.fence}`).bind(crypto.randomUUID(),actor.member.operatorId,now,row.id,row.revision,...actor.args),
-    env.DB.prepare(`UPDATE porthole_objects SET state='approved',updated_at=? WHERE id=? AND revision=? AND EXISTS(SELECT 1 FROM porthole_object_approvals WHERE object_id=? AND revision=?) AND ${actor.fence}`).bind(now,row.id,row.revision,row.id,row.revision,...actor.args),
+    env.DB.prepare(`INSERT OR IGNORE INTO porthole_object_approvals(id,object_id,revision,actor_ref,approved_at) SELECT ?,id,revision,?,? FROM porthole_objects WHERE id=? AND revision=? AND state='inactive' AND ${actor.fence}`).bind(crypto.randomUUID(),actor.member.operatorId,now,row.id,row.revision,...actor.args),
+    env.DB.prepare(`UPDATE porthole_objects SET state='approved',updated_at=? WHERE id=? AND revision=? AND state='inactive' AND EXISTS(SELECT 1 FROM porthole_object_approvals WHERE object_id=? AND revision=?) AND ${actor.fence}`).bind(now,row.id,row.revision,row.id,row.revision,...actor.args),
    ])
    if(!result[0].meta.changes)fail('authority_changed',409)
    return form?new Response(null,{status:303,headers:{...privateHeaders,location:'/app/operations'}}):json({id:row.id,revision:row.revision,state:'approved'})

@@ -17,11 +17,15 @@ try {
  await projectFacts(proxy.env.DB)
  if(process.argv[2]) {
   const event=JSON.parse(process.argv[2])
+  if(event.kind==='snapshot-actors') {
+   await proxy.env.DB.prepare("INSERT INTO porthole_archive_actors(actor_ref,role,scope,state) SELECT operator_id,role,scope,'inactive' FROM porthole_members WHERE 1 ON CONFLICT(actor_ref) DO UPDATE SET role=excluded.role,scope=excluded.scope").run()
+  } else {
   if(!/^[a-f0-9-]{36}$/.test(event.operationRef)||!['export','import'].includes(event.kind)||!['succeeded','failed'].includes(event.phase)||!Number.isSafeInteger(event.occurredAt))throw Error('invalid_native_audit_event')
   const actor=await proxy.env.DB.prepare("SELECT id,version FROM oa_operators WHERE role='owner' AND status='active' ORDER BY created_at,id LIMIT 1").first()
   const input={operationRef:event.operationRef,actorRef:actor?.id??null,actorRevision:actor?.version??null,action:`installation.${event.kind}.command`,entityRef:null,revision:null,occurredAt:event.occurredAt,status:null}
   await append(proxy.env.DB,{...input,phase:'attempted'})
   await append(proxy.env.DB,{...input,phase:event.phase})
+  }
  }
  console.log('Private archive audit projected.')
 } finally {await proxy?.dispose();await rm(path,{force:true})}
