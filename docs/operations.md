@@ -28,7 +28,7 @@ Operations saves real versioned count-monitor definitions and inactive repair pl
 node scripts/porthole/verify-audit.mjs audit.json INDEPENDENTLY_RETAINED_64_HEX_CHECKPOINT
 ```
 
-The independent reader rejects content changes, gaps, duplicates, reordering, truncation and checkpoint substitution. SQLite guards reject chain modification and deletion. A privileged database custodian can remove guards, so the chain alone is not a signature against that custodian. The packet supports an owner-authorized Evidence handoff; exporting it does not send it to another provider.
+The independent reader rejects content changes, gaps, duplicates, reordering, truncation and checkpoint substitution. SQLite guards reject chain modification and deletion. A privileged database custodian can remove guards, so the chain alone is not a signature against that custodian. The packet supports an owner-authorized Evidence handoff; exporting it does not send it to another provider. PORT-052 supplies the connected scoped Evidence request/export and provider-receipt workflow and inherits this private, independently verifiable packet.
 
 Settings → Archive and `node scripts/porthole/archive.mjs export ORIGIN DIRECTORY` preserve current product data, source/history labels, raw telemetry, audit streams and the actor-erasure journal. Keep a fresh native-session cookie in `PORTHOLE_ARCHIVE_COOKIE`, never in command arguments. Restore requires an empty product under its own destination owner; credentials, sessions and approval authority do not transfer. Imported definitions and historical health/delivery work are quarantined, ingestion is paused, and source audit streams retain their original hashes. The destination erasure journal is merged, never replaced by an older journal.
 
@@ -36,7 +36,7 @@ The shared `rer export`/`rer import` adapter also excludes credential and sessio
 
 ## Coverage inherited by later doors
 
-Current public doors cover membership, credentials, identity administration, queries, exports, monitor definitions, exact repair approval, actor privacy and independent notice attempts. PORT-001/012/018/019/021/026/029/034/035/036/055/061 inherit this boundary before adding their remaining ingestion-policy, dashboard, SLO, pipeline, tool, execution, erasure, connector and signal-export doors. A future family is not implemented by a label in the audit map.
+Current public doors cover membership, credentials, identity administration, queries, exports, monitor definitions, exact repair approval, actor privacy and independent notice attempts. PORT-001/012/018/019/021/026/029/034/035/036/052/055/061 inherit this boundary before adding their remaining ingestion-policy, dashboard, SLO, pipeline, tool, execution, erasure, connector and signal-export doors. A future family is not implemented by a label in the audit map.
 
 See [recovery.md](recovery.md) for independent observations, collector freshness, durable draining, firing-monitor outage behavior, notice consent and the remaining analytical/Base recovery limits.
 
