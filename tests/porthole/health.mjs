@@ -179,16 +179,26 @@ export async function recipientMailJourney() {
  const {createRequire}=await import('node:module'),{readdir,readFile,mkdtemp,rm}=await import('node:fs/promises')
  const {resolve,join}=await import('node:path'),{tmpdir}=await import('node:os'),{randomBytes,randomUUID}=await import('node:crypto')
  const require=createRequire(import.meta.url),{Miniflare,convertV4MiniflareOptions}=require(require.resolve('miniflare',{paths:[require.resolve('wrangler/package.json')]}))
- const {unstable_splitSqlQuery:split}=await import('wrangler')
+ const {execFileSync}=await import('node:child_process')
+ // Wrangler configures a process-wide HTTP dispatcher at import time. Parse
+ // migrations in a child so the local runtime keeps its own dispatcher.
+ console.log('Recipient fixture: parsing migrations')
+ const sqlFiles=await Promise.all((await readdir('migrations/core')).filter(name=>name.endsWith('.sql')).sort().map(name=>readFile('migrations/core/'+name,'utf8')))
+ const migrationPlans=JSON.parse(execFileSync(process.execPath,['--input-type=module','-e',"import {unstable_splitSqlQuery as split} from 'wrangler';import {readFileSync} from 'node:fs';process.stdout.write(JSON.stringify(JSON.parse(readFileSync(0,'utf8')).map(split)))"],{input:JSON.stringify(sqlFiles),encoding:'utf8',stdio:['pipe','pipe','ignore']}))
  const {ownerSigninDigest}=await import('../../src/modules/operator-auth/owner-signin-grant.mjs')
  const {hashToken}=await import('../../src/modules/operator-auth/crypto.mjs')
- const origin='https://synthetic-porthole.invalid',ownerEmail='synthetic-porthole-940@example.com',recipient='synthetic-porthole-941@example.com'
+ console.log('Recipient fixture: migrations parsed')
+ const {createServer}=await import('node:net'),socket=createServer()
+ await new Promise(resolve=>socket.listen(0,'127.0.0.1',resolve))
+ const port=socket.address().port
+ await new Promise(resolve=>socket.close(resolve))
+ const origin=`https://127.0.0.1:${port}`,ownerEmail='synthetic-porthole-940@example.com',recipient='synthetic-porthole-941@example.com'
  const sessionSecret='synthetic-porthole-942-synthetic-porthole-942',setupToken='synthetic-porthole-943-synthetic-porthole-943'
  const scratch=await mkdtemp(join(tmpdir(),'porthole-recipient-')),messages=[]
  let providerStatus=202,mf,cookie
  const names=['index.js',...(await readdir('dist/server/assets')).filter(name=>name.endsWith('.js')).map(name=>'assets/'+name)]
  const modules=await Promise.all(names.map(async name=>({type:'ESModule',path:resolve('dist/server',name),contents:await readFile('dist/server/'+name,'utf8')})))
- const options=convertV4MiniflareOptions({name:'porthole',modules,modulesRoot:resolve('dist/server'),compatibilityDate:'2026-09-08',compatibilityFlags:['nodejs_compat'],d1Databases:{DB:'recipient-proof'},d1Persist:join(scratch,'db'),r2Buckets:['ARCHIVE_BUCKET'],bindings:{AUTH_ORIGIN:origin,AUTH_LOCAL:'false',OWNER_EMAIL:ownerEmail,SESSION_SECRET:sessionSecret,SETUP_TOKEN:setupToken,MAIL_PROVIDER:'sendgrid',MAIL_API_KEY:'synthetic-porthole-944',MAIL_FROM:'synthetic-porthole-945@example.com'},
+ const options=convertV4MiniflareOptions({host:'127.0.0.1',port,https:true,name:'porthole',modules,modulesRoot:resolve('dist/server'),compatibilityDate:'2026-09-08',compatibilityFlags:['nodejs_compat'],d1Databases:{DB:'recipient-proof'},resourcePersistencePath:join(scratch,'db'),r2Buckets:['ARCHIVE_BUCKET'],bindings:{AUTH_ORIGIN:origin,AUTH_LOCAL:'false',OWNER_EMAIL:ownerEmail,SESSION_SECRET:sessionSecret,SETUP_TOKEN:setupToken,MAIL_PROVIDER:'sendgrid',MAIL_API_KEY:'synthetic-porthole-944',MAIL_FROM:'synthetic-porthole-945@example.com'},
   serviceBindings:{ASSETS:async request=>{
    const path=new URL(request.url).pathname
    if(path.includes('..'))return new Response(null,{status:404})
@@ -200,14 +210,14 @@ export async function recipientMailJourney() {
    messages.push(message)
    return new Response(null,{status:providerStatus,headers:{'x-message-id':'synthetic-porthole-946'}})
   }})
- const call=(path,options)=>mf.dispatchFetch(origin+path,options)
- const post=async(path,data,status=200,acting=cookie)=>{const response=await call(path,form(origin,acting??'',data));assert.equal(response.status,status,path);return response}
+ const call=(path,options={})=>mf.dispatchFetch(origin+path,{...options,headers:{...options.headers,host:new URL(origin).host,'cf-connecting-ip':'127.0.0.1'}})
+ const post=async(path,data,status=200,acting=cookie)=>{const response=await call(path,form(origin,acting??'',data));assert.equal(response.status,status,path+': '+(response.status===status?'':await response.clone().text()));return response}
  const health=async()=>{const response=await call('/api/v1/health',{headers:{cookie}});assert.equal(response.status,200);return response.json()}
  const configure=async(address=recipient,acting=cookie)=>{
   const state=await health()
   return (await post('/api/v1/health/configuration',{revision:state.configuration.revision,freshnessSeconds:60,noticesEnabled:!!address,...(address?{recipient:address,confirm:'enable-independent-notices'}:{})},200,acting)).json()
  }
- const tokenFrom=message=>{const text=message.content.find(row=>row.type==='text/plain').value;const match=text.match(/https:\/\/synthetic-porthole\.invalid\/app\/health\/confirm\?token=([A-Za-z0-9_-]{43})/);assert.ok(match,'confirmation link delivered to the mail edge');return match[1]}
+ const tokenFrom=message=>{const text=message.content.find(row=>row.type==='text/plain').value;const match=text.match(/https:\/\/127\.0\.0\.1:\d+\/app\/health\/confirm\?token=([A-Za-z0-9_-]{43})/);assert.ok(match,'confirmation link delivered to the mail edge');return match[1]}
  const notices=()=>messages.filter(message=>message.custom_args.rer_delivery_id.startsWith('porthole-health/'))
  const browser=async(token,name,confirmed=false)=>{
   const {chromium}=await import('@playwright/test')
@@ -215,7 +225,7 @@ export async function recipientMailJourney() {
   try {for(const width of [1440,390]) {
    const context=await browser.newContext({viewport:{width,height:width===1440?900:844}})
    await context.route(origin+'/**',async route=>{
-    const request=route.request(),response=await mf.dispatchFetch(request.url(),{method:request.method(),headers:request.headers(),...(request.postDataBuffer()?{body:request.postDataBuffer()}:{})})
+    const request=route.request(),response=await mf.dispatchFetch(request.url(),{method:request.method(),headers:{...request.headers(),host:new URL(origin).host,'cf-connecting-ip':'127.0.0.1'},...(request.postDataBuffer()?{body:request.postDataBuffer()}:{})})
     await route.fulfill({status:response.status,headers:Object.fromEntries(response.headers),body:Buffer.from(await response.arrayBuffer())})
    })
    const page=await context.newPage(),response=await page.goto(origin+'/app/health/confirm?token='+token)
@@ -231,16 +241,19 @@ export async function recipientMailJourney() {
   }} finally {await browser.close()}
  }
  try {
+  console.log('Recipient fixture: starting emitted Worker')
   mf=new Miniflare(options)
   let db=await mf.getD1Database('DB')
-  for(const name of (await readdir('migrations/core')).filter(name=>name.endsWith('.sql')).sort())await db.batch(split(await readFile('migrations/core/'+name,'utf8')).map(query=>db.prepare(query)))
+  console.log('Recipient fixture: D1 ready')
+  for(const statements of migrationPlans)await db.batch(statements.map(query=>db.prepare(query)))
+  console.log('Recipient fixture: native bootstrap')
   const boot=await post('/auth/bootstrap',{token:setupToken,displayName:'Notice owner'},303,'')
   cookie=boot.headers.getSetCookie().map(value=>value.split(';')[0]).join('; ')
   const session=await (await call('/auth/session',{headers:{cookie}})).json()
   const token=randomBytes(32).toString('base64url'),now=Date.now()
   await db.prepare('INSERT INTO oa_owner_signins(id,token_hash,operator_id,operator_version,created_at,expires_at) VALUES(?,?,?,?,?,?)').bind(randomUUID(),await ownerSigninDigest(token),session.operator.id,session.operator.version,now,now+120000).run()
   const sign=await post('/auth/owner-signin',{token},303,'');cookie=sign.headers.getSetCookie().map(value=>value.split(';')[0]).join('; ')
-  const setup=await call('/setup',{method:'POST',headers:{origin,cookie,'content-type':'application/x-www-form-urlencoded'},body:'confirm=yes'});assert.equal(setup.status,303)
+  const setup=await call('/setup',{method:'POST',redirect:'manual',headers:{origin,cookie,'content-type':'application/x-www-form-urlencoded'},body:'confirm=yes'});assert.equal(setup.status,303)
   assert.equal((await configure(ownerEmail)).noticesEnabled,true)
   assert.equal(messages.length,0,'verified configurer needs no extra confirmation email')
   assert.equal((await configure()).noticesEnabled,false)
