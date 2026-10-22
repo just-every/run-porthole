@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import {spawn} from 'node:child_process'
+import {spawn,execFileSync} from 'node:child_process'
 import {once} from 'node:events'
 
 /** Production-mode emitted Worker, real intake/monitor/health/outbox. Only the
@@ -127,5 +127,6 @@ export async function durableRecoveryJourney({origin,call,post,read,health,messa
  await restart();await heartbeat();await send('/api/v1/health/tick',{})
  assert.deepEqual(notices().map(row=>row.custom_args.rer_delivery_id),accepted,'accepted notices never resubmit across restart')
  console.log('durableRecoveryJourney passed: firing monitor, separate collector/read outages, independent provider submissions, restart with pending ingest/notices, bounded reconciliation, original nanoseconds, exact records and no duplicate notice submission')
+ if(process.env.PORTHOLE_RECOVERY_RUN_ID)console.log(JSON.stringify({journey:'durableRecoveryJourney',runId:process.env.PORTHOLE_RECOVERY_RUN_ID,candidate:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),result:'passed'}))
  } finally {await stopCollector()}
 }
