@@ -154,10 +154,19 @@ export async function liveRecoveryJourney() {
    await startWorker()
    stage='native_owner_bootstrap'
    const boot=await postRaw('/auth/bootstrap',{token:setupToken,displayName:'synthetic-porthole-801',returnTo:'/setup'})
-   assert.equal(boot.status,303,'native bootstrap')
+   if(boot.status!==303) {
+    let code
+    try {code=JSON.parse(boot.body).error}catch {}
+    const known=['invalid_setup_token','invalid_origin','invalid_host','invalid_configuration','auth_unavailable','already_initialized','email_not_allowed']
+    stage=`native_owner_bootstrap_http_${boot.status}_${known.includes(code)?code:'undisclosed'}`
+    throw Error('native_bootstrap_refused')
+   }
+   stage='native_owner_bootstrap_secure_cookie'
    cookie=nativeCookie(boot)
+   stage='native_owner_first_run'
    const setup=await request('/setup',{method:'POST',headers:{origin,cookie,'content-type':'application/x-www-form-urlencoded'},body:new URLSearchParams({confirm:'yes'}).toString()})
-   assert.equal(setup.status,303,'native first-run completion')
+   if(setup.status!==303) {stage=`native_owner_first_run_http_${setup.status}`;throw Error('native_first_run_refused')}
+   stage='native_owner_configuration_step_up_refusal'
    let state=await health()
    const configInput={revision:state.configuration.revision,freshnessSeconds:10,noticesEnabled:true,recipient,confirm:'enable-independent-notices'}
    const noProof=await postRaw('/api/v1/health/configuration',configInput)
