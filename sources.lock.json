@@ -1914,7 +1914,7 @@
       "executable": false
     },
     "src/porthole/portability/health-history.ts": {
-      "sha256": "0a91c901d4e06dd764e09e219d1d359c68882491c62ad80a889252ef4a5d8906",
+      "sha256": "fb3b7676b6e0809d075c820be99978c293ed733195d82cbd2c69e111c3d94e53",
       "executable": false
     },
     "src/porthole/portability/http.ts": {
@@ -1934,7 +1934,7 @@
       "executable": false
     },
     "src/porthole/portability/store.ts": {
-      "sha256": "f0bd2e9f1975e630cd1e82b724adbe87d6586c2e2b61d664ac8bd9f1d78a688c",
+      "sha256": "a4e160201b2ad8e3d6f5d3ecf5b04ab210149b06368f03a457cf5604bef37e7c",
       "executable": false
     },
     "src/porthole/privacy/actor-erasure/http.ts": {
@@ -2230,7 +2230,7 @@
       "executable": false
     },
     "tests/porthole/stock-ingest.mjs": {
-      "sha256": "94af86039ebb9c85df577bc00200f47f558611fc1656ee8679df1c61cd4d1893",
+      "sha256": "fbae8a3a8f480730f253eb45a7f852648a5015c243c7e0f280d4cd61326cd0f5",
       "executable": false
     },
     "tests/runtime.mjs": {

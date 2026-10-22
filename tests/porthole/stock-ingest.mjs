@@ -99,7 +99,17 @@ export async function stockIngestJourney({origin,cookie,sql,restartWorker,freshO
    if(child.exitCode!==null)throw new Error('Stock Alloy exited: '+logs.split(source.secret).join('[redacted]'))
    return fetch(`http://127.0.0.1:${httpPort}/-/ready`).then(response=>response.ok).catch(()=>false)
   },'stock Alloy readiness')
-  const time=BigInt(Date.now())*1000000n-1000000000n
+  // This stock version's WAL watcher deliberately skips points at/before its
+  // startup clock. Readiness only confirms configuration, so emit live input
+  // after the real watcher starts rather than backdating the fixture.
+  let watcherStarted
+  await until(async()=>{
+   const line=logs.split('\n').find(line=>line.includes('msg="Replaying WAL"')&&line.includes('component_id=prometheus.remote_write.synthetic_porthole_250'))
+   const timestamp=line?.match(/^ts=(\S+)/)?.[1]
+   watcherStarted=timestamp?Date.parse(timestamp):undefined
+   return watcherStarted!==undefined && Number.isFinite(watcherStarted) && Date.now()>watcherStarted
+  },'stock remote-write WAL watcher starts before source emission')
+  const time=BigInt(Date.now())*1000000n
   // Only the input into the stock collector is fixture-built. Every request
   // reaching Porthole is encoded and sent by unchanged stock exporter code.
   const logsResponse=await fetch(`http://127.0.0.1:${otlpPort}/v1/logs`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(otlpLogBatch([time,time+1n],'synthetic-porthole-251'))})

@@ -10,7 +10,12 @@ export const healthHistory:Projection[]=[
  {table:'porthole_monitor_state',columns:['object_id','revision','status','evaluated_at','last_known_count','last_known_at','firing_episode','reason'],keys:['object_id']},
 ]
 export function healthHistoryQuery(stream:string):string {
- return healthHistory.map(item=>`SELECT '${stream}' AS stream,'${item.table}' AS table_name,json_array(${item.keys.join(',')}) AS row_key,json_object(${item.columns.map(column=>`'${column}',${column}`).join(',')}) AS row,'quarantined' AS state FROM ${item.table}`).concat('SELECT stream,table_name,row_key,row,state FROM porthole_archive_health_history').join(' UNION ALL ')
+ const terms=healthHistory.map(item=>`SELECT '${stream}' AS stream,'${item.table}' AS table_name,json_array(${item.keys.join(',')}) AS row_key,json_object(${item.columns.map(column=>`'${column}',${column}`).join(',')}) AS row,'quarantined' AS state FROM ${item.table}`).concat('SELECT stream,table_name,row_key,row,state FROM porthole_archive_health_history')
+ // D1 limits compound SELECT terms more tightly than desktop SQLite. Keep
+ // each compound small while preserving one transactional frozen snapshot.
+ const groups=[]
+ for(let index=0;index<terms.length;index+=4)groups.push(`SELECT * FROM (${terms.slice(index,index+4).join(' UNION ALL ')})`)
+ return groups.join(' UNION ALL ')
 }
 export function validateHealthHistory(row:Record<string,unknown>):void {
  const bad=():never=>fail('archive_semantics_invalid',422),item=healthHistory.find(item=>item.table===row.table_name)

@@ -21,21 +21,7 @@ export async function startExport(db:D1Database,actor:Authority):Promise<Job> {
  const statements:D1PreparedStatement[]=[guard(db,actor), db.prepare(`INSERT INTO porthole_archive_jobs(id,direction,owner_ref,created_at,state,chain_hash) VALUES(?,'export',?,?,'snapshot',?)`).bind(id,actor.member.operatorId,now,genesis)]
  for(const item of catalog) statements.push(db.prepare(`INSERT INTO porthole_archive_rows(job_id,ordinal,payload) SELECT ?,COALESCE((SELECT MAX(ordinal)+1 FROM porthole_archive_rows WHERE job_id=?),0)+ROW_NUMBER() OVER ()-1,payload FROM (${snapshotQuery(item,stream)})`).bind(id,id))
  statements.push(db.prepare('UPDATE porthole_archive_jobs SET row_count=(SELECT COUNT(*) FROM porthole_archive_rows WHERE job_id=?) WHERE id=?').bind(id,id))
- try {await db.batch(statements)} catch(error) {
-  const failure=error as {message?:unknown;cause?:{message?:unknown}}
-  const message=String(failure?.message??'')+' '+String(failure?.cause?.message??'')
-  const categories=['no such column','no such table','UNIQUE constraint','FOREIGN KEY constraint','CHECK constraint','JSON cannot hold BLOB','json_object() labels','syntax error','too many SQL variables','parameter bindings','D1_TYPE_ERROR','SQLITE_AUTH','not authorized','NOT NULL constraint','misuse of window','too many terms','too big','D1_EXEC_ERROR','SQLITE_ERROR']
-  console.error('ERROR archive_snapshot',categories.find(value=>message.includes(value))??'database_error')
-  for(const item of catalog) {
-   try {await db.prepare(`SELECT payload FROM (${snapshotQuery(item,stream)}) LIMIT 1`).first()}
-   catch(failure) {
-    const detail=failure as {message?:unknown;cause?:{message?:unknown}}
-    const text=String(detail?.message??'')+' '+String(detail?.cause?.message??'')
-    console.error('ERROR archive_snapshot_table',item.table,categories.find(value=>text.includes(value))??'database_error')
-   }
-  }
-  throw error
- }
+ await db.batch(statements)
  return jobFor(db,id,actor,'export')
 }
 export async function exportChunk(db:D1Database,actor:Authority,job:Job,index:number):Promise<Chunk|null> {
