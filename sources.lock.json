@@ -2270,7 +2270,7 @@
       "executable": false
     },
     "tests/porthole/health.mjs": {
-      "sha256": "2d8290d15ed351a3be7ee89ea5e56a31713b410d501326fb71e84e4e103a6c67",
+      "sha256": "0abad0f2f65ea9b68fed77fcfa2a082a622b07dad013ff044b7e05f7d782419b",
       "executable": false
     },
     "tests/porthole/ingest.mjs": {

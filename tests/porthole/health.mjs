@@ -149,6 +149,7 @@ async function healthAccessJourney({origin,freshOwner,signIn}) {
  assert.equal((await post('/app/settings/members/invite',{email,displayName:'Staging responder',role:'responder',scope:{...scope,environments:['staging']}})).status,202)
  const staging=await signIn(email)
  for(const path of ['/api/v1/health','/app/health'])assert.equal((await fetch(origin+path,{headers:{cookie:staging}})).status,403)
+ await healthBrowser({origin,cookie:staging,name:'health-out-of-scope',readOnly:true,expectedStatus:403,contains:'Your membership must cover production'})
  const state=await health(cookie)
  assert.equal((await post('/api/v1/health/configuration',{revision:state.configuration.revision,freshnessSeconds:60,noticesEnabled:false})).status,200)
  const disabled=await health(cookie)
@@ -158,14 +159,14 @@ async function healthAccessJourney({origin,freshOwner,signIn}) {
  return readers
 }
 
-export async function healthBrowser({origin,cookie,name,readOnly=false,path='/app/health',contains}) {
+export async function healthBrowser({origin,cookie,name,readOnly=false,path='/app/health',contains,expectedStatus=200}) {
  const {chromium}=await import('@playwright/test'),{mkdir}=await import('node:fs/promises'),{join}=await import('node:path')
  const browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']})
  try {for(const width of [1440,390]) {
   const context=await browser.newContext({viewport:{width,height:width===1440?900:844}})
   if(cookie)await context.addCookies(cookie.split('; ').map(value=>({name:value.slice(0,value.indexOf('=')),value:value.slice(value.indexOf('=')+1),url:origin})))
   const page=await context.newPage(),errors=[];page.on('pageerror',error=>errors.push(error.message))
-  const response=await page.goto(origin+path);assert.equal(response.status(),200)
+  const response=await page.goto(origin+path);assert.equal(response.status(),expectedStatus)
   if(contains)assert.ok((await page.locator('body').innerText()).includes(contains))
   if(readOnly)assert.equal(await page.locator('form').count(),0)
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'no horizontal overflow')
@@ -175,7 +176,9 @@ export async function healthBrowser({origin,cookie,name,readOnly=false,path='/ap
 }
 
 /** Actual emitted Worker with only the SendGrid HTTP edge replaced by its
- * documented 202/4xx envelope. No health, notice or evaluation results are faked. */
+ * documented 202/403 envelope. Schema: SendGrid v3 Mail Send, reviewed 2026-10-22,
+ * https://www.twilio.com/docs/sendgrid/api-reference/mail-send/mail-send
+ * No health, notice or evaluation results are faked. */
 export async function recipientMailJourney() {
  const {createRequire}=await import('node:module'),{readdir,readFile,mkdtemp,rm}=await import('node:fs/promises')
  const {resolve,join}=await import('node:path'),{tmpdir}=await import('node:os'),{randomBytes,randomUUID}=await import('node:crypto')
@@ -209,7 +212,7 @@ export async function recipientMailJourney() {
    assert.equal(request.url,'https://api.sendgrid.com/v3/mail/send');assert.equal(request.method,'POST')
    const message=await request.json();assert.equal(message.personalizations.length,1);assert.equal(message.personalizations[0].to.length,1)
    messages.push(message)
-   return new Response(null,{status:providerStatus,headers:{'x-message-id':'synthetic-porthole-946'}})
+   return providerStatus===202?new Response(null,{status:202,headers:{'x-message-id':'synthetic-porthole-946'}}):Response.json({errors:[{message:'synthetic-porthole-948',field:null}]},{status:providerStatus})
   }})
  const call=(path,options={})=>mf.dispatchFetch(origin+path,{...options,headers:{...options.headers,host:new URL(origin).host,'cf-connecting-ip':'127.0.0.1'}})
  const post=async(path,data,status=200,acting=cookie)=>{const response=await call(path,form(origin,acting??'',data));assert.equal(response.status,status,path+': '+(response.status===status?'':await response.clone().text()));return response}
@@ -220,7 +223,7 @@ export async function recipientMailJourney() {
  }
  const tokenFrom=message=>{const text=message.content.find(row=>row.type==='text/plain').value;const match=text.match(/https:\/\/127\.0\.0\.1:\d+\/app\/health\/confirm\?token=([A-Za-z0-9_-]{43})/);assert.ok(match,'confirmation link delivered to the mail edge');return match[1]}
  const notices=()=>messages.filter(message=>message.custom_args.rer_delivery_id.startsWith('porthole-health/'))
- const browser=async(token,name,confirmed=false)=>{
+ const browser=async(token,name,confirmed=false,expired=false)=>{
   const {chromium}=await import('@playwright/test')
   const browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']})
   try {for(const width of [1440,390]) {
@@ -233,6 +236,13 @@ export async function recipientMailJourney() {
    assert.equal(response.status(),200);assert.ok(await page.getByRole('button',{name:'Confirm independent notices',exact:true}).isVisible())
    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth))
    if(process.env.PORTHOLE_EVIDENCE_DIR)await page.screenshot({path:join(process.env.PORTHOLE_EVIDENCE_DIR,`${name}-${width}.png`),fullPage:true})
+   if(expired) {
+    const failed=page.waitForResponse(response=>response.url().endsWith('/app/health/confirm') && response.request().method()==='POST')
+    await page.getByRole('button',{name:'Confirm independent notices',exact:true}).click()
+    assert.equal((await failed).status(),410);await page.getByRole('alert').waitFor()
+    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth))
+    if(process.env.PORTHOLE_EVIDENCE_DIR)await page.screenshot({path:join(process.env.PORTHOLE_EVIDENCE_DIR,`recipient-expired-${width}.png`),fullPage:true})
+   }
    if(confirmed && width===390) {
     await page.getByRole('button',{name:'Confirm independent notices',exact:true}).click()
     await page.getByRole('heading',{name:'Independent notices confirmed',exact:true}).waitFor()
@@ -289,6 +299,7 @@ export async function recipientMailJourney() {
   await configure();const expired=tokenFrom(messages.at(-1))
   await db.prepare('UPDATE porthole_health_recipients SET expires_at=? WHERE removed_at IS NULL').bind(Date.now()-1).run()
   await post('/app/health/confirm',{token:expired},410,'')
+  await browser(expired,'recipient-stale-preview',false,true)
   providerStatus=403;await configure();providerStatus=202
   assert.equal((await health()).configuration.recipientStatus,'confirmation delivery failed')
   assert.equal((await health()).configuration.noticesEnabled,false)
