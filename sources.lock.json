@@ -318,7 +318,7 @@
       "executable": false
     },
     "migrations/core/0027_porthole_trace_lookup.sql": {
-      "sha256": "6dc3d887199c3c13dd233b3a39e3367b4482f202125ceb1eda5e533c6df5e15f",
+      "sha256": "7a7941468da9e965c0499c3c3f9b5ee7341c420b0ce96efe1dd3a5c8400e4882",
       "executable": false
     },
     "migrations/core/0028_porthole_analytical_connection.sql": {
@@ -2338,7 +2338,7 @@
       "executable": false
     },
     "tests/porthole/analytics.mjs": {
-      "sha256": "d4b0d71b035ff7f2294351df8bc52eb81e21b9b711f8de994379dffe7dd9b142",
+      "sha256": "573b425b06ea57247d1164964cb0a29db9e0b7845fef7dab6d04fb3d13023f0d",
       "executable": false
     },
     "tests/porthole/archive.mjs": {
@@ -2370,7 +2370,7 @@
       "executable": false
     },
     "tests/porthole/health.mjs": {
-      "sha256": "e9499ec1871a20ede1f413d9553a83c932acd8fb4baccbf1a9fdfd8ba5222cee",
+      "sha256": "1366a8523bbdd659bcfb403fb475f6b974fce09fb760df98ad802f351c826fcd",
       "executable": false
     },
     "tests/porthole/ingest.mjs": {
