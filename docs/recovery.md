@@ -77,7 +77,7 @@ private audit facts in the same transaction and never expose the secret values.
    remain durable; there is no automatic failover or repair execution.
 4. Reconcile the standby until it covers every completed control-plane envelope,
    then select standby and submit the reviewed connection change. A behind
-   standby is refused and the selected role remains unchanged. If new completion
+   standby is refused and the selected role remains unchanged, including after a pause. Pausing cannot change the selected role. If new completion
    work races the coverage check, the transaction refuses the change for retry.
    Query through the normal product door and inspect its standby watermark.
 5. Restart the primary, resume the actual collector, and run bounded drains and

@@ -3,7 +3,7 @@ import {AuthError} from '../../modules/operator-auth/index.mjs'
 import {authority,fail,proofFence} from '../security/authority'
 import {input} from '../security/input'
 import {operationDocument as document,escape,privateHeaders} from '../document'
-import {configuration,coverage,ready,reconcile,roles,watermark,type Role} from './client'
+import {configuration,coverage,ready,reconcile,roles,watermark,rpc,type Coverage,type Role} from './client'
 export async function analyticalResponse(request:Request,env:Bindings):Promise<Response|null>{
  const url=new URL(request.url),page=['/app/settings/analytics','/app/settings/analytics/reconcile'].includes(url.pathname)
  if(!page&&!['/api/porthole/v1/analytics/configuration','/api/porthole/v1/analytics/reconcile'].includes(url.pathname))return null
@@ -19,8 +19,9 @@ export async function analyticalResponse(request:Request,env:Bindings):Promise<R
    const enabled=data.enabled===true||data.enabled==='true'?1:data.enabled===false||data.enabled==='false'?0:fail('invalid_configuration',400),role=String(data.role) as Role
    if(!roles.includes(role)||Number(data.revision)!==config.revision||data.confirm!=='connect-analytical-workers')fail('configuration_confirmation_required',400)
    if(enabled&&roles.some(role=>!ready(env,role)))fail('analytics_binding_missing',503)
+   if(!enabled&&role!==config.active_role)fail('pause_role_change_forbidden',409)
    const required=await watermark(env)
-   if(config.enabled&&enabled&&role!==config.active_role)await coverage(env,config,role,required)
+   if(enabled&&role!==config.active_role)await rpc<Coverage>(env,role,'/v1/coverage',{sourceIdentity:config.source_identity,requiredWatermark:required})
    const proof=proofFence(actor)
    const changed=await env.DB.prepare(`UPDATE porthole_analytical_configuration SET enabled=?,active_role=?,revision=revision+1,changed_at=?,configured_by=?,configurer_revision=?,configurer_version=? WHERE singleton=1 AND revision=? AND ${actor.fence} AND ${proof.sql} AND (SELECT COALESCE(MAX(completion_sequence),0) FROM porthole_ingest_batches WHERE state='complete')=? RETURNING revision`).bind(enabled,role,Date.now(),actor.member.operatorId,actor.member.revision,actor.session.operator.version,config.revision,...actor.args,...proof.args,required).all()
    if(!changed.results.length)fail('configuration_changed',409)
