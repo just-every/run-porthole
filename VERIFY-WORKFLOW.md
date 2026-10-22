@@ -25,7 +25,7 @@ aggregate.
 Shard jobs restore the pnpm dependency store and, for browser shards, the
 Chromium cache. They install frozen dependencies and run the seed's `deps`
 script to prepare its declared RER tools. Browser shards install Chromium and
-its system dependencies; other shards do not need a browser installation.
+its system dependencies; these headless journeys install only the current Chromium headless shell, preserving the default launch arguments. The traces and analytical recovery journeys have their own parallel push shards. Other shards do not need a browser installation.
 Caches reduce setup time without replacing the frozen install or verification.
 These package scripts work with both contained and packaged RER.
 

@@ -10,7 +10,7 @@ export async function traceJourney({origin,freshOwner,signIn,restartWorker,sql,w
  let cookie=await freshOwner()
  const post=async(route,data,status=200,acting=cookie)=>{const response=await fetch(origin+route,form(origin,acting,data));assert.equal(response.status,status,await response.clone().text());return response.json()}
  const get=async(route,acting=cookie)=>{const response=await fetch(origin+route,{headers:{cookie:acting}});assert.equal(response.status,200,await response.clone().text());return response.json()}
- const scope={services:['checkout','python','java','go','dotnet','ruby','php'],environments:['production'],teams:['commerce']}
+ const scope={services:['checkout','python','java','go','dotnet','ruby','php'],environments:['production'],teams:['commerce','fulfillment']}
  const source=await post('/app/settings/credentials/mint',{name:'synthetic-porthole-1100',class:'ingest',scope:{...scope,signals:['traces'],actions:['telemetry.write']}},201)
  // A subprocess imports the shipped register module before any HTTP/gRPC
  // client/server. No span payloads or expected timings are generated here.
@@ -59,6 +59,15 @@ export async function traceJourney({origin,freshOwner,signIn,restartWorker,sql,w
  assert.ok(broken.diagnostics.includes('missing_or_out_of_scope_parent'),'the actual TCP propagation boundary is exposed')
  assert.ok(broken.spans.some(span=>span.parentSpanId==='00000000000000ff'&&span.parent===null))
  await healthBrowser({origin,cookie,path:'/app/traces/'+receipt.brokenTraceId,name:'trace-runtime-broken-boundary',contains:'missing or out of scope parent'})
+ if(estate){
+  assert.deepEqual([...new Set(graph.spans.map(span=>span.team))].sort(),['commerce','fulfillment'])
+  const email='synthetic-porthole-1131@example.com'
+  await post('/app/settings/members/invite',{email,displayName:'Fulfillment trace analyst',role:'read-only analyst',scope:{services:['php'],environments:['production'],teams:['fulfillment']}},202)
+  const restricted=await signIn(email),scoped=await get(path+traceId,restricted)
+  assert.ok(scoped.recordCount>0);assert.ok(scoped.spans.every(span=>span.service==='php'&&span.team==='fulfillment'))
+  assert.ok(scoped.diagnostics.includes('missing_or_out_of_scope_parent'))
+  await healthBrowser({origin,cookie:restricted,path:'/app/traces/'+traceId,name:'trace-real-team-boundary',contains:'missing or out of scope parent'})
+ }
  const original=structuredClone(graph),snapshot=graph.snapshot
  await restartWorker();cookie=await freshOwner()
  assert.deepEqual(await get(path+traceId+'?snapshot='+snapshot),original,'trace and original nanoseconds survive Worker restart')

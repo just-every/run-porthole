@@ -1,6 +1,6 @@
 # Recovering Porthole's own pipeline
 
-The current pipeline is an owner-account Cloudflare Worker and D1. Accepted OTLP HTTP, Prometheus remote-write and Loki envelopes enter `porthole_ingest_batches`; a bounded drain writes normalized records and retained archive copies, then marks the batch complete in the same D1 transaction. Event nanoseconds are preserved. D1 is both the current analytical store and control-plane store. There is no separately provisioned analytical cluster or independently qualified analytical failover. A D1-wide outage also prevents native authentication and this health door; configure an external uptime check against `/health` in addition to the independent mail path below.
+Porthole's Base control plane keeps authentication, owner grants, durable ingest envelopes, audit and independent notices in its own Worker/D1. With analytical connections configured, product reads, monitor counts and storage/query health use a separately selected primary or standby Worker and its independent store. Accepted data remains durable in the control-plane journal while an analytical process is down. An installation with no analytical bindings retains its earlier local reader; adding any connection binding or authorizing a connection disables implicit local analytical fallback. A control-plane D1 outage still prevents native authentication and its health door: an external check remains necessary under PORT-094.
 
 ## Before an incident
 
@@ -29,6 +29,82 @@ Owners inspect `GET /api/porthole/v1/ingest/status`. Use the native owner contro
 
 Independent notices retain one failure and one recovery record per component episode. Worker restarts reuse the stored message, lease and provider idempotency key. The exact message remains frozen through retries. Resend documents a 24-hour deduplication period; its worker retries stop after 23 hours from the first attempt. See [Resend's idempotency contract](https://resend.com/docs/dashboard/emails/idempotency-keys). SendGrid does not guarantee equivalent deduplication, so an ambiguous submission or expired in-flight lease becomes uncertain without automatic resubmission. Both paths retain the frozen request and original notice identity. Rejected and expired-uncertain submissions require owner investigation at the provider; there is no automatic resend with a new identity. Inspect the provider event against the retained notice ID before authorizing any manual message. Reconfiguring notices cancels older pending work and begins new monitoring episodes; an already in-flight request may finish. Background attempt/result audit entries contain only opaque notice identities and status, never recipients, message bodies or transport credentials.
 
+
+## Separate analytical workers, failover and failback
+
+Stage the edition-owned analytical products with `node scripts/analytical/cli.mjs stage`.
+The supported owner lifecycle also accepts `dry-run`, `deploy`, `health`, `inspect`
+and `remove` with `--environment` and optional `--role primary|standby`. Keep the
+existing project/Worker identifiers and each role's separate owner state file.
+Deployment requires the owner's provider authority; a staged artifact alone
+proves no deployed installation. PORT-031 still owns the whole installation's
+infrastructure and account qualification.
+
+Bind `ANALYTICS_PRIMARY` and `ANALYTICS_STANDBY` to the selected Worker services,
+or supply their HTTPS origins through `ANALYTICS_PRIMARY_URL` and
+`ANALYTICS_STANDBY_URL`. URL connections require normal TLS verification and
+refuse redirects. Give each worker a different private `ANALYTICS_TOKEN`, and
+supply the matching value only to the control plane as
+`ANALYTICS_PRIMARY_TOKEN` or `ANALYTICS_STANDBY_TOKEN`. Keep these installation
+connection secrets out of URLs, logs, browser fields and archives. Collector or
+read credentials are not connection credentials. Each worker pins replication
+to one installation identity; a different source is refused. Product readers'
+current service, environment and team grants are applied on the worker and
+rechecked before results leave the control plane, including after revocation.
+
+A native owner with proof from the preceding five minutes opens
+`/app/settings/analytics`, reviews the selected primary and explicitly authorizes
+replication. Admins and bearer credentials cannot configure it. The corresponding
+JSON door is `POST /api/porthole/v1/analytics/configuration` with the current
+revision, `role`, `enabled` and `confirm: "connect-analytical-workers"`. The
+connection remains suspended if its configurer stops being a current owner or
+changes revision; a current owner must explicitly reauthorize it. Changes commit
+private audit facts in the same transaction and never expose the secret values.
+
+1. Use **Resume bounded replication**, or the owner reconciliation API
+   `POST /api/porthole/v1/analytics/reconcile`. Scheduled/manual ingest drains do
+   the same work. Each role copies at most 20 completed envelopes per pass,
+   additionally bounded by encoded bytes. Replication preserves event/index
+   timestamps and immutable record IDs. Retries check exact content identity.
+2. Inspect both workers' contiguous coverage watermarks in Settings and the
+   selected worker's watermark in product query replies. A high sequence above
+   a missing prefix does not constitute coverage. Queries and monitor evaluation
+   refuse missing coverage rather than reading local analytical copies.
+3. During an outage, keep reading authenticated Pipeline health and its scoped
+   last-known evidence. Authentication and independent mail submissions remain
+   on the Base control plane. Stopped/unreachable analytical workers produce
+   Unknown and preserve firing episodes. Accepted intake and pending notices
+   remain durable; there is no automatic failover or repair execution.
+4. Reconcile the standby until it covers every completed control-plane envelope,
+   then select standby and submit the reviewed connection change. A behind
+   standby is refused and the selected role remains unchanged. If new completion
+   work races the coverage check, the transaction refuses the change for retry.
+   Query through the normal product door and inspect its standby watermark.
+5. Restart the primary, resume the actual collector, and run bounded drains and
+   reconciliation until the primary catches up. Select primary through the same
+   reviewed owner door to fail back. Repeat reads and monitor evaluations under
+   the original definition/window; check exact counts and original timestamps.
+   Accepted notice identities never acquire a new send just because health is
+   ticked again or a role changes.
+
+Whole-product and native Base archives retain connection configuration as
+quarantined history, with no connection token or live connection authority.
+A restored destination has its own installation identity and starts paused.
+Its owner selects separate destination workers and explicitly reconnects before
+replaying retained data. Reauthorizing historical storage alone does not create
+fresh collector or telemetry coverage. PORT-035's future retention/erasure and
+PORT-058's upgrade work inherit this identity, coverage and inactive-restore
+boundary before adding destructive maintenance.
+
+`tests/porthole/analytics.mjs` analyticalKernelJourney and
+analyticalConnectionJourney exercise separate real Worker/D1 processes through
+`tests/runtime.mjs`: product reads/evaluation/health, a collector and primary
+process stop, the documented provider-edge independent notice, behind refusal,
+manual failover/failback, original nanoseconds, bounded backlog and duplicate
+protection. Owner authority changes and an independently owned inactive archive
+restore are included. This is separate-backend functional recovery proof; it is
+not a deployed Base control-plane outage/restore or repair-provider receipt.
+
 ## Back up and restore
 
 Use the supported Base installation commands from the checkout associated with this installation:
@@ -49,6 +125,6 @@ For a portable product backup, use Settings → Archive or `node scripts/porthol
 
 Product restore uses `node scripts/porthole/archive.mjs restore ORIGIN DIRECTORY --confirm` or Settings → Archive. It stages and validates every manifest/chunk and commits only to an empty product beside the destination's bootstrapped native owner and current audit/erasure history. The commit requires the exact manifest root hash. Restored historical actors are inactive; definitions are quarantined, approvals are not executable, and collection remains paused. Imported event/index times do not assert current live health. Review configuration, activate only approved definitions, establish new destination credentials/collector heartbeats, resume intake and compare retained counts/event times before handing traffic over. Source cleanup is a separate owner decision.
 
-The executed local Base export/import journey qualifies inactive data transfer and an independently bootstrapped destination owner. The held-key production-mode mail journey qualifies native consent, collector-loss notification, controlled-mailbox delivery and restart without duplicate submission. Separate analytical Worker kernels have a process-stop/standby replay journey, but are not connected to the product path. Product integration with separate analytical workers and failover remain unqualified under PORT-093. A deployed Base control-plane outage/restore remains unqualified under PORT-094. Real production repair execution remains unqualified under PORT-095 and requires an owner-authorized repair-provider estate and scoped execution credentials. PORT-037 now covers pipeline health, collector outage, analytical read failure and durable ingest/notice resume; its production-mode Worker recovery journey proves those current doors with a SendGrid network-edge fixture. Separate-backend, deployed-restore and repair-execution proof is not inferred from this journey.
+The executed local Base export/import journey qualifies inactive data transfer and an independently bootstrapped destination owner. The held-key production-mode mail journey qualifies native consent, collector-loss notification, controlled-mailbox delivery and restart without duplicate submission. Separate analytical workers are connected to product query, monitor evaluation and health, with the combined process-stop/failover journey under PORT-093 above. A deployed Base control-plane outage/restore remains unqualified under PORT-094. Real production repair execution remains unqualified under PORT-095 and requires an owner-authorized repair-provider estate and scoped execution credentials. PORT-037 now covers pipeline health, collector outage, analytical read failure and durable ingest/notice resume; its production-mode Worker recovery journey proves those current doors with a SendGrid network-edge fixture. Separate-backend, deployed-restore and repair-execution proof is not inferred from this journey.
 
 Independent notices follow ct's approved 22 October 2026 policy: owner and admin configure them from a native session with fresh step-up. The configurer's own verified sign-in address is confirmed immediately; any other recipient must use its single-use confirmation link before receiving notices. Grants, confirmations and removals are audited. Until a recipient is confirmed, Pipeline health and setup show 'Independent notices off' as incomplete coverage, never Healthy.

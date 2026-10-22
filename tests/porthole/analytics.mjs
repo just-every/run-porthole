@@ -73,7 +73,9 @@ try {
 
 }
 
+let estateSequence=0
 export async function analyticalEstate() {
+ const sequence=++estateSequence
  const execute=promisify(execFile),root=process.cwd(),scratch=await mkdtemp(join(tmpdir(),'porthole-connection-')),servers=[]
  const wrangler=join(root,'node_modules/wrangler/bin/wrangler.js'),env={...process.env,CI:'1',WRANGLER_SEND_METRICS:'false'}
  const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms))
@@ -84,7 +86,7 @@ export async function analyticalEstate() {
  try{
   await cp(join(root,'workers/analytics'),join(scratch,'workers/analytics'),{recursive:true,filter:path=>!path.includes('/.staged')&&!path.includes('/.state')})
   for(const product of await stageAnalytics(scratch)){
-   const listener=await port(),server={role:product.role,config:join(scratch,product.config),persist:join(scratch,product.role),port:listener,origin:'http://127.0.0.1:'+listener,token:'synthetic-porthole-'+(product.role==='primary'?1200:1201)};servers.push(server)
+   const listener=await port(),server={role:product.role,config:join(scratch,product.config),persist:join(scratch,product.role),port:listener,origin:'http://127.0.0.1:'+listener,token:'synthetic-porthole-'+(1200+sequence*10+(product.role==='primary'?0:1))};servers.push(server)
    await execute(process.execPath,[wrangler,'d1','migrations','apply','DB','--local','--config',server.config,'--persist-to',server.persist],{cwd:scratch,env});await start(server)
   }
   const find=role=>servers.find(server=>server.role===role)
@@ -201,7 +203,7 @@ export async function analyticalConnectionJourney() {
     await db.prepare("INSERT INTO oa_tokens(id,token_hash,kind,operator_id,operator_version,issuer_id,issuer_version,return_to,created_at,expires_at) VALUES(?,?,'invite',?,?,?,?, '/app',?,?)").bind(randomUUID(),await hashToken(sessionSecret,'link',token),member.id,member.version,owner.operator.id,owner.operator.version,now,now+120000).run()
     let response=await post('/auth/confirm',{token},303,'')
     if(role==='owner'){
-     await send('/app/settings/members/change',{operatorId:member.id,role:'owner',scope:{services:['*'],environments:['*'],teams:['*']}})
+     await send('/app/settings/members/change',{operatorId:member.id,role:'owner',confirmEmail:email,scope:{services:['*'],environments:['*'],teams:['*']}})
      const current=await db.prepare('SELECT id,version FROM oa_operators WHERE id=?').bind(member.id).first(),proof=randomBytes(32).toString('base64url'),at=Date.now()
      await db.prepare("INSERT INTO oa_tokens(id,token_hash,kind,operator_id,operator_version,return_to,created_at,expires_at) VALUES(?,?,'magic',?,?,'/app',?,?)").bind(randomUUID(),await hashToken(sessionSecret,'link',proof),current.id,current.version,at,at+120000).run()
      response=await post('/auth/confirm',{token:proof},303,'')
@@ -221,6 +223,7 @@ export async function analyticalConnectionJourney() {
    const {analyticalArchiveSnapshot,restoreAnalyticalSnapshot}=await import('./archive.mjs')
    const saved=await analyticalArchiveSnapshot({origin,cookie:nextOwner}),destination=await analyticalEstate()
    try {
+    assert.equal((await fetch(destination.origin('primary')+'/v1/health',{headers:{authorization:'Bearer '+estate.bindings.ANALYTICS_PRIMARY_TOKEN}})).status,401,'a source installation connection token cannot read a separately selected destination')
     await recipientMailJourney({bindings:destination.bindings,services:destination.services,ownerEmail:'synthetic-porthole-1282@example.com',run:async restored=>{
      const inactive=await restoreAnalyticalSnapshot({context:restored,saved,times})
      const original=(await getDb().prepare('SELECT source_identity FROM porthole_analytical_configuration').first()).source_identity
