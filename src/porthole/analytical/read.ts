@@ -6,7 +6,12 @@ import {fence,query,type Configuration} from './client'
 export async function readAnalytical(request:Request,env:Bindings,config:Configuration,context:{scope:Scope;actorRef:string;actorRevision:number;fence:{sql:string;args:unknown[]};snapshot:number;queryRef:string;queryScope:string;from:string;through:string;signal:string;limit:number;archive:boolean}) {
  const params=new URL(request.url).searchParams,{scope,snapshot,from,through,signal,limit,archive,queryRef}=context
  const active=fence(config)
- const live=request.headers.has('authorization')?(await verifyCredential(request,env,{action:'telemetry.read',scope:emptyScope,dataScope:allScope,inspectOnly:true})).fence:context.fence
+ let live=context.fence
+ if(request.headers.has('authorization')){
+  const inspected=await verifyCredential(request,env,{action:'telemetry.read',scope:emptyScope,dataScope:allScope,inspectOnly:true})
+  if(!inspected.credential.scope.signals.includes(signal)||(['services','environments','teams'] as const).some(key=>JSON.stringify(inspected.credential.scope[key])!==JSON.stringify(scope[key])))fail('authority_changed',409)
+  live=inspected.fence
+ }
  if(!await env.DB.prepare(`SELECT 1 AS live WHERE (${live.sql}) AND (${active.sql})`).bind(...live.args,...active.args).first())fail('authority_changed',409)
  const data=await query(env,config,{signal,scope:{services:scope.services,environments:scope.environments,teams:scope.teams},from,through,snapshot,limit,archive,...Object.fromEntries([...params].filter(([key])=>['service','environment','team','cursor','trace'].includes(key)))})
  if(data.sourceIdentity!==config.source_identity||!Array.isArray(data.records)||data.records.length>limit||data.snapshot!==snapshot||!Number.isSafeInteger(data.watermark)||data.watermark<snapshot)fail('analytics_invalid_response',503)

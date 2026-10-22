@@ -29,7 +29,7 @@ export async function rpc<T>(env:Bindings,role:Role,path:string,input?:unknown):
   if(url!.protocol!=='https:'||url!.username||url!.password||url!.search||url!.hash||url!.pathname!=='/')fail('analytics_https_origin_required',503)
   base=url!.origin
  }
- const request=new Request(base+path,{method:input===undefined?'GET':'POST',headers:{authorization:'Bearer '+token,...(input===undefined?{}:{'content-type':'application/json'})},...(input===undefined?{}:{body:JSON.stringify(input)}),redirect:'error',signal:AbortSignal.timeout(3000)})
+ const request=new Request(base+path,{method:input===undefined?'GET':'POST',headers:{authorization:'Bearer '+token,...(input===undefined?{}:{'content-type':'application/json'})},...(input===undefined?{}:{body:JSON.stringify(input)}),redirect:'manual',signal:AbortSignal.timeout(3000)})
  let response:Response
  try{response=binding?await binding.fetch(request):await fetch(request)}catch{fail('analytics_unreachable',503)}
  const reader=response!.body?.getReader();if(!reader)fail('analytics_invalid_response',503)
