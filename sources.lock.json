@@ -2390,7 +2390,7 @@
       "executable": false
     },
     "tests/porthole/traces.mjs": {
-      "sha256": "220d1abd3a60cf1494f5be3a602dbe7491ddb3c606c1d40853c16d89b4781919",
+      "sha256": "6e2af4439c4d55d67422f16a8b7bc76ea9fdfb78699ff95dc1f7aeacdc269f3d",
       "executable": false
     },
     "tests/runtime.mjs": {
