@@ -71,9 +71,11 @@ export async function recoveryJourney({origin,freshOwner,restartWorker,sql,signI
    assert.equal(scoped.status,'Unknown');assert.equal(component(scoped,'query').status,'Unknown')
    if(reader.role==='finance reader') {assert.deepEqual(component(scoped,'query').evidence.lastKnown,[]);assert.deepEqual(component(scoped,'monitor-evaluation').evidence.monitors,[])}
    else assert.ok(component(scoped,'query').evidence.lastKnown.some(row=>row.service===scope.services[0]))
-   assert.ok(component(scoped,'query').evidence.lastKnown.every(row=>row.service===scope.services[0] && row.environment==='production' && row.team===scope.teams[0]))
-   assert.equal(scoped.configuration.recipient,null)
-   assert.ok(component(scoped,'monitor-evaluation').evidence.monitors.every(row=>row.monitorId===created.id))
+   if(reader.role!=='admin') {
+    assert.ok(component(scoped,'query').evidence.lastKnown.every(row=>row.service===scope.services[0] && row.environment==='production' && row.team===scope.teams[0]))
+    assert.equal(scoped.configuration.recipient,null)
+    assert.ok(component(scoped,'monitor-evaluation').evidence.monitors.every(row=>row.monitorId===created.id))
+   }
   }
   await healthBrowser({origin,cookie:readers.find(row=>row.role==='responder').cookie,name:'health-responder-outage',readOnly:true})
   const outage=await post('/api/v1/health/tick',{})
@@ -143,7 +145,8 @@ async function healthAccessJourney({origin,freshOwner,signIn}) {
   if(role==='admin') {
    assert.equal((await changed.json()).noticesEnabled,true,'admin own verified address enabled immediately')
    await healthBrowser({origin,cookie:signed,name:'health-admin-confirmed'})
-  } else readers.push({role,cookie:signed})
+  }
+  readers.push({role,cookie:signed})
  }
  const email='synthetic-porthole-936@example.com'
  assert.equal((await post('/app/settings/members/invite',{email,displayName:'Staging responder',role:'responder',scope:{...scope,environments:['staging']}})).status,202)
@@ -159,16 +162,22 @@ async function healthAccessJourney({origin,freshOwner,signIn}) {
  return readers
 }
 
-export async function healthBrowser({origin,cookie,name,readOnly=false,path='/app/health',contains,expectedStatus=200}) {
+export async function healthBrowser({origin,cookie,name,readOnly=false,path='/app/health',contains,expectedStatus=200,dispatch}) {
  const {chromium}=await import('@playwright/test'),{mkdir}=await import('node:fs/promises'),{join}=await import('node:path')
  const browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']})
  try {for(const width of [1440,390]) {
   const context=await browser.newContext({viewport:{width,height:width===1440?900:844}})
+  if(dispatch)await context.route(origin+'/**',async route=>{
+   const request=route.request(),response=await dispatch(request.url(),{method:request.method(),headers:request.headers(),...(request.postDataBuffer()?{body:request.postDataBuffer()}:{})})
+   await route.fulfill({status:response.status,headers:Object.fromEntries(response.headers),body:Buffer.from(await response.arrayBuffer())})
+  })
   if(cookie)await context.addCookies(cookie.split('; ').map(value=>({name:value.slice(0,value.indexOf('=')),value:value.slice(value.indexOf('=')+1),url:origin})))
   const page=await context.newPage(),errors=[];page.on('pageerror',error=>errors.push(error.message))
   const response=await page.goto(origin+path);assert.equal(response.status(),expectedStatus)
   if(contains)assert.ok((await page.locator('body').innerText()).includes(contains))
   if(readOnly)assert.equal(await page.locator('form').count(),0)
+  await page.keyboard.press('Tab')
+  assert.ok(await page.evaluate(()=>document.activeElement!==document.body),'health controls are keyboard reachable')
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'no horizontal overflow')
   if(process.env.PORTHOLE_EVIDENCE_DIR) {await mkdir(process.env.PORTHOLE_EVIDENCE_DIR,{recursive:true});await page.screenshot({path:join(process.env.PORTHOLE_EVIDENCE_DIR,`${name}-${width}.png`),fullPage:true})}
   assert.deepEqual(errors,[]);await context.close()
@@ -323,6 +332,13 @@ export async function recipientMailJourney() {
   for(const action of ['health.recipient-grant','health.recipient-confirm','health.recipient-remove'])assert.ok(committed.some(row=>row.action===action),action)
   assert.equal(committed.filter(entry=>entry.action==='health.recipient-confirm'&&entry.entityRef===row.id).length,1,'single-use confirmation commits once')
   for(const value of [recipient,confirmation,replaced,expired])assert.ok(!JSON.stringify(audit).includes(value),'audit excludes address and bearer links')
+  await db.exec('ALTER TABLE porthole_unavailable_records RENAME TO porthole_telemetry_records;')
+  const {durableRecoveryJourney}=await import('./durable-recovery.mjs')
+  await durableRecoveryJourney({origin,call,post,health,messages,ownerEmail,
+   read:async path=>{const response=await call(path,{headers:{cookie}});assert.equal(response.status,200);return response.json()},
+   sql:statement=>db.exec(statement),
+   restart:async()=>{await mf.dispose();mf=new Miniflare(options);db=await mf.getD1Database('DB')},
+   browser:name=>healthBrowser({origin,cookie,name,dispatch:(url,options)=>call(new URL(url).pathname+new URL(url).search,options)})})
   console.log('recipientMailJourney passed: real production Worker, own verified address, pending/confirmed/removed/expired grants, scanner-safe single use, admin delivery, live authority, restart deduplication, failure diagnostics and private audit; provider edge only, no live mailbox claim')
  } finally {await mf?.dispose();await rm(scratch,{recursive:true,force:true})}
 }

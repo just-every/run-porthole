@@ -5,6 +5,14 @@ interface Batch { id:string;source_id:string;signal:string;records:string;record
 export async function drainIngest(env: Bindings, options: {limit?:number;force?:boolean} = {}) {
  const limit = options.limit ?? 20
  if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100) throw new Error('invalid_drain_limit')
+ try { return await drain(env,options,limit) }
+ catch(error) {
+  await recordComponentReceipt(env.DB,{component:'queue',source:'ingest-worker',status:'Unknown',reason:'Durable intake drain failed; accepted envelopes remain pending.'})
+  throw error
+ }
+}
+
+async function drain(env: Bindings, options: {force?:boolean}, limit:number) {
  const control = await env.DB.prepare('SELECT paused FROM porthole_ingest_control WHERE singleton=1').first<{paused:number}>()
  if (!control) throw new Error('ingest_control_unavailable')
  let processedBatches = 0, processedRecords = 0
