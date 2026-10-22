@@ -199,8 +199,11 @@ export async function traceArchiveJourney({origin,cookie,traceId,snapshot,expect
  console.log('traceArchiveJourney passed: source snapshot descriptor and original graph/ns replay after independent inactive restore; no source session or credential authority')
 }
 
-export async function analyticalArchiveSnapshot({origin,cookie}) {
- return savedExport(origin,cookie,await post(origin,cookie,api+'/exports',{}))
+export async function analyticalArchiveSnapshot({context,cookie}) {
+ const job=await value(await context.post(api+'/exports',{},201,cookie),201),chunks=[]
+ for(let index=0;index<job.totalChunks;index++)chunks.push(await value(await context.call(`${api}/exports/${job.id}/chunks/${index}`,{headers:{cookie}})))
+ const manifest=await value(await context.call(`${api}/exports/${job.id}/manifest`,{headers:{cookie}}))
+ return {job,chunks,manifest,rows:chunks.flatMap(chunk=>chunk.rows)}
 }
 export async function restoreAnalyticalSnapshot({context,saved,times}) {
  const {post,call,cookie,getDb,health}=context

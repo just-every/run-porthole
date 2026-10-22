@@ -221,7 +221,7 @@ export async function analyticalConnectionJourney() {
    await post('/api/porthole/v1/analytics/configuration',{revision:nextConfig.revision,role:'primary',enabled:true,confirm:'connect-analytical-workers'},200,nextOwner)
    assert.equal((await call('/api/porthole/v1/ingest/records?signal=logs',{headers:{cookie:nextOwner}})).status,200,'a current owner explicitly reauthorizes the connection')
    const {analyticalArchiveSnapshot,restoreAnalyticalSnapshot}=await import('./archive.mjs')
-   const saved=await analyticalArchiveSnapshot({origin,cookie:nextOwner}),destination=await analyticalEstate()
+   const saved=await analyticalArchiveSnapshot({context,cookie:nextOwner}),destination=await analyticalEstate()
    try {
     assert.equal((await fetch(destination.origin('primary')+'/v1/health',{headers:{authorization:'Bearer '+estate.bindings.ANALYTICS_PRIMARY_TOKEN}})).status,401,'a source installation connection token cannot read a separately selected destination')
     await recipientMailJourney({bindings:destination.bindings,services:destination.services,ownerEmail:'synthetic-porthole-1282@example.com',run:async restored=>{
@@ -241,6 +241,6 @@ export async function analyticalConnectionJourney() {
    console.log('PORTHOLE_ANALYTICAL_RUN '+JSON.stringify({runId:'sx-porthole-c7-recovery-20261022',head:candidate,result:'passed'}))
    console.log('analyticalConnectionJourney passed: real independent primary/standby processes, product query/health/monitor, collector outage and direct provider-edge notice, behind refusal, explicit failover/failback, bounded 20/3 backlog, original ns and no duplicate records/notices')
   }})
- }finally{if(collector?.exitCode===null){const stopped=new Promise(resolve=>collector.once('exit',resolve));collector.kill('SIGTERM');await stopped}await estate.dispose()}
+ }finally{if(collector?.exitCode===null&&collector.signalCode===null){const stopped=new Promise(resolve=>collector.once('exit',resolve));collector.kill('SIGTERM');await stopped}await estate.dispose()}
 }
 if(process.argv[1]===new URL(import.meta.url).pathname)await analyticalKernelJourney()
