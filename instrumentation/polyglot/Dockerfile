@@ -24,10 +24,13 @@ WORKDIR /app
 COPY --from=go-build /app/app ./
 CMD ["./app"]
 
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS dotnet
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS dotnet-build
 WORKDIR /app
 COPY dotnet/ ./
 RUN --mount=type=secret,id=proxy_ca,required=true cp /run/secrets/proxy_ca /usr/local/share/ca-certificates/proxy.crt && update-ca-certificates && dotnet publish -c Release -o /app/out && rm /usr/local/share/ca-certificates/proxy.crt && update-ca-certificates
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS dotnet
+WORKDIR /app
+COPY --from=dotnet-build /app/out ./out
 CMD ["dotnet", "/app/out/Polyglot.dll"]
 
 FROM ruby:3.3-slim AS ruby

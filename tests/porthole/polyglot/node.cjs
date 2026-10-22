@@ -63,4 +63,4 @@ async function main(){
  await sdk.shutdown()
  process.stdout.write(JSON.stringify({traceId,brokenTraceId,elapsedNs:elapsed.toString()})+'\n')
 }
-main().catch(async()=>{for(const server of servers){if(server.forceShutdown)server.forceShutdown();else server.closeAllConnections?.()}await sdk.shutdown();process.stderr.write('Instrumented Node journey failed\n');process.exitCode=1})
+main().catch(async()=>{for(const server of servers){if(server.forceShutdown)server.forceShutdown();else {server.closeAllConnections?.();server.close()}}await sdk.shutdown();process.stderr.write('Instrumented Node journey failed\n');process.exitCode=1})
