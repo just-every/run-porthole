@@ -86,7 +86,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "67d8e085b46db0f2bf2e6df177305bb96b2172a07336a95653052413735a6c9e",
+      "sha256": "f6087ea17070f5d345a377df4dee48c5c1f93dcb0cfae85ae848baeba4727595",
       "executable": false
     },
     "AGENTS.md": {
@@ -102,7 +102,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "cc523d96c96a7b5f6cc650473755a89829c0268c36db8ce59050efe2e4744d7b",
+      "sha256": "663cd0ac9b0b3791a644afaa871999b124b7b3a944a267d6657f6330f3ab27ed",
       "executable": false
     },
     "DEMO.md": {
@@ -142,7 +142,7 @@
       "executable": false
     },
     "docs/recovery.md": {
-      "sha256": "1cbc10cdcf0d8abe559b3fc3b15e110786bd75f08721d82fa4524816b44ea8b5",
+      "sha256": "e3e8f9757f3c946a8975e09af4641cd873fc826f377ad5853cf80ef49f5f4644",
       "executable": false
     },
     "edition.json": {
@@ -1842,7 +1842,7 @@
       "executable": false
     },
     "src/porthole/analytical/client.ts": {
-      "sha256": "5b70d6b06c2399555039e4edb3ddbb58b0b1259fba123483d5eb05d30fe86879",
+      "sha256": "239a6184884cf0c480ffc1546dcc15e96d1b8bd611883fbe6cb4a56744ec2008",
       "executable": false
     },
     "src/porthole/analytical/http.ts": {
@@ -2338,11 +2338,11 @@
       "executable": false
     },
     "tests/porthole/analytics.mjs": {
-      "sha256": "09907a32f8e3078b9606a544685617bdf4de5887cb333023df042ad6b56b40e6",
+      "sha256": "a3f7428b0a050b6f2ce69aa5d992a57007f8bcf1f3c5873cdb3c28bd423fb697",
       "executable": false
     },
     "tests/porthole/archive.mjs": {
-      "sha256": "245f262060f69fa567fb5f022892bc5f46d8a16f49747c64ae0c6c6e1ac7d342",
+      "sha256": "516790c4e22fd8f42095691d723cb5d4b6eb8721b73adae10063bf1c8a9b14d4",
       "executable": false
     },
     "tests/porthole/audit.mjs": {
@@ -2458,11 +2458,11 @@
       "executable": false
     },
     "workers/analytics/query.mjs": {
-      "sha256": "15388d41d0b7c92b919e61523b967be18a783aa191877921396ec1f3b10e7af4",
+      "sha256": "12e7f2db87723e1ed9a9d471bb6ccb627410c0dc8d75028f151515bd99e3c8d7",
       "executable": false
     },
     "workers/analytics/replicate.mjs": {
-      "sha256": "ce47e6f1654412434861f4bcb4e94378fee4e41945bc933ab3110c2be9e95b6d",
+      "sha256": "b7a0f4be32f62084fa28031ed50c0d80a00a3a9277e20d5a0762388829bc7061",
       "executable": false
     },
     "wrangler.jsonc": {

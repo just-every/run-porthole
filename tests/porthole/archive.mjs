@@ -218,7 +218,7 @@ export async function restoreAnalyticalSnapshot({context,saved,times}) {
  const history=(await db.prepare("SELECT row FROM porthole_archive_health_history WHERE table_name='porthole_analytical_configuration'").all()).results
  assert.ok(history.some(row=>JSON.parse(row.row).enabled===1),'owner connection history is retained only as quarantined evidence')
  assert.equal((await health()).status,'Unknown')
- const retained=(await db.prepare("SELECT event_time_ns FROM porthole_telemetry_records WHERE service='checkout-api'").all()).results
+ const retained=(await db.prepare("SELECT event_time_ns FROM porthole_telemetry_records WHERE service='checkout-api' AND signal='logs'").all()).results
  assert.deepEqual(retained.map(row=>row.event_time_ns).sort(),times.map(time=>time.padStart(20,'0')).sort())
  assert.equal((await call('/api/porthole/v1/ingest/records?signal=logs',{headers:{cookie}})).status,503,'destination requires its own explicit analytical connection')
  return config

@@ -58,11 +58,12 @@ export async function reconcile(env:Bindings) {
   const state=await rpc<Coverage>(env,role,'/v1/health')
   if(state.sourceIdentity&&state.sourceIdentity!==config.source_identity)fail('analytics_source_mismatch',409)
   stage='read_sealed_envelopes'
-  const batches=(await env.DB.prepare("SELECT id,completion_sequence,source_id,signal,digest,accepted_at,completed_at FROM porthole_ingest_batches WHERE state='complete' AND completion_sequence>? ORDER BY completion_sequence LIMIT 20").bind(state.watermark).all<{id:string;completion_sequence:number;source_id:string;signal:string;digest:string;accepted_at:number;completed_at:number}>()).results
+  const batches=(await env.DB.prepare("SELECT id,completion_sequence,source_id,signal,digest,accepted_at,completed_at,record_count FROM porthole_ingest_batches WHERE state='complete' AND completion_sequence>? ORDER BY completion_sequence LIMIT 20").bind(state.watermark).all<{id:string;completion_sequence:number;source_id:string;signal:string;digest:string;accepted_at:number;completed_at:number;record_count:number}>()).results
   const packets=[];let bytes=0
   for(const batch of batches){
-   const records=(await env.DB.prepare('SELECT * FROM porthole_telemetry_records WHERE batch_id=? ORDER BY ordinal').bind(batch.id).all<AnalyticalRecord&{ordinal:number;payload:string}>()).results
-   const packet={id:batch.id,completionSequence:batch.completion_sequence,sourceId:batch.source_id,signal:batch.signal,digest:batch.digest,acceptedAt:batch.accepted_at,completedAt:batch.completed_at,records:records.map(row=>({id:row.id,ordinal:row.ordinal,team:row.team,service:row.service,environment:row.environment,eventTimeNs:row.event_time_ns,traceId:row.trace_id,spanId:row.span_id,payload:JSON.parse(row.payload),indexedAt:row.indexed_at,late:row.late,outOfOrder:row.out_of_order}))}
+   const records=(await env.DB.prepare('SELECT r.*,a.archived_at FROM porthole_telemetry_records r JOIN porthole_telemetry_archive a ON a.id=r.id WHERE r.batch_id=? ORDER BY r.ordinal').bind(batch.id).all<AnalyticalRecord&{ordinal:number;payload:string;archived_at:number}>()).results
+   if(records.length!==batch.record_count)fail('analytics_source_coverage_incomplete',503)
+   const packet={id:batch.id,completionSequence:batch.completion_sequence,sourceId:batch.source_id,signal:batch.signal,digest:batch.digest,acceptedAt:batch.accepted_at,completedAt:batch.completed_at,records:records.map(row=>({id:row.id,ordinal:row.ordinal,team:row.team,service:row.service,environment:row.environment,eventTimeNs:row.event_time_ns,traceId:row.trace_id,spanId:row.span_id,payload:JSON.parse(row.payload),indexedAt:row.indexed_at,archivedAt:row.archived_at,late:row.late,outOfOrder:row.out_of_order}))}
    const length=new TextEncoder().encode(JSON.stringify(packet)).length
    if(bytes+length>1800*1024){if(!packets.length)fail('analytics_replication_batch_too_large',503);break}
    packets.push(packet);bytes+=length

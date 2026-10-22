@@ -67,6 +67,7 @@ export async function query(db, input) {
  const more = candidates > Math.min(rows.length, limit);
  rows = rows.slice(0, limit).map(({ row_bytes: _bytes, cumulative_bytes: _sum, candidate_count: _count, ...row }) => ({ ...row, payload: JSON.parse(row.payload) }));
  await coverage(db, input);
+ if(input.archive){if(rows.some(row=>row.archived_at===null))fail('analytics_archive_coverage_missing',503);rows=rows.map(({indexed_at,late,out_of_order,...row})=>row)}else rows=rows.map(({archived_at,...row})=>row);
  const last = rows.at(-1);
  const next = more && last ? btoa(JSON.stringify([last.event_time_ns, last.id])).replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', '') : null;
  const response = { ...covered, snapshot, from, through, records: rows, cursor: next, archive: !!input.archive };

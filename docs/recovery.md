@@ -65,7 +65,7 @@ private audit facts in the same transaction and never expose the secret values.
    `POST /api/porthole/v1/analytics/reconcile`. Scheduled/manual ingest drains do
    the same work. Each role copies at most 20 completed envelopes per pass,
    additionally bounded by encoded bytes. Replication preserves event/index
-   timestamps and immutable record IDs. Retries check exact content identity.
+   timestamps, distinct archive receipts and immutable record IDs. Retries check exact content identity. Missing source records or archive receipts are refused, never invented from an indexing time.
 2. Inspect both workers' contiguous coverage watermarks in Settings and the
    selected worker's watermark in product query replies. A high sequence above
    a missing prefix does not constitute coverage. Queries and monitor evaluation
