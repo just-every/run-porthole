@@ -105,6 +105,12 @@ export async function recoveryJourney({origin,freshOwner,restartWorker,sql,signI
  await new Promise(resolve=>setTimeout(resolve,10250))
  state=await health()
  assert.equal(component(state,'collector').status,'Unknown')
+ for(const reader of readers) {
+  const response=await fetch(origin+'/api/v1/health',{headers:{cookie:reader.cookie}})
+  assert.equal(response.status,200,reader.role+' reads during a stopped collector')
+  const scoped=await response.json()
+  assert.equal(scoped.status,'Unknown');assert.equal(component(scoped,'collector').status,'Unknown')
+ }
  const stale=await post('/api/v1/health/tick',{})
  assert.equal(monitor(stale.state,created.id).status,'Unknown')
  assert.equal(monitor(stale.state,created.id).firingEpisode,firing.firingEpisode)

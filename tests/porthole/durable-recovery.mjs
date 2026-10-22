@@ -1,15 +1,22 @@
 import assert from 'node:assert/strict'
+import {spawn} from 'node:child_process'
+import {once} from 'node:events'
 
 /** Production-mode emitted Worker, real intake/monitor/health/outbox. Only the
  * SendGrid HTTP edge is replaced by recipientMailJourney's documented fixture.
  * SQL is used solely to interrupt/restore the analytical read path. */
-export async function durableRecoveryJourney({call,post,read,health,messages,ownerEmail,sql,restart,browser}) {
+export async function durableRecoveryJourney({origin,call,post,read,health,messages,ownerEmail,sql,restart,browser}) {
  const component=(state,name)=>state.components.find(row=>row.component===name)
  const send=async(path,data)=> (await post(path,data)).json()
  const configure=async freshnessSeconds=>send('/api/v1/health/configuration',{
   revision:(await health()).configuration.revision,freshnessSeconds,noticesEnabled:true,recipient:ownerEmail,confirm:'enable-independent-notices'})
  const scope={services:['checkout-api'],teams:['commerce-us'],environments:['production']}
  const credential=await (await post('/app/settings/credentials/mint',{name:'Checkout recovery collector',class:'ingest',scope:{...scope,signals:['logs'],actions:['telemetry.write']}},201)).json()
+ const collector=spawn(process.execPath,[new URL('./collector-process.mjs',import.meta.url).pathname],{stdio:['pipe','pipe','pipe']})
+ collector.stdin.end(JSON.stringify({origin,secret:credential.secret,heartbeat:{collectorId:'checkout-us-east',service:scope.services[0],team:scope.teams[0],environment:'production',signal:'logs'}}))
+ const stopCollector=async()=>{if(collector.exitCode===null&&collector.signalCode===null){const exited=once(collector,'exit');collector.kill('SIGTERM');await exited}}
+ try {
+ await Promise.race([once(collector.stdout,'data'),once(collector,'exit').then(()=>{throw Error('collector_start_failed')})])
  const heartbeat=async()=>{
   const response=await call('/api/v1/health/heartbeat',{method:'POST',headers:{authorization:`Bearer ${credential.secret}`,'content-type':'application/json'},body:JSON.stringify({collectorId:'checkout-us-east',service:scope.services[0],team:scope.teams[0],environment:'production',signal:'logs'})})
   assert.equal(response.status,200)
@@ -34,14 +41,22 @@ export async function durableRecoveryJourney({call,post,read,health,messages,own
  const episode=evaluation(initial.state).firingEpisode
  const messageStart=messages.length
  const notices=()=>messages.slice(messageStart).filter(row=>row.custom_args.rer_delivery_id.startsWith('porthole-health/'))
- await configure(10);await heartbeat()
+ await configure(10);await heartbeat();await stopCollector()
  await new Promise(resolve=>setTimeout(resolve,10250))
  const stopped=await send('/api/v1/health/tick',{})
  assert.equal(component(stopped.state,'collector').status,'Unknown')
  assert.equal(evaluation(stopped.state).status,'Unknown');assert.equal(evaluation(stopped.state).firingEpisode,episode)
  assert.equal(stopped.delivery.status,'accepted')
+ for(let i=0;i<16;i++) {
+  const result=await send('/api/v1/health/tick',{})
+  if(result.delivery.status==='idle')break
+  assert.equal(result.delivery.status,'accepted')
+ }
+ const collectorFailure=(await health()).notices.find(row=>row.component==='collector'&&row.phase==='failure'&&row.state==='accepted')
+ assert.ok(collectorFailure,'stopped collector independently notifies the mail provider')
  await browser('health-collector-stopped')
  // Resume the collector separately before failing the analytical read path.
+ await configure(60)
  await heartbeat();await send('/api/porthole/v1/ingest/drain',{})
  await send('/api/v1/health/tick',{})
  const before=await health(),lastKnown=component(before,'query').evidence.lastKnown
@@ -75,6 +90,8 @@ export async function durableRecoveryJourney({call,post,read,health,messages,own
   const failed=await health()
   assert.equal(component(failed,'queue').status,'Unknown','manual drain failure invalidates an earlier successful worker receipt immediately')
   assert.equal(component(failed,'queue').evidence.pendingBatches,23)
+  const observed=component(failed,'queue').observedAt
+  assert.equal(component(await health(),'queue').observedAt,observed,'reading health never refreshes the drain worker receipt')
   await browser('health-drain-failed')
  } finally {await sql('DROP TRIGGER synthetic_porthole_recovery_fail;')}
  const first=await send('/api/porthole/v1/ingest/drain',{})
@@ -110,4 +127,5 @@ export async function durableRecoveryJourney({call,post,read,health,messages,own
  await restart();await heartbeat();await send('/api/v1/health/tick',{})
  assert.deepEqual(notices().map(row=>row.custom_args.rer_delivery_id),accepted,'accepted notices never resubmit across restart')
  console.log('durableRecoveryJourney passed: firing monitor, separate collector/read outages, independent provider submissions, restart with pending ingest/notices, bounded reconciliation, original nanoseconds, exact records and no duplicate notice submission')
+ } finally {await stopCollector()}
 }
