@@ -2,9 +2,10 @@ import type {Bindings} from '../../auth.server'
 import {verifyCredential} from '../credentials/verify'
 import {allScope,emptyScope,fail,type Scope} from '../security/authority'
 import {privateHeaders} from '../document'
-import {fence,query,type Configuration} from './client'
+import {fence,query,requireEnabled,type Configuration} from './client'
 export async function readAnalytical(request:Request,env:Bindings,config:Configuration,context:{scope:Scope;actorRef:string;actorRevision:number;fence:{sql:string;args:unknown[]};snapshot:number;queryRef:string;queryScope:string;from:string;through:string;signal:string;limit:number;archive:boolean}) {
  const params=new URL(request.url).searchParams,{scope,snapshot,from,through,signal,limit,archive,queryRef}=context
+ requireEnabled(config)
  const active=fence(config)
  let live=context.fence
  if(request.headers.has('authorization')){
