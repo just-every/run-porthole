@@ -105,7 +105,7 @@ export async function liveRecoveryJourney() {
   const privateVars={AUTH_ORIGIN:origin,AUTH_LOCAL:'false',RER_DEMO:'0',OWNER_EMAIL:ownerEmail,SESSION_SECRET:sessionSecret,SETUP_TOKEN:setupToken,MAIL_PROVIDER:'sendgrid',MAIL_API_KEY:apiKey,MAIL_FROM:from}
   await writeFile(join(scratch,'.dev.vars'),Object.entries(privateVars).map(([name,value])=>`${name}=${JSON.stringify(value)}`).join('\n')+'\n',{mode:0o600})
   const compiledDirectory=dirname(emittedPath)
-  const configuration={...emitted,main:resolve(compiledDirectory,emitted.main),assets:{...emitted.assets,directory:resolve(compiledDirectory,emitted.assets.directory)},vars:{},d1_databases:emitted.d1_databases.map(database=>({...database,migrations_dir:resolve(compiledDirectory,database.migrations_dir)})),dev:{...emitted.dev,ip:'127.0.0.1',local_protocol:'https'}}
+  const configuration={...emitted,main:resolve(compiledDirectory,emitted.main),assets:{...emitted.assets,directory:resolve(compiledDirectory,emitted.assets.directory)},vars:{},d1_databases:emitted.d1_databases.map(database=>({...database,migrations_dir:resolve(compiledDirectory,database.migrations_dir)})),dev:{...emitted.dev,ip:'127.0.0.1',local_protocol:'https',upstream_protocol:'https'}}
   delete configuration.configPath;delete configuration.userConfigPath
   await writeFile(config,JSON.stringify(configuration))
   await writeFile(join(scratch,'localhost.cnf'),'[req]\nprompt=no\ndistinguished_name=subject\nx509_extensions=extensions\n[subject]\nCN=localhost\n[extensions]\nsubjectAltName=IP:127.0.0.1,DNS:localhost\nbasicConstraints=critical,CA:true\nkeyUsage=critical,digitalSignature,keyEncipherment,keyCertSign\nextendedKeyUsage=serverAuth\n')
@@ -131,7 +131,7 @@ export async function liveRecoveryJourney() {
   }
   async function startWorker() {
    workerError=false
-   worker=spawn(process.execPath,[wrangler,'dev','--local','--config',config,'--persist-to',persist,'--ip','127.0.0.1','--port',new URL(origin).port,'--inspector-port','0','--local-protocol','https','--https-key-path',key,'--https-cert-path',cert,'--log-level','error'],{cwd:scratch,env,stdio:['ignore','ignore','ignore']})
+   worker=spawn(process.execPath,[wrangler,'dev','--local','--config',config,'--persist-to',persist,'--ip','127.0.0.1','--port',new URL(origin).port,'--inspector-port','0','--local-protocol','https','--upstream-protocol','https','--https-key-path',key,'--https-cert-path',cert,'--log-level','error'],{cwd:scratch,env,stdio:['ignore','ignore','ignore']})
    worker.on('error',()=>{workerError=true})
    const deadline=Date.now()+30000
    while(Date.now()<deadline) {

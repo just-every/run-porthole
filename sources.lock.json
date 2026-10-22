@@ -2270,7 +2270,7 @@
       "executable": false
     },
     "tests/porthole/live-recovery.mjs": {
-      "sha256": "fb2c737262f26223d6d2a025661c08bc9ea49967c45881152fb09e74f4e9545a",
+      "sha256": "9e7c512e55541a7a0ec3bba55f10c75b96538b7356bed0ebb1d1be86c818e6c3",
       "executable": false
     },
     "tests/porthole/membership.mjs": {
