@@ -6,13 +6,23 @@
   "compatibility_flags": [
     "nodejs_compat"
   ],
-  "triggers": { "crons": ["* * * * *"] },
+  "triggers": {
+    "crons": [
+      "* * * * *"
+    ]
+  },
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "foundation",
       "database_id": "local-foundation-only",
       "migrations_dir": "migrations/core"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "ARCHIVE_BUCKET",
+      "bucket_name": "porthole-history"
     }
   ]
 }

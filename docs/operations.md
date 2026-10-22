@@ -39,3 +39,9 @@ The shared `rer export`/`rer import` adapter also excludes credential and sessio
 Current public doors cover membership, credentials, identity administration, queries, exports, monitor definitions, exact repair approval, actor privacy and independent notice attempts. PORT-001/012/018/019/021/026/029/034/035/036/055/061 inherit this boundary before adding their remaining ingestion-policy, dashboard, SLO, pipeline, tool, execution, erasure, connector and signal-export doors. A future family is not implemented by a label in the audit map.
 
 See [recovery.md](recovery.md) for independent observations, collector freshness, durable draining, firing-monitor outage behavior, notice consent and the remaining analytical/Base recovery limits.
+
+## Customer-bucket history
+
+An installation may bind its customer R2 bucket as `ARCHIVE_BUCKET`. The owner uploads an immutable open-format historical object through `POST /api/porthole/v1/storage/history`, supplying `X-Porthole-Source`, `X-Porthole-History` and its content type. The response records an opaque identity, SHA-256, byte count and source/history labels. No request chooses a different bucket or supplies provider credentials. GET/HEAD on `/api/porthole/v1/storage/history/REFERENCE/content` verify the actual object digest before releasing bytes under the current owner session. Uploads and reauthorization require fresh native owner proof.
+
+The streaming product archive preserves those exact durable references, with no bucket access grant. Restore quarantines them. To reattach the destination bucket, the owner explicitly confirms the original digest and supplies the identical original bytes, or verifies an already present object; only then can the destination serve it. Collection and delivery remain paused independently. PORT-013/035/061 inherit this custody and audit boundary for their larger archive, erasure and export workflows.

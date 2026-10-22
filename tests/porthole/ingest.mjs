@@ -137,6 +137,8 @@ export async function ingestJourney({origin,cookie,sql,restartWorker,freshOwner,
  assert.equal((await sql("SELECT COUNT(*) AS count FROM porthole_ingest_batches WHERE identity='synthetic-porthole-307'"))[0].count,0)
  const old=structuredClone(loki);old.streams[0].values[0][0]=String(now-7201n*1000000000n)
  assert.equal((await send('/loki/api/v1/push',old,'synthetic-porthole-234')).status,400)
+ const {intakeInterruptJourney}=await import('./intake-interrupt.mjs')
+ await intakeInterruptJourney({origin,secret:source.secret,packet:otlpLogBatch([time+50n]),restartWorker,sql,send})
  await pause(true,{maxPendingBytes:1})
  const pressure=await send('/v1/logs',otlpLogBatch([time+30n]),'synthetic-porthole-235')
  assert.equal(pressure.status,429);assert.ok(Number(pressure.headers.get('retry-after'))>0)

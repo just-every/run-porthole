@@ -173,6 +173,8 @@ try {
   cookie=await helpers.freshOwner()
   await browserProof({origin,cookie,paths:['/app/health'],name:'health-recovered'})
   cookie=await helpers.freshOwner()
+  const {bucketHistoryJourney}=await import('./porthole/bucket-history.mjs')
+  await bucketHistoryJourney({origin,cookie,persist,restartWorker,withEmptyDestination,...helpers})
   const { archiveJourney }=await import('./porthole/archive.mjs')
   await archiveJourney({origin,cookie,persist,restartWorker,withEmptyDestination,...helpers})
   cookie=await helpers.freshOwner()

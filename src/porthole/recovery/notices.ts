@@ -53,7 +53,7 @@ export async function deliverHealthNotice(env: HealthBindings): Promise<{attempt
    AND (n.first_attempt_at IS NULL OR n.first_attempt_at>?)
    AND (n.phase='failure' OR EXISTS(SELECT 1 FROM porthole_health_notices f WHERE f.episode=n.episode AND f.phase='failure' AND f.state='accepted'))
    ORDER BY n.created_at,n.id LIMIT 1)
-  AND EXISTS(SELECT 1 FROM porthole_health_configuration WHERE singleton=1 AND notices_enabled=1 AND revision=?) RETURNING *`)
+  AND EXISTS(SELECT 1 FROM porthole_health_configuration c JOIN oa_operators o ON o.id=c.configured_by JOIN porthole_members m ON m.operator_id=o.id WHERE c.singleton=1 AND c.notices_enabled=1 AND c.revision=? AND o.status='active' AND o.role='owner' AND m.role='owner') RETURNING *`)
  .bind(lease,now+60000,now,config.revision,now,now,now-retryWindow,config.revision).first<Notice>()
  if (!notice) return {attempted:0,status:'idle'}
  const audit:AuditInput={operationRef:lease,actorRef:null,actorRevision:null,action:'health.notice',entityRef:notice.id,revision:notice.configuration_revision,phase:'attempted',status:null,occurredAt:now}

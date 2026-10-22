@@ -1,0 +1,13 @@
+{
+ "schema": 1,
+ "kind": "porthole-analytics",
+ "entry": "index.mjs",
+ "roles": {
+  "primary": { "project": "just-every/porthole-analytics-primary", "binding": "ANALYTICS_PRIMARY" },
+  "standby": { "project": "just-every/porthole-analytics-standby", "binding": "ANALYTICS_STANDBY" }
+ },
+ "databaseBinding": "DB",
+ "secretBinding": "ANALYTICS_TOKEN",
+ "privateRoutes": ["/v1/health", "/v1/manifest", "/v1/replicate", "/v1/query", "/v1/coverage", "/v1/control"],
+ "publicRoutes": ["/health"]
+}

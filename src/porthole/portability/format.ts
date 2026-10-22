@@ -3,6 +3,7 @@ import { byTable, catalog } from './catalog'
 import { validateBody } from '../objects/schema'
 import { validateHealthHistory } from './health-history'
 import { fail, parseScope, roles } from '../security/authority'
+import { validHistoryReference } from '../storage/model'
 
 export const format = 'porthole.product-archive.v1'
 export const chunkRows = 8
@@ -41,7 +42,9 @@ export async function validateRow(payload: PortableRow, state: Validation): Prom
  if(Object.keys(row).sort().join(',')!==[...item.columns].sort().join(',')) bad()
  for(const value of Object.values(row)) if(value!==null && typeof value!=='string' && !integer(value)) bad()
  const required=(...keys:string[])=>{for(const key of keys)if(!str(row[key]) || !(row[key] as string).length)bad()}
- if(item.table==='porthole_objects') {
+ if(item.table==='porthole_bucket_history') {
+  if(!validHistoryReference(row))bad()
+ } else if(item.table==='porthole_objects') {
   if(!uuid(row.id) || !['monitor','repair'].includes(String(row.kind)) || !str(row.name) || !integer(row.revision,1) || !integer(row.created_at) || !integer(row.updated_at) || !['active','inactive','approved','archived','quarantined','pending','paused','draft'].includes(String(row.state))) bad()
   parseScope(json(row.scope)); const body=json(row.body); if(!object(body)) bad(); validateBody(String(row.kind),body)
  } else if(item.table==='porthole_archive_quarantine') {
