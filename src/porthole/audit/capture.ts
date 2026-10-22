@@ -38,7 +38,7 @@ export async function capture(request: Request, env: Bindings, handle: (env: Bin
   ? actions[path] ?? (path.startsWith('/api/porthole/v1/storage/history')?'storage.history':undefined) ?? (path.startsWith('/auth/dependencies/')?'connector.attempt':undefined) ?? (path.startsWith('/api/porthole/v1/archive/')||path.startsWith('/app/settings/archive/')?'installation.archive':undefined)
   : request.method==='GET' && (path.startsWith('/api/porthole/v1/archive/')||path.startsWith('/app/settings/archive/jobs/'))?'installation.archive-read'
   : request.method==='GET' && (path==='/api/porthole/v1/ingest/records'||path==='/api/porthole/v1/ingest/archive'||/^\/api\/porthole\/v1\/query\/[a-f0-9-]{36}$/.test(path))?'telemetry.query'
-  : request.method==='GET' && path.startsWith('/api/porthole/v1/storage/history')?'storage.history-read' : undefined
+  : ['GET','HEAD'].includes(request.method) && path.startsWith('/api/porthole/v1/storage/history')?'storage.history-read' : undefined
  if (!action) return handle(env)
  const operationRef = crypto.randomUUID(), occurredAt = Date.now()
  let input: AuditInput

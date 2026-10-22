@@ -23,6 +23,7 @@ async function originalBytes(origin,cookie,reference,bytes){
  assert.deepEqual(Buffer.from(await response.arrayBuffer()),bytes,'read returns the original open-format bytes, without normalization')
  const head=await get(origin,cookie,`${history}/${reference.id}/content`,'HEAD')
  assert.equal(head.status,200)
+ assert.match(head.headers.get('x-porthole-operation')??'',/^[a-f0-9-]{36}$/,'HEAD history reads retain the inherited private-audit boundary')
  assert.equal(Number(head.headers.get('content-length')),bytes.length)
  assert.equal((await head.arrayBuffer()).byteLength,0)
 }
