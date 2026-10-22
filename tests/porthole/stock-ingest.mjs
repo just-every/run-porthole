@@ -18,7 +18,7 @@ const port=async()=>{const server=createServer();server.listen(0,'127.0.0.1');aw
 async function until(check,message,timeout=45000){const end=Date.now()+timeout;while(Date.now()<end){if(await check())return;await delay(100)}assert.fail(message)}
 function config({origin,otlpPort,lokiPort}) {
  return `logging {
- level = "warn"
+ level = "info"
 }
 otelcol.receiver.otlp "synthetic_porthole_250" {
  http {
@@ -114,8 +114,10 @@ export async function stockIngestJourney({origin,cookie,sql,restartWorker,freshO
   try {await until(async()=>{const rows=await sourceBatches();return rows.reduce((n,row)=>n+row.record_count,0)===7},'seven stock-emitted records durably acknowledged')}
   catch {
    const batches=await sourceBatches()
+   const metrics=await (await fetch(`http://127.0.0.1:${httpPort}/metrics`)).text()
+   const counters=metrics.split('\n').filter(line=>/^(?:otelcol_(?:receiver_accepted_metric_points|exporter_sent_metric_points|exporter_send_failed_metric_points)|prometheus_remote_storage_(?:samples_in_total|samples_total|samples_pending|failed_samples_total|dropped_samples_total))/.test(line)).map(line=>line.replace(/\{[^}]*\}/g,''))
    const diagnostic=logs.split(source.secret).join('[redacted]').replace(/[A-Za-z0-9_-]{32,}/g,'[redacted]')
-   throw Error('Stock collector did not reconcile: '+JSON.stringify(batches.map(row=>({protocol:row.protocol,signal:row.signal,count:row.record_count})))+'\n'+diagnostic)
+   throw Error('Stock collector did not reconcile: '+JSON.stringify(batches.map(row=>({protocol:row.protocol,signal:row.signal,count:row.record_count})))+'\n'+counters.join('\n')+'\n'+diagnostic)
   }
   let batches=await sourceBatches()
   assert.equal(batches.filter(row=>row.protocol==='otlp.http/v1.9.0').reduce((n,row)=>n+row.record_count,0),4)

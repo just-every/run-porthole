@@ -1934,7 +1934,7 @@
       "executable": false
     },
     "src/porthole/portability/store.ts": {
-      "sha256": "a4e160201b2ad8e3d6f5d3ecf5b04ab210149b06368f03a457cf5604bef37e7c",
+      "sha256": "04794df8065b0cd1c6d2d69971ffe2c1a73dd6d82fa7341f257764ab7d796f6b",
       "executable": false
     },
     "src/porthole/privacy/actor-erasure/http.ts": {
@@ -2230,7 +2230,7 @@
       "executable": false
     },
     "tests/porthole/stock-ingest.mjs": {
-      "sha256": "d312f48e6a97e5ed55fc8c54ac4601945eae82f1fb4ec646fecf1463a08b15ad",
+      "sha256": "94af86039ebb9c85df577bc00200f47f558611fc1656ee8679df1c61cd4d1893",
       "executable": false
     },
     "tests/runtime.mjs": {
