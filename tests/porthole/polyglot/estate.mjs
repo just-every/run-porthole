@@ -31,7 +31,7 @@ export async function polyglotEstate(){
    const languages=['python','java','go','dotnet','ruby','php']
    for(let index=languages.length-1;index>=0;index--){
     const language=languages[index],next=index<languages.length-1?'http://127.0.0.1:'+ports[languages[index+1]]+'/work':''
-    const variables={PORT:String(ports[language]),NEXT_URL:next,OTEL_SERVICE_NAME:language,OTEL_RESOURCE_ATTRIBUTES:'deployment.environment.name=production,team.name=commerce,service.version=synthetic-porthole-1101',OTEL_EXPORTER_OTLP_TRACES_ENDPOINT:exportUrl,OTEL_EXPORTER_OTLP_TRACES_PROTOCOL:'http/protobuf',OTEL_EXPORTER_OTLP_PROTOCOL:'http/protobuf',OTEL_PROPAGATORS:'tracecontext',OTEL_TRACES_SAMPLER:'always_on',OTEL_BSP_SCHEDULE_DELAY:'100',OTEL_METRICS_EXPORTER:'none',OTEL_LOGS_EXPORTER:'none',OTEL_PHP_AUTOLOAD_ENABLED:'true'}
+    const variables={PORT:String(ports[language]),NEXT_URL:next,OTEL_SERVICE_NAME:language,OTEL_RESOURCE_ATTRIBUTES:'deployment.environment.name=production,team.name=commerce,service.version=synthetic-porthole-1101',OTEL_EXPORTER_OTLP_ENDPOINT:new URL(exportUrl).origin,OTEL_EXPORTER_OTLP_TRACES_ENDPOINT:exportUrl,OTEL_EXPORTER_OTLP_TRACES_PROTOCOL:'http/protobuf',OTEL_EXPORTER_OTLP_PROTOCOL:'http/protobuf',OTEL_PROPAGATORS:'tracecontext',OTEL_TRACES_SAMPLER:'always_on',OTEL_BSP_SCHEDULE_DELAY:'100',OTEL_METRICS_EXPORTER:'none',OTEL_LOGS_EXPORTER:'none',OTEL_PHP_AUTOLOAD_ENABLED:'true'}
     await container(prefix+'-'+language,[...Object.entries(variables).flatMap(([key,value])=>['-e',key+'='+value]),'porthole-c7-'+language])
    }
    for(const language of languages){

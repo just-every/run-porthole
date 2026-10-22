@@ -10,6 +10,7 @@ services needs that explicit union of service grants and has no read authority.
 
 Set `OTEL_SERVICE_NAME`, `OTEL_RESOURCE_ATTRIBUTES` (including
 `service.version`, `deployment.environment.name` and `team.name`),
+`OTEL_EXPORTER_OTLP_ENDPOINT` to the origin and
 `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` to the origin plus `/v1/traces`, and
 `OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf`. Configure exporter authentication
 through its private `OTEL_EXPORTER_OTLP_HEADERS` setting. Do not copy the value
@@ -61,7 +62,7 @@ HTTP. The stock libraries create the spans and inject/extract context.
 - **.NET 8, ASP.NET Core and HttpClient:** add the 1.20.1 package references in
   `instrumentation/polyglot/dotnet/Polyglot.csproj`, register
   `AddOpenTelemetry()`, explicitly set the service resource with `AddService`, and use `WithTracing(...)` with `AddAspNetCoreInstrumentation`,
-  `AddHttpClientInstrumentation` and `AddOtlpExporter`, then rebuild. Hosting
+  `AddHttpClientInstrumentation` and `AddOtlpExporter`, then rebuild. Use the general OTLP endpoint setting as well: this exporter registration reads `OTEL_EXPORTER_OTLP_ENDPOINT`, then adds the HTTP trace path. Hosting
   starts/stops the provider. The example uses the actual framework middleware
   and HttpClient diagnostic listeners, with no hand-built spans.
 - **Ruby 3.3, Rack and Net::HTTP:** install the pinned Gemfile, require the SDK,
