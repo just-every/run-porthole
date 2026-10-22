@@ -162,7 +162,7 @@
       "executable": false
     },
     "instrumentation/polyglot/Dockerfile": {
-      "sha256": "10886025020f569b9650f4e8a05d8ef9c949e68a2f9ef7d11b31edee31ba493d",
+      "sha256": "ddce3062d081711816a40851269da7cfb1e64a54fc8e15ce7dbd82f191e51734",
       "executable": false
     },
     "instrumentation/polyglot/dotnet/Polyglot.csproj": {
@@ -2382,7 +2382,7 @@
       "executable": false
     },
     "tests/porthole/polyglot/node.cjs": {
-      "sha256": "ccaa4bd596ca532da173f3895633e9c4201d3c035c0a8182ba479c6882168935",
+      "sha256": "b749bf9195a66aff6e36a328e956bdbda2f5f1f09d2df08869c6d705b707e8cc",
       "executable": false
     },
     "tests/porthole/stock-ingest.mjs": {
