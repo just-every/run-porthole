@@ -26,6 +26,7 @@ export async function polyglotEstate(){
    await new Promise(resolve=>gateway.listen(0,'0.0.0.0',resolve));const exportUrl='http://127.0.0.1:'+gateway.address().port+'/v1/traces'
    const ports=Object.fromEntries(await Promise.all(['python','java','go','dotnet','ruby','php','kafka','controller'].map(async name=>[name,await freePort()])))
    await container(prefix+'-kafka',['-e','KAFKA_NODE_ID=1','-e','KAFKA_PROCESS_ROLES=broker,controller','-e',`KAFKA_LISTENERS=PLAINTEXT://:${ports.kafka},CONTROLLER://:${ports.controller}`,'-e',`KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://127.0.0.1:${ports.kafka}`,'-e','KAFKA_CONTROLLER_QUORUM_VOTERS=1@127.0.0.1:'+ports.controller,'-e','KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER','-e','KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT','-e','KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT','-e','KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1','-e','KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1','-e','KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1','apache/kafka:3.9.1'])
+   console.log('Polyglot Kafka process started; starting six stock-instrumented services')
    const languages=['python','java','go','dotnet','ruby','php']
    for(let index=languages.length-1;index>=0;index--){
     const language=languages[index],next=index<languages.length-1?'http://127.0.0.1:'+ports[languages[index+1]]+'/work':''
@@ -35,11 +36,15 @@ export async function polyglotEstate(){
    for(const language of languages){
     let ready=false
     for(let attempt=0;attempt<120;attempt++){
+     const states=await execute('docker',['inspect','--format','{{.Name}} {{.State.Running}}',...containers])
+     const exited=states.stdout.split('\n').find(line=>line.endsWith(' false'))
+     if(exited){const name=exited.split(' ')[0].slice(1),logs=await execute('docker',['logs',name]);throw Error(name+' exited: '+logs.stderr.slice(-2000))}
      try{const response=await fetch('http://127.0.0.1:'+ports[language]+'/work');if(response.status===200){ready=true;break}}catch{}
      await pause(500)
     }
     if(!ready){const logs=await execute('docker',['logs',prefix+'-'+language]);throw Error(language+' readiness failed: '+logs.stderr.slice(-2000))}
    }
+   console.log('All seven runtime processes are ready for the real Kafka/HTTP/gRPC trace')
    // Warm-up traffic is real and has independent trace identities. It cannot
    // enter the selected root's graph, even when its timestamps overlap it.
    return {KAFKA_BROKER:'127.0.0.1:'+ports.kafka,POLYGLOT_NEXT_URL:'http://127.0.0.1:'+ports.python+'/work'}
