@@ -130,7 +130,7 @@
       "executable": false
     },
     "docs/instrumentation.md": {
-      "sha256": "fc35c05c6edeb23630fd049aa9acdc0055aea15d49b94d8c5adac364be5195b1",
+      "sha256": "fa63c6a154c6ce62d8294da2145dddb92797cefb8cef43455346752d63904333",
       "executable": false
     },
     "docs/LOOK.md": {
@@ -170,7 +170,7 @@
       "executable": false
     },
     "instrumentation/polyglot/dotnet/Program.cs": {
-      "sha256": "7cf0079691e753e39de5f340fc1505c26047d4673a19e243a76ddb7c136eda52",
+      "sha256": "75fd8d8ddacdf4e1e5287dc3f010e7096d2490534403ed9f1912fc0046cf9cf3",
       "executable": false
     },
     "instrumentation/polyglot/go/go.mod": {
@@ -2378,7 +2378,7 @@
       "executable": false
     },
     "tests/porthole/polyglot/estate.mjs": {
-      "sha256": "84d95a77da6ae090eea2b56959a9648b3a506e5ddd2dd211f687fbbee9f37c67",
+      "sha256": "5dfcb06cd1dfdceafc2976bdbcb9d5f9e57bbc6a822cdcd2fc9295434b3a965e",
       "executable": false
     },
     "tests/porthole/polyglot/node.cjs": {
@@ -2390,7 +2390,7 @@
       "executable": false
     },
     "tests/porthole/traces.mjs": {
-      "sha256": "045ae99bb70988e73b3eb59d7a027d7188994b867eb650af004c559de96d42c8",
+      "sha256": "feba659c58ab3b0f50f7ab2332ddef4ee573e8cc7b3b6f993d5a46800229b5fc",
       "executable": false
     },
     "tests/runtime.mjs": {
