@@ -1934,7 +1934,7 @@
       "executable": false
     },
     "src/porthole/portability/store.ts": {
-      "sha256": "04794df8065b0cd1c6d2d69971ffe2c1a73dd6d82fa7341f257764ab7d796f6b",
+      "sha256": "f0bd2e9f1975e630cd1e82b724adbe87d6586c2e2b61d664ac8bd9f1d78a688c",
       "executable": false
     },
     "src/porthole/privacy/actor-erasure/http.ts": {
@@ -2234,7 +2234,7 @@
       "executable": false
     },
     "tests/runtime.mjs": {
-      "sha256": "88a4123d9069b5441d38695da981b383646f07aaff4b547e26c995d8087d2101",
+      "sha256": "ee172e29c3390867ae88375829e8758133821565c7eb2df41ce8d926b5fadb10",
       "executable": false
     },
     "tests/typecheck-checks.mjs": {

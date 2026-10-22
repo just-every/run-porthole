@@ -125,16 +125,6 @@ try {
   const {fixture}=await import('./porthole/fixture.mjs')
   const helpers=fixture({origin,sql,restartWorker,sessionSecret:'runtime-session-secret-1234567890123456'})
   cookie=await helpers.freshOwner()
-  if(process.env.PORTHOLE_STOCK_ONLY==='1') {
-   const {stockIngestJourney}=await import('./porthole/stock-ingest.mjs')
-   await stockIngestJourney({origin,cookie,persist,restartWorker,...helpers})
-  } else {
-  const {membershipJourney}=await import('./porthole/membership.mjs')
-  const {credentialJourney}=await import('./porthole/credentials.mjs')
-  const membership=await membershipJourney({origin,cookie,foreignCookie,persist,restartWorker,...helpers,sessionSecret:'runtime-session-secret-1234567890123456'})
-  cookie=membership.cookie
-  await credentialJourney({origin,cookie,persist,restartWorker,...helpers,getLogs:()=>allOutput})
-  cookie=await helpers.freshOwner()
   async function withEmptyDestination(run) {
    const savedStore=persist,savedOwner=ownerEmail
    const destination=await mkdtemp(join(tmpdir(),'porthole-archive-destination-'));stores.push(destination)
@@ -149,6 +139,23 @@ try {
     return await run({origin,cookie:destinationCookie,persist,...destinationHelpers,restartWorker})
    } finally {await restartWorker(()=>{persist=savedStore;ownerEmail=savedOwner})}
   }
+  if(process.env.PORTHOLE_STOCK_ONLY==='1') {
+   const {stockIngestJourney}=await import('./porthole/stock-ingest.mjs')
+   await stockIngestJourney({origin,cookie,persist,restartWorker,...helpers})
+  } else if(process.env.PORTHOLE_AUDIT_ONLY==='1') {
+   const {auditJourney}=await import('./porthole/audit.mjs')
+   await auditJourney({origin,cookie,persist,restartWorker})
+   const {actionJourney}=await import('./porthole/actions.mjs')
+   const actions=await actionJourney({origin,cookie,persist,restartWorker,...helpers});cookie=actions.cookie
+   const {archiveJourney}=await import('./porthole/archive.mjs')
+   await archiveJourney({origin,cookie,persist,restartWorker,withEmptyDestination,...helpers})
+  } else {
+  const {membershipJourney}=await import('./porthole/membership.mjs')
+  const {credentialJourney}=await import('./porthole/credentials.mjs')
+  const membership=await membershipJourney({origin,cookie,foreignCookie,persist,restartWorker,...helpers,sessionSecret:'runtime-session-secret-1234567890123456'})
+  cookie=membership.cookie
+  await credentialJourney({origin,cookie,persist,restartWorker,...helpers,getLogs:()=>allOutput})
+  cookie=await helpers.freshOwner()
   const {healthJourney,browserProof}=await import('./porthole/audit.mjs')
   await healthJourney({origin,cookie})
   const { ingestJourney }=await import('./porthole/ingest.mjs')
