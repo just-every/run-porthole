@@ -1,6 +1,8 @@
 // Actual HTTP + gRPC operations, exported by stock auto-instrumentation.
 const sdk=require('../../../instrumentation/node/register.cjs')
+const {connect}=require('node:net')
 const http=require('node:http'),grpc=require('@grpc/grpc-js')
+const {Kafka,logLevel}=require('kafkajs')
 const {trace,context}=require('@opentelemetry/api')
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms))
 const servers=[]
@@ -21,15 +23,43 @@ async function main(){
   res.end('checkout complete')
  })
  servers.push(web);await new Promise(resolve=>web.listen(0,'127.0.0.1',resolve));const base='http://127.0.0.1:'+web.address().port
+ let kafka,producer,consumer,received,done
+ if(process.env.KAFKA_BROKER){
+  kafka=new Kafka({clientId:'synthetic-porthole-1120',brokers:[process.env.KAFKA_BROKER],logLevel:logLevel.NOTHING,retry:{retries:3}})
+  const topic='synthetic-porthole-1121-'+Date.now(),admin=kafka.admin();await admin.connect();await admin.createTopics({topics:[{topic,numPartitions:1,replicationFactor:1}]});await admin.disconnect()
+  producer=kafka.producer();consumer=kafka.consumer({groupId:topic});await producer.connect();await consumer.connect();await consumer.subscribe({topic,fromBeginning:true})
+  received=new Promise((resolve,reject)=>{done={resolve,reject}})
+  await consumer.run({eachMessage:async()=>{try{if(process.env.POLYGLOT_NEXT_URL)await request(process.env.POLYGLOT_NEXT_URL);done.resolve()}catch(error){done.reject(error)}}})
+  producer.topic=topic
+ }
  const tracer=trace.getTracer('porthole-polyglot','1.0.0');let traceId
  const before=process.hrtime.bigint()
  await tracer.startActiveSpan('checkout.transaction',async span=>{
   traceId=span.spanContext().traceId
-  try{await request(base+'/checkout')}finally{span.end()}
+  try{
+   const work=[request(base+'/checkout')]
+   if(producer){
+    work.push(producer.send({topic:producer.topic,messages:[{value:'synthetic-porthole-1122'}]}))
+    let timer;work.push(Promise.race([received,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('Kafka consumer timed out')),30000)})]).finally(()=>clearTimeout(timer)))
+   } else if(process.env.POLYGLOT_NEXT_URL)work.push(request(process.env.POLYGLOT_NEXT_URL))
+   await Promise.all(work)
+  }finally{span.end()}
  })
  const elapsed=process.hrtime.bigint()-before
+ let brokenTraceId
+ await tracer.startActiveSpan('boundary.upstream',async span=>{
+  brokenTraceId=span.spanContext().traceId
+  // This real TCP forwarder deliberately corrupts the parent ID while
+  // preserving the trace ID. The downstream span is emitted by stock HTTP
+  // instrumentation, so the product must expose the missing boundary.
+  try {await new Promise((resolve,reject)=>{
+   const socket=connect(web.address().port,'127.0.0.1',()=>socket.write('GET /broken HTTP/1.1\r\nHost: 127.0.0.1\r\ntraceparent: 00-'+brokenTraceId+'-00000000000000ff-01\r\nConnection: close\r\n\r\n'))
+   socket.on('data',()=>{});socket.on('end',resolve);socket.on('error',reject)
+  })}finally{span.end()}
+ })
+ if(consumer)await consumer.disconnect();if(producer)await producer.disconnect()
  client.close();await new Promise(resolve=>web.close(resolve));await new Promise(resolve=>server.tryShutdown(resolve));servers.length=0
  await sdk.shutdown()
- process.stdout.write(JSON.stringify({traceId,elapsedNs:elapsed.toString()})+'\n')
+ process.stdout.write(JSON.stringify({traceId,brokenTraceId,elapsedNs:elapsed.toString()})+'\n')
 }
 main().catch(async()=>{for(const server of servers){if(server.forceShutdown)server.forceShutdown();else server.closeAllConnections?.()}await sdk.shutdown();process.stderr.write('Instrumented Node journey failed\n');process.exitCode=1})

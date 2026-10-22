@@ -21,7 +21,7 @@ export async function traceResponse(request:Request,env:Bindings):Promise<Respon
   if(url.searchParams.has('snapshot'))target.searchParams.set('snapshot',url.searchParams.get('snapshot')!)
   // One live-authority transaction reads the whole bounded graph. There is no
   // accumulation of earlier pages across a membership/credential revocation.
-  const response=await readTelemetry(new Request(target,{headers:request.headers}),env,{trace:true})
+  const response=await readTelemetry(new Request(target,{headers:request.headers}),env)
   if(!response.ok) {
    if(!page)return response
    const body=await response.json() as {error:string}

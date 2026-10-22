@@ -1,0 +1,1 @@
+{"require":{"php":"^8.3","open-telemetry/sdk":"1.15.0","open-telemetry/exporter-otlp":"1.4.0","open-telemetry/opentelemetry-auto-slim":"1.5.0","slim/psr7":"1.8.0","php-http/guzzle7-adapter":"1.1.0"}}

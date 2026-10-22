@@ -14,12 +14,12 @@ export function scopeWhere(scope: Scope, alias = 'r') {
  return { sql:parts.join(' AND '),args }
 }
 const json = (value:unknown,status=200,headers:Record<string,string>={}) => Response.json(value,{status,headers:{...privateHeaders,...headers}})
-export async function readTelemetry(request: Request, env: Bindings, options: {archive?:boolean;trace?:boolean} = {}): Promise<Response> {
+export async function readTelemetry(request: Request, env: Bindings, options: {archive?:boolean} = {}): Promise<Response> {
  try {
   const url = new URL(request.url), params = url.searchParams, archive = !!options.archive
   if ([...params.keys()].some(key => !['signal','service','environment','team','from','through','cursor','limit','snapshot','trace'].includes(key))) fail('invalid_query',400)
   const limit = Number(params.get('limit') ?? 100)
-  if (!Number.isSafeInteger(limit) || limit < 1 || limit > (options.trace?2000:200)) fail('invalid_query_limit',400)
+  if (!Number.isSafeInteger(limit) || limit < 1 || limit > (params.has('trace')?2000:200)) fail('invalid_query_limit',400)
   const signal = params.get('signal')
   if (!signal || !['logs','traces','metrics'].includes(signal)) fail('signal_required',400)
   let scope: Scope, fence: {sql:string;args:unknown[]},actorRef:string,actorRevision:number

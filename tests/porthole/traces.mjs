@@ -10,14 +10,17 @@ export async function traceJourney({origin,freshOwner,signIn,restartWorker,sql})
  let cookie=await freshOwner()
  const post=async(route,data,status=200,acting=cookie)=>{const response=await fetch(origin+route,form(origin,acting,data));assert.equal(response.status,status,await response.clone().text());return response.json()}
  const get=async(route,acting=cookie)=>{const response=await fetch(origin+route,{headers:{cookie:acting}});assert.equal(response.status,200,await response.clone().text());return response.json()}
- const scope={services:['checkout'],environments:['production'],teams:['commerce']}
+ const scope={services:['checkout','python','java','go','dotnet','ruby','php'],environments:['production'],teams:['commerce']}
  const source=await post('/app/settings/credentials/mint',{name:'synthetic-porthole-1100',class:'ingest',scope:{...scope,signals:['traces'],actions:['telemetry.write']}},201)
  // A subprocess imports the shipped register module before any HTTP/gRPC
  // client/server. No span payloads or expected timings are generated here.
- const child=await execute(process.execPath,['tests/porthole/polyglot/node.cjs'],{timeout:60000,env:{...process.env,
+ const {polyglotEstate}=process.env.PORTHOLE_POLYGLOT==='1'?await import('./polyglot/estate.mjs'):{polyglotEstate:null}
+ const estate=polyglotEstate?await polyglotEstate():null
+ let child
+ try {child=await execute(process.execPath,['tests/porthole/polyglot/node.cjs'],{timeout:60000,env:{...process.env,
   OTEL_SERVICE_NAME:'checkout',OTEL_RESOURCE_ATTRIBUTES:'deployment.environment.name=production,team.name=commerce,service.version=synthetic-porthole-1101',
   OTEL_EXPORTER_OTLP_TRACES_ENDPOINT:origin+'/v1/traces',OTEL_EXPORTER_OTLP_PROTOCOL:'http/protobuf',OTEL_EXPORTER_OTLP_HEADERS:'authorization=Bearer '+source.secret,
-  OTEL_TRACES_SAMPLER:'always_on',OTEL_PROPAGATORS:'tracecontext',OTEL_METRICS_EXPORTER:'none',OTEL_LOGS_EXPORTER:'none'}})
+  OTEL_TRACES_SAMPLER:'always_on',OTEL_PROPAGATORS:'tracecontext',OTEL_METRICS_EXPORTER:'none',OTEL_LOGS_EXPORTER:'none',...(estate?await estate.environment({origin,secret:source.secret}):{})}})}finally{if(estate)await estate.stop()}
  const receipt=JSON.parse(child.stdout.trim().split('\n').at(-1)),traceId=receipt.traceId
  assert.match(traceId,/^[a-f0-9]{32}$/)
  await post('/api/porthole/v1/ingest/drain',{})
@@ -25,13 +28,23 @@ export async function traceJourney({origin,freshOwner,signIn,restartWorker,sql})
  assert.equal(graph.status,'Connected');assert.equal(graph.truncated,false);assert.ok(graph.spans.length>=9,'HTTP/gRPC clients and servers plus root were automatically recorded')
  assert.equal(graph.spans.filter(span=>!span.parentSpanId).length,1)
  assert.ok(graph.spans.every(span=>span.parentSpanId===null||graph.spans.some(parent=>parent.spanId===span.parentSpanId)))
- assert.ok(graph.spans.filter(span=>span.name!=='checkout.transaction').every(span=>span.instrumentation.name?.includes('instrumentation')))
+ assert.ok(graph.spans.filter(span=>span.service==='checkout'&&span.name!=='checkout.transaction').every(span=>span.instrumentation.name?.includes('instrumentation')))
  assert.ok(graph.spans.some(span=>span.attributes.some(attr=>attr.key==='rpc.system'&&attr.value.stringValue==='grpc')))
  assert.ok(graph.spans.every(span=>span.resource.attributes.some(attr=>attr.key==='service.version'&&attr.value.stringValue==='synthetic-porthole-1101')))
  const root=graph.spans.find(span=>span.name==='checkout.transaction')
  assert.ok(BigInt(root.durationNs)>0n&&BigInt(root.durationNs)<=BigInt(receipt.elapsedNs),'original observed root timing is not synthesized from arrival')
  const clients=graph.spans.filter(span=>span.kind===3)
  assert.ok(clients.some((span,index)=>clients.some((other,j)=>index!==j&&BigInt(span.startTimeNs)<BigInt(other.endTimeNs)&&BigInt(other.startTimeNs)<BigInt(span.endTimeNs))),'async fanout overlaps in actual captured time')
+ if(estate){
+  assert.deepEqual([...new Set(graph.spans.map(span=>span.service))].sort(),scope.services.slice().sort(),'all seven real runtimes participate in one trace')
+  assert.ok(graph.spans.some(span=>span.attributes.some(attr=>['messaging.system'].includes(attr.key)&&attr.value.stringValue==='kafka')),'actual stock Kafka producer/consumer spans')
+  console.log('polyglotEstate passed on '+process.env.PORTHOLE_CANDIDATE_SHA+': seven runtimes, real Kafka, HTTP/gRPC and one connected graph')
+ }
+ const broken=await get(path+receipt.brokenTraceId)
+ assert.equal(broken.status,'Incomplete')
+ assert.ok(broken.diagnostics.includes('missing_or_out_of_scope_parent'),'the actual TCP propagation boundary is exposed')
+ assert.ok(broken.spans.some(span=>span.parentSpanId==='00000000000000ff'&&span.parent===null))
+ await healthBrowser({origin,cookie,path:'/app/traces/'+receipt.brokenTraceId,name:'trace-runtime-broken-boundary',contains:'missing or out of scope parent'})
  const original=structuredClone(graph),snapshot=graph.snapshot
  await restartWorker();cookie=await freshOwner()
  assert.deepEqual(await get(path+traceId+'?snapshot='+snapshot),original,'trace and original nanoseconds survive Worker restart')
