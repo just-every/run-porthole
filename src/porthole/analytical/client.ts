@@ -1,3 +1,4 @@
+import {AuthError} from '../../modules/operator-auth/index.mjs'
 import type {Bindings} from '../../auth.server'
 import type {Scope} from '../security/authority'
 import {fail} from '../security/authority'
@@ -70,7 +71,7 @@ export async function reconcile(env:Bindings) {
   // Even an empty replication pins a newly selected worker to this source.
   const replicated=await rpc<Coverage>(env,role,'/v1/replicate',{sourceIdentity:config.source_identity,batches:packets})
   outcomes.push({role,watermark:replicated.watermark,requiredWatermark:await watermark(env),batches:packets.length,status:'reachable'})
- }catch{outcomes.push({role,status:'unavailable',watermark:null,requiredWatermark:await watermark(env),batches:0})}
+ }catch(error){outcomes.push({role,error:error instanceof AuthError?error.code:'analytics_unavailable',status:'unavailable',watermark:null,requiredWatermark:await watermark(env),batches:0})}
  const required=await watermark(env)
  return {enabled:true,complete:outcomes.every(row=>row.watermark!==null&&row.watermark>=required),roles:outcomes.map(row=>({...row,requiredWatermark:required}))}
 }

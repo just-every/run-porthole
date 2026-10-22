@@ -8,7 +8,7 @@ export async function readAnalytical(request:Request,env:Bindings,config:Configu
  const active=fence(config)
  const live=request.headers.has('authorization')?(await verifyCredential(request,env,{action:'telemetry.read',scope:emptyScope,dataScope:allScope,inspectOnly:true})).fence:context.fence
  if(!await env.DB.prepare(`SELECT 1 AS live WHERE (${live.sql}) AND (${active.sql})`).bind(...live.args,...active.args).first())fail('authority_changed',409)
- const data=await query(env,config,{signal,scope,from,through,snapshot,limit,archive,...Object.fromEntries([...params].filter(([key])=>['service','environment','team','cursor','trace'].includes(key)))})
+ const data=await query(env,config,{signal,scope:{services:scope.services,environments:scope.environments,teams:scope.teams},from,through,snapshot,limit,archive,...Object.fromEntries([...params].filter(([key])=>['service','environment','team','cursor','trace'].includes(key)))})
  if(data.sourceIdentity!==config.source_identity||!Array.isArray(data.records)||data.records.length>limit||data.snapshot!==snapshot||!Number.isSafeInteger(data.watermark)||data.watermark<snapshot)fail('analytics_invalid_response',503)
  for(const row of data.records){
   for(const [column,key]of [['service','services'],['environment','environments'],['team','teams']] as const)if(!scope[key].includes('*')&&!scope[key].includes(row[column])||params.has(column)&&params.get(column)!==row[column])fail('analytics_scope_violation',503)

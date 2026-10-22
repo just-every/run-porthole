@@ -121,13 +121,20 @@ export async function analyticalConnectionJourney() {
    }
    const mailConfig=await health()
    await send('/api/v1/health/configuration',{revision:mailConfig.configuration.revision,freshnessSeconds:60,noticesEnabled:true,recipient:ownerEmail,confirm:'enable-independent-notices'})
-   await beat();await ingest(0);await send('/api/porthole/v1/ingest/drain',{})
+   await beat();await ingest(0);const initialDrain=await send('/api/porthole/v1/ingest/drain',{});assert.equal(initialDrain.analytical.complete,true,JSON.stringify(initialDrain.analytical))
    const monitor=await send('/api/porthole/v1/objects',{kind:'monitor',name:'Checkout analytical errors',scope,body:{signal:'logs',operator:'above',threshold:0,windowSeconds:3600}},201)
    await send('/api/porthole/v1/objects/activate',{id:monitor.id,revision:monitor.revision,confirm:'activate'})
    const tick=()=>send('/api/v1/health/tick',{}),evaluation=state=>component(state,'monitor-evaluation').evidence.monitors.find(row=>row.monitorId===monitor.id)
-   const first=await tick();assert.equal(evaluation(first.state).status,'Firing');const episode=evaluation(first.state).firingEpisode
+   const first=await tick();assert.equal(evaluation(first.state).status,'Firing',JSON.stringify(first.state.components.map(({component,status,reason})=>({component,status,reason}))));const episode=evaluation(first.state).firingEpisode
    let product=await read('/api/porthole/v1/ingest/records?signal=logs&service=checkout-api')
    assert.equal(product.records.length,1);assert.equal(product.analytical.role,'primary');assert.equal(product.analytical.watermark,1)
+   const reader=await send('/app/settings/credentials/mint',{name:'Checkout analytical reader',class:'read',scope:{...scope,signals:['logs'],actions:['telemetry.read']}},201)
+   const bearer=path=>call(path,{headers:{authorization:'Bearer '+reader.secret}})
+   assert.equal((await bearer('/api/porthole/v1/ingest/records?signal=logs&service=checkout-api')).status,200)
+   assert.equal((await bearer('/api/porthole/v1/ingest/records?signal=logs&service=another-service')).status,403)
+   assert.equal((await bearer('/api/porthole/v1/analytics/configuration')).status,403)
+   await send('/app/settings/credentials/revoke',{id:reader.credential.id})
+   assert.equal((await bearer('/api/porthole/v1/ingest/records?signal=logs')).status,401)
    await browser('/app/settings/analytics','analytics-primary-connected','Caught up')
    // The existing real collector process uses the authenticated control-plane
    // heartbeat door; no collector or analytical response is fabricated.
