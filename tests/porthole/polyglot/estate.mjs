@@ -20,6 +20,7 @@ export async function polyglotEstate(){
     try{
      const chunks=[];for await(const chunk of req)chunks.push(chunk)
      const response=await fetch(origin+req.url,{method:req.method,headers:{'content-type':req.headers['content-type']??'application/x-protobuf',...(req.headers['content-encoding']?{'content-encoding':req.headers['content-encoding']}:{}),authorization:'Bearer '+secret},body:Buffer.concat(chunks)})
+     if(!response.ok)console.log('Stock OTLP export refused by real intake: HTTP '+response.status)
      res.writeHead(response.status,{'content-type':response.headers.get('content-type')??'application/x-protobuf'});res.end(Buffer.from(await response.arrayBuffer()))
     }catch{res.writeHead(503);res.end()}
    })

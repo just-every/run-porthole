@@ -27,6 +27,7 @@ export async function traceJourney({origin,freshOwner,signIn,restartWorker,sql})
  for(let pass=0;pass<10&&pending;pass++){const drain=await post('/api/porthole/v1/ingest/drain',{});assert.ok(drain.processedBatches<=20);pending=drain.pendingBatches}
  assert.equal(pending,0,'bounded public drains reconcile the whole real runtime estate')
  let graph=await get(path+traceId)
+ if(graph.status!=='Connected')console.log('Intake accounting: '+JSON.stringify((await get('/api/porthole/v1/ingest/status')).sources.map(({service,accepted,pending,rejected,reasons})=>({service,accepted,pending,rejected,reasons}))))
  if(graph.status!=='Connected')console.log('Unexpected trace topology: '+JSON.stringify({diagnostics:graph.diagnostics,spans:graph.spans.map(({spanId,parentSpanId,service,name,kind,diagnostics})=>({spanId,parentSpanId,service,name,kind,diagnostics}))}))
  assert.equal(graph.status,'Connected');assert.equal(graph.truncated,false);assert.ok(graph.spans.length>=13,'HTTP/gRPC clients and servers plus root were automatically recorded')
  assert.equal(graph.spans.filter(span=>!span.parentSpanId).length,1)

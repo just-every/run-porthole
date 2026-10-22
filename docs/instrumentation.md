@@ -60,7 +60,7 @@ HTTP. The stock libraries create the spans and inject/extract context.
   not a reason to merge traces by time.
 - **.NET 8, ASP.NET Core and HttpClient:** add the 1.20.1 package references in
   `instrumentation/polyglot/dotnet/Polyglot.csproj`, register
-  `AddOpenTelemetry().WithTracing(...)` with `AddAspNetCoreInstrumentation`,
+  `AddOpenTelemetry()`, explicitly set the service resource with `AddService`, and use `WithTracing(...)` with `AddAspNetCoreInstrumentation`,
   `AddHttpClientInstrumentation` and `AddOtlpExporter`, then rebuild. Hosting
   starts/stops the provider. The example uses the actual framework middleware
   and HttpClient diagnostic listeners, with no hand-built spans.
