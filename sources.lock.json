@@ -130,7 +130,7 @@
       "executable": false
     },
     "docs/instrumentation.md": {
-      "sha256": "fa63c6a154c6ce62d8294da2145dddb92797cefb8cef43455346752d63904333",
+      "sha256": "231a7987593b3eb3f7e65b75d94b86bcbcf216b5b206d8837a375af628d392f4",
       "executable": false
     },
     "docs/LOOK.md": {
@@ -2378,7 +2378,7 @@
       "executable": false
     },
     "tests/porthole/polyglot/estate.mjs": {
-      "sha256": "5dfcb06cd1dfdceafc2976bdbcb9d5f9e57bbc6a822cdcd2fc9295434b3a965e",
+      "sha256": "8cde5c3d1a68991460c591a01b591a4700656b35b93dd72639a91f6726368b3d",
       "executable": false
     },
     "tests/porthole/polyglot/node.cjs": {
