@@ -57,7 +57,7 @@ export async function capture(request: Request, env: Bindings, handle: (env: Bin
   // Successful native operator mutations return the target and its revision.
   // Select only those fields, validate against native storage, and discard the
   // response's identity fields. Invitations with no returned target stay null.
-  if (response.ok && response.headers.get('content-type')?.startsWith('application/json')) {
+  if (request.method!=='HEAD' && response.ok && response.headers.get('content-type')?.startsWith('application/json')) {
    const target = await response.clone().json() as { id?: unknown }
    if (typeof target.id === 'string' && /^[a-f0-9-]{36}$/.test(target.id)) {
     const row = await env.DB.prepare('SELECT id,version FROM oa_operators WHERE id=?').bind(target.id).first<{ id: string; version: number }>()

@@ -1770,7 +1770,7 @@
       "executable": false
     },
     "src/porthole/audit/capture.ts": {
-      "sha256": "eae46e82e2ff9e4c237a237c225ebe349372590ad7199880ed3659259f126c08",
+      "sha256": "93a7232eaecba14e8ee409c958364225f3c196fdee65ff9653047a2b29a00d10",
       "executable": false
     },
     "src/porthole/audit/export.ts": {
