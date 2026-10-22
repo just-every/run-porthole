@@ -86,7 +86,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "31cbd7167512964f69d7b9e33ba2203154ac273284faf016e9c355e8cba68350",
+      "sha256": "24f13c29d4193b550f16b00cccde5500d4cf005d9b1172ddf23a2794d474cd6f",
       "executable": false
     },
     "AGENTS.md": {
@@ -102,7 +102,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "5854887bbe4aeef5bf3ee350331baa98f8243a0b04984b1231378fb5333791c0",
+      "sha256": "6604d8a5b606f15edf15b5427c8c057dfb2af547ab3db9b1a329f34e31c7b466",
       "executable": false
     },
     "DEMO.md": {
@@ -1850,7 +1850,7 @@
       "executable": false
     },
     "src/porthole/analytical/read.ts": {
-      "sha256": "7ae9985c0158e1d335f93ad661a86a3743340a47447208dac120f9f15c6d7154",
+      "sha256": "f446dd6fc5d2cbd2475fc8638c6309e3d0c848ba418e3eaa924d221d3a5a487d",
       "executable": false
     },
     "src/porthole/audit/capture.ts": {
