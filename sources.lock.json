@@ -138,7 +138,7 @@
       "executable": false
     },
     "docs/recovery.md": {
-      "sha256": "f94aa1149b27d378a5bd6356ef037b980f3b45cc6071cffbfe862bd361f1d570",
+      "sha256": "deb9ac210b05c1a1fbe8d78405c66a470196e593f92d3a7e7357b6793cf93c46",
       "executable": false
     },
     "edition.json": {
@@ -1822,7 +1822,7 @@
       "executable": false
     },
     "src/porthole/health/access.ts": {
-      "sha256": "67dfddf23a2a4e3e93dd3a85945b87a5b8a41bcb28a2542817bc307fa24eaee6",
+      "sha256": "59d23e16fe1bf02626b517365b4a838ebb9515cb9386eb75f39e6a02f2835ce3",
       "executable": false
     },
     "src/porthole/health/configuration.ts": {
@@ -2270,7 +2270,7 @@
       "executable": false
     },
     "tests/porthole/health.mjs": {
-      "sha256": "d8a154a3f3d5c3b9e5eae26ca20b6991d5ab270f301d83e7e32a9c9e7301b90d",
+      "sha256": "2d8290d15ed351a3be7ee89ea5e56a31713b410d501326fb71e84e4e103a6c67",
       "executable": false
     },
     "tests/porthole/ingest.mjs": {

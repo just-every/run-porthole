@@ -6,14 +6,15 @@ export function mayReadHealth(actor:Authority) {
 }
 export async function scopedHealth(env:HealthBindings,state:HealthState,actor:Authority):Promise<HealthState> {
  if(administrative(actor.member.role))return state
+ const telemetry=actor.member.role!=='finance reader'
  const within=(row:Record<string,unknown>)=>scopeWithin({services:[String(row.service)],teams:[String(row.team)],environments:[String(row.environment)]},actor.member.scope)
  const definitions=(await env.DB.prepare("SELECT id,scope FROM porthole_objects WHERE kind='monitor'").all<{id:string;scope:string}>()).results
  const allowed=new Set(definitions.filter(row=>scopeWithin(JSON.parse(row.scope) as Scope,actor.member.scope)).map(row=>row.id))
  const components=state.components.map(row=>{
   let evidence:Record<string,unknown>={}
   if(row.component==='collector')evidence={collectors:(row.evidence.collectors as Record<string,unknown>[]??[]).filter(within)}
-  if(row.component==='query')evidence={lastKnown:(row.evidence.lastKnown as Record<string,unknown>[]??[]).filter(within)}
-  if(row.component==='monitor-evaluation')evidence={monitors:(row.evidence.monitors as Record<string,unknown>[]??[]).filter(item=>allowed.has(String(item.monitorId)))}
+  if(row.component==='query')evidence={lastKnown:telemetry?(row.evidence.lastKnown as Record<string,unknown>[]??[]).filter(within):[]}
+  if(row.component==='monitor-evaluation')evidence={monitors:telemetry?(row.evidence.monitors as Record<string,unknown>[]??[]).filter(item=>allowed.has(String(item.monitorId))):[]}
   return {...row,evidence}
  })
  // Recheck the live member/session revision before releasing the projection.
