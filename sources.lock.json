@@ -86,7 +86,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "acb51cab6d50e5e736d5baa9877d22ca880871f76a6393cdbcff6206aa2bb3d1",
+      "sha256": "1e68a1270639b82ace2e922df2b77a92637c94e98c7ec6895ec8d7ba2b20e818",
       "executable": false
     },
     "AGENTS.md": {
@@ -102,7 +102,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "f02aa454102ad68d341861947bf5a30d733f2091964c53ead039f40dec0b3333",
+      "sha256": "15423403094bf01520dc7206f245b7ef17ef5644eeb1af07ffb2dbd98b166af6",
       "executable": false
     },
     "DEMO.md": {
@@ -129,6 +129,10 @@
       "sha256": "77eca2c7c9c61d1daf08d29c8f8d30771de731e9cba43cf64b63c9228545df34",
       "executable": false
     },
+    "docs/instrumentation.md": {
+      "sha256": "fc35c05c6edeb23630fd049aa9acdc0055aea15d49b94d8c5adac364be5195b1",
+      "executable": false
+    },
     "docs/LOOK.md": {
       "sha256": "38d17d1c2a05a56e6d8f4d1d74627bfa946ac7fca77b64638194032719e33401",
       "executable": false
@@ -147,6 +151,62 @@
     },
     "HOMEPAGE-VARIANTS.md": {
       "sha256": "05b674a5209de78a7879751b3396197c5318dbec79e6d2796f86ff8c526916e1",
+      "executable": false
+    },
+    "instrumentation/node/register.cjs": {
+      "sha256": "c8379d349bb2cbed7215538768a1b03e70a7c538c46e65467687f335a7d46b6e",
+      "executable": false
+    },
+    "instrumentation/polyglot/build.sh": {
+      "sha256": "fe759f5d37bb39242f5f779ab7d27aa094ad55d1c63daacfb9d351e45a0b26e1",
+      "executable": false
+    },
+    "instrumentation/polyglot/Dockerfile": {
+      "sha256": "10886025020f569b9650f4e8a05d8ef9c949e68a2f9ef7d11b31edee31ba493d",
+      "executable": false
+    },
+    "instrumentation/polyglot/dotnet/Polyglot.csproj": {
+      "sha256": "8d55f32fb6cfc89f58f6d291c4196c8899725204f39544fbeb69d3c502e66c9b",
+      "executable": false
+    },
+    "instrumentation/polyglot/dotnet/Program.cs": {
+      "sha256": "7cf0079691e753e39de5f340fc1505c26047d4673a19e243a76ddb7c136eda52",
+      "executable": false
+    },
+    "instrumentation/polyglot/go/go.mod": {
+      "sha256": "efb66cf4666da799290723b2890f75500766e7b8d3a92a55fdc56a95208458ff",
+      "executable": false
+    },
+    "instrumentation/polyglot/go/main.go": {
+      "sha256": "39e288182806bb42ff2a684672cb91a824155f51199e1252555b5aaa4a24af7a",
+      "executable": false
+    },
+    "instrumentation/polyglot/java/App.java": {
+      "sha256": "371214068719375198214a484b780bbab02a39576a28264e8061323c34e0953c",
+      "executable": false
+    },
+    "instrumentation/polyglot/php/app.php": {
+      "sha256": "fca262e44ee0343e2913af4c14eb5a7d01c5378754572ef077a85cd8eb108bb0",
+      "executable": false
+    },
+    "instrumentation/polyglot/php/composer.json": {
+      "sha256": "030b8cf11e18e832a3dee8cf121198eafcc351a6a3607ad882200a9a47ef81eb",
+      "executable": false
+    },
+    "instrumentation/polyglot/python/app.py": {
+      "sha256": "2593577504c99188c5eae7b1efd4648500eba1b41c236a599e89b4d6e0ca7b16",
+      "executable": false
+    },
+    "instrumentation/polyglot/python/requirements.txt": {
+      "sha256": "128803c9fdd4cd27d844d69a8adedcad7f71fb9e93aded51b59a3e2efdd4967a",
+      "executable": false
+    },
+    "instrumentation/polyglot/ruby/app.rb": {
+      "sha256": "d852bda58038d071d4daec32afdd80b09bef2f9b97f54c3d2b580eafe8752705",
+      "executable": false
+    },
+    "instrumentation/polyglot/ruby/Gemfile": {
+      "sha256": "1a9d3f447b34ceb0b5a71f543253f1a694d1be90d51edc56ed5d2dacc3e8b92f",
       "executable": false
     },
     "LICENSE": {
@@ -257,6 +317,10 @@
       "sha256": "442067f96bba8f5cbef9c25e1e9ddf610f2713593fcef3b3cf31a433a1d1d8eb",
       "executable": false
     },
+    "migrations/core/0026_porthole_trace_lookup.sql": {
+      "sha256": "6dc3d887199c3c13dd233b3a39e3367b4482f202125ceb1eda5e533c6df5e15f",
+      "executable": false
+    },
     "ONBOARDING.md": {
       "sha256": "3bfe0cb88ac22d51ebe29ff54d0143219096c0ac07eb3b2b81c574c5baf57332",
       "executable": false
@@ -270,11 +334,11 @@
       "executable": false
     },
     "package.json": {
-      "sha256": "bfc0cc81cc7e9eda0502fd8b251d80f0376eb272151c4051c9e5675e5d26ab9f",
+      "sha256": "d210c81f4086fee7f4123af3adc243d6621bfe0096da5f1859fdc40a4847e419",
       "executable": false
     },
     "pnpm-lock.yaml": {
-      "sha256": "7dcdeee1adf23c5779e38cbfff365945a979414a56fb02aee81995dbed6bf1ff",
+      "sha256": "874156c3c0142b95b1c9345a18507b4a28d3b5bb27b7515b29bc4ad7c582e101",
       "executable": false
     },
     "public/brand/apple-touch-icon.png": {
@@ -1774,7 +1838,7 @@
       "executable": false
     },
     "src/porthole/audit/capture.ts": {
-      "sha256": "1c0c68ed69b40aedd29fab46526a19f377ba8eeaca2fd889868028c58664c0be",
+      "sha256": "d656ad5525606a039cebc7a2df7b6fd36475e3b1ed78095ad98591ed458b7f6f",
       "executable": false
     },
     "src/porthole/audit/export.ts": {
@@ -1862,7 +1926,7 @@
       "executable": false
     },
     "src/porthole/http.ts": {
-      "sha256": "01543d4a9b5f4aff59ac06043933a076e9717c93f1928d94a1ecd36df06fabf5",
+      "sha256": "a42977a5f17f8e83a994effc5768cb7ac59aaf979dde83084cda2fb8dbe27d5e",
       "executable": false
     },
     "src/porthole/ingest/http.ts": {
@@ -1886,7 +1950,7 @@
       "executable": false
     },
     "src/porthole/ingest/read.ts": {
-      "sha256": "adb770618e65a1f4fd7b741622495f17e8da0e676a6692857b78e696a20f279e",
+      "sha256": "0a633ef545c764ac0f585b5aa8fc233df1acf745e7fb3329e4f4c207ac1ddf7a",
       "executable": false
     },
     "src/porthole/ingest/status.ts": {
@@ -1974,7 +2038,7 @@
       "executable": false
     },
     "src/porthole/query/http.ts": {
-      "sha256": "e0932767f8cb1ec2bf77591db21628cdb7f493a53122322574a09d79c5b398bd",
+      "sha256": "31d263c5bbeb0e92cc0904ab5ba94c662fb5f15dfce81ee81c6c6910d27694a2",
       "executable": false
     },
     "src/porthole/recovery/mail.ts": {
@@ -2011,6 +2075,18 @@
     },
     "src/porthole/storage/store.ts": {
       "sha256": "7de9e36c7adf3349181444cd3cf949bed324767ac1a363460b35d17425560261",
+      "executable": false
+    },
+    "src/porthole/traces/graph.ts": {
+      "sha256": "963c5096ace0f058396ee0ff4d3646eb5924523f9d42d3cd83b624ee82f23e21",
+      "executable": false
+    },
+    "src/porthole/traces/http.ts": {
+      "sha256": "81486d95f39b049f137ea3abe9781e5d412e1e85c64d756711fb91dd8a2fcd3a",
+      "executable": false
+    },
+    "src/porthole/traces/page.ts": {
+      "sha256": "4db9af4ab4b1a52d9e735c272bcce8ae5b3f8e5ed634f208c975b04cb833642b",
       "executable": false
     },
     "src/router.tsx": {
@@ -2301,12 +2377,24 @@
       "sha256": "ffb35689c5a3a83b2fdb3b302f28977d44dbfa27ce07c4610a9c03e4c42e3179",
       "executable": false
     },
+    "tests/porthole/polyglot/estate.mjs": {
+      "sha256": "8cf104f4215861019d6e1225bb1b756144f5afa6947d5eea7a262c31acd1247b",
+      "executable": false
+    },
+    "tests/porthole/polyglot/node.cjs": {
+      "sha256": "ccaa4bd596ca532da173f3895633e9c4201d3c035c0a8182ba479c6882168935",
+      "executable": false
+    },
     "tests/porthole/stock-ingest.mjs": {
       "sha256": "fbae8a3a8f480730f253eb45a7f852648a5015c243c7e0f280d4cd61326cd0f5",
       "executable": false
     },
+    "tests/porthole/traces.mjs": {
+      "sha256": "220d1abd3a60cf1494f5be3a602dbe7491ddb3c606c1d40853c16d89b4781919",
+      "executable": false
+    },
     "tests/runtime.mjs": {
-      "sha256": "bcc8187a037804d9fc0bb341b07ebdca1aa9471d2321dbc2f8aefed7bc45eaa1",
+      "sha256": "b8509160f4c1a3142bca2066e479d0abc0416dabfce52ec69cad8e3ec06afedf",
       "executable": false
     },
     "tests/typecheck-checks.mjs": {
@@ -2318,7 +2406,7 @@
       "executable": false
     },
     "verification.json": {
-      "sha256": "4457f14af83c4310a0997a24253dd70a07552b5846461e59ff2cedc76fa89702",
+      "sha256": "81ccbccfbff7705a1d947a73eae2cd55c6ca3fbc2eb20c083be2a047fbc359f3",
       "executable": false
     },
     "VERIFY-WORKFLOW.md": {
