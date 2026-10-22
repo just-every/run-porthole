@@ -196,14 +196,22 @@ export async function analyticalConnectionJourney() {
    const {hashToken}=await import('../../src/modules/operator-auth/crypto.mjs')
    const owner=await read('/auth/session')
    const invite=async(role,email)=>{
-    await send('/app/settings/members/invite',{email,displayName:role==='owner'?'Recovery destination owner':'Recovery administrator',role,scope:{services:['*'],environments:['*'],teams:['*']}},202)
+    await send('/app/settings/members/invite',{email,displayName:role==='owner'?'Recovery destination owner':'Recovery administrator',role:role==='owner'?'admin':role,scope:{services:['*'],environments:['*'],teams:['*']}},202)
     const db=getDb(),member=await db.prepare('SELECT id,version FROM oa_operators WHERE email=?').bind(email).first(),token=randomBytes(32).toString('base64url'),now=Date.now()
     await db.prepare("INSERT INTO oa_tokens(id,token_hash,kind,operator_id,operator_version,issuer_id,issuer_version,return_to,created_at,expires_at) VALUES(?,?,'invite',?,?,?,?, '/app',?,?)").bind(randomUUID(),await hashToken(sessionSecret,'link',token),member.id,member.version,owner.operator.id,owner.operator.version,now,now+120000).run()
-    const response=await post('/auth/confirm',{token},303,'')
+    let response=await post('/auth/confirm',{token},303,'')
+    if(role==='owner'){
+     await send('/app/settings/members/change',{operatorId:member.id,role:'owner',scope:{services:['*'],environments:['*'],teams:['*']}})
+     const current=await db.prepare('SELECT id,version FROM oa_operators WHERE id=?').bind(member.id).first(),proof=randomBytes(32).toString('base64url'),at=Date.now()
+     await db.prepare("INSERT INTO oa_tokens(id,token_hash,kind,operator_id,operator_version,return_to,created_at,expires_at) VALUES(?,?,'magic',?,?,'/app',?,?)").bind(randomUUID(),await hashToken(sessionSecret,'link',proof),current.id,current.version,at,at+120000).run()
+     response=await post('/auth/confirm',{token:proof},303,'')
+    }
     return response.headers.getSetCookie().map(value=>value.split(';')[0]).join('; ')
    }
    const adminCookie=await invite('admin','synthetic-porthole-1280@example.com')
    assert.equal((await call('/api/porthole/v1/analytics/configuration',{headers:{cookie:adminCookie}})).status,403)
+   await browser('/app/settings/analytics','analytics-admin-forbidden','owner required',adminCookie,403)
+   await browser('/app/settings/analytics','analytics-unauthenticated','unauthenticated','',401)
    const nextOwner=await invite('owner','synthetic-porthole-1281@example.com')
    await send('/app/settings/members/change',{operatorId:owner.operator.id,role:'admin',scope:{services:['*'],environments:['*'],teams:['*']}})
    assert.equal((await call('/api/porthole/v1/ingest/records?signal=logs',{headers:{cookie:nextOwner}})).status,503,'demoting the connection configurer suspends the connection before a new read')
@@ -226,6 +234,8 @@ export async function analyticalConnectionJourney() {
      await restored.browser('/app/settings/analytics','analytics-inactive-destination','Connection authorized')
     }})
    } finally {await destination.dispose()}
+   const candidate=(await promisify(execFile)('git',['rev-parse','HEAD'])).stdout.trim()
+   console.log('PORTHOLE_ANALYTICAL_RUN '+JSON.stringify({runId:'sx-porthole-c7-recovery-20261022',head:candidate,result:'passed'}))
    console.log('analyticalConnectionJourney passed: real independent primary/standby processes, product query/health/monitor, collector outage and direct provider-edge notice, behind refusal, explicit failover/failback, bounded 20/3 backlog, original ns and no duplicate records/notices')
   }})
  }finally{if(collector?.exitCode===null){const stopped=new Promise(resolve=>collector.once('exit',resolve));collector.kill('SIGTERM');await stopped}await estate.dispose()}
