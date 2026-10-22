@@ -19,11 +19,16 @@ resource attributes; Porthole does not infer one from arrival time.
 
 Use W3C `tracecontext`. The conservative default in the supplied paths is
 `OTEL_PROPAGATORS=tracecontext`: they do not forward baggage or automatically
-copy baggage/request headers into span attributes. This is the adopted default
-pending ct's PORT-004 baggage-policy ruling. It does not remove the contract's
-baggage obligation. Do not enable baggage forwarding or content capture without
-the owner's approved policy. Telemetry already emitted by an application remains
-subject to its existing ingestion/data scope; this guide adds no wider reader.
+copy baggage/request headers into span attributes. This is the approved
+baseline. Baggage under policy is not built yet: it stays off by default, admits
+only owner-allowlisted keys (at most 8 entries and 256 bytes per value), copies
+an entry into span attributes only when its key is separately allowlisted for
+span attributes, lets a sensitive-key denylist (auth, token, email, name and
+secret patterns) always win, and drops a refused entry visibly instead of
+silently merging it. Until the supplied paths enforce that policy, do not enable
+baggage forwarding or content capture. Telemetry already emitted by an
+application remains subject to its existing ingestion/data scope; this guide
+adds no wider reader.
 
 ## Seven install paths
 
