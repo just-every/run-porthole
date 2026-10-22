@@ -51,5 +51,6 @@ try {
  const before=(await sql(destination,'SELECT COUNT(*) AS n FROM porthole_objects'))[0].n
  await assert.rejects(()=>command(destination,['import','--input',file,'--yes']),/refus|empty|occupied|failed/i)
  assert.equal((await sql(destination,'SELECT COUNT(*) AS n FROM porthole_objects'))[0].n,before)
+ assert.equal((await sql(destination,"SELECT COUNT(*) AS n FROM porthole_audit_entries WHERE json_extract(entry,'$.action')='installation.import.command' AND json_extract(entry,'$.phase')='failed'"))[0].n,1,'native refusal is privately audited without importing product data')
  console.log('nativeArchiveJourney passed: real rer setup/export/empty restore, excluded credential/hash/identity, inactive authority and durable CLI audit')
 } finally {await rm(scratch,{recursive:true,force:true})}

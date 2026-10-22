@@ -39,6 +39,7 @@ export async function readTelemetry(request: Request, env: Bindings, options: {a
   for (const [column,key] of [['service','services'],['environment','environments'],['team','teams']] as const) {
    const value=params.get(column)
    if (value) {
+    if(!/^[a-zA-Z0-9][a-zA-Z0-9._:/-]{0,119}$/.test(value))fail('invalid_query_scope',400)
     if (!scope[key].includes('*') && !scope[key].includes(value)) fail('scope_forbidden')
     clauses.push(`r.${column}=?`);args.push(value)
    }

@@ -12,6 +12,7 @@ export interface Manifest { format: typeof format; id: string; createdAt: number
 export interface Validation { tables: Record<string,number>; audit: Record<string,{sequence:number;hash:string}> }
 export const initialValidation = (): Validation => ({tables:Object.fromEntries(catalog.map(item=>[item.table,0])),audit:{}})
 export const uuid = (value: unknown): value is string => typeof value==='string' && /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(value)
+const opaque = (value: unknown) => uuid(value) || typeof value==='string' && /^[a-f0-9]{32}$/.test(value)
 const hex = (value: unknown): value is string => typeof value==='string' && /^[a-f0-9]{64}$/.test(value)
 const integer = (value: unknown, min=0): value is number => Number.isSafeInteger(value) && (value as number)>=min
 const str = (value: unknown): value is string => typeof value==='string' && value.length<=2097152
@@ -60,7 +61,7 @@ export async function validateRow(payload: PortableRow, state: Validation): Prom
  } else if(item.table==='porthole_archive_audit') {
   if(!uuid(row.stream)||!integer(row.sequence,1)||!(uuid(row.event_id)||typeof row.event_id==='string'&&/^[a-f0-9]{32}$/.test(row.event_id))||!hex(row.previous_hash)||!hex(row.hash))bad()
   const entry=json(row.entry) as AuditEntry
-  if(!object(entry)||Object.keys(entry).sort().join(',')!==['version','sequence','eventId','previousHash','operationRef','actorRef','actorRevision','action','entityRef','revision','phase','status','occurredAt','recordedAt','rangeStart','rangeEnd'].sort().join(',')||entry.version!==1||!uuid(entry.operationRef)||entry.actorRef!==null&&!uuid(entry.actorRef)||entry.entityRef!==null&&!uuid(entry.entityRef)||!integer(entry.occurredAt)||!integer(entry.recordedAt)||!['attempted','committed','succeeded','denied','failed'].includes(entry.phase)||typeof entry.action!=='string'||!/^[a-zA-Z0-9_.:-]{1,120}$/.test(entry.action))bad()
+  if(!object(entry)||Object.keys(entry).sort().join(',')!==['version','sequence','eventId','previousHash','operationRef','actorRef','actorRevision','action','entityRef','revision','phase','status','occurredAt','recordedAt','rangeStart','rangeEnd'].sort().join(',')||entry.version!==1||!opaque(entry.operationRef)||entry.actorRef!==null&&!opaque(entry.actorRef)||entry.entityRef!==null&&!opaque(entry.entityRef)||!integer(entry.occurredAt)||!integer(entry.recordedAt)||!['attempted','committed','succeeded','denied','failed'].includes(entry.phase)||typeof entry.action!=='string'||!/^[a-zA-Z0-9_.:-]{1,120}$/.test(entry.action))bad()
   for(const key of ['actorRevision','revision','status','rangeStart','rangeEnd'] as const)if(entry[key]!==null&&!integer(entry[key]))bad()
   const head=state.audit[String(row.stream)]??{sequence:0,hash:genesis}
   if(!object(entry)||entry.sequence!==head.sequence+1||entry.sequence!==row.sequence||entry.eventId!==row.event_id||entry.previousHash!==head.hash||row.previous_hash!==head.hash||await digest(canonical(entry))!==row.hash)fail('archive_audit_integrity_failed',422)

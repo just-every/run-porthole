@@ -2,6 +2,7 @@ import {readFile,writeFile,mkdir,rm} from 'node:fs/promises'
 import {join} from 'node:path'
 import {parseJsonc} from '@runeditrun/rer/jsonc'
 import {getPlatformProxy} from 'wrangler'
+import {append} from '../../src/porthole/audit/store.ts'
 import {projectFacts} from '../../src/porthole/audit/facts.ts'
 
 // The runner invokes this only under its local operation lock, after migrations.
@@ -14,5 +15,13 @@ let proxy
 try {
  proxy=await getPlatformProxy({configPath:path,persist:{path:join(root,'.wrangler/state/v3')},remoteBindings:false})
  await projectFacts(proxy.env.DB)
+ if(process.argv[2]) {
+  const event=JSON.parse(process.argv[2])
+  if(!/^[a-f0-9-]{36}$/.test(event.operationRef)||!['export','import'].includes(event.kind)||!['succeeded','failed'].includes(event.phase)||!Number.isSafeInteger(event.occurredAt))throw Error('invalid_native_audit_event')
+  const actor=await proxy.env.DB.prepare("SELECT id,version FROM oa_operators WHERE role='owner' AND status='active' ORDER BY created_at,id LIMIT 1").first()
+  const input={operationRef:event.operationRef,actorRef:actor?.id??null,actorRevision:actor?.version??null,action:`installation.${event.kind}.command`,entityRef:null,revision:null,occurredAt:event.occurredAt,status:null}
+  await append(proxy.env.DB,{...input,phase:'attempted'})
+  await append(proxy.env.DB,{...input,phase:event.phase})
+ }
  console.log('Private archive audit projected.')
 } finally {await proxy?.dispose();await rm(path,{force:true})}

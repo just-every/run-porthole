@@ -75,15 +75,12 @@ CREATE TRIGGER porthole_native_fact_porthole_health_configuration_update AFTER U
  INSERT INTO porthole_entity_refs(kind,key_ref,entity_ref) VALUES('porthole_health_configuration',NEW.singleton,lower(hex(randomblob(16)))) ON CONFLICT DO NOTHING;
  INSERT INTO porthole_audit_facts SELECT lower(hex(randomblob(16))),COALESCE((SELECT MAX(ordinal) FROM porthole_audit_facts),0)+1,operation_ref,actor_ref,actor_revision,action,(SELECT entity_ref FROM porthole_entity_refs WHERE kind='porthole_health_configuration' AND key_ref=NEW.singleton),NEW.revision,occurred_at,CAST(unixepoch('subsec')*1000 AS INTEGER) FROM porthole_audit_context;
  END;
--- Native rer transfers already commit their job state with the operation. Keep
--- their minimal audit trail in that same bookkeeping row until projection;
--- this does not make an otherwise empty restore destination nonempty.
+-- Native job facts share the job transaction, without changing Base metadata
+-- (whose canonical bytes are used by its staging concurrency guards). Facts
+-- are excluded from native import inventory and project after publication.
 CREATE TRIGGER porthole_cli_audit_insert AFTER INSERT ON rer_portability_jobs BEGIN
- UPDATE rer_portability_jobs SET metadata=json_set(metadata,'$.portholeAuditTrail',json_array(json_object('id',lower(hex(randomblob(16))),'phase',NEW.phase,'occurredAt',CAST(unixepoch('subsec')*1000 AS INTEGER),'actorRef',COALESCE((SELECT claim_id FROM oa_bootstrap WHERE singleton=1),(SELECT source_identity FROM rer_portability_state WHERE id=1)),'actorRevision',(SELECT version FROM oa_operators WHERE id=(SELECT claim_id FROM oa_bootstrap WHERE singleton=1))))) WHERE id=NEW.id;
+ INSERT INTO porthole_audit_facts SELECT lower(hex(randomblob(16))),COALESCE((SELECT MAX(ordinal) FROM porthole_audit_facts),0)+1,NEW.id,COALESCE((SELECT claim_id FROM oa_bootstrap WHERE singleton=1),(SELECT source_identity FROM rer_portability_state WHERE id=1)),(SELECT version FROM oa_operators WHERE id=(SELECT claim_id FROM oa_bootstrap WHERE singleton=1)),'installation.'||NEW.kind||'.'||NEW.phase,NEW.id,NULL,CAST(unixepoch('subsec')*1000 AS INTEGER),CAST(unixepoch('subsec')*1000 AS INTEGER);
 END;
-CREATE TRIGGER porthole_cli_audit_update AFTER UPDATE ON rer_portability_jobs
- WHEN NEW.phase!=OLD.phase OR json_extract(NEW.metadata,'$.portholeAuditTrail') IS NULL BEGIN
- UPDATE rer_portability_jobs SET metadata=json_set(metadata,'$.portholeAuditTrail',json(
- CASE WHEN NEW.phase!=OLD.phase THEN json_insert(COALESCE(json_extract(OLD.metadata,'$.portholeAuditTrail'),'[]'),'$[#]',json_object('id',lower(hex(randomblob(16))),'phase',NEW.phase,'occurredAt',CAST(unixepoch('subsec')*1000 AS INTEGER),'actorRef',COALESCE((SELECT claim_id FROM oa_bootstrap WHERE singleton=1),(SELECT source_identity FROM rer_portability_state WHERE id=1)),'actorRevision',(SELECT version FROM oa_operators WHERE id=(SELECT claim_id FROM oa_bootstrap WHERE singleton=1))))
- ELSE COALESCE(json_extract(OLD.metadata,'$.portholeAuditTrail'),'[]') END)) WHERE id=NEW.id;
+CREATE TRIGGER porthole_cli_audit_update AFTER UPDATE ON rer_portability_jobs WHEN NEW.phase!=OLD.phase BEGIN
+ INSERT INTO porthole_audit_facts SELECT lower(hex(randomblob(16))),COALESCE((SELECT MAX(ordinal) FROM porthole_audit_facts),0)+1,NEW.id,COALESCE((SELECT claim_id FROM oa_bootstrap WHERE singleton=1),(SELECT source_identity FROM rer_portability_state WHERE id=1)),(SELECT version FROM oa_operators WHERE id=(SELECT claim_id FROM oa_bootstrap WHERE singleton=1)),'installation.'||NEW.kind||'.'||NEW.phase,NEW.id,NULL,CAST(unixepoch('subsec')*1000 AS INTEGER),CAST(unixepoch('subsec')*1000 AS INTEGER);
 END;
