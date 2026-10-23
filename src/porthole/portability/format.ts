@@ -22,9 +22,10 @@ const bad = (): never => fail('archive_semantics_invalid',422)
 const object = (value: unknown): value is Record<string,unknown> => !!value && typeof value==='object' && !Array.isArray(value)
 export function manifestInput(value: unknown): Manifest {
  if(!object(value) || Object.keys(value).sort().join(',')!==['format','id','createdAt','rowCount','chunks','rootHash','tables','inactive'].sort().join(',') || value.format!==format || !uuid(value.id) || !integer(value.createdAt) || !integer(value.rowCount) || !integer(value.chunks) || !hex(value.rootHash) || value.inactive!==true || !object(value.tables)) return bad()
- if(Object.keys(value.tables).sort().join(',')!==catalog.map(item=>item.table).sort().join(',') || Object.values(value.tables).some(v=>!integer(v)) || Object.values(value.tables).reduce<number>((a,b)=>a+(b as number),0)!==value.rowCount || value.chunks!==Math.ceil(value.rowCount/chunkRows)) return bad()
+ const tables={porthole_baggage_policy:0,...value.tables}
+ if(Object.keys(tables).sort().join(',')!==catalog.map(item=>item.table).sort().join(',') || Object.values(value.tables).some(v=>!integer(v)) || Object.values(value.tables).reduce<number>((a,b)=>a+(b as number),0)!==value.rowCount || value.chunks!==Math.ceil(value.rowCount/chunkRows)) return bad()
  if(value.tables.porthole_ingest_control!==1)bad()
- return value as unknown as Manifest
+ return {...value,tables} as unknown as Manifest
 }
 export async function chunkInput(value: unknown, index: number, previousHash: string, count?: number): Promise<Chunk> {
  if(!object(value) || Object.keys(value).sort().join(',')!=='digest,index,previousHash,rows,version' || value.version!==1 || value.index!==index || value.previousHash!==previousHash || !hex(value.digest) || !Array.isArray(value.rows) || !value.rows.length || value.rows.length>chunkRows || count!==undefined && value.rows.length!==count) return bad()
