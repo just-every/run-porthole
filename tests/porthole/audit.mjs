@@ -143,6 +143,25 @@ export async function auditJourney({ origin, cookie, persist, restartWorker }) {
  assert.ok(!JSON.stringify(refusedHistory).includes(sessionToken))
  assert.ok(!JSON.stringify(refusedHistory).includes('synthetic-porthole-5@example.com'))
  console.log('Audit immutable guards, unavailable-store refusal, native non-owner refusal and immediate revocation passed')
+ // Signing out without a session ends nothing, so it leaves no permanent entry.
+ const signOuts = async () => (await packet(origin, cookie)).records.filter(row => row.entry.action === 'identity.signout').length
+ const signedOut = await signOuts()
+ for (let index = 0; index < 10; index++) assert.equal((await fetch(`${origin}/auth/signout`, form(origin, '', {}))).status, 204)
+ assert.equal(await signOuts(), signedOut, 'signed-out sign-out leaves no audit entry')
+ // Unauthenticated refusals are recorded within a budget per client address;
+ // past it they are refused unrecorded, and other clients keep their records.
+ const flood = { ...form(origin, '', { operatorId: target.id, role: 'admin' }), headers: { ...form(origin, '', {}).headers, 'cf-connecting-ip': '192.0.2.44' } }
+ let budgetRefusal = null
+ for (let attempt = 0; attempt < 1000 && !budgetRefusal; attempt++) {
+  const response = await fetch(`${origin}/auth/operator/role`, flood)
+  if (response.status === 429) budgetRefusal = response
+  else assert.equal(response.status, 401)
+ }
+ assert.ok(budgetRefusal, 'one client cannot grow the audit ledger without limit')
+ assert.ok(Number(budgetRefusal.headers.get('retry-after')) > 0); assert.equal(budgetRefusal.headers.has('x-porthole-operation'), false)
+ const otherClient = await fetch(`${origin}/auth/operator/role`, form(origin, '', { operatorId: target.id, role: 'admin' }))
+ assert.equal(otherClient.status, 401)
+ assert.ok((await packet(origin, cookie)).records.some(row => row.entry.operationRef === otherClient.headers.get('x-porthole-operation') && row.entry.phase === 'denied'), 'another client keeps its refused attempts recorded')
  const unchanged = await packet(origin, cookie)
  assert.deepEqual(unchanged.records.slice(0, restored.records.length), restored.records)
  await browserProof({ origin, cookie, paths: ['/app/audit?limit=2', '/app/audit?after=0&through=0', '/app/audit?limit=0'], name: 'audit' })

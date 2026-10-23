@@ -1,7 +1,8 @@
 import { operatorAuth, type Bindings } from '../../auth.server'
+import { verifyCredential } from '../credentials/verify'
 import { transactionalAudit } from './transaction'
 import { projectFacts } from './facts'
-import { append, type AuditInput } from './store'
+import { append, digest, type AuditInput } from './store'
 
 // Each existing administrative HTTP mutation has a fixed label. Future product
 // handlers must adopt this seam; this list does not claim to implement them.
@@ -31,6 +32,18 @@ const actions: Record<string, string> = {
 const headers = { 'cache-control': 'no-store', 'referrer-policy': 'no-referrer', 'x-content-type-options': 'nosniff', 'x-robots-tag': 'noindex' }
 export const auditUnavailable = (operationRef?: string) => Response.json({ error: 'audit_unavailable', ...(operationRef ? { operationRef, result: 'inspect_attempt_before_retry' } : {}) }, { status: 503, headers })
 export const outcome = (status: number) => status >= 500 ? 'failed' as const : status >= 400 ? 'denied' as const : 'succeeded' as const
+// Attempts with neither a session nor a live credential reach the permanent
+// ledger within a budget per trusted client address and window, counted in the
+// shared rate-limit store; past it they are refused before any append.
+const budgetWindow = 15 * 60_000, unauthenticatedBudget = 200
+const liveCredential = (request: Request, env: Bindings) => request.headers.has('authorization') && verifyCredential(request, env, { inspectOnly: true }).then(() => true, () => false)
+async function overBudget(request: Request, env: Bindings, now: number): Promise<Response | null> {
+ const window = Math.floor(now / budgetWindow), key = 'porthole-audit:' + await digest(request.headers.get('CF-Connecting-IP') ?? '')
+ const spent = await env.DB.prepare(`INSERT INTO oa_limits(key,window,count) VALUES(?,?,1)
+  ON CONFLICT(key) DO UPDATE SET window=excluded.window,count=CASE WHEN oa_limits.window=excluded.window THEN oa_limits.count+1 ELSE 1 END RETURNING count`).bind(key, window).first<{ count: number }>()
+ if (spent && spent.count <= unauthenticatedBudget) return null
+ return Response.json({ error: 'rate_limited' }, { status: 429, headers: { ...headers, 'retry-after': String(Math.ceil(((window + 1) * budgetWindow - now) / 1000)) } })
+}
 
 /** Durable intent gates each action. Target mutation facts commit with the
  * write; HTTP outcomes follow projection. An absent HTTP result is uncertain. */
@@ -43,15 +56,20 @@ export async function capture(request: Request, env: Bindings, handle: (env: Bin
   : ['GET','HEAD'].includes(request.method) && path.startsWith('/api/porthole/v1/storage/history')?'storage.history-read' : undefined
  if (!action) return handle(env)
  const operationRef = crypto.randomUUID(), occurredAt = Date.now()
- let input: AuditInput
+ let input: AuditInput | null = null
  try {
   const session = await operatorAuth(env).getSession(request)
-  // Only server-produced opaque references and numeric revisions may cross
-  // this boundary. Bodies and identity labels are never persisted.
-  input = { operationRef, occurredAt, actorRef: session?.operator.id ?? null, actorRevision: session?.operator.version ?? null, action,
-   entityRef: null, revision: null, phase: 'attempted', status: null }
-  await append(env.DB, input)
+  // Signing out without a session ends nothing, so it is not an audited action.
+  if (session || action !== 'identity.signout') {
+   if (!session && !await liveCredential(request, env)) { const refusal = await overBudget(request, env, occurredAt); if (refusal) return refusal }
+   // Only server-produced opaque references and numeric revisions may cross
+   // this boundary. Bodies and identity labels are never persisted.
+   input = { operationRef, occurredAt, actorRef: session?.operator.id ?? null, actorRevision: session?.operator.version ?? null, action,
+    entityRef: null, revision: null, phase: 'attempted', status: null }
+   await append(env.DB, input)
+  }
  } catch { return auditUnavailable() }
+ if (!input) return handle(env)
  let response: Response
  try { response = await handle({ ...env,DB:transactionalAudit(env.DB,input) }) ?? new Response(null, { status: 404 }) } catch { response = Response.json({ error: 'action_unavailable' }, { status: 503, headers }) }
  try {

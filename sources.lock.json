@@ -1874,7 +1874,7 @@
       "executable": false
     },
     "src/porthole/audit/capture.ts": {
-      "sha256": "daa4d3e3b4616672cd2ef35fa45ed073ebfc4180cb3fd04c11d627e4a8090544",
+      "sha256": "1defa0693dd308562e27a8c471b1362dd73cf38e2418849a68acd24dd14e10e7",
       "executable": false
     },
     "src/porthole/audit/export.ts": {
@@ -2370,7 +2370,7 @@
       "executable": false
     },
     "tests/porthole/audit.mjs": {
-      "sha256": "bbbf1a2c4b64d4804a2c5ce264517dc09ef625daf7afd5ba4ace03178a6b485c",
+      "sha256": "0647a18d44ea72e6c6e81cdd8753b84cd8de4b70c29c15e89e81b8118ce48c3e",
       "executable": false
     },
     "tests/porthole/bucket-history.mjs": {
