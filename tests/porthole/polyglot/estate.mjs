@@ -62,5 +62,13 @@ export async function polyglotEstate(){
   return results
  }
  async function diagnostics(){return (await Promise.all(containers.filter(name=>!name.endsWith('-kafka')).map(async name=>{const logs=await execute('docker',['logs',name]);return {language:name.split('-').at(-1),output:logs.stderr+logs.stdout}})))}
- return {environment,stop,probe,diagnostics}
+ async function restartServices(){
+  await execute('docker',['restart',...containers.filter(name=>!name.endsWith('-kafka'))],{timeout:120000})
+  for(const language of ['php','ruby','dotnet','go','java','python']){
+   let ready=false
+   for(let attempt=0;attempt<120;attempt++){try{const response=await fetch('http://127.0.0.1:'+servicePorts[language]+'/work');if(response.status===200){ready=true;break}}catch{};await pause(500)}
+   if(!ready){const logs=await execute('docker',['logs',prefix+'-'+language]);throw Error(language+' policy restart failed: '+logs.stderr.slice(-2000))}
+  }
+ }
+ return {environment,stop,probe,diagnostics,restartServices}
 }

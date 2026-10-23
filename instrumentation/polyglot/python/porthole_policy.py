@@ -1,5 +1,7 @@
 """Install before serving: tracecontext plus owner-deployed baggage policy."""
 import json, os, re, sys
+from urllib.parse import unquote
+from opentelemetry.propagators.textmap import default_getter, default_setter
 from opentelemetry import baggage, propagate
 from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
 from opentelemetry.baggage.propagation import W3CBaggagePropagator
@@ -29,13 +31,25 @@ class PolicyPropagator:
         context=baggage.clear(context)
         for key,value in kept.items(): context=baggage.set_baggage(key,value,context)
         return context
-    def extract(self,carrier,context=None,getter=propagate.default_getter):
+    def extract(self,carrier,context=None,getter=default_getter):
         raw=getter.get(carrier,'baggage') or []
         if sum(len(v.encode('utf-8')) for v in raw)>16384:
             print('{"porthole.baggage":"refused","reasons":{"header_too_large":1}}',file=sys.stderr,flush=True)
             return baggage.clear(context)
-        return self.filter(W3CBaggagePropagator().extract(carrier,baggage.clear(context),getter))
-    def inject(self,carrier,context=None,setter=propagate.default_setter):
+        context=baggage.clear(context); parsed=[]; counts={}; invalid=0
+        for member in ','.join(raw).split(','):
+            try:
+                pair=member.split(';',1)[0].strip().split('=',1)
+                assert len(pair)==2 and re.fullmatch('[a-z][a-z0-9_.-]{0,63}',pair[0].strip()) and not re.search(r'%(?![a-fA-F0-9]{2})',pair[1])
+                key=pair[0].strip(); value=unquote(pair[1].strip(),errors='strict')
+                parsed.append((key,value));counts[key]=counts.get(key,0)+1
+            except Exception: invalid+=1
+        for key,value in parsed:
+            if counts[key]>1: invalid+=1
+            else: context=baggage.set_baggage(key,value,context)
+        if invalid: print(json.dumps({'porthole.baggage':'refused','revision':POLICY['revision'],'reasons':{'invalid_or_duplicate':invalid}}),file=sys.stderr,flush=True)
+        return self.filter(context)
+    def inject(self,carrier,context=None,setter=default_setter):
         setter.set(carrier,'baggage','')
         W3CBaggagePropagator().inject(carrier,self.filter(context),setter)
 propagate.set_global_textmap(CompositePropagator([TraceContextTextMapPropagator(),PolicyPropagator()]))

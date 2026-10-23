@@ -60,6 +60,13 @@ export async function traceJourney({origin,freshOwner,signIn,restartWorker,sql,w
    for(const row of await estate.probe('edge='+encodeURIComponent('é'.repeat(128))+',large='+encodeURIComponent('é'.repeat(129)))){assert.deepEqual(row.keys,['edge'],row.language+' accepts exactly 256 decoded UTF-8 bytes and refuses 258');assert.equal(row.maxBytes,256)}
   }
   child=await execute(process.execPath,['tests/porthole/polyglot/node.cjs'],{timeout:60000,env:{...runtimeEnv,PORTHOLE_BAGGAGE_POLICY:policyPath,...estateEnv}})
+  if(estate){
+   for(const row of await estate.probe('region=synthetic-porthole-1200,region=synthetic-porthole-1201,routing=%ZZ,invalid'))assert.deepEqual(row.keys,[],row.language+' refuses conflicting and malformed baggage without a merge')
+   await writeFile(policyPath,JSON.stringify({...policy,enabled:false}));await estate.restartServices()
+   for(const row of await estate.probe('region=synthetic-porthole-1200'))assert.deepEqual(row.keys,[],row.language+' enforces owner-disabled baggage')
+   await writeFile(policyPath,'{invalid');await estate.restartServices()
+   for(const row of await estate.probe('region=synthetic-porthole-1200'))assert.deepEqual(row.keys,[],row.language+' fails closed with an invalid policy')
+  }
   if(estate)for(const row of await estate.diagnostics()){assert.match(row.output,/porthole.baggage/,row.language+' exposes refusal diagnostics');for(const value of ['synthetic-porthole-1202','synthetic-porthole-1203','synthetic-porthole-1204','synthetic-porthole-1205','synthetic-porthole-1206','synthetic-porthole-1207'])assert.ok(!row.output.includes(value),row.language+' diagnostics exclude refused values')}
  }finally{if(estate)await estate.stop();await rm(scratch,{recursive:true,force:true})}
  const receipt=JSON.parse(child.stdout.trim().split('\n').at(-1)),traceId=receipt.traceId

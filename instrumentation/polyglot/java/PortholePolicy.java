@@ -43,7 +43,13 @@ public final class PortholePolicy implements ConfigurablePropagatorProvider {
   public <C> Context extract(Context context,C carrier,TextMapGetter<C> getter){
    var raw=getter.get(carrier,"baggage");
    if(raw!=null&&raw.getBytes(StandardCharsets.UTF_8).length>16384){System.err.println("{\"porthole.baggage\":\"refused\",\"reasons\":{\"header_too_large\":1}}");return Baggage.empty().storeInContext(context);}
-   return filter(stock.extract(Baggage.empty().storeInContext(context),carrier,getter));
+   var entries=new ArrayList<Map.Entry<String,String>>();var counts=new HashMap<String,Integer>();int invalid=0;
+   for(var member:(raw==null?"":raw).split(",")){
+    try{var pair=member.split(";",2)[0].trim().split("=",2);if(pair.length!=2||!pair[0].trim().matches("[a-z][a-z0-9_.-]{0,63}"))throw new Exception();var key=pair[0].trim();var value=java.net.URLDecoder.decode(pair[1].trim().replace("+","%2B"),StandardCharsets.UTF_8);entries.add(Map.entry(key,value));counts.merge(key,1,Integer::sum);}catch(Exception error){if(!member.isBlank())invalid++;}
+   }
+   var builder=Baggage.builder();for(var entry:entries){if(counts.get(entry.getKey())>1)invalid++;else builder.put(entry.getKey(),entry.getValue());}
+   if(invalid>0)System.err.println(new Gson().toJson(Map.of("porthole.baggage","refused","reasons",Map.of("invalid_or_duplicate",invalid))));
+   return filter(builder.build().storeInContext(context));
   }
   public <C> void inject(Context context,C carrier,TextMapSetter<C> setter){setter.set(carrier,"baggage","");stock.inject(filter(context),carrier,setter);}
  }

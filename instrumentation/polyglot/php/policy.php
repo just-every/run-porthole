@@ -10,7 +10,7 @@ final class PortholePolicy implements TextMapPropagatorInterface {
  private array $policy=['enabled'=>false,'allowedKeys'=>[],'attributeKeys'=>[],'revision'=>0];
  public function __construct(){
   try{
-   $p=json_decode(file_get_contents(getenv('PORTHOLE_BAGGAGE_POLICY')?:'/nonexistent'),true,512,JSON_THROW_ON_ERROR);
+   $p=json_decode(@file_get_contents(getenv('PORTHOLE_BAGGAGE_POLICY')?:'/nonexistent'),true,512,JSON_THROW_ON_ERROR);
    if($p['version']!==1||!is_int($p['revision'])||$p['revision']<1||!is_bool($p['enabled'])||$p['maxEntries']!==8||$p['maxValueBytes']!==256)throw new Exception();
    foreach(['allowedKeys','attributeKeys'] as $field){if(!is_array($p[$field])||count($p[$field])>64||count(array_unique($p[$field]))!==count($p[$field]))throw new Exception();foreach($p[$field] as $key)if(!is_string($key)||!preg_match('/^[a-z][a-z0-9_.-]{0,63}$/D',$key))throw new Exception();}
    if(array_diff($p['attributeKeys'],$p['allowedKeys']))throw new Exception();$this->policy=$p;
@@ -31,7 +31,13 @@ final class PortholePolicy implements TextMapPropagatorInterface {
   $context??=Context::getCurrent();$getter??=\OpenTelemetry\Context\Propagation\ArrayAccessGetterSetter::getInstance();
   $raw=$getter->get($carrier,'baggage');
   if(strlen(is_array($raw)?implode(',',$raw):(string)$raw)>16384){error_log('{"porthole.baggage":"refused","reasons":{"header_too_large":1}}');return Baggage::getBuilder()->build()->storeInContext($context);}
-  return $this->filter(BaggagePropagator::getInstance()->extract($carrier,$getter,Baggage::getBuilder()->build()->storeInContext($context)));
+  $parsed=[];$counts=[];$invalid=0;
+  foreach(explode(',',is_array($raw)?implode(',',$raw):(string)$raw) as $member){
+   try{$pair=explode('=',trim(explode(';',$member,2)[0]),2);if(count($pair)!==2||!preg_match('/^[a-z][a-z0-9_.-]{0,63}$/D',trim($pair[0]))||preg_match('/%(?![a-fA-F0-9]{2})/',$pair[1]))throw new Exception();$key=trim($pair[0]);$value=rawurldecode(trim($pair[1]));if(!preg_match('//u',$value))throw new Exception();$parsed[]=[$key,$value];$counts[$key]=($counts[$key]??0)+1;}catch(Throwable $error){if(trim($member)!=='')$invalid++;}
+  }
+  $builder=Baggage::getBuilder();foreach($parsed as [$key,$value]){if($counts[$key]>1)$invalid++;else $builder->set($key,$value);}
+  if($invalid)error_log(json_encode(['porthole.baggage'=>'refused','reasons'=>['invalid_or_duplicate'=>$invalid]]));
+  return $this->filter($builder->build()->storeInContext($context));
  }
  public function inject(&$carrier,?PropagationSetterInterface $setter=null,?ContextInterface $context=null):void{
   $setter??=\OpenTelemetry\Context\Propagation\ArrayAccessGetterSetter::getInstance();$setter->set($carrier,'baggage','');BaggagePropagator::getInstance()->inject($carrier,$setter,$this->filter($context??Context::getCurrent()));

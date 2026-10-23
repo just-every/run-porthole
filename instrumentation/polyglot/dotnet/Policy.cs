@@ -26,8 +26,14 @@ public sealed class PolicyPropagator : TextMapPropagator {
   return new PropagationContext(context.ActivityContext,default(Baggage).SetBaggage(kept));
  }
  public override PropagationContext Extract<T>(PropagationContext context,T carrier,Func<T,string,IEnumerable<string>> getter){
-  if(getter(carrier,"baggage").Sum(value=>System.Text.Encoding.UTF8.GetByteCount(value))>16384){Console.Error.WriteLine("{\"porthole.baggage\":\"refused\",\"reasons\":{\"header_too_large\":1}}");return new PropagationContext(context.ActivityContext,default);}
-  return Filter(stock.Extract(new PropagationContext(context.ActivityContext,default),carrier,getter));
+  if((getter(carrier,"baggage")??Array.Empty<string>()).Sum(value=>System.Text.Encoding.UTF8.GetByteCount(value))>16384){Console.Error.WriteLine("{\"porthole.baggage\":\"refused\",\"reasons\":{\"header_too_large\":1}}");return new PropagationContext(context.ActivityContext,default);}
+  var parsed=new List<KeyValuePair<string,string>>();var invalid=0;
+  foreach(var part in String.Join(",",(getter(carrier,"baggage")??Array.Empty<string>())).Split(',')){
+   try {var pair=part.Split(';')[0].Trim().Split('=',2);if(pair.Length!=2||!Regex.IsMatch(pair[0].Trim(),"^[a-z][a-z0-9_.-]{0,63}$")||Regex.IsMatch(pair[1],"%(?![a-fA-F0-9]{2})"))throw new Exception();parsed.Add(new(pair[0].Trim(),Uri.UnescapeDataString(pair[1].Trim())));}catch{if(!String.IsNullOrWhiteSpace(part))invalid++;}
+  }
+  var counts=parsed.GroupBy(entry=>entry.Key).ToDictionary(group=>group.Key,group=>group.Count());invalid+=parsed.Count(entry=>counts[entry.Key]>1);
+  if(invalid>0)Console.Error.WriteLine(JsonSerializer.Serialize(new Dictionary<string,object>{{"porthole.baggage","refused"},{"reasons",new Dictionary<string,int>{{"invalid_or_duplicate",invalid}}}}));
+  return Filter(new PropagationContext(context.ActivityContext,default(Baggage).SetBaggage(parsed.Where(entry=>counts[entry.Key]==1))));
  }
  public override void Inject<T>(PropagationContext context,T carrier,Action<T,string,string> setter){setter(carrier,"baggage","");stock.Inject(Filter(context),carrier,setter);}
 }

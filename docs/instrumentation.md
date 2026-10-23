@@ -40,7 +40,9 @@ entries and 256 UTF-8 bytes per decoded value. A 16-KiB incoming header cap
 refuses the entire baggage header. Sensitive key patterns (`auth`, `token`,
 `email`, `name`, `secret`, `password`, `cookie`, `credential`, `session`, API key,
 `address`, `phone`, case-insensitive) always win, including over an allowlist.
-Refusal logs contain revision/reason/counts, never refused keys or values. Node
+Malformed members and every copy of a duplicate key are refused before native
+parsers see them. Refusal logs contain revision/reason/counts, never refused
+keys or values. Node
 also emits `porthole.baggage.refused` span events, visible in the trace API and
 waterfall details. Node copies only separately approved attributes with the
 `baggage.` prefix; the other six supplied paths copy no baggage into attributes.

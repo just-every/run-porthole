@@ -14,13 +14,14 @@ try {
  policy=candidate
 } catch {if(process.env.PORTHOLE_BAGGAGE_POLICY)process.stderr.write('{"porthole.baggage":"policy_unavailable","enabled":false}\n')}
 function filter(entries){
- const kept={},reasons={},seen=new Set()
+ const kept={},reasons={},seen=new Set(),counts=new Map()
+ for(const [key] of entries)counts.set(key,(counts.get(key)??0)+1)
  const refuse=reason=>reasons[reason]=(reasons[reason]??0)+1
  for(const [key,value] of entries){
   let reason
   if(!policy.enabled)reason='disabled'
   else if(denied.test(key))reason='sensitive_key'
-  else if(!/^[a-z][a-z0-9_.-]{0,63}$/.test(key)||seen.has(key))reason='invalid_or_duplicate'
+  else if(!/^[a-z][a-z0-9_.-]{0,63}$/.test(key)||seen.has(key)||counts.get(key)>1)reason='invalid_or_duplicate'
   else if(!policy.allowedKeys.includes(key))reason='not_allowlisted'
   else if(typeof value!=='string'||Buffer.byteLength(value,'utf8')>256)reason='value_too_large'
   else if(Object.keys(kept).length>=8)reason='entry_limit'

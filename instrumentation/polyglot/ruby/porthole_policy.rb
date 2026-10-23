@@ -1,4 +1,5 @@
 require 'json'
+require 'uri'
 require 'opentelemetry/sdk'
 require 'opentelemetry/baggage/propagation/text_map_propagator'
 class PortholePolicy
@@ -31,7 +32,19 @@ class PortholePolicy
    warn '{"porthole.baggage":"refused","reasons":{"header_too_large":1}}'
    return OpenTelemetry::Baggage.clear(context: context)
   end
-  filter(@stock.extract(carrier,context:OpenTelemetry::Baggage.clear(context:context),getter:getter))
+  parsed=[];counts=Hash.new(0);invalid=0
+  raw.split(',').each do |member|
+   begin
+    pair=member.split(';',2)[0].strip.split('=',2)
+    raise unless pair.size==2 && pair[0].strip.match?(/\A[a-z][a-z0-9_.-]{0,63}\z/) && !pair[1].match?(/%(?![a-fA-F0-9]{2})/)
+    key=pair[0].strip;value=URI::DEFAULT_PARSER.unescape(pair[1].strip).force_encoding('UTF-8');raise unless value.valid_encoding?
+    parsed << [key,value];counts[key]+=1
+   rescue;invalid+=1;end
+  end
+  clean=OpenTelemetry::Baggage.clear(context:context)
+  parsed.each{|key,value|if counts[key]>1;invalid+=1;else;clean=OpenTelemetry::Baggage.set_value(key,value,context:clean);end}
+  warn JSON.generate({'porthole.baggage'=>'refused','reasons'=>{'invalid_or_duplicate'=>invalid}}) if invalid>0
+  filter(clean)
  end
  def inject(carrier,context: OpenTelemetry::Context.current,setter: OpenTelemetry::Context::Propagation.text_map_setter)
   setter.set(carrier,'baggage','');@stock.inject(carrier,context:filter(context),setter:setter)
