@@ -232,7 +232,6 @@ export async function recipientMailJourney(analyticalProof) {
   }},
   outboundService:async request=>{
    assert.equal(request.url,idempotent?'https://api.resend.com/emails':'https://api.sendgrid.com/v3/mail/send');assert.equal(request.method,'POST')
-   assert.equal(request.headers.get('authorization'),'Bearer synthetic-porthole-944')
    const wire=await request.json(),delivery=request.headers.get('idempotency-key')
    let message=wire
    if(idempotent) {
@@ -242,6 +241,7 @@ export async function recipientMailJourney(analyticalProof) {
    }
    assert.equal(message.personalizations.length,1);assert.equal(message.personalizations[0].to.length,1)
    messages.push(message)
+   assert.equal(request.headers.get('authorization'),'Bearer synthetic-porthole-944')
    if(providerFailure==='before')throw Error('synthetic-porthole-952')
    if(providerStatus===202) {
     const identity=message.custom_args.rer_delivery_id
@@ -377,7 +377,7 @@ export async function recipientMailJourney(analyticalProof) {
    assert.equal((await health()).notices.find(row=>row.id===id).state,'rejected','a refusal after only definite refusals remains known unaccepted')
    assert.equal(acceptedMessages.filter(row=>row.custom_args.rer_delivery_id===delivery).length,0)
   }
-  for(const fault of [{name:'unauthorized',status:401},{name:'forbidden',status:403},{name:'lost-before',status:202,failure:'before'},{name:'lost-after',status:202,failure:'after'},...(idempotent?[{name:'lost-after-revoked',status:202,failure:'after'}]:[])]) {
+  for(const fault of [{name:'unauthorized',status:401},{name:'forbidden',status:403},{name:'lost-before',status:202,failure:'before'},{name:'lost-after',status:202,failure:'after'},...(idempotent?[{name:'lost-after-revoked',status:202,failure:'after'},{name:'lost-after-rotated',status:202,failure:'after'}]:[])]) {
    await configure(ownerEmail);providerStatus=fault.status;providerFailure=fault.failure
    const outcome=await (await post('/api/v1/health/tick',{})).json(),expected=fault.failure?(idempotent?'pending':'uncertain'):'rejected'
    assert.equal(outcome.delivery.status,expected)
@@ -397,19 +397,42 @@ export async function recipientMailJourney(analyticalProof) {
     // deadline. A revoked token after an unknown acceptance cannot undo it.
     await new Promise(resolve=>setTimeout(resolve,Math.max(0,receipt.next_attempt_at-Date.now()+100)))
     providerFailure=undefined;providerStatus=fault.name==='lost-after-revoked'?401:202
-    const final=fault.name==='lost-after-revoked'?'uncertain':'accepted'
+    const rotated=fault.name==='lost-after-rotated'
+    if(rotated){options.bindings.MAIL_API_KEY='synthetic-porthole-954';await mf.dispose();mf=new Miniflare(options);db=await mf.getD1Database('DB')}
+    const final=fault.name==='lost-after-revoked'||rotated?'uncertain':'accepted'
     for(let pass=0;pass<20&&(await health()).notices.find(row=>row.id===id).state!==final;pass++)await post('/api/v1/health/tick',{})
     assert.equal((await health()).notices.find(row=>row.id===id).state,final)
-    assert.equal(messages.filter(row=>row.custom_args.rer_delivery_id===delivery).length,2)
+    assert.equal(messages.filter(row=>row.custom_args.rer_delivery_id===delivery).length,rotated?1:2)
     assert.equal(acceptedMessages.filter(row=>row.custom_args.rer_delivery_id===delivery).length,1,'one external effect across idempotent replay or subsequent revocation')
     await mf.dispose();mf=new Miniflare(options);db=await mf.getD1Database('DB')
     for(let pass=0;pass<3;pass++)await post('/api/v1/health/tick',{})
-    assert.equal(messages.filter(row=>row.custom_args.rer_delivery_id===delivery).length,2,'a reconciled or held notice does not retry again')
+    assert.equal(messages.filter(row=>row.custom_args.rer_delivery_id===delivery).length,rotated?1:2,'a reconciled or held notice does not retry again')
+    if(rotated){assert.equal((await health()).components.find(row=>row.component==='delivery').evidence.configurationChanged,true);await healthBrowser({origin,cookie,name:'health-notice-rotated',contains:['Notice transport grant changed',id],dispatch});options.bindings.MAIL_API_KEY='synthetic-porthole-944';await mf.dispose();mf=new Miniflare(options);db=await mf.getD1Database('DB')}
    }
    if(fault.failure==='after'&&(!idempotent||fault.name==='lost-after-revoked'))await healthBrowser({origin,cookie,name:'health-notice-uncertain',contains:['Reconcile this notice with the provider',id],dispatch})
   }
+  providerStatus=429;providerFailure=undefined;providerRetryAfter='1';await configure(ownerEmail)
+  await post('/api/v1/health/tick',{})
+  const rotationDelivery=messages.at(-1).custom_args.rer_delivery_id,rotationId=rotationDelivery.slice('porthole-health/'.length),rotationReceipt=(await health()).notices.find(row=>row.id===rotationId)
+  options.bindings.MAIL_API_KEY='synthetic-porthole-955';await mf.dispose();mf=new Miniflare(options);db=await mf.getD1Database('DB')
+  await new Promise(resolve=>setTimeout(resolve,Math.max(0,rotationReceipt.next_attempt_at-Date.now()+100)))
+  providerStatus=202;providerRetryAfter=undefined
+  for(let pass=0;pass<20&&(await health()).notices.find(row=>row.id===rotationId).state!=='rejected';pass++)await post('/api/v1/health/tick',{})
+  assert.equal((await health()).notices.find(row=>row.id===rotationId).state,'rejected','a changed grant cannot submit old known-unaccepted work')
+  assert.equal(messages.filter(row=>row.custom_args.rer_delivery_id===rotationDelivery).length,1,'rotation performs no external retry under a different key')
+  assert.equal(acceptedMessages.filter(row=>row.custom_args.rer_delivery_id===rotationDelivery).length,0)
+  await healthBrowser({origin,cookie,name:'health-notice-rotated-unaccepted',contains:['Notice transport grant changed',rotationId],dispatch})
+  options.bindings.MAIL_API_KEY='synthetic-porthole-944';await mf.dispose();mf=new Miniflare(options);db=await mf.getD1Database('DB')
   providerStatus=202;providerFailure=undefined
+  console.log('noticeRotationJourney passed:',provider,'private grant binding, changed-key refusal, unchanged receipt identity and no cross-account retry')
   console.log('noticeRefusalJourney passed:',provider,'401/403 terminal outcomes, lost response before/after acceptance, durable restart, retained identity and bounded provider-safe replay or held uncertainty')
+  const renewOwnerProof=async()=>{
+   await post('/auth/step-up',{action:'export',returnTo:'/app/health'},202)
+   const text=messages.at(-1).content.find(row=>row.type==='text/plain').value,proof=text.match(/[?&]token=([A-Za-z0-9_-]{43})/)
+   assert.ok(proof,'the actual auth mail edge carries the new proof link')
+   await post('/auth/confirm',{token:proof[1]},303)
+  }
+  await renewOwnerProof()
   await configure();const replaced=tokenFrom(messages.at(-1))
   await configure(null)
   await post('/app/health/confirm',{token:replaced},410,'')
@@ -443,6 +466,7 @@ export async function recipientMailJourney(analyticalProof) {
   assert.equal(committed.filter(entry=>entry.action==='health.recipient-confirm'&&entry.entityRef===row.id).length,1,'single-use confirmation commits once')
   for(const value of [recipient,confirmation,replaced,expired])assert.ok(!JSON.stringify(audit).includes(value),'audit excludes address and bearer links')
   await db.exec('ALTER TABLE porthole_unavailable_records RENAME TO porthole_telemetry_records;')
+  await renewOwnerProof()
   const {durableRecoveryJourney}=await import('./durable-recovery.mjs')
   await durableRecoveryJourney({origin,call,post,health,messages,ownerEmail,
    read:async path=>{const response=await call(path,{headers:{cookie}});assert.equal(response.status,200);return response.json()},

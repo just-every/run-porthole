@@ -1,17 +1,17 @@
 import { confirmedRecipient, liveConfigurer } from '../health/recipients'
-import {frozenNotice,submitNotice,independentMailConfigured} from './mail'
+import {frozenNotice,submitNotice,independentMailConfigured,NoticeConfigurationChanged,noticeGrant} from './mail'
 import { append, type AuditInput } from '../audit/store'
 import type { HealthBindings, HealthState } from '../health/model'
 import { healthConfiguration, recordComponentReceipt } from '../health/receipts'
 
-interface Notice {id:string;first_attempt_at:number|null;created_at:number;message:string;lease_id:string;configuration_revision:number;attempts:number;had_uncertain:number}
+interface Notice {id:string;first_attempt_at:number|null;created_at:number;message:string;lease_id:string;configuration_revision:number;attempts:number;had_uncertain:number;transport_grant:string|null}
 // Resend retains idempotency keys for 24 hours. Stop early rather than create a
 // second email after an uncertain request outlives provider deduplication.
 const retryWindow = 23*3600000
 export async function reconcileHealthIncidents(env: HealthBindings, state: HealthState) {
  const config=await healthConfiguration(env.DB)
  if (!config.notices_enabled || !config.recipient || !await env.DB.prepare(`SELECT 1 FROM porthole_health_configuration c WHERE c.singleton=1 AND ${confirmedRecipient} AND ${liveConfigurer}`).first()) return
- const now=Date.now()
+ const now=Date.now(),grant=await noticeGrant(env)
  for (const row of state.components) {
   if (row.component==='control-plane') continue // A dead control plane cannot notify itself.
   if (row.status==='Unknown' && (!row.observedAt || row.reason.startsWith('Not configured:'))) continue
@@ -21,17 +21,17 @@ export async function reconcileHealthIncidents(env: HealthBindings, state: Healt
   if (row.status==='Unknown') {
    await env.DB.batch([
     env.DB.prepare(`INSERT INTO porthole_health_incidents(component,episode,opened_at) VALUES(?,?,?) ON CONFLICT(component) DO UPDATE SET episode=excluded.episode,opened_at=excluded.opened_at,resolved_at=NULL WHERE resolved_at IS NOT NULL`).bind(row.component,episode,now),
-    env.DB.prepare(`INSERT OR IGNORE INTO porthole_health_notices(id,episode,component,phase,configuration_revision,created_at,next_attempt_at,message)
-     SELECT ?,i.episode,i.component,'failure',?,?,?,? FROM porthole_health_incidents i WHERE i.component=? AND i.resolved_at IS NULL
-     AND EXISTS(SELECT 1 FROM porthole_health_configuration c WHERE singleton=1 AND revision=? AND notices_enabled=1 AND ${confirmedRecipient} AND ${liveConfigurer})`).bind(noticeId,config.revision,now,now,message,row.component,config.revision),
+    env.DB.prepare(`INSERT OR IGNORE INTO porthole_health_notices(id,episode,component,phase,configuration_revision,created_at,next_attempt_at,message,transport_grant)
+     SELECT ?,i.episode,i.component,'failure',?,?,?,?,? FROM porthole_health_incidents i WHERE i.component=? AND i.resolved_at IS NULL
+     AND EXISTS(SELECT 1 FROM porthole_health_configuration c WHERE singleton=1 AND revision=? AND notices_enabled=1 AND ${confirmedRecipient} AND ${liveConfigurer})`).bind(noticeId,config.revision,now,now,message,grant,row.component,config.revision),
    ])
   } else {
    await env.DB.batch([
     env.DB.prepare(`UPDATE porthole_health_incidents SET resolved_at=? WHERE component=? AND resolved_at IS NULL`).bind(now,row.component),
-    env.DB.prepare(`INSERT OR IGNORE INTO porthole_health_notices(id,episode,component,phase,configuration_revision,created_at,next_attempt_at,message)
-     SELECT ?,i.episode,i.component,'recovery',?,?,?,? FROM porthole_health_incidents i WHERE i.component=? AND i.resolved_at=?
+    env.DB.prepare(`INSERT OR IGNORE INTO porthole_health_notices(id,episode,component,phase,configuration_revision,created_at,next_attempt_at,message,transport_grant)
+     SELECT ?,i.episode,i.component,'recovery',?,?,?,?,? FROM porthole_health_incidents i WHERE i.component=? AND i.resolved_at=?
      AND EXISTS(SELECT 1 FROM porthole_health_notices n WHERE n.episode=i.episode AND n.phase='failure' AND n.state!='cancelled')
-     AND EXISTS(SELECT 1 FROM porthole_health_configuration c WHERE singleton=1 AND revision=? AND notices_enabled=1 AND ${confirmedRecipient} AND ${liveConfigurer})`).bind(noticeId,config.revision,now,now,message,row.component,now,config.revision),
+     AND EXISTS(SELECT 1 FROM porthole_health_configuration c WHERE singleton=1 AND revision=? AND notices_enabled=1 AND ${confirmedRecipient} AND ${liveConfigurer})`).bind(noticeId,config.revision,now,now,message,grant,row.component,now,config.revision),
    ])
   }
  }
@@ -62,14 +62,17 @@ export async function deliverHealthNotice(env: HealthBindings): Promise<{attempt
   await env.DB.prepare(`UPDATE porthole_health_notices SET state='pending',first_attempt_at=CASE WHEN attempts=1 THEN NULL ELSE first_attempt_at END,next_attempt_at=?,lease_id=NULL,lease_until=NULL WHERE id=? AND lease_id=?`).bind(Date.now()+60000,notice.id,lease).run()
   return {attempted:0,status:'audit_unavailable'}
  }
- let status:'accepted'|'rejected'|'pending'|'uncertain'=idempotent?'pending':'uncertain', providerId:string|null=null,rateLimited=false,nextAttemptAt=Date.now()+60000
+ let status:'accepted'|'rejected'|'pending'|'uncertain'=idempotent?'pending':'uncertain', providerId:string|null=null,rateLimited=false,configurationChanged=false,nextAttemptAt=Date.now()+60000
  try {
-  const result=await submitNotice(env,notice.message,config.recipient!)
+  const result=await submitNotice(env,notice.message,config.recipient!,notice.transport_grant)
   providerId=result.providerMessageId
   rateLimited=result.status==='rate_limited'
   if(rateLimited)nextAttemptAt=result.retryAfter??Date.now()+60000
   status=result.status==='accepted'?'accepted':result.status==='rejected'?'rejected':rateLimited||idempotent?'pending':'uncertain'
- } catch { /* The frozen request stays uncertain; no provider is substituted. */ }
+ } catch(error) {
+  if(error instanceof NoticeConfigurationChanged){configurationChanged=true;status=notice.had_uncertain===1?'uncertain':'rejected'}
+  // Other unknown outcomes retain the same provider identity and retry fence.
+ }
  // A later refusal cannot establish what happened on a prior unknown attempt.
  // Hold the original receipt for reconciliation rather than invite a new send.
  if(idempotent&&notice.had_uncertain===1&&status==='rejected')status='uncertain'
@@ -77,7 +80,7 @@ export async function deliverHealthNotice(env: HealthBindings): Promise<{attempt
  // marker; attempts/audit retain the refusal. Resend retains its original window.
  await env.DB.prepare(`UPDATE porthole_health_notices SET state=?,provider_id=?,next_attempt_at=?,had_uncertain=CASE WHEN ? THEN 1 ELSE had_uncertain END,first_attempt_at=CASE WHEN ? THEN NULL ELSE first_attempt_at END,lease_id=NULL,lease_until=NULL WHERE id=? AND lease_id=?`).bind(status,providerId,nextAttemptAt,status==='uncertain'||status==='pending'&&!rateLimited?1:0,rateLimited&&!idempotent?1:0,notice.id,lease).run()
  await append(env.DB,{...audit,phase:status==='accepted'?'succeeded':'failed',status:status==='accepted'?202:status==='rejected'?422:503})
- await recordComponentReceipt(env.DB,{component:'delivery',source:'independent-mail',status:status==='accepted'?'Healthy':'Unknown',reason:status==='accepted'?'Independent mail provider accepted the durable notice; mailbox delivery is not established.':status==='rejected'?'Independent mail provider rejected the notice; owner action required.':rateLimited?'Independent mail provider refused this attempt for a rate limit; the same durable notice will retry after the provider deadline.':idempotent&&status==='pending'?'Independent mail result uncertain; durable retry retains the exact idempotency key.':'Independent mail result uncertain; automatic resubmission is stopped. Reconcile the original notice with the provider before authorizing another message.',evidence:{noticeId:notice.id,providerStatus:status,providerId,...(rateLimited?{acceptance:'not_accepted',nextAttemptAt}:{})}})
+ await recordComponentReceipt(env.DB,{component:'delivery',source:'independent-mail',status:status==='accepted'?'Healthy':'Unknown',reason:configurationChanged?'Notice transport grant changed; automatic submission is held. Review the original notice and provider account before authorizing another message.':status==='accepted'?'Independent mail provider accepted the durable notice; mailbox delivery is not established.':status==='rejected'?'Independent mail provider rejected the notice; owner action required.':rateLimited?'Independent mail provider refused this attempt for a rate limit; the same durable notice will retry after the provider deadline.':idempotent&&status==='pending'?'Independent mail result uncertain; durable retry retains the exact idempotency key.':'Independent mail result uncertain; automatic resubmission is stopped. Reconcile the original notice with the provider before authorizing another message.',evidence:{noticeId:notice.id,providerStatus:status,providerId,...(configurationChanged?{configurationChanged:true}:{}),...(rateLimited?{acceptance:'not_accepted',nextAttemptAt}:{})}})
  return {attempted:1,status}
 }
 export async function noticeSummary(db:D1Database) {
