@@ -14,7 +14,7 @@ import { lokiProto, lokiRecords, remoteWrite } from './vendor'
 import { readBytes, unsnappy, utf8 } from './wire'
 
 const root='/api/porthole/v1/ingest'
-const intake:Record<string,Signal>={'/v1/traces':'traces','/v1/logs':'logs','/v1/metrics':'metrics','/api/v1/write':'metrics','/loki/api/v1/push':'logs'}
+const intake:Record<string,Signal>={'/v1/traces':'traces','/v1/logs':'logs','/v1/metrics':'metrics','/v1/profiles':'profiles','/api/v1/write':'metrics','/loki/api/v1/push':'logs'}
 const native=new Set(['/app/ingest',root+'/status',root+'/records',root+'/archive',root+'/control',root+'/drain',root+'/loss'])
 const json=(value:unknown,status=200,extra:Record<string,string>={})=>Response.json(value,{status,headers:{...privateHeaders,...extra}})
 function failure(request:Request,error:unknown) {
@@ -27,14 +27,14 @@ function failure(request:Request,error:unknown) {
   if(request.headers.get('content-type')?.includes('protobuf')){
    const message=new TextEncoder().encode(code),prefix=[8,rpcCode,18];let size=message.length
    while(size>127){prefix.push((size&127)|128);size>>>=7}prefix.push(size)
-   return new Response(new Uint8Array([...prefix,...message]),{status,headers:{...privateHeaders,...extra,'content-type':'application/x-protobuf'}})
+   return new Response(new Uint8Array([...prefix,...message]),{status,headers:{...privateHeaders,...extra,'content-type':'application/x-protobuf','x-porthole-error':code}})
   }
   return json({code:rpcCode,message:code},status,extra)
  }
  return json({error:code},status,extra)
 }
 export async function ingestResponse(request: Request,env: Bindings):Promise<Response|null> {
- const path=new URL(request.url).pathname,signal=intake[path],unsupported=path==='/v1/profiles'||/^\/opentelemetry\.proto\.collector\./.test(path)
+ const path=new URL(request.url).pathname,signal=intake[path],unsupported=/^\/opentelemetry\.proto\.collector\./.test(path)
  if(!signal&&!native.has(path)&&!unsupported)return null
  try {
   sameOrigin(request,env)
@@ -72,8 +72,8 @@ export async function ingestResponse(request: Request,env: Bindings):Promise<Res
     records=lokiRecords(data,request.headers);protocol='loki.PushRequest/v3.5'
    }else{
     if(encoding==='snappy')invalid('unsupported_otlp_content_encoding',415)
-    const data=type==='application/json'?object(JSON.parse(utf8(body))):type==='application/x-protobuf'?decode(body,kind==='traces'?'Traces':kind==='logs'?'Logs':'Metrics'):invalid('unsupported_otlp_encoding',415)
-    records=otlpRecords(data,kind,request.headers);protocol='otlp.http/v1.9.0'
+    const data=type==='application/json'?object(JSON.parse(utf8(body))):type==='application/x-protobuf'?decode(body,kind==='traces'?'Traces':kind==='logs'?'Logs':kind==='profiles'?'Profiles':'Metrics'):invalid('unsupported_otlp_encoding',415)
+    records=otlpRecords(data,kind,request.headers);protocol=kind==='profiles'?'otlp.http/v1.9.0/profiles/v1development':'otlp.http/v1.9.0'
    }
    if(records.length>5000)invalid('too_many_records',413)
    if(new TextEncoder().encode(canonical(records)).length>1024*1024)invalid('normalized_batch_too_large',413)

@@ -24,7 +24,7 @@ export function nano(value) {
  return value.padStart(20, '0');
 }
 export function signal(value) {
- if (!['logs', 'metrics', 'traces'].includes(value)) fail('invalid_signal');
+ if (!['logs', 'metrics', 'traces', 'profiles'].includes(value)) fail('invalid_signal');
  return value;
 }
 export const canonical = value => JSON.stringify(value, (_key, item) => item && typeof item === 'object' && !Array.isArray(item) ? Object.fromEntries(Object.entries(item).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)) : item);

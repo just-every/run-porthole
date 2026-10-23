@@ -13,6 +13,9 @@ importers:
 
   .:
     dependencies:
+      '@grpc/grpc-js':
+        specifier: 1.14.6
+        version: 1.14.6
       '@tanstack/react-router':
         specifier: 1.170.41
         version: 1.170.41(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -35,9 +38,6 @@ importers:
       '@cloudflare/workers-types':
         specifier: 5.20260908.1
         version: 5.20260908.1
-      '@grpc/grpc-js':
-        specifier: 1.14.6
-        version: 1.14.6
       '@opentelemetry/api':
         specifier: 1.10.0
         version: 1.10.0

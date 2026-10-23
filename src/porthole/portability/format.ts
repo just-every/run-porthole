@@ -53,7 +53,7 @@ export async function validateRow(payload: PortableRow, state: Validation): Prom
   if(!uuid(row.actor_ref) || !roles.includes(row.role as never) || row.state!=='inactive')bad()
   parseScope(json(row.scope))
  } else if(item.table==='porthole_query_snapshots') {
-  if(!uuid(row.id)||!uuid(row.actor_ref)||!['logs','metrics','traces'].includes(String(row.signal))||!integer(row.through_batch)||!integer(row.created_at)||!/^\d{20}$/.test(String(row.from_ns))||!/^\d{20}$/.test(String(row.through_ns))||String(row.from_ns)>String(row.through_ns))bad()
+  if(!uuid(row.id)||!uuid(row.actor_ref)||!['logs','metrics','traces','profiles'].includes(String(row.signal))||!integer(row.through_batch)||!integer(row.created_at)||!/^\d{20}$/.test(String(row.from_ns))||!/^\d{20}$/.test(String(row.through_ns))||String(row.from_ns)>String(row.through_ns))bad()
   const descriptor=json(row.scope) as Record<string,unknown>
   if(!object(descriptor) || Object.keys(descriptor).some(key=>!['service','environment','team','cursor','limit','trace'].includes(key)))bad()
   for(const key of ['service','environment','team'])if(descriptor[key]!==undefined && (typeof descriptor[key]!=='string' || !/^[a-zA-Z0-9][a-zA-Z0-9._:/-]{0,119}$/.test(String(descriptor[key]))))bad()
@@ -77,7 +77,7 @@ export async function validateRow(payload: PortableRow, state: Validation): Prom
  } else if(item.table==='porthole_ingest_control') {
   if(row.singleton!==1||![0,1].includes(row.paused as number)||!integer(row.max_pending_bytes,1)||!integer(row.revision,1)||!integer(row.changed_at))bad()
  } else if(item.table==='porthole_ingest_batches') {
-  required('id','source_id','identity','protocol'); if(!str(row.wire_base64))bad();try{atob(String(row.wire_base64))}catch{return bad()}; if(!['traces','metrics','logs'].includes(String(row.signal))||!hex(row.digest)||!integer(row.accepted_at)||!integer(row.byte_count)||!integer(row.record_count)||!integer(row.sequence,1)||row.completion_sequence!==null&&!integer(row.completion_sequence,1)||!['pending','complete'].includes(String(row.state))||row.completed_at!==null&&!integer(row.completed_at))bad()
+  required('id','source_id','identity','protocol'); if(!str(row.wire_base64))bad();try{atob(String(row.wire_base64))}catch{return bad()}; if(!['traces','metrics','logs','profiles'].includes(String(row.signal))||!hex(row.digest)||!integer(row.accepted_at)||!integer(row.byte_count)||!integer(row.record_count)||!integer(row.sequence,1)||row.completion_sequence!==null&&!integer(row.completion_sequence,1)||!['pending','complete'].includes(String(row.state))||row.completed_at!==null&&!integer(row.completed_at))bad()
   const records=json(row.records);if(!Array.isArray(records)||records.length!==row.record_count)bad()
   if(row.state==='pending'&&(row.completed_at!==null||row.completion_sequence!==null)||row.state==='complete'&&(!integer(row.completed_at)||!integer(row.completion_sequence,1)))bad()
   for(const raw of records as unknown[]) {
@@ -88,7 +88,7 @@ export async function validateRow(payload: PortableRow, state: Validation): Prom
    if(entry.traceId!==null&&!/^[a-f0-9]{32}$/.test(String(entry.traceId))||entry.spanId!==null&&!/^[a-f0-9]{16}$/.test(String(entry.spanId)))bad()
   }
  } else if(['porthole_telemetry_records','porthole_telemetry_archive'].includes(item.table)) {
-  required('id','batch_id','source_id','team','service','environment');if(!integer(row.ordinal)||!['traces','metrics','logs'].includes(String(row.signal))||typeof row.event_time_ns!=='string'||!/^\d{20}$/.test(row.event_time_ns)||row.trace_id!==null&&!/^[a-f0-9]{32}$/.test(String(row.trace_id))||row.span_id!==null&&!/^[a-f0-9]{16}$/.test(String(row.span_id)))bad()
+  required('id','batch_id','source_id','team','service','environment');if(!integer(row.ordinal)||!['traces','metrics','logs','profiles'].includes(String(row.signal))||typeof row.event_time_ns!=='string'||!/^\d{20}$/.test(row.event_time_ns)||row.trace_id!==null&&!/^[a-f0-9]{32}$/.test(String(row.trace_id))||row.span_id!==null&&!/^[a-f0-9]{16}$/.test(String(row.span_id)))bad()
   if(!object(json(row.payload)))bad()
   if(item.table==='porthole_telemetry_records'&&(!integer(row.indexed_at)||![0,1].includes(row.late as number)||![0,1].includes(row.out_of_order as number))||item.table==='porthole_telemetry_archive'&&!integer(row.archived_at))bad()
  } else {

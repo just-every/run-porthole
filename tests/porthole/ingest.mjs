@@ -6,7 +6,7 @@ import { join } from 'node:path'
 import { literal } from './fixture.mjs'
 
 const root='/api/porthole/v1/ingest'
-export const ingestScope={services:['synthetic-porthole-200'],environments:['synthetic-porthole-201'],teams:['synthetic-porthole-202'],signals:['logs','metrics','traces'],actions:['telemetry.write']}
+export const ingestScope={services:['synthetic-porthole-200'],environments:['synthetic-porthole-201'],teams:['synthetic-porthole-202'],signals:['logs','metrics','traces','profiles'],actions:['telemetry.write']}
 const text=value=>Buffer.from(value)
 const varint=value=>{let n=BigInt(value),bytes=[];while(n>127n){bytes.push(Number(n&127n)|128);n>>=7n}bytes.push(Number(n));return Buffer.from(bytes)}
 const concat=(...values)=>Buffer.concat(values)
@@ -180,7 +180,7 @@ export async function ingestJourney({origin,cookie,sql,restartWorker,freshOwner,
  return {cookie,sourceId:source.credential.id,scope:ingestScope,traceId,spanId}
 }
 
-export async function ingestBrowserJourney({origin,cookie}) {
+export async function ingestBrowserJourney({origin,cookie,profile}) {
  const {chromium}=await import('@playwright/test')
  const browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']})
  try {
@@ -193,7 +193,170 @@ export async function ingestBrowserJourney({origin,cookie}) {
    await page.getByRole('heading',{name:'Telemetry delivery',exact:true}).waitFor()
    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'delivery status reflows')
    if(process.env.PORTHOLE_EVIDENCE_DIR){await mkdir(process.env.PORTHOLE_EVIDENCE_DIR,{recursive:true});await page.screenshot({path:join(process.env.PORTHOLE_EVIDENCE_DIR,`ingest-${width}.png`),fullPage:true})}
+   // The touched documents contain text controls, including their navigation.
+   assert.equal(await page.locator('button').evaluateAll(nodes=>nodes.filter(node=>!node.textContent.trim()).length),0,'no icon-only control lacks a tooltip')
+   if(profile) {
+    await page.goto(origin+'/app/explore')
+    await page.getByLabel('Signal',{exact:true}).selectOption('profiles')
+    for(const [label,key]of [['Service','services'],['Environment','environments'],['Team','teams']])await page.getByLabel(label,{exact:true}).fill(profile.scope[key][0])
+    await page.getByRole('button',{name:'Run query',exact:true}).focus()
+    assert.equal(await page.getByRole('button',{name:'Run query',exact:true}).evaluate(node=>node===document.activeElement),true)
+    if(process.env.PORTHOLE_EVIDENCE_DIR)await page.screenshot({path:join(process.env.PORTHOLE_EVIDENCE_DIR,`profile-explore-${width}.png`),fullPage:true})
+    await page.getByRole('button',{name:'Run query',exact:true}).click()
+    await page.getByRole('heading',{name:'Query results',exact:true}).waitFor()
+    assert.match(await page.locator('pre').textContent(),/synthetic-porthole-1601/)
+    assert.match(await page.locator('pre').textContent(),/timestampsUnixNano/)
+    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'profile results reflow')
+    if(process.env.PORTHOLE_EVIDENCE_DIR)await page.screenshot({path:join(process.env.PORTHOLE_EVIDENCE_DIR,`profile-results-${width}.png`),fullPage:true})
+    await page.goto(origin+'/app/explore')
+    await page.getByLabel('Signal',{exact:true}).selectOption('profiles')
+    for(const label of ['Service','Environment','Team'])await page.getByLabel(label,{exact:true}).fill('synthetic-porthole-1699')
+    await page.getByRole('button',{name:'Run query',exact:true}).click()
+    await page.getByRole('heading',{name:'Query results',exact:true}).waitFor()
+    assert.match(await page.locator('pre').textContent(),/"records": \[\]/)
+    if(process.env.PORTHOLE_EVIDENCE_DIR)await page.screenshot({path:join(process.env.PORTHOLE_EVIDENCE_DIR,`profile-empty-${width}.png`),fullPage:true})
+    await page.goto(origin+'/app/explore')
+    await page.getByLabel('Signal',{exact:true}).evaluate(node=>{const option=document.createElement('option');option.value='synthetic-porthole-1699';option.text='synthetic-porthole-1699';node.add(option);node.value=option.value})
+    for(const [label,key]of [['Service','services'],['Environment','environments'],['Team','teams']])await page.getByLabel(label,{exact:true}).fill(profile.scope[key][0])
+    await page.getByRole('button',{name:'Run query',exact:true}).click()
+    await page.getByRole('heading',{name:'Query unavailable',exact:true}).waitFor()
+    await page.getByRole('alert').waitFor()
+    if(process.env.PORTHOLE_EVIDENCE_DIR)await page.screenshot({path:join(process.env.PORTHOLE_EVIDENCE_DIR,`profile-invalid-${width}.png`),fullPage:true})
+   }
    assert.deepEqual(errors,[]);await context.close()
   }
  }finally{await browser.close()}
+}
+
+/** v1.9.0 official-schema profile capture. Schema edge only: this fixture is
+ * never represented as a stock profiler, a six-language estate or capacity. */
+export function profileBatch(time) {
+ const dictionary={mappingTable:[{}, {memoryStart:'100',memoryLimit:'200',filenameStrindex:3}],locationTable:[{}, {mappingIndex:1,address:'120',lines:[{functionIndex:1,line:'12'}]}],functionTable:[{}, {nameStrindex:3}],linkTable:[{}, {traceId,spanId}],stringTable:['','cpu','nanoseconds','synthetic-porthole-1600'],attributeTable:[{}, {keyStrindex:3,value:{stringValue:'synthetic-porthole-1601'}}],stackTable:[{}, {locationIndices:[1]}]}
+ const profile={sampleType:{typeStrindex:1,unitStrindex:2},samples:[{stackIndex:1,values:['20','30'],attributeIndices:[1],linkIndex:1,timestampsUnixNano:[String(time+1n),String(time+2n)]}],timeUnixNano:String(time),durationNano:'1000',period:'10',profileId:hash('synthetic-porthole-1602').slice(0,32)}
+ return {dictionary,resourceProfiles:[{resource:{attributes:attributes()},schemaUrl:'https://opentelemetry.io/schemas/1.31.0',scopeProfiles:[{scope:{name:'synthetic-porthole-1603',version:'1.0.0'},profiles:[profile]}]}]}
+}
+export function profileProtoBatch(time) {
+ const empty=Buffer.alloc(0),resource=concat(...attributes().map(entry=>message(1,concat(string(1,entry.key),message(2,string(1,entry.value.stringValue))))))
+ const dictionary=concat(message(1,empty),message(1,concat(uint(1,100),uint(2,200),uint(4,3))),message(2,empty),message(2,concat(uint(1,1),uint(2,120),message(3,concat(uint(1,1),uint(2,12))))),message(3,empty),message(3,uint(1,3)),message(4,empty),message(4,concat(message(1,Buffer.from(traceId,'hex')),message(2,Buffer.from(spanId,'hex')))),...['','cpu','nanoseconds','synthetic-porthole-1600'].map(value=>string(5,value)),message(6,empty),message(6,concat(uint(1,3),message(2,string(1,'synthetic-porthole-1601')))),message(7,empty),message(7,message(1,varint(1))))
+ const packedTimes=concat(...[time+1n,time+2n].map(value=>{const bytes=Buffer.alloc(8);bytes.writeBigUInt64LE(value);return bytes}))
+ const sample=concat(uint(1,1),message(2,concat(varint(20),varint(30))),message(3,varint(1)),uint(4,1),message(5,packedTimes))
+ const profile=concat(message(1,concat(uint(1,1),uint(2,2))),message(2,sample),fixed(3,time),uint(4,1000),uint(6,10),message(7,Buffer.from(hash('synthetic-porthole-1602').slice(0,32),'hex')))
+ return concat(message(1,concat(message(1,resource),message(2,concat(message(1,concat(string(1,'synthetic-porthole-1603'),string(2,'1.0.0'))),message(2,profile))),string(3,'https://opentelemetry.io/schemas/1.31.0'))),message(2,dictionary))
+}
+export async function otlpProtocolJourney({origin,cookie,sql,restartWorker,freshOwner,withEmptyDestination}) {
+ const grpc=(await import('@grpc/grpc-js')).default
+ const {receiver}=await import('../../scripts/porthole/otlp-grpc.mjs')
+ const paths={traces:'/opentelemetry.proto.collector.trace.v1.TraceService/Export',metrics:'/opentelemetry.proto.collector.metrics.v1.MetricsService/Export',logs:'/opentelemetry.proto.collector.logs.v1.LogsService/Export',profiles:'/opentelemetry.proto.collector.profiles.v1development.ProfilesService/Export'}
+ cookie=await freshOwner()
+ const post=(path,data)=>fetch(origin+path,{method:'POST',headers:{origin,cookie,'content-type':'application/json'},body:JSON.stringify(data)})
+ const mint=async(signal=ingestScope.signals,kind='ingest',scope=ingestScope)=>{
+  cookie=await freshOwner()
+  const response=await post('/app/settings/credentials/mint',{name:'synthetic-porthole-1604',class:kind,scope:{...scope,signals:signal,actions:[kind==='ingest'?'telemetry.write':'telemetry.read']}})
+  assert.equal(response.status,201);return response.json()
+ }
+ const source=await mint(),readSource=await mint(['profiles'],'read'),time=BigInt(Date.now())*1000000n+123n
+ const send=(signal,body,extra={})=>fetch(origin+'/v1/'+signal,{method:'POST',headers:{authorization:`Bearer ${source.secret}`,'content-type':'application/x-protobuf',...extra},body})
+ const value=async response=>{assert.equal(response.status,200,await response.clone().text());return response.json()}
+ const query=()=>fetch(origin+root+'/records?signal=profiles',{headers:{authorization:`Bearer ${readSource.secret}`}}).then(value)
+ await assert.rejects(()=>receiver({upstream:'https://synthetic-porthole.invalid/path'}),/origin/)
+ await assert.rejects(()=>receiver({upstream:origin,listen:'0.0.0.0:4317'}),/TLS/)
+ const running=await receiver({upstream:origin,listen:'127.0.0.1:0'}),clients=[]
+ const rpc=(signal,wire,{secret=source.secret,headers={},compression=grpc.compressionAlgorithms.identity}={})=>new Promise((resolve,reject)=>{
+  const Client=grpc.makeGenericClientConstructor({Export:{path:paths[signal],requestStream:false,responseStream:false,requestSerialize:Buffer.from,requestDeserialize:Buffer.from,responseSerialize:Buffer.from,responseDeserialize:Buffer.from}},signal),client=new Client('127.0.0.1:'+running.port,grpc.credentials.createInsecure(),{'grpc.default_compression_algorithm':compression});clients.push(client)
+  const metadata=new grpc.Metadata();if(secret)metadata.set('authorization','Bearer '+secret)
+  for(const [name,value]of Object.entries(headers))metadata.set(name,value)
+  let receipt
+  const call=client.Export(wire,metadata,{deadline:Date.now()+10000},(error,body)=>error?reject(error):resolve({body,receipt}))
+  call.on('metadata',metadata=>{receipt=metadata.getMap()})
+ })
+ try {
+  await post(root+'/control',{paused:true})
+  const binary=profileProtoBatch(time)
+  const http=await send('profiles',gzipSync(binary),{'content-encoding':'gzip'})
+  assert.equal(http.status,200);assert.equal(http.headers.get('x-porthole-accepted'),'1')
+  // Exact raw retry and gRPC gzip are both handled by the real protocol stacks.
+  const repeated=await rpc('profiles',binary,{compression:grpc.compressionAlgorithms.gzip})
+  assert.equal(repeated.body.length,0)
+  assert.equal(repeated.receipt['x-porthole-accepted'],'1')
+  assert.equal((await send('profiles',binary)).status,200)
+  // Different compression bytes are different source envelopes by default;
+  // a retry must keep the same encoding with an explicit batch identity.
+  await rpc('profiles',binary,{headers:{'x-porthole-batch-id':'synthetic-porthole-1605'}})
+  const retry=await send('profiles',gzipSync(binary),{'content-encoding':'gzip','x-porthole-batch-id':'synthetic-porthole-1605'})
+  assert.equal(retry.status,409,'changed source bytes under an explicit identity refuse')
+  assert.equal((await rpc('profiles',binary,{headers:{'x-porthole-batch-id':'synthetic-porthole-1605'}})).receipt['x-porthole-duplicate'],'true')
+  for(const signal of ['traces','metrics','logs']) {
+   const result=await rpc(signal,otlpProtoBatch(signal,time))
+   assert.equal(result.body.length,0);assert.equal(result.receipt['x-porthole-accepted'],'1')
+  }
+  const isolated=profileBatch(time+10000n);isolated.dictionary.stringTable.push('synthetic-porthole-1608');isolated.dictionary.linkTable.push({traceId:'a'.repeat(32),spanId:'b'.repeat(16)})
+  const json=await send('profiles',Buffer.from(JSON.stringify(isolated)),{'content-type':'application/json'})
+  assert.equal(json.status,200)
+  const badIndex=profileBatch(time);badIndex.resourceProfiles[0].scopeProfiles[0].profiles[0].samples[0].stackIndex=999
+  assert.equal((await send('profiles',Buffer.from(JSON.stringify(badIndex)),{'content-type':'application/json'})).status,400)
+  const badTime=profileBatch(time);badTime.resourceProfiles[0].scopeProfiles[0].profiles[0].samples[0].timestampsUnixNano=[String(time-1n),String(time+1n)]
+  assert.equal((await send('profiles',Buffer.from(JSON.stringify(badTime)),{'content-type':'application/json'})).status,400)
+  for(const [wire,options,status]of [[Buffer.from([255]),{},grpc.status.INVALID_ARGUMENT],[binary,{secret:''},grpc.status.UNAUTHENTICATED],[binary,{secret:'synthetic-porthole-1606'},grpc.status.UNAUTHENTICATED],[Buffer.alloc(1024*1024+1),{},grpc.status.RESOURCE_EXHAUSTED]])await assert.rejects(()=>rpc('profiles',wire,options),error=>error.code===status)
+  const narrow=await mint(['logs'])
+  await assert.rejects(()=>rpc('profiles',binary,{secret:narrow.secret}),error=>error.code===grpc.status.PERMISSION_DENIED)
+  const foreign=profileBatch(time);foreign.resourceProfiles[0].resource.attributes[2].value.stringValue='synthetic-porthole-1607'
+  assert.equal((await send('profiles',Buffer.from(JSON.stringify(foreign)),{'content-type':'application/json'})).status,403)
+  await restartWorker();cookie=await freshOwner()
+  await post(root+'/control',{paused:false});assert.equal((await post(root+'/drain',{})).status,200)
+  const result=await query(),records=result.records.filter(row=>row.source_id===source.credential.id)
+  assert.equal(records.length,4,'four distinct acknowledged source envelopes remain after retry and restart')
+  for(const row of records) {
+   assert.deepEqual(row.payload.dictionary,profileBatch(time).dictionary)
+   assert.ok(!JSON.stringify(row.payload).includes('synthetic-porthole-1608'),'unreferenced shared dictionary contents are not exposed')
+   assert.equal(row.payload.record.samples[0].values.reduce((n,value)=>n+BigInt(value),0n),50n)
+   assert.equal(row.payload.record.samples[0].timestampsUnixNano[0],String(BigInt(row.event_time_ns)+1n))
+   assert.equal(row.payload.resourceSchemaUrl,'https://opentelemetry.io/schemas/1.31.0')
+   assert.equal(row.payload.record.profileId,hash('synthetic-porthole-1602').slice(0,32))
+  }
+  assert.equal((await fetch(origin+root+'/records?signal=logs',{headers:{authorization:`Bearer ${readSource.secret}`}})).status,403)
+  const status=await value(await fetch(origin+root+'/status',{headers:{cookie}})),totals=status.sources.filter(row=>row.sourceId===source.credential.id&&row.signal==='profiles')
+  assert.equal(totals.reduce((n,row)=>n+row.accepted,0),4);assert.equal(totals.reduce((n,row)=>n+row.queryable,0),4);assert.equal(totals.reduce((n,row)=>n+row.archived,0),4)
+  const profile=records.find(row=>row.event_time_ns===String(time+10000n).padStart(20,'0'))
+  const broad=await mint(['profiles'],'ingest',{...ingestScope,teams:[...ingestScope.teams,'synthetic-porthole-1611']})
+  const mixed=profileBatch(time+20000n)
+  mixed.dictionary.stringTable.push('synthetic-porthole-1610')
+  mixed.dictionary.functionTable.push({nameStrindex:4})
+  mixed.dictionary.locationTable.push({lines:[{functionIndex:2}]})
+  mixed.dictionary.stackTable.push({locationIndices:[2]})
+  mixed.dictionary.linkTable.push({traceId:'a'.repeat(32),spanId:'b'.repeat(16)})
+  const second=structuredClone(mixed.resourceProfiles[0]);second.resource.attributes[2].value.stringValue='synthetic-porthole-1611';second.scopeProfiles[0].profiles[0].samples[0].stackIndex=2;second.scopeProfiles[0].profiles[0].samples[0].linkIndex=2
+  mixed.resourceProfiles.push(second)
+  const shared=await send('profiles',Buffer.from(JSON.stringify(mixed)),{'content-type':'application/json',authorization:`Bearer ${broad.secret}`});assert.equal(shared.status,200)
+  assert.equal((await post(root+'/drain',{})).status,200)
+  const narrowed=(await query()).records.filter(row=>row.source_id===broad.credential.id)
+  assert.equal(narrowed.length,1,'read credential sees only its team in a multi-resource export')
+  assert.ok(!JSON.stringify(narrowed).includes('synthetic-porthole-1610')&&!JSON.stringify(narrowed).includes('a'.repeat(32)),'other team shared dictionary strings and trace links are excluded')
+  assert.equal((await fetch(origin+root+'/records?signal=profiles&team=synthetic-porthole-1611',{headers:{authorization:`Bearer ${readSource.secret}`}})).status,403)
+  const rawEnvelope=(await sql(`SELECT wire_base64 FROM porthole_ingest_batches WHERE source_id=${literal(broad.credential.id)}`))[0]
+  assert.ok(Buffer.from(rawEnvelope.wire_base64,'base64').toString().includes('synthetic-porthole-1610'),'owner-only original envelope keeps exact source bytes')
+  await restartWorker(async()=>{await assert.rejects(()=>rpc('profiles',binary),error=>error.code===grpc.status.UNAVAILABLE)})
+  cookie=await freshOwner()
+  const {execFile}=await import('node:child_process'),{promisify}=await import('node:util')
+  for(const transport of ['grpc','http/protobuf']) {
+   const emitted=await promisify(execFile)(process.execPath,['tests/porthole/polyglot/otlp.cjs'],{env:{...process.env,PORTHOLE_OTLP_PROTOCOL:transport,PORTHOLE_OTLP_ENDPOINT:transport==='grpc'?'http://127.0.0.1:'+running.port:origin,PORTHOLE_OTLP_SECRET:source.secret},timeout:30000})
+   const actual=JSON.parse(emitted.stdout.trim())
+   assert.match(actual.traceId,/^[a-f0-9]{32}$/)
+   assert.equal((await post(root+'/drain',{})).status,200)
+   const read=async signal=>value(await fetch(origin+root+'/records?signal='+signal,{headers:{cookie}}))
+   const spans=await read('traces'),logs=await read('logs'),metrics=await read('metrics')
+   assert.ok(spans.records.some(row=>row.trace_id===actual.traceId&&row.payload.record.name==='synthetic-porthole-1622'),'official '+transport+' trace exporter writes the actual request span')
+   assert.ok(logs.records.some(row=>row.trace_id===actual.traceId&&row.payload.record.body.stringValue==='synthetic-porthole-1624'),'official '+transport+' log exporter preserves actual request correlation')
+   assert.ok(metrics.records.some(row=>row.source_id===source.credential.id&&row.payload.metric?.name==='synthetic_porthole_1623'&&(row.payload.record.asInt==='1'||row.payload.record.asDouble===1)),'official '+transport+' metrics exporter preserves actual request count')
+  }
+  const saved=await value(await post('/api/porthole/v1/query',{signal:'profiles',service:ingestScope.services[0],environment:ingestScope.environments[0],team:ingestScope.teams[0]}))
+  const {profileArchiveJourney}=await import('./archive.mjs')
+  await profileArchiveJourney({origin,cookie,records:saved.records,queryRef:saved.queryRef,withEmptyDestination})
+  cookie=await freshOwner()
+  await post('/app/settings/credentials/revoke',{id:source.credential.id})
+  await assert.rejects(()=>rpc('profiles',binary),error=>error.code===grpc.status.UNAUTHENTICATED)
+  await post('/app/settings/credentials/revoke',{id:readSource.credential.id})
+  assert.equal((await fetch(origin+root+'/records?signal=profiles',{headers:{authorization:`Bearer ${readSource.secret}`}})).status,401)
+  console.log('otlpProtocolJourney passed: real HTTP/gRPC four-signal intake, compressed transport, original profile samples/dictionaries/ns/links, per-signal auth/revocation, exact counts/retries, restart, query replay and inactive archive; official-schema edge only, no stock-profile/six-language/load claim')
+  return {scope:ingestScope,profile,queryRef:saved.queryRef}
+ }finally{clients.forEach(client=>client.close());await running.close()}
 }

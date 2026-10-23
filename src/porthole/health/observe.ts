@@ -55,7 +55,7 @@ export async function observeHealth(env: HealthBindings): Promise<HealthState> {
   observe('query', async () => {
    if(separate){
     const state=await active;if(!state)throw Error('analytics_unavailable')
-    const pages=await Promise.all(['logs','metrics','traces'].map(signal=>analyticalQuery(env,analytical,{signal,scope:allScope,from:'0',through:'18446744073709551615',limit:5})))
+    const pages=await Promise.all(['logs','metrics','traces','profiles'].map(signal=>analyticalQuery(env,analytical,{signal,scope:allScope,from:'0',through:'18446744073709551615',limit:5})))
     const rows:AnalyticalRecord[]=pages.flatMap(page=>page.records).sort((a,b)=>b.indexed_at-a.indexed_at).slice(0,5)
     return {status:fresh(state.lastQueryableAt)?'Healthy':'Unknown',reason:'Product query answered from separate '+analytical.active_role+' worker with complete coverage.',lastQueryableAt:state.lastQueryableAt,evidence:{role:analytical.active_role,watermark:state.watermark,lastKnown:rows.map(row=>({signal:row.signal,team:row.team,service:row.service,environment:row.environment,eventTimeNs:row.event_time_ns,indexedAt:iso(row.indexed_at)}))}}
    }

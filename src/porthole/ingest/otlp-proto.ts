@@ -1,4 +1,4 @@
-// OTLP schema: opentelemetry-proto v1.9.0. Schemas are local descriptors for
+// OTLP schema: opentelemetry-proto v1.9.0 (profiles v1development). Schemas are local descriptors for
 // the official wire messages, not an application-specific telemetry format.
 import { base64, invalid } from './model'
 import { bytes, double, fields, fixed, hex, Proto, uint, utf8, type Field } from './wire'
@@ -9,6 +9,20 @@ const common: Record<string, Descriptor> = {
  KeyValue: { 1: ['key','string'], 2: ['value','AnyValue'] },
  Resource: { 1: ['attributes','KeyValue',true], 2: ['droppedAttributesCount','uint'] },
  Scope: { 1: ['name','string'], 2: ['version','string'], 3: ['attributes','KeyValue',true], 4: ['droppedAttributesCount','uint'] },
+ Profiles: { 1: ['resourceProfiles','ResourceProfiles',true], 2: ['dictionary','ProfilesDictionary'] },
+ ResourceProfiles: { 1: ['resource','Resource'], 2: ['scopeProfiles','ScopeProfiles',true], 3: ['schemaUrl','string'] },
+ ScopeProfiles: { 1: ['scope','Scope'], 2: ['profiles','Profile',true], 3: ['schemaUrl','string'] },
+ ProfilesDictionary: { 1: ['mappingTable','ProfileMapping',true], 2: ['locationTable','ProfileLocation',true], 3: ['functionTable','ProfileFunction',true], 4: ['linkTable','ProfileLink',true], 5: ['stringTable','string',true], 6: ['attributeTable','ProfileAttribute',true], 7: ['stackTable','ProfileStack',true] },
+ Profile: { 1: ['sampleType','ProfileValueType'], 2: ['samples','ProfileSample',true], 3: ['timeUnixNano','fixed64'], 4: ['durationNano','uint64'], 5: ['periodType','ProfileValueType'], 6: ['period','int64'], 7: ['profileId','hex'], 8: ['droppedAttributesCount','uint'], 9: ['originalPayloadFormat','string'], 10: ['originalPayload','bytes'], 11: ['attributeIndices','int32',true] },
+ ProfileValueType: { 1: ['typeStrindex','int32'], 2: ['unitStrindex','int32'] },
+ ProfileSample: { 1: ['stackIndex','int32'], 2: ['values','int64',true], 3: ['attributeIndices','int32',true], 4: ['linkIndex','int32'], 5: ['timestampsUnixNano','fixed64',true] },
+ ProfileMapping: { 1: ['memoryStart','uint64'], 2: ['memoryLimit','uint64'], 3: ['fileOffset','uint64'], 4: ['filenameStrindex','int32'], 5: ['attributeIndices','int32',true] },
+ ProfileLocation: { 1: ['mappingIndex','int32'], 2: ['address','uint64'], 3: ['lines','ProfileLine',true], 4: ['attributeIndices','int32',true] },
+ ProfileLine: { 1: ['functionIndex','int32'], 2: ['line','int64'], 3: ['column','int64'] },
+ ProfileFunction: { 1: ['nameStrindex','int32'], 2: ['systemNameStrindex','int32'], 3: ['filenameStrindex','int32'], 4: ['startLine','int64'] },
+ ProfileLink: { 1: ['traceId','hex'], 2: ['spanId','hex'] },
+ ProfileAttribute: { 1: ['keyStrindex','int32'], 2: ['value','AnyValue'], 3: ['unitStrindex','int32'] },
+ ProfileStack: { 1: ['locationIndices','int32',true] },
  Traces: { 1: ['resourceSpans','ResourceSpans',true] }, Logs: { 1: ['resourceLogs','ResourceLogs',true] }, Metrics: { 1: ['resourceMetrics','ResourceMetrics',true] },
  ResourceSpans: { 1: ['resource','Resource'], 2: ['scopeSpans','ScopeSpans',true], 3: ['schemaUrl','string'] },
  ResourceLogs: { 1: ['resource','Resource'], 2: ['scopeLogs','ScopeLogs',true], 3: ['schemaUrl','string'] },
@@ -32,7 +46,7 @@ const common: Record<string, Descriptor> = {
  Quantile: { 1: ['quantile','double'], 2: ['value','double'] },
  Exemplar: { 2: ['timeUnixNano','fixed64'], 3: ['asDouble','double'], 4: ['spanId','hex'], 5: ['traceId','hex'], 6: ['asInt','sfixed64'], 7: ['filteredAttributes','KeyValue',true] },
 }
-const numericWire: Record<string, number> = { uint: 0, uint64: 0, int64: 0, sint: 0, bool: 0, fixed64: 1, sfixed64: 1, double: 1, fixed32: 5 }
+const numericWire: Record<string, number> = { uint: 0, int32: 0, uint64: 0, int64: 0, sint: 0, bool: 0, fixed64: 1, sfixed64: 1, double: 1, fixed32: 5 }
 function scalar(field: Field, type: string, depth: number): unknown {
  if (numericWire[type] !== undefined && field.wire !== numericWire[type] || numericWire[type] === undefined && field.wire !== 2) return invalid('invalid_protobuf_field_type')
  if (common[type]) return decode(bytes(field), type, depth + 1)
@@ -43,6 +57,7 @@ function scalar(field: Field, type: string, depth: number): unknown {
   case 'bool': return uint(field) !== 0n
   case 'uint': return Number(uint(field))
   case 'uint64': return uint(field).toString()
+  case 'int32': return Number(BigInt.asIntN(32, uint(field)))
   case 'int64': return BigInt.asIntN(64, uint(field)).toString()
   case 'sint': { const n = uint(field); return Number((n >> 1n) ^ -(n & 1n)) }
   case 'fixed64': return fixed(field).toString()

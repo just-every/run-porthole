@@ -223,3 +223,26 @@ export async function restoreAnalyticalSnapshot({context,saved,times}) {
  assert.equal((await call('/api/porthole/v1/ingest/records?signal=logs',{headers:{cookie}})).status,503,'destination requires its own explicit analytical connection')
  return config
 }
+
+/** Extend the existing inactive-archive boundary to profile dictionaries and
+ * protected profile query snapshots, using a separately owned real D1 store. */
+export async function profileArchiveJourney({origin,cookie,records,queryRef,withEmptyDestination}) {
+ const saved=await savedExport(origin,cookie,await post(origin,cookie,api+'/exports',{}))
+ const profileRows=saved.rows.filter(row=>row.table==='porthole_telemetry_records'&&row.row.signal==='profiles')
+ assert.ok(profileRows.length>0)
+ await withEmptyDestination(async destination=>{
+  const acting=await destination.freshOwner(),restore=await value(await post(destination.origin,acting,api+'/restores',{manifest:saved.manifest}),201)
+  for(const chunk of saved.chunks)await value(await post(destination.origin,acting,`${api}/restores/${restore.id}/chunks`,{chunk}))
+  await value(await post(destination.origin,acting,`${api}/restores/${restore.id}/commit`,{confirm:saved.manifest.rootHash}))
+  const replay=await value(await get(destination.origin,acting,'/api/porthole/v1/query/'+queryRef))
+  assert.deepEqual(replay.records,records,'all original profile dictionaries, links, samples and ns survive inactive restore and current-authority replay')
+  const copies=await value(await get(destination.origin,acting,'/api/porthole/v1/ingest/archive?signal=profiles'))
+  assert.equal(copies.records.length,profileRows.length)
+  assert.equal((await destination.sql('SELECT paused FROM porthole_ingest_control'))[0].paused,1)
+  assert.equal((await destination.sql('SELECT COUNT(*) AS n FROM porthole_credentials'))[0].n,0)
+  assert.equal((await get(destination.origin,cookie,'/api/porthole/v1/ingest/records?signal=profiles')).status,401)
+  const reexport=await savedExport(destination.origin,acting,await post(destination.origin,acting,api+'/exports',{}))
+  assert.deepEqual(reexport.rows.filter(row=>['porthole_ingest_batches','porthole_telemetry_records','porthole_telemetry_archive'].includes(row.table)),saved.rows.filter(row=>['porthole_ingest_batches','porthole_telemetry_records','porthole_telemetry_archive'].includes(row.table)))
+ })
+ console.log('profileArchiveJourney passed: byte-exact profile history/dictionaries and protected query replay after independent inactive restore, with no transferred credential or session')
+}

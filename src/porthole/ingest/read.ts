@@ -23,7 +23,7 @@ export async function readTelemetry(request: Request, env: Bindings, options: {a
   const limit = Number(params.get('limit') ?? 100)
   if (!Number.isSafeInteger(limit) || limit < 1 || limit > (params.has('trace')?2000:200)) fail('invalid_query_limit',400)
   const signal = params.get('signal')
-  if (!signal || !['logs','traces','metrics'].includes(signal)) fail('signal_required',400)
+  if (!signal || !['logs','traces','metrics','profiles'].includes(signal)) fail('signal_required',400)
   let scope: Scope, fence: {sql:string;args:unknown[]},actorRef:string,actorRevision:number
   if (request.headers.has('authorization')) {
    const auth = await verifyCredential(request,env,{action:'telemetry.read',scope:emptyScope,dataScope:allScope,inspectOnly:true})

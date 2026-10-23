@@ -1,4 +1,4 @@
-export type Signal = 'traces' | 'metrics' | 'logs'
+export type Signal = 'traces' | 'metrics' | 'logs' | 'profiles'
 export interface TelemetryRecord {
  team: string; service: string; environment: string; eventTimeNs: string
  traceId: string | null; spanId: string | null; payload: Record<string, unknown>

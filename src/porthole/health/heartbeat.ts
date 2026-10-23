@@ -12,7 +12,7 @@ export async function collectorHeartbeat(request: Request, env: HealthBindings) 
  if (Object.keys(data).some(key=>!['collectorId','team','service','environment','signal'].includes(key))) fail('invalid_input',400)
  const name=(key:string) => typeof data[key]==='string' && /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,119}$/.test(data[key] as string)?data[key] as string:fail('invalid_heartbeat',400)
  const id=name('collectorId'),team=name('team'),service=name('service'),environment=name('environment'),signal=name('signal')
- if (!['logs','metrics','traces'].includes(signal)) fail('invalid_signal',400)
+ if (!['logs','metrics','traces','profiles'].includes(signal)) fail('invalid_signal',400)
  const scope={teams:[team],services:[service],environments:[environment]}
  const authorization=request.headers.get('authorization')??''
  // This digest is never returned or stored in health evidence.

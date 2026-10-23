@@ -1,5 +1,6 @@
+import { profileDictionary, validateProfile, isolateProfile } from './profiles'
 import type { CredentialScope } from '../credentials/policy'
-import { array, invalid, nano, object, type Signal, type TelemetryRecord } from './model'
+import { array, canonical, invalid, nano, object, type Signal, type TelemetryRecord } from './model'
 
 export function attributes(value: unknown): Record<string, unknown> {
  const output: Record<string, unknown> = Object.create(null)
@@ -30,17 +31,25 @@ export function record(payload: Record<string, unknown>, attr: Record<string, un
   late: BigInt(eventTimeNs) < now - 10n * 60n * 1000000000n ? 1 : 0, outOfOrder: 0 }
 }
 export function otlpRecords(data: Record<string, unknown>, signal: Signal, headers: Headers): TelemetryRecord[] {
- const capital = signal === 'traces' ? 'Spans' : signal === 'logs' ? 'Logs' : 'Metrics'
+ const capital = signal === 'traces' ? 'Spans' : signal === 'logs' ? 'Logs' : signal === 'profiles' ? 'Profiles' : 'Metrics'
  const resources = data[`resource${capital}`]
  if (resources === undefined) {
   if (Object.keys(data).length === 0) return [] // Official empty ExportRequest.
   return invalid('invalid_otlp_export_request')
  }
  const result: TelemetryRecord[] = []
+ let normalizedBytes=2
+ const append=(entry:TelemetryRecord)=>{
+  normalizedBytes+=new TextEncoder().encode(canonical(entry)).length+1
+  if(result.length>=5000)invalid('too_many_records',413)
+  if(normalizedBytes>1024*1024)invalid('normalized_batch_too_large',413)
+  result.push(entry)
+ }
+ const dictionary = signal === 'profiles' && array(resources).some(item => array(object(item).scopeProfiles ?? []).some(scope => array(object(scope).profiles ?? []).length)) ? profileDictionary(data.dictionary) : undefined
  for (const item of array(resources)) {
   const group = object(item), resource = group.resource === undefined ? {} : object(group.resource), attr = attributes(resource.attributes)
   for (const scopeItem of group[`scope${capital}`] === undefined ? [] : array(group[`scope${capital}`])) {
-   const scope = object(scopeItem), list = scope[signal === 'logs' ? 'logRecords' : signal === 'traces' ? 'spans' : 'metrics']
+   const scope = object(scopeItem), list = scope[signal === 'logs' ? 'logRecords' : signal === 'traces' ? 'spans' : signal === 'profiles' ? 'profiles' : 'metrics']
    for (const raw of list === undefined ? [] : array(list)) {
     const entry = object(raw), common = { resource, scope: scope.scope ?? {}, resourceSchemaUrl: group.schemaUrl ?? '', scopeSchemaUrl: scope.schemaUrl ?? '' }
     if (signal === 'metrics') {
@@ -53,14 +62,17 @@ export function otlpRecords(data: Record<string, unknown>, signal: Signal, heade
       if (kind === 'gauge' || kind === 'sum') {
        if (Number(Object.hasOwn(point,'asDouble')) + Number(Object.hasOwn(point,'asInt')) !== 1) return invalid('missing_metric_value')
       }
-      result.push(record({ ...common, metric: { ...entry, [kind]: { ...container, dataPoints: undefined } }, metricKind: kind, record: point }, { ...attr, ...pointAttr }, point.timeUnixNano ?? '0', headers, signal))
+      append(record({ ...common, metric: { ...entry, [kind]: { ...container, dataPoints: undefined } }, metricKind: kind, record: point }, { ...attr, ...pointAttr }, point.timeUnixNano ?? '0', headers, signal))
      }
+    } else if (signal === 'profiles') {
+     validateProfile(entry, dictionary!)
+     append(record({ ...common, ...isolateProfile(entry,dictionary!), otlpVersion: '1.9.0/profiles/v1development' }, attr, entry.timeUnixNano ?? '0', headers, signal))
     } else {
      if (signal === 'traces') {
       id(entry.parentSpanId,16)
       if (BigInt(nano(entry.endTimeUnixNano ?? '0')) < BigInt(nano(entry.startTimeUnixNano ?? '0'))) return invalid('span_end_before_start')
      }
-     result.push(record({ ...common, record: entry }, attr, signal === 'traces' ? entry.startTimeUnixNano ?? '0' : entry.timeUnixNano ?? entry.observedTimeUnixNano ?? '0', headers, signal))
+     append(record({ ...common, record: entry }, attr, signal === 'traces' ? entry.startTimeUnixNano ?? '0' : entry.timeUnixNano ?? entry.observedTimeUnixNano ?? '0', headers, signal))
     }
    }
   }

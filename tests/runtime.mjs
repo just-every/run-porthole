@@ -29,6 +29,12 @@ for(const name of (await readdir('migrations/core')).filter(name=>name<'0017')) 
 const oldConfig=join(persist,'previous.json')
 await writeFile(oldConfig,JSON.stringify({name:'justevery-porthole',compatibility_date:'2026-09-08',d1_databases:[{binding:'DB',database_name:'foundation',database_id:'local-foundation-only',migrations_dir:oldMigrations}]}))
 migrate(oldConfig)
+// The focused ingest shard first exercises the previous three-signal schema
+// through public intake, then upgrades its populated real D1 to profiles.
+const preProfilesMigrations=join(persist,'pre-profiles-migrations');await mkdir(preProfilesMigrations)
+for(const name of (await readdir('migrations/core')).filter(name=>name<'0029'))await copyFile('migrations/core/'+name,join(preProfilesMigrations,name))
+const preProfilesConfig=join(persist,'pre-profiles.json')
+await writeFile(preProfilesConfig,JSON.stringify({name:'justevery-porthole',compatibility_date:'2026-09-08',d1_databases:[{binding:'DB',database_name:'foundation',database_id:'local-foundation-only',migrations_dir:preProfilesMigrations}]}))
 const origin = `http://127.0.0.1:${port}`
 // The emitted Worker's owner-claim setup token: a synthetic test value.
 const setupToken = 'synthetic-runtime-setup-token-1234567890123456789'
@@ -96,13 +102,13 @@ try {
   let cookie = owner.headers.getSetCookie().map(value => value.split(';')[0]).join('; ')
   await restartWorker(async()=>{
    await sql(`INSERT INTO oa_operators(id,email,display_name,role,status,created_at) VALUES('${randomUUID()}','synthetic-porthole-10@example.com','Existing checkout administrator','admin','active',${Date.now()}),('${randomUUID()}','synthetic-porthole-11@example.com','Existing checkout analyst','member','active',${Date.now()})`)
-   migrate('dist/server/wrangler.json')
+   migrate(process.env.PORTHOLE_INGEST_ONLY==='1'?preProfilesConfig:'dist/server/wrangler.json')
   })
   assert.equal((await fetch(`${origin}/app`, { redirect: 'manual', headers: { cookie } })).headers.get('location'), '/setup')
   const setupPage=await fetch(`${origin}/setup`, { headers: { cookie } })
   assert.equal(setupPage.status,200)
   assert.match(await setupPage.text(),/Independent notices off — incomplete coverage/)
-  if(!process.env.PORTHOLE_ACCESS_ONLY && !process.env.PORTHOLE_TRACE_ONLY && (process.env.PORTHOLE_HEALTH_ONLY==='1' || !process.env.PORTHOLE_AUDIT_ONLY && !process.env.PORTHOLE_STOCK_ONLY)) {
+  if(!process.env.PORTHOLE_PROTOCOL_ONLY && !process.env.PORTHOLE_INGEST_ONLY && !process.env.PORTHOLE_ACCESS_ONLY && !process.env.PORTHOLE_TRACE_ONLY && (process.env.PORTHOLE_HEALTH_ONLY==='1' || !process.env.PORTHOLE_AUDIT_ONLY && !process.env.PORTHOLE_STOCK_ONLY)) {
    const {healthBrowser}=await import('./porthole/health.mjs')
    await healthBrowser({origin,cookie,name:'setup-notices-off',path:'/setup',contains:'Independent notices off — incomplete coverage'})
   }
@@ -146,7 +152,22 @@ try {
     return await run({origin,cookie:destinationCookie,persist,...destinationHelpers,restartWorker})
    } finally {await restartWorker(()=>{persist=savedStore;ownerEmail=savedOwner})}
   }
-  if(process.env.PORTHOLE_TRACE_ONLY==='1') {
+  if(process.env.PORTHOLE_PROTOCOL_ONLY==='1') {
+   const {otlpProtocolJourney,ingestBrowserJourney}=await import('./porthole/ingest.mjs')
+   const protocol=await otlpProtocolJourney({origin,cookie,persist,restartWorker,withEmptyDestination,...helpers})
+   await ingestBrowserJourney({origin,cookie:await helpers.freshOwner(),profile:protocol})
+  } else if(process.env.PORTHOLE_INGEST_ONLY==='1') {
+   const {ingestJourney,otlpProtocolJourney,ingestBrowserJourney}=await import('./porthole/ingest.mjs')
+   await ingestJourney({origin,cookie,persist,restartWorker,...helpers})
+   const beforeUpgrade={}
+   for(const table of ['porthole_ingest_batches','porthole_telemetry_records','porthole_telemetry_archive'])beforeUpgrade[table]=await sql(`SELECT * FROM ${table} ORDER BY id`)
+   await restartWorker(()=>migrate('dist/server/wrangler.json'))
+   for(const [table,rows]of Object.entries(beforeUpgrade))assert.deepEqual(await sql(`SELECT * FROM ${table} ORDER BY id`),rows,'additive profile migration preserves existing '+table)
+   assert.deepEqual(await sql('PRAGMA foreign_key_check'),[])
+   console.log('Populated three-signal D1 upgrade passed: original envelopes, retained/archive rows, sequence watermarks and foreign keys preserved')
+   const protocol=await otlpProtocolJourney({origin,cookie,persist,restartWorker,withEmptyDestination,...helpers})
+   await ingestBrowserJourney({origin,cookie:await helpers.freshOwner(),profile:protocol})
+  } else if(process.env.PORTHOLE_TRACE_ONLY==='1') {
    const {traceJourney}=await import('./porthole/traces.mjs')
    await traceJourney({origin,cookie,persist,restartWorker,withEmptyDestination,...helpers})
   } else if(process.env.PORTHOLE_HEALTH_ONLY==='1') {
@@ -180,11 +201,14 @@ try {
   const {healthJourney,browserProof}=await import('./porthole/audit.mjs')
   await healthJourney({origin,cookie})
   await credentialQueryJourney({origin,sql,freshOwner:helpers.freshOwner,restartWorker,getLogs:()=>allOutput})
+  if(process.env.PORTHOLE_CORE_ONLY!=='1') {
   const { ingestJourney }=await import('./porthole/ingest.mjs')
   await ingestJourney({origin,cookie,persist,restartWorker,...helpers})
   if(process.env.PORTHOLE_STOCK_QUALIFICATION==='1') {const {stockIngestJourney}=await import('./porthole/stock-ingest.mjs');await stockIngestJourney({origin,cookie,persist,restartWorker,...helpers})}
-  const {ingestBrowserJourney}=await import('./porthole/ingest.mjs')
-  await ingestBrowserJourney({origin,cookie})
+  const {ingestBrowserJourney,otlpProtocolJourney}=await import('./porthole/ingest.mjs')
+  const protocol=await otlpProtocolJourney({origin,cookie,persist,restartWorker,withEmptyDestination,...helpers})
+  await ingestBrowserJourney({origin,cookie:await helpers.freshOwner(),profile:protocol})
+  }
   cookie=await helpers.freshOwner()
   const { auditJourney } = await import('./porthole/audit.mjs')
   await auditJourney({ origin, cookie, persist, restartWorker })

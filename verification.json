@@ -24,7 +24,16 @@
       "hosted": true,
       "commands": [
         "pnpm run build",
-        "pnpm run test:runtime"
+        "PORTHOLE_CORE_ONLY=1 pnpm run test:runtime"
+      ]
+    },
+    {
+      "name": "ingest",
+      "browser": true,
+      "hosted": false,
+      "commands": [
+        "pnpm run build",
+        "PORTHOLE_INGEST_ONLY=1 pnpm run test:runtime"
       ]
     },
     {

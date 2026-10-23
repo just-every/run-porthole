@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import {execFile,spawn} from 'node:child_process'
 import {promisify} from 'node:util'
-import {cp,mkdtemp,rm} from 'node:fs/promises'
+import {cp,mkdtemp,rm,rename} from 'node:fs/promises'
 import {createServer} from 'node:net'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
@@ -34,6 +34,8 @@ try {
  await cp(join(root,'workers/analytics'),join(scratch,'workers/analytics'),{recursive:true,filter:path=>!path.includes('/.staged')&&!path.includes('/.state')})
  for(const product of await stageAnalytics(scratch)){
   const listener=await port(),server={config:join(scratch,product.config),persist:join(scratch,product.role),port:listener,origin:`http://127.0.0.1:${listener}`}
+  server.profileMigration=join(scratch,product.productDirectory,'migrations/core/0003_profiles.sql');server.pendingMigration=join(scratch,'profiles-'+product.role+'.sql')
+  await rename(server.profileMigration,server.pendingMigration)
   servers.push(server)
   await execute(process.execPath,[wrangler,'d1','migrations','apply','DB','--local','--config',server.config,'--persist-to',server.persist],{cwd:scratch,env})
   await start(server)
@@ -49,6 +51,9 @@ try {
  await value(await post(primary,'/v1/replicate',{sourceIdentity,batches:[first]}))
  let read=await value(await post(primary,'/v1/query',query))
  assert.equal(read.records.length,1);assert.equal(read.records[0].event_time_ns,first.records[0].eventTimeNs);assert.deepEqual(read.records[0].payload,first.records[0].payload)
+ const beforeUpgrade=read.records
+ for(const server of servers){await stop(server);await rename(server.pendingMigration,server.profileMigration);await execute(process.execPath,[wrangler,'d1','migrations','apply','DB','--local','--config',server.config,'--persist-to',server.persist],{cwd:scratch,env});await start(server)}
+ read=await value(await post(primary,'/v1/query',query));assert.deepEqual(read.records,beforeUpgrade,'populated analytical profile migration preserves original rows and sequence coverage')
  const archived=await value(await post(primary,'/v1/query',{...query,archive:true}));assert.equal(archived.records[0].archived_at,now+7);assert.ok(!('indexed_at'in archived.records[0]),'archive receipts are not replaced by indexing receipts')
  const conflict=structuredClone(first);conflict.records[0].payload.record.body.stringValue='synthetic-porthole-1030'
  assert.equal((await post(primary,'/v1/replicate',{sourceIdentity,batches:[conflict]})).status,409)
@@ -229,7 +234,7 @@ export async function analyticalConnectionJourney() {
    assert.equal((await call('/api/porthole/v1/ingest/records?signal=logs',{headers:{cookie:nextOwner}})).status,200,'a current owner explicitly reauthorizes the connection')
    // Every current signal reader, including the new native trace door, uses
    // the selected analytical store. Archive receipts preserve their own time.
-   const signalSource=await (await post('/app/settings/credentials/mint',{name:'Analytical signal coverage',class:'ingest',scope:{...scope,signals:['traces','metrics'],actions:['telemetry.write']}},201,nextOwner)).json()
+   const signalSource=await (await post('/app/settings/credentials/mint',{name:'Analytical signal coverage',class:'ingest',scope:{...scope,signals:['traces','metrics','profiles'],actions:['telemetry.write']}},201,nextOwner)).json()
    const at=(BigInt(Date.now())*1000000n).toString(),traceId='b'.repeat(32),spanId='c'.repeat(16),resource={attributes:[{key:'service.name',value:{stringValue:'checkout-api'}},{key:'team.name',value:{stringValue:'commerce-us'}},{key:'deployment.environment.name',value:{stringValue:'production'}}]}
    for(const [signal,packet]of [['traces',{resourceSpans:[{resource,scopeSpans:[{spans:[{traceId,spanId,name:'synthetic-porthole-1290',kind:2,startTimeUnixNano:at,endTimeUnixNano:(BigInt(at)+1234n).toString()}]}]}]}],['metrics',{resourceMetrics:[{resource,scopeMetrics:[{metrics:[{name:'synthetic_porthole_1291',gauge:{dataPoints:[{timeUnixNano:at,asDouble:7}]}}]}]}]}]]){
     const response=await call('/v1/'+signal,{method:'POST',headers:{authorization:'Bearer '+signalSource.secret,'content-type':'application/json'},body:JSON.stringify(packet)});assert.equal(response.status,200)
@@ -238,6 +243,10 @@ export async function analyticalConnectionJourney() {
    const trace=await (await call('/api/porthole/v1/traces/'+traceId,{headers:{cookie:nextOwner}})).json();assert.equal(trace.status,'Connected');assert.equal(trace.spans[0].startTimeNs,at)
    await browser('/app/traces/'+traceId,'analytics-native-trace','Connected',nextOwner)
    const metric=await (await post('/api/porthole/v1/query',{signal:'metrics',service:'checkout-api'},200,nextOwner)).json();assert.equal(metric.analytical.role,'primary');assert.equal(metric.records.length,1)
+   const {profileBatch}=await import('./ingest.mjs'),profilePacket=profileBatch(BigInt(at));profilePacket.resourceProfiles[0].resource=resource
+   const profileResponse=await call('/v1/profiles',{method:'POST',headers:{authorization:'Bearer '+signalSource.secret,'content-type':'application/json'},body:JSON.stringify(profilePacket)});assert.equal(profileResponse.status,200)
+   await post('/api/porthole/v1/ingest/drain',{},200,nextOwner)
+   const profileRead=await (await post('/api/porthole/v1/query',{signal:'profiles',service:'checkout-api'},200,nextOwner)).json();assert.equal(profileRead.analytical.role,'primary');assert.equal(profileRead.records.length,1);assert.deepEqual(profileRead.records[0].payload.dictionary,profilePacket.dictionary);assert.equal(profileRead.records[0].event_time_ns,at.padStart(20,'0'))
    const archived=await (await call('/api/porthole/v1/ingest/archive?signal=logs',{headers:{cookie:nextOwner}})).json()
    const receipts=(await getDb().prepare("SELECT id,archived_at FROM porthole_telemetry_archive WHERE signal='logs'").all()).results
    assert.deepEqual(archived.records.map(row=>[row.id,row.archived_at]).sort(),receipts.map(row=>[row.id,row.archived_at]).sort());assert.ok(archived.records.every(row=>!('indexed_at'in row)))
