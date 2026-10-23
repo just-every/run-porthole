@@ -2862,7 +2862,7 @@
       "executable": false
     },
     "src/porthole/migration/http.ts": {
-      "sha256": "e74181ecea2cf350831e15709e7a23353e31857c263fa39784e5091c8ea545ae",
+      "sha256": "1017cc8e7a76106ee9e5a5d46caf0662accb6131b3ba8d0dfd0bdd4ce879f3d9",
       "executable": false
     },
     "src/porthole/migration/sources.ts": {
@@ -3258,7 +3258,7 @@
       "executable": false
     },
     "tests/porthole/migration.mjs": {
-      "sha256": "7debae2fe875d347457b1444ba936b84011464568244028ff3f07614d14772cd",
+      "sha256": "2f96248f0014a7c40ff8ee1c7c59402ef8b21f9175df17484b3c32e1224f3f3d",
       "executable": false
     },
     "tests/porthole/native-archive.mjs": {
