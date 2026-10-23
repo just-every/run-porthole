@@ -3258,7 +3258,7 @@
       "executable": false
     },
     "tests/porthole/migration.mjs": {
-      "sha256": "9103bc92ab0a8a1e40ab5426164325f8a7f93f65befd306d4a52a6b04e9d6a70",
+      "sha256": "7debae2fe875d347457b1444ba936b84011464568244028ff3f07614d14772cd",
       "executable": false
     },
     "tests/porthole/native-archive.mjs": {
