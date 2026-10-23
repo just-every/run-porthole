@@ -63,7 +63,7 @@ export async function migrationJourney({origin,cookie,foreignCookie,restartWorke
   const chart=rows.find(r=>r.targetId==='splunk:charts:synthetic-porthole-0');assert.deepEqual(chart.value.definition,definitions[0])
   const security=rows.find(r=>r.targetKind==='securityDashboards');assert.equal(security.value.specialist,'Splunk Enterprise Security')
   assert.match(chart.value.qualification,/unproved/)
-  const report=await json('reconcile',{planId:plan.planId});assert.equal(report.ok,true);assert.equal(report.counts.sourceRecords,30);assert.equal(report.counts.present,29);assert.equal(report.counts.explained,1)
+  const report=await json('reconcile',{planId:plan.planId});assert.equal(report.ok,true);assert.equal(report.counts.sourceRecords,30);assert.equal(report.counts.nativeTargets,29);assert.equal(report.counts.present,0);assert.equal(report.counts.explained,30)
   await capture('move-in-applied')
   await finish('undo',{planId:plan.planId},'splunk','undone');assert.deepEqual(await snapshot(),before)
   console.log('Splunk source-evidence import: reviewed fingerprint, 30 records, 29 exact retained definitions, named rejection, cold resume, specialist boundary, reconciliation and undo passed')
@@ -75,7 +75,7 @@ export async function migrationJourney({origin,cookie,foreignCookie,restartWorke
    await finish('apply',{planId:plan.planId,reviewedFingerprint:plan.fingerprint},vendor,'completed')
    await restartWorker();cookie=await freshOwner()
    const current=await snapshot();assert.equal(current.length,1);assert.deepEqual(current[0].value.definition,clean);assert.equal(current[0].value.vendor,vendor)
-   const reconciliation=await json('reconcile',{planId:plan.planId},vendor);assert.equal(reconciliation.ok,true)
+   const reconciliation=await json('reconcile',{planId:plan.planId},vendor);assert.equal(reconciliation.ok,true);assert.equal(reconciliation.counts.nativeTargets,1);assert.equal(reconciliation.counts.explained,1)
    await finish('undo',{planId:plan.planId},vendor,'undone');assert.deepEqual(await snapshot(),before)
   }
   // The screen calls the same shared door, with explicit review and native reads.
