@@ -1,4 +1,4 @@
-import {createMailSender} from '../../modules/mail/index.mjs'
+import {operatorMail} from '../../mail.server.mjs'
 import type {MailMessage} from '../../modules/operator-auth/index.mjs'
 import type {HealthBindings} from '../health/model'
 
@@ -12,7 +12,7 @@ export async function submitNotice(env:HealthBindings,frozen:string,recipient:st
  if(value.provider!==env.MAIL_PROVIDER || value.message.from!==env.MAIL_FROM || value.message.to.length!==1 || value.message.to[0]!==recipient)throw Error('notice_configuration_changed')
  if(!independentMailConfigured(env))throw Error('notice_transport_unconfigured')
  let retryAfter:number|undefined
- const sender=createMailSender({provider:env.MAIL_PROVIDER,mode:'production',apiKey:env.MAIL_API_KEY},{fetch:async(url:RequestInfo|URL,init?:RequestInit)=>{
+ const sender=operatorMail(env,{fetch:async(url:RequestInfo|URL,init?:RequestInit)=>{
   const response=await fetch(url,init)
   if(response.status===429) {
    const raw=response.headers.get('retry-after')?.trim()??'',now=Date.now()
@@ -21,5 +21,6 @@ export async function submitNotice(env:HealthBindings,frozen:string,recipient:st
   }
   return response
  }})
+ if(!sender)throw Error('notice_transport_unconfigured')
  return {...await sender.send(value.message),retryAfter}
 }
