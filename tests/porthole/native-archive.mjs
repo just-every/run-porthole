@@ -71,9 +71,10 @@ try {
   const malformed=join(source,'exports',`invalid-${name}.rer`)
   await command(source,['export','--output',malformed])
   const refused=await clone(`refused-${name}`)
-  await assert.rejects(()=>command(refused,['import','--input',malformed,'--yes']),/staged_validation|failed/i)
+  await assert.rejects(()=>command(refused,['import','--input',malformed,'--yes']),/staged_validation/)
   assert.equal((await sql(refused,'SELECT COUNT(*) AS n FROM porthole_objects'))[0].n,0,'invalid staged policy publishes no domain objects')
   assert.deepEqual((await sql(refused,'SELECT enabled,allowed_keys,attribute_keys FROM porthole_baggage_policy'))[0],{enabled:0,allowed_keys:'[]',attribute_keys:'[]'},'refusal preserves the inactive destination default')
+  console.log('nativeArchiveJourney: refused invalid policy',name)
  }
  console.log('nativeArchiveJourney passed: real rer setup/export/empty restore, excluded credential/hash/identity, inactive authority, semantic policy refusal and durable CLI audit')
 } finally {await rm(scratch,{recursive:true,force:true})}

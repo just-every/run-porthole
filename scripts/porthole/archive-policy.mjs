@@ -34,7 +34,7 @@ export default {
   const quote=value=>'"'+value.replaceAll('"','""')+'"'
   const row=await db.prepare(`SELECT COUNT(*) AS n FROM ${quote(operators)} WHERE state!='inactive'`).first()
   if(row.n!==0)return false
-  // Legacy archives predate this domain. A present policy must still satisfy
+  // A present policy domain must still satisfy
   // the owner editor's shape and separate attribute permission before publish.
   if(!tables.porthole_baggage_policy)return true
   const policies=await read('porthole_baggage_policy')

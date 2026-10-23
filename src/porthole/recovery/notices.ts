@@ -4,7 +4,7 @@ import { append, type AuditInput } from '../audit/store'
 import type { HealthBindings, HealthState } from '../health/model'
 import { healthConfiguration, recordComponentReceipt } from '../health/receipts'
 
-interface Notice {id:string;first_attempt_at:number|null;created_at:number;message:string;lease_id:string;configuration_revision:number;attempts:number}
+interface Notice {id:string;first_attempt_at:number|null;created_at:number;message:string;lease_id:string;configuration_revision:number;attempts:number;had_uncertain:number}
 // Resend retains idempotency keys for 24 hours. Stop early rather than create a
 // second email after an uncertain request outlives provider deduplication.
 const retryWindow = 23*3600000
@@ -49,7 +49,7 @@ export async function deliverHealthNotice(env: HealthBindings): Promise<{attempt
  const now=Date.now(), lease=crypto.randomUUID(),idempotent=env.MAIL_PROVIDER==='resend'
  if(!idempotent)await env.DB.prepare(`UPDATE porthole_health_notices SET state='uncertain',lease_id=NULL,lease_until=NULL WHERE first_attempt_at IS NOT NULL AND (state='pending' OR (state='sending' AND lease_until<?))`).bind(now).run()
  await env.DB.prepare(`UPDATE porthole_health_notices SET state='uncertain',lease_id=NULL,lease_until=NULL WHERE state IN ('pending','sending') AND first_attempt_at IS NOT NULL AND first_attempt_at<=?`).bind(now-retryWindow).run()
- const notice=await env.DB.prepare(`UPDATE porthole_health_notices SET state='sending',lease_id=?,lease_until=?,attempts=attempts+1,first_attempt_at=COALESCE(first_attempt_at,?)
+ const notice=await env.DB.prepare(`UPDATE porthole_health_notices SET had_uncertain=CASE WHEN state='sending' THEN 1 ELSE had_uncertain END,state='sending',lease_id=?,lease_until=?,attempts=attempts+1,first_attempt_at=COALESCE(first_attempt_at,?)
   WHERE id=(SELECT n.id FROM porthole_health_notices n WHERE n.configuration_revision=? AND ((n.state='pending' AND n.next_attempt_at<=?) OR (n.state='sending' AND n.lease_until<?))
    AND (n.first_attempt_at IS NULL OR n.first_attempt_at>?)
    AND (n.phase='failure' OR EXISTS(SELECT 1 FROM porthole_health_notices f WHERE f.episode=n.episode AND f.phase='failure' AND f.state='accepted'))
@@ -70,13 +70,16 @@ export async function deliverHealthNotice(env: HealthBindings): Promise<{attempt
   if(rateLimited)nextAttemptAt=result.retryAfter??Date.now()+60000
   status=result.status==='accepted'?'accepted':result.status==='rejected'?'rejected':rateLimited||idempotent?'pending':'uncertain'
  } catch { /* The frozen request stays uncertain; no provider is substituted. */ }
+ // A later refusal cannot establish what happened on a prior unknown attempt.
+ // Hold the original receipt for reconciliation rather than invite a new send.
+ if(idempotent&&notice.had_uncertain===1&&status==='rejected')status='uncertain'
  // A 429 certifies no acceptance. Clear only the non-idempotent uncertainty
  // marker; attempts/audit retain the refusal. Resend retains its original window.
- await env.DB.prepare(`UPDATE porthole_health_notices SET state=?,provider_id=?,next_attempt_at=?,first_attempt_at=CASE WHEN ? THEN NULL ELSE first_attempt_at END,lease_id=NULL,lease_until=NULL WHERE id=? AND lease_id=?`).bind(status,providerId,nextAttemptAt,rateLimited&&!idempotent?1:0,notice.id,lease).run()
+ await env.DB.prepare(`UPDATE porthole_health_notices SET state=?,provider_id=?,next_attempt_at=?,had_uncertain=CASE WHEN ? THEN 1 ELSE had_uncertain END,first_attempt_at=CASE WHEN ? THEN NULL ELSE first_attempt_at END,lease_id=NULL,lease_until=NULL WHERE id=? AND lease_id=?`).bind(status,providerId,nextAttemptAt,status==='uncertain'||status==='pending'&&!rateLimited?1:0,rateLimited&&!idempotent?1:0,notice.id,lease).run()
  await append(env.DB,{...audit,phase:status==='accepted'?'succeeded':'failed',status:status==='accepted'?202:status==='rejected'?422:503})
- await recordComponentReceipt(env.DB,{component:'delivery',source:'independent-mail',status:status==='accepted'?'Healthy':'Unknown',reason:status==='accepted'?'Independent mail provider accepted the durable notice; mailbox delivery is not established.':status==='rejected'?'Independent mail provider rejected the notice; owner action required.':rateLimited?'Independent mail provider refused this attempt for a rate limit; the same durable notice will retry after the provider deadline.':idempotent?'Independent mail result uncertain; durable retry retains the exact idempotency key.':'Independent mail result uncertain; automatic resubmission is stopped because this provider does not guarantee deduplication.',evidence:{noticeId:notice.id,providerStatus:status,providerId,...(rateLimited?{acceptance:'not_accepted',nextAttemptAt}:{})}})
+ await recordComponentReceipt(env.DB,{component:'delivery',source:'independent-mail',status:status==='accepted'?'Healthy':'Unknown',reason:status==='accepted'?'Independent mail provider accepted the durable notice; mailbox delivery is not established.':status==='rejected'?'Independent mail provider rejected the notice; owner action required.':rateLimited?'Independent mail provider refused this attempt for a rate limit; the same durable notice will retry after the provider deadline.':idempotent&&status==='pending'?'Independent mail result uncertain; durable retry retains the exact idempotency key.':'Independent mail result uncertain; automatic resubmission is stopped. Reconcile the original notice with the provider before authorizing another message.',evidence:{noticeId:notice.id,providerStatus:status,providerId,...(rateLimited?{acceptance:'not_accepted',nextAttemptAt}:{})}})
  return {attempted:1,status}
 }
 export async function noticeSummary(db:D1Database) {
- return (await db.prepare(`SELECT id,component,phase,state,created_at,first_attempt_at,next_attempt_at,attempts,provider_id FROM porthole_health_notices ORDER BY created_at DESC,id DESC LIMIT 50`).all()).results
+ return (await db.prepare(`SELECT id,component,phase,state,created_at,first_attempt_at,next_attempt_at,attempts,provider_id,had_uncertain FROM porthole_health_notices ORDER BY created_at DESC,id DESC LIMIT 50`).all()).results
 }
