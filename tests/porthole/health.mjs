@@ -183,6 +183,7 @@ export async function healthBrowser({origin,cookie,name,readOnly=false,path='/ap
   assert.ok(await page.locator('img').evaluateAll(images=>images.every(img=>img.complete&&img.naturalWidth>0)),'page images load from actual built assets')
   if(contains)assert.ok((await page.locator('body').innerText()).includes(contains))
   if(readOnly)assert.equal(await page.locator('form').count(),0)
+  assert.equal(await page.locator('button,a').evaluateAll(controls=>controls.filter(control=>!control.textContent.trim()).length),0,'the touched health screen has no icon-only controls')
   await page.keyboard.press('Tab')
   assert.ok(await page.evaluate(()=>document.activeElement!==document.body),'health controls are keyboard reachable')
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'no horizontal overflow')
