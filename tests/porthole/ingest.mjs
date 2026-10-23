@@ -79,6 +79,12 @@ export async function ingestJourney({origin,cookie,sql,restartWorker,freshOwner,
   const response=await fetch(origin+path,{method:path.endsWith('/logs')||path.endsWith('/control')||path.endsWith('/drain')?'POST':'GET',headers:{origin,'content-type':'application/json'},body:path.endsWith('/logs')||path.endsWith('/control')||path.endsWith('/drain')?'{}':undefined})
   assert.equal(response.status,401,'no anonymous ingest or control')
  }
+ // Intake refuses a body without a credential before decoding it, and
+ // decodes a source's export of many repeated messages promptly.
+ const emptyResources=Buffer.alloc(512*1024,Buffer.from([10,0])),protobuf=(headers={})=>({method:'POST',headers:{'content-type':'application/x-protobuf',...headers},body:emptyResources,signal:AbortSignal.timeout(10000)})
+ assert.equal((await fetch(origin+'/v1/logs',protobuf())).status,401,'anonymous intake is refused before its body is decoded')
+ const emptyExport=await fetch(origin+'/v1/logs',protobuf({authorization:`Bearer ${source.secret}`,'x-porthole-batch-id':'synthetic-porthole-1700'}))
+ assert.equal(emptyExport.status,200,'a source export of many empty resources decodes promptly');assert.equal(emptyExport.headers.get('x-porthole-accepted'),'0')
  await pause(true)
  const first=otlpLogBatch([time,time+1n,time+1n])
  const accepted=await send('/v1/logs',first,'synthetic-porthole-217')

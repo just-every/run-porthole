@@ -1,8 +1,8 @@
 import type { Bindings } from '../../auth.server'
 import { AuthError } from '../../modules/operator-auth/index.mjs'
-import { CredentialLimit } from '../credentials/verify'
+import { CredentialLimit, verifyCredential } from '../credentials/verify'
 import { privateHeaders } from '../document'
-import { authority, fail, sameOrigin } from '../security/authority'
+import { allScope, authority, emptyScope, fail, sameOrigin } from '../security/authority'
 import { base64, canonical, IntakeError, invalid, object, sha256, type Signal, type TelemetryRecord } from './model'
 import { otlpRecords } from './normalize'
 import { decode } from './otlp-proto'
@@ -57,6 +57,10 @@ export async function ingestResponse(request: Request,env: Bindings):Promise<Res
   }
   if(request.method!=='POST')fail('method_not_allowed',405)
   if(unsupported){await rejectEnvelope(request,env,path.includes('profiles')?'profiles':path.includes('Trace')?'traces':path.includes('Logs')?'logs':'metrics','unsupported_otlp_transport_or_signal');throw new IntakeError('unsupported_otlp_transport_or_signal',415)}
+  // Authenticate before decoding; acceptance rechecks and meters the source. A
+  // refused body is drained unread, so the refusal keeps its own status.
+  try{await verifyCredential(request,env,{inspectOnly:true,action:'telemetry.write',scope:emptyScope,dataScope:allScope})}
+  catch(error){await readBytes(request.body).catch(()=>undefined);throw error}
   const kind=signal!,type=request.headers.get('content-type')?.split(';')[0].trim(),encoding=request.headers.get('content-encoding')?.toLowerCase()??'identity'
   let wire:Uint8Array,records:TelemetryRecord[]=[],protocol:string
   try{

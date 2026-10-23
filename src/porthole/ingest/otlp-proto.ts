@@ -79,7 +79,8 @@ export function decode(input: Uint8Array, type: string, depth = 0): Record<strin
    const reader = new Proto(bytes(field)); values = []
    while (reader.position < reader.bytes.length) values.push(scalar({ number: field.number, wire: numericWire[kind], value: numericWire[kind] === 0 ? reader.varint() : reader.take(numericWire[kind] === 1 ? 8 : 4) }, kind, depth))
   } else values = [scalar(field, kind, depth)]
-  if (repeated) result[name] = [...(result[name] as unknown[] ?? []), ...values]
+  // Append in place: rebuilding the list per field is quadratic in its length.
+  if (repeated) { const list = (result[name] ??= []) as unknown[]; for (const value of values) list.push(value) }
   else { if (Object.hasOwn(result, name)) return invalid('duplicate_protobuf_field'); result[name] = values[0] }
  }
  return result

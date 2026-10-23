@@ -1966,7 +1966,7 @@
       "executable": false
     },
     "src/porthole/ingest/http.ts": {
-      "sha256": "ceeafe3f27d54c0d978b7d3d985abe175b59f1f6922bb7fa65a497cdb650a433",
+      "sha256": "8e0501d7fa0f924a1bd969792c2c959067166cdf932739c5ee3625dd15478e77",
       "executable": false
     },
     "src/porthole/ingest/model.ts": {
@@ -1978,7 +1978,7 @@
       "executable": false
     },
     "src/porthole/ingest/otlp-proto.ts": {
-      "sha256": "e1118b2024cbb55478044033c2932a0d0181fc4776bd59242863094027cf169b",
+      "sha256": "8c26acdcabbc25e670070a5d617a8cba3ab278096a1f6fb7b42ddcd1bc3995dd",
       "executable": false
     },
     "src/porthole/ingest/processor.ts": {
@@ -2398,7 +2398,7 @@
       "executable": false
     },
     "tests/porthole/ingest.mjs": {
-      "sha256": "19b743a59a30b60934871b514ead447f3cf5f3c133cf26946b63aa0191e6cb44",
+      "sha256": "ddb3b8cf324b7d7512dc63bcb7520d433ee236d5b18a89952d1f6e442cfa55df",
       "executable": false
     },
     "tests/porthole/intake-interrupt.mjs": {
