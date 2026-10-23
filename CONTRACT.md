@@ -331,8 +331,8 @@ Judged from the code and tests at commit `a0f1cc9f100630f413461e13ba6e47bc6d6362
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 0 | 0 | 0 | 0 |
-| Target and push further | 7 | 3 | 85 | 95 |
-| All | 7 | 3 | 85 | 95 |
+| Target and push further | 7 | 5 | 83 | 95 |
+| All | 7 | 5 | 83 | 95 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -381,8 +381,8 @@ Judged from the code and tests at commit `a0f1cc9f100630f413461e13ba6e47bc6d6362
 | `PORT-040` | New Relic complete account migration | target | missing |  | No implementation for new relic complete account migration; the complete public-door journey above remains required. |
 | `PORT-041` | Grafana and open-stack migration | target | missing |  | No implementation for grafana and open-stack migration; the complete public-door journey above remains required. |
 | `PORT-042` | Dynatrace migration | target | missing |  | No implementation for dynatrace migration; the complete public-door journey above remains required. |
-| `PORT-043` | Splunk Observability migration | target | missing |  | No implementation for splunk observability migration; the complete public-door journey above remains required. |
-| `PORT-044` | Challenger and AI-SRE switching | target | missing |  | No implementation for challenger and ai-sre switching; the complete public-door journey above remains required. |
+| `PORT-043` | Splunk Observability migration | target | partial | `tests/porthole/migration.mjs` migrationJourney through `tests/runtime.mjs`: native owner and exact origin, wrong fingerprint refusal, no-effect preview, bounded apply with cold restart, exact source fields and tags, credential removal, saved history, native reconciliation and undo. Move in and its guide at 1440 and 390. `docs/migration.md` documents the bounded source-evidence subset. | Both acceptance points remain unproved in full: no qualified official-schema source reader, native SignalFlow detector replay or query conversion, rate-limited extraction, retained historical data, reviewed notification routing or supported collector repointing. Current imports retain inert definitions and log references with a security specialist handoff. Import custody product-archive and erasure integration, Business grants and native-edit undo qualification remain pending. |
+| `PORT-044` | Challenger and AI-SRE switching | target | partial | `tests/porthole/migration.mjs` migrationJourney through `tests/runtime.mjs`: native owner and exact origin, wrong fingerprint refusal, no-effect preview, bounded apply with cold restart, exact source fields and tags, credential removal, saved history, native reconciliation and undo. Move in and its guide at 1440 and 390. `docs/migration.md` documents the bounded source-evidence subset. | Both acceptance points remain unproved in full: the seven file-envelope readers retain source evidence but are not complete official-schema vendor migrations; native query and alert meaning, per-construct human resolution, working connector scopes, open-history execution and new correlated OTel collection remain unqualified. Import custody product-archive and erasure integration, Business grants and native-edit undo qualification remain pending. No copied credential or guessed history. |
 | `PORT-045` | Historical data and reversible mid-stream cutover | target | missing |  | No implementation for historical data and reversible mid-stream cutover; the complete public-door journey above remains required. |
 | `PORT-046` | Native mobile operator access | target | missing |  | No implementation for native mobile operator access; the complete public-door journey above remains required. |
 | `PORT-047` | Scheduled reports and exports | target | missing |  | No implementation for scheduled reports and exports; the complete public-door journey above remains required. |

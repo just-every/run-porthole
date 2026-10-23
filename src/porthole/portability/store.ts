@@ -16,6 +16,8 @@ export async function jobFor(db:D1Database,id:string,actor:Authority,direction?:
  return row
 }
 export async function startExport(db:D1Database,actor:Authority):Promise<Job> {
+ const custody=await db.prepare('SELECT 1 FROM ik_door_uploads UNION ALL SELECT 1 FROM ik_door_plans UNION ALL SELECT 1 FROM porthole_migration_records LIMIT 1').first()
+ if(custody)fail('migration_custody_archive_pending',409)
  await projectFacts(db)
  const id=crypto.randomUUID(),stream=crypto.randomUUID(),now=Date.now()
  const statements:D1PreparedStatement[]=[guard(db,actor), db.prepare(`INSERT INTO porthole_archive_jobs(id,direction,owner_ref,created_at,state,chain_hash) VALUES(?,'export',?,?,'snapshot',?)`).bind(id,actor.member.operatorId,now,genesis)]
