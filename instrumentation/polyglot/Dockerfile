@@ -13,7 +13,7 @@ WORKDIR /app
 RUN --mount=type=secret,id=proxy_ca,required=true curl --cacert /run/secrets/proxy_ca -fsSL https://repo1.maven.org/maven2/io/opentelemetry/javaagent/opentelemetry-javaagent/2.32.0/opentelemetry-javaagent-2.32.0.jar -o agent.jar && echo 'f787eb6c7f3d18e69a431e108a15278d25ee37f83d68b678f621e063f3988f82  agent.jar' | sha256sum -c -
 COPY java/ ./
 RUN --mount=type=secret,id=proxy_ca,required=true mkdir -p lib classes/META-INF/services && \
- for artifact in opentelemetry-api opentelemetry-context opentelemetry-sdk-extension-autoconfigure-spi; do curl --cacert /run/secrets/proxy_ca -fsSL "https://repo.maven.apache.org/maven2/io/opentelemetry/$artifact/1.66.0/$artifact-1.66.0.jar" -o "lib/$artifact.jar"; done && \
+ for artifact in opentelemetry-api opentelemetry-context opentelemetry-common opentelemetry-sdk-extension-autoconfigure-spi; do curl --cacert /run/secrets/proxy_ca -fsSL "https://repo.maven.apache.org/maven2/io/opentelemetry/$artifact/1.66.0/$artifact-1.66.0.jar" -o "lib/$artifact.jar"; done && \
  curl --cacert /run/secrets/proxy_ca -fsSL https://repo.maven.apache.org/maven2/com/google/code/gson/gson/2.13.2/gson-2.13.2.jar -o lib/gson.jar && \
  javac -cp 'lib/*' -d classes PortholePolicy.java && \
  echo porthole.PortholePolicy > classes/META-INF/services/io.opentelemetry.sdk.autoconfigure.spi.ConfigurablePropagatorProvider && \
@@ -21,7 +21,7 @@ RUN --mount=type=secret,id=proxy_ca,required=true mkdir -p lib classes/META-INF/
 ENV OTEL_JAVAAGENT_EXTENSIONS=/app/policy.jar
 ENV OTEL_PROPAGATORS=tracecontext,porthole
 RUN javac -cp lib/opentelemetry-api.jar:lib/opentelemetry-context.jar --add-modules jdk.httpserver App.java
-CMD ["java", "-cp", ".:lib/opentelemetry-api.jar:lib/opentelemetry-context.jar", "-javaagent:/app/agent.jar", "--add-modules", "jdk.httpserver", "App"]
+CMD ["java", "-cp", ".:lib/*", "-javaagent:/app/agent.jar", "--add-modules", "jdk.httpserver", "App"]
 
 FROM golang:1.25-alpine AS go-build
 WORKDIR /app
