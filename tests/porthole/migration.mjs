@@ -23,7 +23,7 @@ export async function migrationJourney({origin,cookie,foreignCookie,restartWorke
  // This request uses a foreign installation session rather than a fabricated cookie.
  assert.equal((await post('uploads',{},'splunk',foreignCookie)).status,401)
  const member=await signIn('synthetic-porthole-11@example.com')
- assert.equal((await post('uploads',{},'splunk',member)).status,401)
+ assert.equal((await post('uploads',{},'splunk',member)).status,403)
  assert.equal((await post('uploads',{},'splunk',cookie,{origin:'https://foreign.invalid'})).status,403)
  assert.equal((await post('uploads',{},'unlisted')).status,400)
  assert.equal((await fetch(origin+'/api/rer/import/uploads',{method:'POST'})).status,404)
@@ -78,6 +78,18 @@ export async function migrationJourney({origin,cookie,foreignCookie,restartWorke
    const reconciliation=await json('reconcile',{planId:plan.planId},vendor);assert.equal(reconciliation.ok,true);assert.equal(reconciliation.counts.nativeTargets,1);assert.equal(reconciliation.counts.explained,1)
    await finish('undo',{planId:plan.planId},vendor,'undone');assert.deepEqual(await snapshot(),before)
   }
+  // A newly authorized native owner is the reviewer, even though the
+  // installation was configured with the first owner's email.
+  const targetSession=await (await fetch(origin+'/auth/session',{headers:{cookie:member}})).json()
+  const promoted=await fetch(origin+'/app/settings/members/change',{method:'POST',headers:{origin,cookie,'content-type':'application/json'},body:JSON.stringify({operatorId:targetSession.operator.id,role:'owner',confirmEmail:'synthetic-porthole-11@example.com'})})
+  assert.equal(promoted.status,200)
+  const originalCookie=cookie;cookie=await signIn('synthetic-porthole-11@example.com')
+  const ownerPlan=await upload('dash0',{dashboards:[{id:'synthetic-porthole-449',name:'Second owner review'}]})
+  await finish('apply',{planId:ownerPlan.planId,reviewedFingerprint:ownerPlan.fingerprint},'dash0','completed')
+  const approved=await json('status',{planId:ownerPlan.planId},'dash0')
+  assert.equal(approved.approval.owner,'synthetic-porthole-11@example.com')
+  await finish('undo',{planId:ownerPlan.planId},'dash0','undone');assert.deepEqual(await snapshot(),before)
+  cookie=originalCookie
   // The screen calls the same shared door, with explicit review and native reads.
   const one={charts:[{id:'synthetic-porthole-4300',name:'Browser chart',tags:['team:ops']}]}
   await capture('move-in-preview','/app/import',async page=>{

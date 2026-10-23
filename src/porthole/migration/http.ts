@@ -14,13 +14,15 @@ async function owner(request:Request,env:Bindings){
  const actor=await authority(request,env,{manage:true,post:request.method==='POST',stepUp:request.method==='POST'})
  if(actor.member.role!=='owner')fail('owner_required')
  const proof=request.method==='POST'?proofFence(actor):{sql:'1',args:[]}
- return {sql:`(${actor.fence}) AND (${proof.sql}) AND EXISTS(SELECT 1 FROM porthole_members WHERE operator_id=? AND role='owner')`,params:[...actor.args,...proof.args,actor.member.operatorId]} satisfies D1Sql
+ return {sql:`(${actor.fence}) AND (${proof.sql}) AND EXISTS(SELECT 1 FROM porthole_members WHERE operator_id=? AND role='owner')`,params:[...actor.args,...proof.args,actor.member.operatorId],email:actor.session.operator.email} satisfies D1Sql & {email:string}
 }
 async function handler(request:Request,env:Bindings,name:string){
  const source=importSource(name)
  if(!source)return json({error:'unknown_import_source'},400)
+ let currentOwner
+ try{currentOwner=await owner(request,env)}catch(error){if(error instanceof AuthError)return json({error:error.code},error.status);throw error}
  return createImportOperatorHandler({...source,database:env.DB as unknown as KitDatabase,targets:migrationTargets,
-  installationId,appOrigin:env.AUTH_ORIGIN!,ownerEmail:env.OWNER_EMAIL!,ownerPrincipalId:'role:owner',namespace:name,destination,format:'json',
+  installationId,appOrigin:env.AUTH_ORIGIN!,ownerEmail:currentOwner.email,ownerPrincipalId:'role:owner',namespace:name,destination,format:'json',
   reversalPolicy:'preserve-conflicts',limits:{maxBytes:1048576,maxRecords:200,maxRecordBytes:65536},
   authorize:async r=>{try{return await owner(r,env)}catch(error){if(error instanceof AuthError)return null;throw error}},
  })(request)
