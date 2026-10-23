@@ -11,10 +11,11 @@ async function freePort(){const socket=createServer();await new Promise(resolve=
  * telemetry, product responses or storage substitute. Docker host networking
  * is used only to reach these loopback test services, never for external access. */
 export async function polyglotEstate(){
+ let servicePorts
  const prefix='porthole-c7-'+randomUUID().slice(0,8),containers=[],gateway=httpServer()
  async function stop(){await pause(1000);await Promise.all(containers.map(name=>execute('docker',['stop','--time','5',name]).catch(()=>{})));for(const name of containers.reverse())await execute('docker',['rm','-f',name]).catch(()=>{});if(gateway.listening)await new Promise(resolve=>gateway.close(resolve))}
  async function container(name,args){containers.push(name);await execute('docker',['run','--detach','--name',name,'--network','host',...args],{maxBuffer:1024*1024})}
- async function environment({origin,secret}) {
+ async function environment({origin,secret,policyPath}) {
   try {
    gateway.on('request',async(req,res)=>{
     try{
@@ -25,14 +26,14 @@ export async function polyglotEstate(){
     }catch{res.writeHead(503);res.end()}
    })
    await new Promise(resolve=>gateway.listen(0,'0.0.0.0',resolve));const exportUrl='http://127.0.0.1:'+gateway.address().port+'/v1/traces'
-   const ports=Object.fromEntries(await Promise.all(['python','java','go','dotnet','ruby','php','kafka','controller'].map(async name=>[name,await freePort()])))
+   const ports=servicePorts=Object.fromEntries(await Promise.all(['python','java','go','dotnet','ruby','php','kafka','controller'].map(async name=>[name,await freePort()])))
    await container(prefix+'-kafka',['-e','KAFKA_NODE_ID=1','-e','KAFKA_PROCESS_ROLES=broker,controller','-e',`KAFKA_LISTENERS=PLAINTEXT://:${ports.kafka},CONTROLLER://:${ports.controller}`,'-e',`KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://127.0.0.1:${ports.kafka}`,'-e','KAFKA_CONTROLLER_QUORUM_VOTERS=1@127.0.0.1:'+ports.controller,'-e','KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER','-e','KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT','-e','KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT','-e','KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1','-e','KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1','-e','KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1','apache/kafka:3.9.1'])
    console.log('Polyglot Kafka process started; starting six stock-instrumented services')
    const languages=['python','java','go','dotnet','ruby','php']
    for(let index=languages.length-1;index>=0;index--){
     const language=languages[index],next=index<languages.length-1?'http://127.0.0.1:'+ports[languages[index+1]]+'/work':''
-    const variables={PORT:String(ports[language]),NEXT_URL:next,OTEL_SERVICE_NAME:language,OTEL_RESOURCE_ATTRIBUTES:'deployment.environment.name=production,team.name='+(['java','php'].includes(language)?'fulfillment':'commerce')+',service.version=synthetic-porthole-1101',OTEL_EXPORTER_OTLP_ENDPOINT:new URL(exportUrl).origin,OTEL_EXPORTER_OTLP_TRACES_ENDPOINT:exportUrl,OTEL_EXPORTER_OTLP_TRACES_PROTOCOL:'http/protobuf',OTEL_EXPORTER_OTLP_PROTOCOL:'http/protobuf',OTEL_PROPAGATORS:'tracecontext',OTEL_TRACES_SAMPLER:'always_on',OTEL_BSP_SCHEDULE_DELAY:'100',OTEL_METRICS_EXPORTER:'none',OTEL_LOGS_EXPORTER:'none',OTEL_PHP_AUTOLOAD_ENABLED:'true'}
-    await container(prefix+'-'+language,[...Object.entries(variables).flatMap(([key,value])=>['-e',key+'='+value]),'porthole-c7-'+language])
+    const variables={PORT:String(ports[language]),NEXT_URL:next,OTEL_SERVICE_NAME:language,OTEL_RESOURCE_ATTRIBUTES:'deployment.environment.name=production,team.name='+(['java','php'].includes(language)?'fulfillment':'commerce')+',service.version=synthetic-porthole-1101',OTEL_EXPORTER_OTLP_ENDPOINT:new URL(exportUrl).origin,OTEL_EXPORTER_OTLP_TRACES_ENDPOINT:exportUrl,OTEL_EXPORTER_OTLP_TRACES_PROTOCOL:'http/protobuf',OTEL_EXPORTER_OTLP_PROTOCOL:'http/protobuf',OTEL_PROPAGATORS:language==='java'?'tracecontext,porthole':'tracecontext',PORTHOLE_BAGGAGE_POLICY:'/run/porthole-baggage-policy.json',OTEL_TRACES_SAMPLER:'always_on',OTEL_BSP_SCHEDULE_DELAY:'100',OTEL_METRICS_EXPORTER:'none',OTEL_LOGS_EXPORTER:'none',OTEL_PHP_AUTOLOAD_ENABLED:'true'}
+    await container(prefix+'-'+language,[...(policyPath?['--mount','type=bind,src='+policyPath+',dst=/run/porthole-baggage-policy.json,readonly']:[]),...Object.entries(variables).flatMap(([key,value])=>['-e',key+'='+value]),'porthole-c7-'+language])
    }
    for(const language of languages){
     let ready=false
@@ -51,5 +52,15 @@ export async function polyglotEstate(){
    return {KAFKA_BROKER:'127.0.0.1:'+ports.kafka,POLYGLOT_NEXT_URL:'http://127.0.0.1:'+ports.python+'/work'}
   }catch(error){await stop();throw error}
  }
- return {environment,stop}
+ async function probe(header){
+  const results=[]
+  for(const language of ['python','java','go','dotnet','ruby','php']){
+   const response=await fetch('http://127.0.0.1:'+servicePorts[language]+'/work',{headers:{baggage:header}})
+   if(response.status!==200)throw Error(language+' baggage probe HTTP '+response.status)
+   results.push({language,keys:(response.headers.get('x-porthole-baggage-keys')??'').split(',').filter(Boolean),maxBytes:Number(response.headers.get('x-porthole-baggage-bytes'))})
+  }
+  return results
+ }
+ async function diagnostics(){return (await Promise.all(containers.filter(name=>!name.endsWith('-kafka')).map(async name=>{const logs=await execute('docker',['logs',name]);return {language:name.split('-').at(-1),output:logs.stderr+logs.stdout}})))}
+ return {environment,stop,probe,diagnostics}
 }

@@ -53,6 +53,9 @@ export async function commitRestore(db:D1Database,actor:Authority,job:Job,confir
  statements.push(db.prepare(`INSERT INTO porthole_erased_actors(${journal.columns.join(',')}) SELECT json_extract(payload,'$.row.actor_ref'),json_extract(payload,'$.row.erased_at') FROM porthole_archive_rows WHERE job_id=? AND table_name='porthole_erased_actors' ON CONFLICT(actor_ref) DO UPDATE SET erased_at=MAX(erased_at,excluded.erased_at)`).bind(job.id))
  for(const item of catalog) {
   if(item.table==='porthole_erased_actors')continue
+  if(item.table==='porthole_baggage_policy') {
+   statements.push(db.prepare(`UPDATE porthole_baggage_policy SET enabled=0,allowed_keys=COALESCE((SELECT json_extract(payload,'$.row.allowed_keys') FROM porthole_archive_rows WHERE job_id=? AND table_name='porthole_baggage_policy'),'[]'),attribute_keys=COALESCE((SELECT json_extract(payload,'$.row.attribute_keys') FROM porthole_archive_rows WHERE job_id=? AND table_name='porthole_baggage_policy'),'[]'),revision=revision+1,changed_at=?`).bind(job.id,job.id,Date.now()));continue
+  }
   if(item.table==='porthole_ingest_control') {
    statements.push(db.prepare(`UPDATE porthole_ingest_control SET paused=1,max_pending_bytes=COALESCE((SELECT json_extract(payload,'$.row.max_pending_bytes') FROM porthole_archive_rows WHERE job_id=? AND table_name='porthole_ingest_control'),max_pending_bytes),revision=revision+1,changed_at=?`).bind(job.id,Date.now()));continue
   }

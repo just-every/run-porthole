@@ -15,6 +15,9 @@ public class App {
      var response=HttpClient.newHttpClient().send(HttpRequest.newBuilder(URI.create(next)).GET().build(),HttpResponse.BodyHandlers.ofString());
      if(response.statusCode()!=200)throw new Exception("downstream refused");
     }
+    var baggage=io.opentelemetry.api.baggage.Baggage.current().asMap();
+    exchange.getResponseHeaders().set("x-porthole-baggage-keys",String.join(",",new java.util.TreeSet<>(baggage.keySet())));
+    exchange.getResponseHeaders().set("x-porthole-baggage-bytes",Integer.toString(baggage.values().stream().mapToInt(entry->entry.getValue().getBytes(java.nio.charset.StandardCharsets.UTF_8).length).max().orElse(0)));
     var body="java completed\n".getBytes();exchange.sendResponseHeaders(200,body.length);exchange.getResponseBody().write(body);
    } catch(Exception error){exchange.sendResponseHeaders(502,0);} finally{exchange.close();}
   });

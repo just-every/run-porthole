@@ -1,3 +1,4 @@
+import {baggageKeys} from '../traces/policy'
 import { canonical, digest, genesis, type AuditEntry } from '../audit/store'
 import { byTable, catalog } from './catalog'
 import { validateBody } from '../objects/schema'
@@ -42,7 +43,10 @@ export async function validateRow(payload: PortableRow, state: Validation): Prom
  if(Object.keys(row).sort().join(',')!==[...item.columns].sort().join(',')) bad()
  for(const value of Object.values(row)) if(value!==null && typeof value!=='string' && !integer(value)) bad()
  const required=(...keys:string[])=>{for(const key of keys)if(!str(row[key]) || !(row[key] as string).length)bad()}
- if(item.table==='porthole_bucket_history') {
+ if(item.table==='porthole_baggage_policy') {
+  if(row.singleton!==1||![0,1].includes(row.enabled as number)||!integer(row.revision,1)||!integer(row.changed_at))bad()
+  const keys=baggageKeys(json(row.allowed_keys)),attrs=baggageKeys(json(row.attribute_keys));if(attrs.some(key=>!keys.includes(key)))bad()
+ } else if(item.table==='porthole_bucket_history') {
   if(!validHistoryReference(row))bad()
  } else if(item.table==='porthole_objects') {
   if(!uuid(row.id) || !['monitor','repair'].includes(String(row.kind)) || !str(row.name) || !integer(row.revision,1) || !integer(row.created_at) || !integer(row.updated_at) || !['active','inactive','approved','archived','quarantined','pending','paused','draft'].includes(String(row.state))) bad()
