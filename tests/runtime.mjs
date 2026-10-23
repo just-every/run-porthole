@@ -102,7 +102,7 @@ try {
   const setupPage=await fetch(`${origin}/setup`, { headers: { cookie } })
   assert.equal(setupPage.status,200)
   assert.match(await setupPage.text(),/Independent notices off — incomplete coverage/)
-  if(!process.env.PORTHOLE_TRACE_ONLY && (process.env.PORTHOLE_HEALTH_ONLY==='1' || !process.env.PORTHOLE_AUDIT_ONLY && !process.env.PORTHOLE_STOCK_ONLY)) {
+  if(!process.env.PORTHOLE_ACCESS_ONLY && !process.env.PORTHOLE_TRACE_ONLY && (process.env.PORTHOLE_HEALTH_ONLY==='1' || !process.env.PORTHOLE_AUDIT_ONLY && !process.env.PORTHOLE_STOCK_ONLY)) {
    const {healthBrowser}=await import('./porthole/health.mjs')
    await healthBrowser({origin,cookie,name:'setup-notices-off',path:'/setup',contains:'Independent notices off — incomplete coverage'})
   }
@@ -169,9 +169,17 @@ try {
   const membership=await membershipJourney({origin,cookie,foreignCookie,persist,restartWorker,...helpers,sessionSecret:'runtime-session-secret-1234567890123456'})
   cookie=membership.cookie
   await credentialJourney({origin,cookie,persist,restartWorker,...helpers,getLogs:()=>allOutput})
+  const {credentialQueryJourney}=await import('./porthole/credentials.mjs')
+  if(process.env.PORTHOLE_ACCESS_ONLY==='1') {
+   await credentialQueryJourney({origin,sql,freshOwner:helpers.freshOwner,restartWorker,getLogs:()=>allOutput})
+   const {browserProof}=await import('./porthole/audit.mjs')
+   await browserProof({origin,cookie:await helpers.freshOwner(),paths:['/app/explore'],name:'credential-query'})
+  }
+  else {
   cookie=await helpers.freshOwner()
   const {healthJourney,browserProof}=await import('./porthole/audit.mjs')
   await healthJourney({origin,cookie})
+  await credentialQueryJourney({origin,sql,freshOwner:helpers.freshOwner,restartWorker,getLogs:()=>allOutput})
   const { ingestJourney }=await import('./porthole/ingest.mjs')
   await ingestJourney({origin,cookie,persist,restartWorker,...helpers})
   if(process.env.PORTHOLE_STOCK_QUALIFICATION==='1') {const {stockIngestJourney}=await import('./porthole/stock-ingest.mjs');await stockIngestJourney({origin,cookie,persist,restartWorker,...helpers})}
@@ -194,6 +202,7 @@ try {
   await archiveJourney({origin,cookie,persist,restartWorker,withEmptyDestination,...helpers})
   cookie=await helpers.freshOwner()
   await browserProof({origin,cookie,paths:['/app/settings/archive'],name:'archive'})
+  }
   }
   console.log('APP-HOME passed against emitted local Worker: /app behind sign-in and setup, then the trace view with its stylesheets')
 } catch(error) {

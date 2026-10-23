@@ -39,10 +39,47 @@ Ingest custody moves in the same removal transaction to an active owner/admin
 whose existing scopes cover it. Personal tokens and sessions are revoked in
 that transaction. Restoring an old scope does not revive a suspended key.
 
-The current role policy covers native administration, these Settings screens,
-the personal-token identity door and credential introspection. PORT-025/026 and
-the later query, job, object and approval clauses must enforce the same roles,
-scopes and revision fence on their doors before shipping. PORT-091 owns device
-revocation and reviewed object/running-work handover; PORT-092 owns job and plan
-execution plus prompt/archive secret exclusion. These paths do not collect
-telemetry, run an agent or confer approval authority.
+## Scoped programmatic reads
+
+`POST /api/porthole/v1/query` accepts a read or proposal credential with
+`telemetry.read`. Send a JSON object with `signal` (`logs`, `metrics` or
+`traces`), optional `service`, `environment`, `team`, nanosecond `from`/`through`,
+`limit`, `cursor`, `snapshot` or trace ID. The response includes records, a
+snapshot watermark and a replay URL. Both the query and replay recheck current
+credential and custodian authority. An accompanying owner cookie grants no
+additional authority. Ingest and execution credentials cannot query.
+
+The read-only CLI uses the same REST endpoint. Set `PORTHOLE_CREDENTIAL` through
+your secret manager, then run:
+
+```sh
+node scripts/porthole/query.mjs https://your-installation.example < query.json
+```
+
+For example, `query.json` can contain
+`{"signal":"logs","service":"checkout","environment":"production","team":"commerce"}`.
+The CLI takes no credential argument, follows no redirects and permits plain
+HTTP only on loopback. It prints the query result or a safe refusal code; it
+cannot select a write route.
+
+MCP clients use the stateless Streamable HTTP JSON endpoint
+`POST /api/porthole/v1/mcp`, protocol `2025-11-25`, with the same Authorization
+header on **every** request. Initialize, send `notifications/initialized`,
+then use `tools/list` and `tools/call`. The only tool is `query_telemetry`, with
+the same query arguments and scoped results. No native session, MCP session
+identifier, tool argument or returned log text grants authority. No prompt,
+approval, minting, write or execution tool is exposed. Telemetry in tool
+results remains untrusted data; the caller must never treat it as instructions.
+
+REST, CLI and MCP share one quota ledger, including daily selected-payload byte
+reservations, and next-request revocation. Their audit records contain opaque
+actor/snapshot references and outcomes, excluding request bodies, query literals
+and header credentials. The closed installation archive excludes credential
+secrets, hashes and approval grants.
+
+PORT-025/026 and later query, job, object and approval doors inherit the same
+role, scope and live-revision checks. PORT-091 owns device revocation and
+reviewed object/running-work handover. PORT-092 remains incomplete for running
+jobs, ignored-instruction reports, prompt/artifact secret exclusion and exact
+approved-plan execution. These read transports do not run an agent or confer
+approval authority; real execution requires PORT-077's authorized estate.

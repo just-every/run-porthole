@@ -11,7 +11,7 @@ const actions: Record<string, string> = {
  '/app/settings/credentials/rescope':'credentials.rescope',
  '/app/settings/credentials/mint':'credentials.mint', '/app/settings/credentials/rotate':'credentials.rotate', '/app/settings/credentials/revoke':'credentials.revoke',
  '/api/porthole/v1/ingest/control':'ingest.control', '/api/porthole/v1/ingest/drain':'ingest.reconcile', '/api/porthole/v1/ingest/loss':'ingest.loss',
- '/api/porthole/v1/query':'telemetry.query', '/app/explore':'telemetry.query',
+ '/api/porthole/v1/query':'telemetry.query', '/app/explore':'telemetry.query', '/api/porthole/v1/mcp':'telemetry.tool',
  '/api/porthole/v1/objects':'objects.change', '/app/operations/save':'objects.change',
  '/api/porthole/v1/objects/activate':'objects.monitor-activate', '/app/operations/activate':'objects.monitor-activate',
  '/app/health/confirm':'health.recipient-confirm',
