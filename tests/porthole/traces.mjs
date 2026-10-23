@@ -109,6 +109,7 @@ export async function traceJourney({origin,freshOwner,signIn,restartWorker,sql,w
   assert.deepEqual([...new Set(graph.spans.map(span=>span.service))].sort(),scope.services.slice().sort(),'all seven real runtimes participate in one trace')
   assert.ok(graph.spans.some(span=>span.attributes.some(attr=>['messaging.system'].includes(attr.key)&&attr.value.stringValue==='kafka')),'actual stock Kafka producer/consumer spans')
   console.log('polyglotEstate passed on '+candidate+': seven runtimes, real Kafka, HTTP/gRPC and one connected graph')
+  if(process.env.PORTHOLE_POLYGLOT_RUN_ID)console.log(JSON.stringify({journey:'polyglotEstate',runId:process.env.PORTHOLE_POLYGLOT_RUN_ID,candidate,result:'passed'}))
  }
  const broken=await get(path+receipt.brokenTraceId)
  assert.equal(broken.status,'Incomplete')

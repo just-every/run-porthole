@@ -58,7 +58,9 @@ host; Ruby loads `porthole_policy.rb` after SDK configuration and before serving
 PHP registers `policy.php` before the framework obtains `Globals`; Java uses the
 shipped extension JAR, `OTEL_JAVAAGENT_EXTENSIONS=/app/policy.jar` and
 `OTEL_PROPAGATORS=tracecontext,porthole`. The Dockerfile builds that extension
-against the pinned published OTel API/SPI. Keep each process's documented
+against the pinned published OTel API/SPI. The Java process classpath must also
+include the matching `opentelemetry-common` runtime JAR; the supplied launch uses
+`-cp ".:lib/*"`. Keep each process's documented
 framework setup and release metadata. No egress proxy or vendor key is added.
 
 ## Seven install paths
