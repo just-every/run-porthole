@@ -1,6 +1,10 @@
 package main
 import (
  "context"
+ "sort"
+ "strconv"
+ "strings"
+ "go.opentelemetry.io/otel/baggage"
  "log"
  "net/http"
  "os"
@@ -17,13 +21,17 @@ func main(){
  resources,err:=resource.New(ctx,resource.WithFromEnv(),resource.WithTelemetrySDK());if err!=nil{log.Fatal(err)}
  provider:=sdktrace.NewTracerProvider(sdktrace.WithBatcher(exporter),sdktrace.WithResource(resources))
  defer provider.Shutdown(ctx)
- otel.SetTracerProvider(provider);otel.SetTextMapPropagator(propagation.TraceContext{})
+ loadPolicy()
+ otel.SetTracerProvider(provider);otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{},policyPropagator{}))
  client:=&http.Client{Transport:otelhttp.NewTransport(http.DefaultTransport)}
  handler:=http.HandlerFunc(func(w http.ResponseWriter,r *http.Request){
   if next:=os.Getenv("NEXT_URL");next!=""{
    request,_:=http.NewRequestWithContext(r.Context(),"GET",next,nil)
    response,err:=client.Do(request);if err!=nil||response.StatusCode!=200{http.Error(w,"downstream unavailable",502);return};response.Body.Close()
   }
+  var keys []string;maxBytes:=0
+  for _,entry:=range baggage.FromContext(r.Context()).Members(){keys=append(keys,entry.Key());if len([]byte(entry.Value()))>maxBytes{maxBytes=len([]byte(entry.Value()))}}
+  sort.Strings(keys);w.Header().Set("x-porthole-baggage-keys",strings.Join(keys,","));w.Header().Set("x-porthole-baggage-bytes",strconv.Itoa(maxBytes))
   w.Write([]byte("go completed\n"))
  })
  log.Fatal(http.ListenAndServe(":"+os.Getenv("PORT"),otelhttp.NewHandler(handler,"GET /work")))

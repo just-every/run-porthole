@@ -6,6 +6,7 @@ import { append, type AuditInput } from './store'
 // Each existing administrative HTTP mutation has a fixed label. Future product
 // handlers must adopt this seam; this list does not claim to implement them.
 const actions: Record<string, string> = {
+ '/app/settings/instrumentation':'instrumentation.baggage',
  '/app/settings/analytics':'analytics.configure','/app/settings/analytics/reconcile':'analytics.reconcile','/api/porthole/v1/analytics/configuration':'analytics.configure','/api/porthole/v1/analytics/reconcile':'analytics.reconcile',
  '/app/settings/members/invite':'membership.invite', '/app/settings/members/change':'membership.role', '/app/settings/members/remove':'membership.status',
  '/app/settings/credentials/rescope':'credentials.rescope',

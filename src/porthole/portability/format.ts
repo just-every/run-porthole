@@ -1,3 +1,4 @@
+import {baggageKeys} from '../traces/policy'
 import { canonical, digest, genesis, type AuditEntry } from '../audit/store'
 import { byTable, catalog } from './catalog'
 import { validateBody } from '../objects/schema'
@@ -21,9 +22,10 @@ const bad = (): never => fail('archive_semantics_invalid',422)
 const object = (value: unknown): value is Record<string,unknown> => !!value && typeof value==='object' && !Array.isArray(value)
 export function manifestInput(value: unknown): Manifest {
  if(!object(value) || Object.keys(value).sort().join(',')!==['format','id','createdAt','rowCount','chunks','rootHash','tables','inactive'].sort().join(',') || value.format!==format || !uuid(value.id) || !integer(value.createdAt) || !integer(value.rowCount) || !integer(value.chunks) || !hex(value.rootHash) || value.inactive!==true || !object(value.tables)) return bad()
- if(Object.keys(value.tables).sort().join(',')!==catalog.map(item=>item.table).sort().join(',') || Object.values(value.tables).some(v=>!integer(v)) || Object.values(value.tables).reduce<number>((a,b)=>a+(b as number),0)!==value.rowCount || value.chunks!==Math.ceil(value.rowCount/chunkRows)) return bad()
+ const tables={porthole_baggage_policy:0,...value.tables}
+ if(Object.keys(tables).sort().join(',')!==catalog.map(item=>item.table).sort().join(',') || Object.values(value.tables).some(v=>!integer(v)) || Object.values(value.tables).reduce<number>((a,b)=>a+(b as number),0)!==value.rowCount || value.chunks!==Math.ceil(value.rowCount/chunkRows)) return bad()
  if(value.tables.porthole_ingest_control!==1)bad()
- return value as unknown as Manifest
+ return {...value,tables} as unknown as Manifest
 }
 export async function chunkInput(value: unknown, index: number, previousHash: string, count?: number): Promise<Chunk> {
  if(!object(value) || Object.keys(value).sort().join(',')!=='digest,index,previousHash,rows,version' || value.version!==1 || value.index!==index || value.previousHash!==previousHash || !hex(value.digest) || !Array.isArray(value.rows) || !value.rows.length || value.rows.length>chunkRows || count!==undefined && value.rows.length!==count) return bad()
@@ -42,7 +44,10 @@ export async function validateRow(payload: PortableRow, state: Validation): Prom
  if(Object.keys(row).sort().join(',')!==[...item.columns].sort().join(',')) bad()
  for(const value of Object.values(row)) if(value!==null && typeof value!=='string' && !integer(value)) bad()
  const required=(...keys:string[])=>{for(const key of keys)if(!str(row[key]) || !(row[key] as string).length)bad()}
- if(item.table==='porthole_bucket_history') {
+ if(item.table==='porthole_baggage_policy') {
+  if(row.singleton!==1||![0,1].includes(row.enabled as number)||!integer(row.revision,1)||!integer(row.changed_at))bad()
+  const keys=baggageKeys(json(row.allowed_keys)),attrs=baggageKeys(json(row.attribute_keys));if(attrs.some(key=>!keys.includes(key)))bad()
+ } else if(item.table==='porthole_bucket_history') {
   if(!validHistoryReference(row))bad()
  } else if(item.table==='porthole_objects') {
   if(!uuid(row.id) || !['monitor','repair'].includes(String(row.kind)) || !str(row.name) || !integer(row.revision,1) || !integer(row.created_at) || !integer(row.updated_at) || !['active','inactive','approved','archived','quarantined','pending','paused','draft'].includes(String(row.state))) bad()
