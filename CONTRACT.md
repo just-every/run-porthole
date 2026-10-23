@@ -331,8 +331,8 @@ Judged from the code and tests at commit `a0f1cc9f100630f413461e13ba6e47bc6d6362
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 0 | 0 | 0 | 0 |
-| Target and push further | 7 | 3 | 85 | 95 |
-| All | 7 | 3 | 85 | 95 |
+| Target and push further | 7 | 4 | 84 | 95 |
+| All | 7 | 4 | 84 | 95 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -388,7 +388,7 @@ Judged from the code and tests at commit `a0f1cc9f100630f413461e13ba6e47bc6d6362
 | `PORT-047` | Scheduled reports and exports | target | missing |  | No implementation for scheduled reports and exports; the complete public-door journey above remains required. |
 | `PORT-048` | Collaborative notebooks and safe sharing | target | missing |  | No implementation for collaborative notebooks and safe sharing; the complete public-door journey above remains required. |
 | `PORT-050` | Spool and Uptime evidence handoffs | target | missing |  | No implementation for spool and uptime evidence handoffs; the complete public-door journey above remains required. |
-| `PORT-051` | Oncall and Lamp keep response ownership | target | missing |  | No implementation for oncall and lamp keep response ownership; the complete public-door journey above remains required. |
+| `PORT-051` | Oncall and Lamp keep response ownership | target | partial | `./tests/porthole/oncall.mjs` oncallJourney: actual ingest and monitor evaluation, stable trigger and matching recovery generation, replay and restart, Unknown preservation, provider Retry-After, uncertain acceptance hold, route disable and no incident transition; existing pipeline screens at 1440 and 390. Native Oncall schema is faked only at the service edge. | Lamp owner-approved component mapping and SLO automation-rule journey, investigation and action-result evidence handoff remain unproved. Conservative default ADOPTED pending ct approval: fresh native owner only, one explicit scope, generic alert metadata only, no automatic uncertain replay. No paging or human receipt is claimed; current Oncall intake provides coordination only. |
 | `PORT-052` | Auth and Evidence integrations | target | missing |  | No implementation for auth and evidence integrations; the complete public-door journey above remains required. |
 | `PORT-053` | Issues and general workflow handoffs | target | missing |  | No implementation for issues and general workflow handoffs; the complete public-door journey above remains required. |
 | `PORT-054` | Performance scope and neighboring products | target | missing |  | No implementation for performance scope and neighboring products; the complete public-door journey above remains required. |

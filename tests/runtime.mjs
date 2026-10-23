@@ -9,6 +9,7 @@ import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import {promisify} from 'node:util'
 const execute=promisify(execFile)
+if(process.env.PORTHOLE_ONCALL_ONLY==='1'){const {oncallJourney}=await import('./porthole/oncall.mjs');await oncallJourney();process.exit(0)}
 if(process.env.PORTHOLE_ANALYTICAL_ONLY==='1'){const {analyticalConnectionJourney}=await import('./porthole/analytics.mjs');await analyticalConnectionJourney();process.exit(0)}
 
 const socket = createServer()

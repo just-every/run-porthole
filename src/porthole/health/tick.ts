@@ -1,3 +1,4 @@
+import {deliverOncall} from '../integrations/oncall/store'
 import type { HealthBindings } from './model'
 import { observeHealth } from './observe'
 import { evaluateMonitors } from '../recovery/monitors'
@@ -11,5 +12,6 @@ export async function healthTick(env: HealthBindings) {
  const state=await observeHealth(env)
  await reconcileHealthIncidents(env,state)
  const delivery=await deliverHealthNotice(env)
- return {state,delivery,monitors}
+ const oncall=await deliverOncall(env)
+ return {state,delivery,monitors,oncall}
 }

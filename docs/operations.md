@@ -45,3 +45,46 @@ See [recovery.md](recovery.md) for independent observations, collector freshness
 An installation may bind its customer R2 bucket as `ARCHIVE_BUCKET`. The owner uploads an immutable open-format historical object through `POST /api/porthole/v1/storage/history`, supplying `X-Porthole-Source`, `X-Porthole-History` and its content type. The response records an opaque identity, SHA-256, byte count and source/history labels. No request chooses a different bucket or supplies provider credentials. GET/HEAD on `/api/porthole/v1/storage/history/REFERENCE/content` verify the actual object digest before releasing bytes under the current owner session. Uploads and reauthorization require fresh native owner proof.
 
 The streaming product archive preserves those exact durable references, with no bucket access grant. Restore quarantines them. To reattach the destination bucket, the owner explicitly confirms the original digest and supplies the identical original bytes, or verifies an already present object; only then can the destination serve it. Collection and delivery remain paused independently. PORT-013/035/061 inherit this custody and audit boundary for their larger archive, erasure and export workflows.
+
+
+## Oncall monitor handoff
+
+The native owner can approve one explicit service, environment and team monitor
+through `POST /api/porthole/v1/integrations/oncall` after fresh native identity
+verification. The JSON body contains `monitorId`, the existing Oncall `source`,
+`destinationService` and `confirm: "send-monitor-events"`. A read of the same
+endpoint returns routes and secret-free durable outcomes. Send `monitorId` and
+`disable: true` to stop future dispatch. Route replacement, monitor revision and
+owner authority changes hold old pending work. Approval has no default recipient
+and exports no raw telemetry or custom monitor text.
+
+An owner must first configure the deployment service binding `ONCALL_SERVICE`,
+its exact HTTPS `ONCALL_ORIGIN`, and the platform secret `ONCALL_SOURCE_KEY` for
+an existing service-scoped Oncall native source. This adapter uses the documented
+Oncall native ingress, not an incident-management credential. There is no direct
+network destination input on the configuration API. Source keys never enter
+Porthole tables, receipts, audit records or portable archives. Rotate the platform
+secret together with the existing source key. A refusal requires owner review.
+
+Real monitor evaluation commits the outbox event and state together. A firing
+episode supplies the stable generation; its matching healthy evaluation sends
+recovery with that generation. Unknown retains the generation and cannot create
+recovery. Each tick sends at most one due event. Provider rate limits retain the
+retry deadline and stop after five attempts. Lost responses, malformed receipts,
+server failures and expired send leases remain uncertain, with no automatic
+resubmission. Inspect the stable source event in Oncall; there is no replay door
+in this slice. Recovery waits for an accepted trigger. Accepted means only native
+intake acceptance; it proves neither human receipt nor paging or incident
+resolution. Current Oncall does not provide phone paging or an independent
+standby; preserve an existing pager. This path never calls incident transitions.
+
+Portable archives retain route metadata and exact outbox history in the existing
+quarantined history projection. They restore no live route, source key or delivery
+authority. Lamp component rules, SLO evidence, investigation evidence and action
+result handoffs remain unimplemented under PORT-051.
+
+Conservative policy adopted pending ct approval: only the fresh native owner may
+approve an exact single-scope route; outbound data is restricted to opaque alert
+identity, original event time, generic state text and the authenticated health
+link. PORT-020, PORT-055 and PORT-059 inherit the same authority and uncertainty
+obligations when they add destinations, lifecycle controls or follow-up.

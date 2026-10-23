@@ -1,3 +1,4 @@
+import {oncallEvaluationStatement} from '../integrations/oncall/store'
 import {configuration as analyticalConfiguration,selected as analyticalSelected,query as analyticalQuery} from '../analytical/client'
 import type { Scope } from '../security/authority'
 import type { HealthBindings } from '../health/model'
@@ -45,6 +46,7 @@ export async function evaluateMonitors(env:HealthBindings) {
   await env.DB.batch([
    env.DB.prepare(`INSERT INTO porthole_monitor_evaluations(id,object_id,revision,evaluated_at,window_start_ns,window_end_ns,status,observed_count,firing_episode,reason)
     SELECT ?,o.id,o.revision,?,?,?,?,?,CASE WHEN ?='Healthy' THEN NULL ELSE COALESCE((SELECT firing_episode FROM porthole_monitor_state WHERE object_id=o.id AND revision=o.revision),?) END,? FROM porthole_objects o WHERE o.id=? AND o.revision=? AND o.state='active'`).bind(evaluationId,now,from,through,status,count,status,episode,reason,monitor.id,monitor.revision),
+   oncallEvaluationStatement(env,evaluationId),
    env.DB.prepare(`INSERT INTO porthole_monitor_state(object_id,revision,status,evaluated_at,last_known_count,last_known_at,firing_episode,reason)
     SELECT object_id,revision,status,evaluated_at,observed_count,CASE WHEN observed_count IS NULL THEN NULL ELSE evaluated_at END,firing_episode,reason FROM porthole_monitor_evaluations WHERE id=?
     ON CONFLICT(object_id) DO UPDATE SET revision=excluded.revision,status=excluded.status,evaluated_at=excluded.evaluated_at,

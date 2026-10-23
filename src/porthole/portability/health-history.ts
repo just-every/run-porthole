@@ -2,6 +2,8 @@ import { fail } from '../security/authority'
 const uuid=(value:unknown):value is string=>typeof value==='string'&&/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(value)
 interface Projection {table:string;columns:string[];keys:string[]}
 export const healthHistory:Projection[]=[
+ {table:'porthole_oncall_routes',columns:['id','monitor_id','monitor_revision','source','destination_service','environment','configured_by','member_revision','operator_version','enabled','created_at'],keys:['id']},
+ {table:'porthole_oncall_events',columns:['id','route_id','generation','intent','created_at','message','state','attempts','next_attempt_at','provider_id','reason'],keys:['id']},
  {table:'porthole_analytical_configuration',columns:['singleton','source_identity','enabled','active_role','revision','changed_at','configured_by','configurer_revision','configurer_version'],keys:['singleton']},
  {table:'porthole_health_receipts',columns:['component','source','status','reason','observed_at','expires_at','last_accepted_at','last_queryable_at','evidence'],keys:['component','source']},
  {table:'porthole_health_collectors',columns:['credential_id','collector_id','team','service','environment','signal','observed_at'],keys:['credential_id','collector_id','team','service','environment','signal']},

@@ -53,6 +53,15 @@
         "pnpm run build",
         "PORTHOLE_ANALYTICAL_ONLY=1 pnpm run test:runtime"
       ]
+    },
+    {
+      "name": "integrations",
+      "browser": true,
+      "hosted": false,
+      "commands": [
+        "pnpm run build",
+        "PORTHOLE_ONCALL_ONLY=1 pnpm run test:runtime"
+      ]
     }
   ],
   "nightly": []
