@@ -3202,7 +3202,7 @@
       "executable": false
     },
     "tests/porthole/actions.mjs": {
-      "sha256": "e869e35b5101cd708705eeba583b5f3cc82ead5703bc3aed998aad7d8f50428d",
+      "sha256": "23abf6648fbeaef9cada06b9ff6d2ad72ee4e80da0f770e6c05cc28430cd3fe7",
       "executable": false
     },
     "tests/porthole/analytics.mjs": {
