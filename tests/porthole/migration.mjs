@@ -30,6 +30,11 @@ export async function migrationJourney({origin,cookie,foreignCookie,restartWorke
  assert.equal((await fetch(origin+'/api/porthole/v1/migration/records')).status,401)
  // Obtain a fresh proof after the real auth fixture has restarted the Worker.
  cookie=await freshOwner()
+ const privateRouteMarker='synthetic-porthole-private-route-marker'
+ assert.equal((await post(privateRouteMarker,{})).status,404)
+ const auditPacket=await (await fetch(origin+'/api/v1/audit/export',{headers:{cookie}})).text()
+ assert.ok(!auditPacket.includes(privateRouteMarker),'request path content stays out of the audit ledger')
+ assert.ok(auditPacket.includes('migration.request'),'migration attempts use a fixed private audit label')
  const captures=[]
  const browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']})
  const capture=async(name,path='/app/import',act)=>{
