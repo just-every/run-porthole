@@ -41,16 +41,18 @@ export async function migrationJourney({origin,cookie,foreignCookie,restartWorke
    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'no horizontal overflow')
    const controls=await page.locator('button').allTextContents();assert.ok(controls.every(s=>s.trim().length>1),'all controls have visible word labels; no icon-only controls')
    const directory=process.env.PORTHOLE_BROWSER_EVIDENCE??'test-results/migration';await mkdir(directory,{recursive:true})
-   const path=join(directory,`${name}-${width}.png`);await page.screenshot({path,fullPage:true});captures.push(path);await context.close()
+   const screenshotPath=join(directory,`${name}-${width}.png`);await page.screenshot({path:screenshotPath,fullPage:true});captures.push(screenshotPath);await context.close()
   }
  }
  try{
   await capture('move-in-empty');await capture('move-in-guide','/app/import/guide')
   const definitions=Array.from({length:25},(_,i)=>({id:`synthetic-porthole-${i}`,name:`Chart ${i}`,programText:"data('requests', filter=filter('service', 'checkout')).sum().publish()",options:{variables:[{property:'environment',value:'test'}]},tags:['team:ops','customer:synthetic-porthole-43']}))
   const source={charts:definitions,detectors:[{id:'synthetic-porthole-100',programText:"detect(data('requests').sum() > 10).publish('high')",rules:[{detectLabel:'high',severity:'Critical'}],tags:['team:ops']}],services:[{id:'synthetic-porthole-101',serviceName:'checkout',tags:['team:ops']}],logSearches:[{id:'synthetic-porthole-102',query:'index=application | stats count by service'}],securityDashboards:[{id:'synthetic-porthole-103',name:'Security investigation',sourceReference:'https://security.example.invalid/dashboard'}],unknownCollection:[{id:'synthetic-porthole-104'}]}
+  const baselineArchive=await fetch(origin+'/api/porthole/v1/archive/exports',{method:'POST',headers:{origin,cookie,'content-type':'application/json'},body:'{}'});assert.equal(baselineArchive.status,201)
   const before=await snapshot(),plan=await upload('splunk',source)
   assert.equal(plan.summary.sourceRecords,30);assert.equal(plan.rejected.length,1);assert.match(plan.rejected[0].reason,/Unsupported/)
   assert.deepEqual(await snapshot(),before,'preview has no native effects')
+  const excludedArchive=await fetch(origin+'/api/porthole/v1/archive/exports',{method:'POST',headers:{origin,cookie,'content-type':'application/json'},body:'{}'});assert.equal(excludedArchive.status,409);assert.equal((await excludedArchive.json()).error,'migration_custody_archive_pending')
   await json('apply',{planId:plan.planId,reviewedFingerprint:'0'.repeat(64)},'splunk',403)
   assert.deepEqual(await snapshot(),before,'wrong fingerprint has no effects')
   const first=await json('apply',{planId:plan.planId,reviewedFingerprint:plan.fingerprint})

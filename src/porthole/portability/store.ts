@@ -20,7 +20,7 @@ export async function startExport(db:D1Database,actor:Authority):Promise<Job> {
  if(custody)fail('migration_custody_archive_pending',409)
  await projectFacts(db)
  const id=crypto.randomUUID(),stream=crypto.randomUUID(),now=Date.now()
- const statements:D1PreparedStatement[]=[guard(db,actor), db.prepare(`INSERT INTO porthole_archive_jobs(id,direction,owner_ref,created_at,state,chain_hash) VALUES(?,'export',?,?,'snapshot',?)`).bind(id,actor.member.operatorId,now,genesis)]
+ const statements:D1PreparedStatement[]=[guard(db,actor,'NOT EXISTS(SELECT 1 FROM ik_door_uploads) AND NOT EXISTS(SELECT 1 FROM ik_door_plans) AND NOT EXISTS(SELECT 1 FROM porthole_migration_records)'), db.prepare(`INSERT INTO porthole_archive_jobs(id,direction,owner_ref,created_at,state,chain_hash) VALUES(?,'export',?,?,'snapshot',?)`).bind(id,actor.member.operatorId,now,genesis)]
  for(const item of catalog) statements.push(db.prepare(`INSERT INTO porthole_archive_rows(job_id,ordinal,payload) SELECT ?,COALESCE((SELECT MAX(ordinal)+1 FROM porthole_archive_rows WHERE job_id=?),0)+ROW_NUMBER() OVER ()-1,payload FROM (${snapshotQuery(item,stream)})`).bind(id,id))
  statements.push(db.prepare('UPDATE porthole_archive_jobs SET row_count=(SELECT COUNT(*) FROM porthole_archive_rows WHERE job_id=?) WHERE id=?').bind(id,id))
  await db.batch(statements)
