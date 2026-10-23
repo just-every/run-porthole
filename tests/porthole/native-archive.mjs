@@ -9,7 +9,7 @@ const execute=promisify(execFile)
 const root=process.cwd(),scratch=await mkdtemp(join(tmpdir(),'porthole-native-archive-'))
 async function command(cwd,args) {
  try {return await execute(process.execPath,[join(root,'node_modules/@runeditrun/rer/global/rer.mjs'),...args,'--cwd',cwd],{cwd,env:{...process.env,WRANGLER_SEND_METRICS:'false'},maxBuffer:16*1024*1024})}
- catch(error){const safe=(String(error.stdout??'')+'\n'+String(error.stderr??'')).replace(/[A-Za-z0-9_+./=-]{32,}/g,'[redacted]').split('\n').slice(-24).join('\n');throw Error(`Native ${args[0]} failed (${error.code})\n${safe}`)}
+ catch(error){const capture=await readFile(join(cwd,'.seed/installer/install.log'),'utf8').catch(()=> '');const safe=(String(error.stdout??'')+'\n'+String(error.stderr??'')+'\n'+capture).replace(/[A-Za-z0-9_+./=-]{32,}/g,'[redacted]').split('\n').slice(-48).join('\n');throw Error(`Native ${args[0]} failed (${error.code})\n${safe}`)}
 }
 async function clone(name) {
  const directory=join(scratch,name)
@@ -26,6 +26,7 @@ async function sql(cwd,statement) {
 try {
  const source=await clone('source')
  await command(source,['setup','--owner-email','synthetic-porthole-600@example.com','--non-interactive'])
+ console.log('nativeArchiveJourney: source setup passed')
  const owner=(await sql(source,"SELECT id FROM oa_operators WHERE role='owner' AND status='active'"))[0]
  assert.ok(owner)
  const credentialId=randomUUID(),secret=`synthetic-porthole-601-${randomBytes(32).toString('hex')}`,hash=createHash('sha256').update(secret).digest('hex'),now=Date.now(),objectId=randomUUID()
@@ -36,12 +37,14 @@ try {
  await sql(source,`UPDATE porthole_baggage_policy SET enabled=1,allowed_keys='["region"]',attribute_keys='[]',revision=2,changed_at=${now} WHERE singleton=1`)
  const file=join(source,'exports','installation.rer')
  await command(source,['export','--output',file])
+ console.log('nativeArchiveJourney: source export passed')
  const contents=await readFile(file,'utf8')
  for(const privateValue of [secret,hash,'synthetic-porthole-600@example.com'])assert.ok(!contents.includes(privateValue),'native export excludes credential/hash/native identity')
  const sourceAudit=await sql(source,"SELECT entry FROM porthole_audit_entries WHERE json_extract(entry,'$.action')='installation.export.complete'")
  assert.equal(sourceAudit.length,1,'native export result is in private audit')
  const destination=await clone('destination')
  await command(destination,['import','--input',file,'--yes'])
+ console.log('nativeArchiveJourney: destination import passed')
  assert.equal((await sql(destination,'SELECT COUNT(*) AS n FROM porthole_credentials'))[0].n,0)
  assert.equal((await sql(destination,`SELECT state FROM porthole_objects WHERE id='${objectId}'`))[0].state,'quarantined')
  assert.equal((await sql(destination,'SELECT paused FROM porthole_ingest_control'))[0].paused,1)
