@@ -179,3 +179,17 @@ The journey removes its own containers and closes its own listener, including on
 failure. Screenshots, when requested with `PORTHOLE_EVIDENCE_DIR`, belong outside
 the product repository. A recorded pass on the exact candidate is required;
 successfully building an image alone proves no application clause.
+
+Run the native archive drill serially after the runtime drill:
+
+```sh
+node tests/porthole/native-archive.mjs
+```
+
+It invokes the pinned native `rer setup/export/import` commands against separate
+source/destination checkouts, including independent owner bootstrap and disabled
+policy restoration. Intact archives containing malformed allowlists or broader
+attribute permission refuse before any domain rows are published. Keep these
+qualification commands serial when they share dependencies/compiler caches. On
+a dedicated CI VM, the CLI's documented `CI=true` mode skips its local admission
+queue; it retains migrations, build, readiness and all journey assertions.
