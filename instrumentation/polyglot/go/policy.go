@@ -29,7 +29,7 @@ func filterBaggage(ctx context.Context)context.Context{
  var kept []baggage.Member;reasons:=map[string]int{}
  for _,entry:=range baggage.FromContext(ctx).Members(){key,value:=entry.Key(),entry.Value();reason:=""
   if !policy.Enabled{reason="disabled"}else if denied.MatchString(key){reason="sensitive_key"}else if !includes(policy.Allowed,key){reason="not_allowlisted"}else if len([]byte(value))>256{reason="value_too_large"}else if len(kept)>=8{reason="entry_limit"}
-  if reason!=""{reasons[reason]++}else{member,err:=baggage.NewMember(key,value);if err==nil{kept=append(kept,member)}}
+  if reason!=""{reasons[reason]++}else{member,err:=baggage.NewMemberRaw(key,value);if err==nil{kept=append(kept,member)}}
  }
  if len(reasons)>0{data,_:=json.Marshal(map[string]interface{}{"porthole.baggage":"refused","revision":policy.Revision,"reasons":reasons});fmt.Fprintln(os.Stderr,string(data))}
  filtered,_:=baggage.New(kept...);return baggage.ContextWithBaggage(ctx,filtered)
@@ -37,7 +37,7 @@ func filterBaggage(ctx context.Context)context.Context{
 func(policyPropagator) Extract(ctx context.Context,carrier propagation.TextMapCarrier)context.Context{
  if len([]byte(carrier.Get("baggage")))>16384{fmt.Fprintln(os.Stderr,`{"porthole.baggage":"refused","reasons":{"header_too_large":1}}`);return baggage.ContextWithoutBaggage(ctx)}
  var entries []baggage.Member;counts:=map[string]int{};invalid:=0
- for _,part:=range strings.Split(carrier.Get("baggage"),","){pair:=strings.SplitN(strings.TrimSpace(strings.SplitN(part,";",2)[0]),"=",2);if len(pair)!=2{if strings.TrimSpace(part)!=""{invalid++};continue};key:=strings.TrimSpace(pair[0]);value,err:=url.PathUnescape(strings.TrimSpace(pair[1]));if err!=nil||!utf8.ValidString(value)||!regexp.MustCompile(`^[a-z][a-z0-9_.-]{0,63}$`).MatchString(key){invalid++;continue};entry,err:=baggage.NewMember(key,value);if err!=nil{invalid++;continue};entries=append(entries,entry);counts[key]++}
+ for _,part:=range strings.Split(carrier.Get("baggage"),","){pair:=strings.SplitN(strings.TrimSpace(strings.SplitN(part,";",2)[0]),"=",2);if len(pair)!=2{if strings.TrimSpace(part)!=""{invalid++};continue};key:=strings.TrimSpace(pair[0]);value,err:=url.PathUnescape(strings.TrimSpace(pair[1]));if err!=nil||!utf8.ValidString(value)||!regexp.MustCompile(`^[a-z][a-z0-9_.-]{0,63}$`).MatchString(key){invalid++;continue};entry,err:=baggage.NewMemberRaw(key,value);if err!=nil{invalid++;continue};entries=append(entries,entry);counts[key]++}
  var kept []baggage.Member;for _,entry:=range entries{if counts[entry.Key()]>1{invalid++}else{kept=append(kept,entry)}}
  if invalid>0{fmt.Fprintf(os.Stderr,"{\"porthole.baggage\":\"refused\",\"reasons\":{\"invalid_or_duplicate\":%d}}\n",invalid)}
  parsed,_:=baggage.New(kept...);return filterBaggage(baggage.ContextWithBaggage(ctx,parsed))
