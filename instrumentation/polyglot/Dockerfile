@@ -23,7 +23,7 @@ ENV OTEL_PROPAGATORS=tracecontext,porthole
 RUN javac -cp lib/opentelemetry-api.jar:lib/opentelemetry-context.jar --add-modules jdk.httpserver App.java
 CMD ["java", "-cp", ".:lib/opentelemetry-api.jar:lib/opentelemetry-context.jar", "-javaagent:/app/agent.jar", "--add-modules", "jdk.httpserver", "App"]
 
-FROM golang:1.25-bookworm AS go-build
+FROM golang:1.25-alpine AS go-build
 WORKDIR /app
 COPY go/ ./
 RUN --mount=type=secret,id=proxy_ca,required=true SSL_CERT_FILE=/run/secrets/proxy_ca go mod tidy && CGO_ENABLED=0 go build -o app .
