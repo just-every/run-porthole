@@ -331,8 +331,8 @@ Judged from the code and tests at commit `a0f1cc9f100630f413461e13ba6e47bc6d6362
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 0 | 0 | 0 | 0 |
-| Target and push further | 7 | 3 | 85 | 95 |
-| All | 7 | 3 | 85 | 95 |
+| Target and push further | 7 | 4 | 84 | 95 |
+| All | 7 | 4 | 84 | 95 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -398,7 +398,7 @@ Judged from the code and tests at commit `a0f1cc9f100630f413461e13ba6e47bc6d6362
 | `PORT-058` | Safe updates and fleet compatibility | target | missing |  | BLOCKED on runeditrun/base installation-update/rollback command hooks for backup, compatibility preview and interrupted migration recovery. Pinned rer 0.2.76 and Base main 6061a97fc2f740f80c3d01edc1d84152923f275e implement rer update as CLI-package installation outside the checkout lifecycle and expose no rollback verb. Rolling component upgrades, retained-evidence rollback and the complete acceptance journey remain unproved; a replacement seed script cannot qualify absent Base commands. |
 | `PORT-059` | Accountable follow-up | target | missing |  | No implementation for accountable follow-up; the complete public-door journey above remains required. |
 | `PORT-060` | Network and messaging performance | target | missing |  | No implementation for network and messaging performance; the complete public-door journey above remains required. |
-| `PORT-061` | Portable signals and open interfaces | target | missing |  | No implementation for portable signals and open interfaces; the complete public-door journey above remains required. |
+| `PORT-061` | Portable signals and open interfaces | target | partial | 1. `tests/porthole/archive.mjs` signalExportJourney: native owner preview and exact approval, four signals across multiple teams and pages, spawned CLI interruption and restart, stable counts, types, original nanoseconds, units and trace relationships, frozen watermark and Explore query reconciliation. 2 (partial). The same journey exercises independent DuckDB reads of Arrow-written Parquet, exact payload reconciliation, OTLP public-intake roundtrip, designated credential refusal and revocation, cancellation and checkpoint integrity. `tests/porthole/native-archive.mjs` nativeArchiveJourney excludes export approvals from native restore. `tests/runtime.mjs` focused export journey checks Explore at 1440 and 390. | Points 2 and 3 remain incomplete: independent OTLP and standard profile readers; telemetry erasure journals fencing old archives and future exports. Priced cost estimates and standard signal read APIs remain open. Policy default pending ct approval: only a native owner previews, approves or cancels an exact export; approval may designate one existing read credential held by that owner, with live full-selection scope and quota checks. No implicit credential export access. PORT-035 inherits erasure fencing; PORT-026 inherits live transport authorization. See `docs/signal-exports.md`. |
 | `PORT-028` | Investigation agent | push-further | missing |  | No implementation for investigation agent; the complete public-door journey above remains required. |
 | `PORT-029` | Approved remediation | push-further | missing |  | No implementation for approved remediation; the complete public-door journey above remains required. |
 | `PORT-030` | Coverage noise and cost gardener | push-further | missing |  | No implementation for coverage noise and cost gardener; the complete public-door journey above remains required. |

@@ -108,7 +108,7 @@ try {
   const setupPage=await fetch(`${origin}/setup`, { headers: { cookie } })
   assert.equal(setupPage.status,200)
   assert.match(await setupPage.text(),/Independent notices off — incomplete coverage/)
-  if(!process.env.PORTHOLE_PROTOCOL_ONLY && !process.env.PORTHOLE_INGEST_ONLY && !process.env.PORTHOLE_ACCESS_ONLY && !process.env.PORTHOLE_TRACE_ONLY && (process.env.PORTHOLE_HEALTH_ONLY==='1' || !process.env.PORTHOLE_AUDIT_ONLY && !process.env.PORTHOLE_STOCK_ONLY)) {
+  if(!process.env.PORTHOLE_EXPORT_ONLY && !process.env.PORTHOLE_PROTOCOL_ONLY && !process.env.PORTHOLE_INGEST_ONLY && !process.env.PORTHOLE_ACCESS_ONLY && !process.env.PORTHOLE_TRACE_ONLY && (process.env.PORTHOLE_HEALTH_ONLY==='1' || !process.env.PORTHOLE_AUDIT_ONLY && !process.env.PORTHOLE_STOCK_ONLY)) {
    const {healthBrowser}=await import('./porthole/health.mjs')
    await healthBrowser({origin,cookie,name:'setup-notices-off',path:'/setup',contains:'Independent notices off — incomplete coverage'})
   }
@@ -152,7 +152,12 @@ try {
     return await run({origin,cookie:destinationCookie,persist,...destinationHelpers,restartWorker})
    } finally {await restartWorker(()=>{persist=savedStore;ownerEmail=savedOwner})}
   }
-  if(process.env.PORTHOLE_PROTOCOL_ONLY==='1') {
+  if(process.env.PORTHOLE_EXPORT_ONLY==='1') {
+   const {signalExportJourney}=await import('./porthole/archive.mjs')
+   await signalExportJourney({origin,cookie,restartWorker,...helpers})
+   const {browserProof}=await import('./porthole/audit.mjs')
+   await browserProof({origin,cookie:await helpers.freshOwner(),paths:['/app/explore'],name:'signal-export-explore'})
+  } else if(process.env.PORTHOLE_PROTOCOL_ONLY==='1') {
    const {otlpProtocolJourney,ingestBrowserJourney}=await import('./porthole/ingest.mjs')
    const protocol=await otlpProtocolJourney({origin,cookie,persist,restartWorker,withEmptyDestination,...helpers})
    await ingestBrowserJourney({origin,cookie:await helpers.freshOwner(),profile:protocol})
@@ -222,7 +227,9 @@ try {
   cookie=await helpers.freshOwner()
   const {bucketHistoryJourney}=await import('./porthole/bucket-history.mjs')
   await bucketHistoryJourney({origin,cookie,persist,restartWorker,withEmptyDestination,...helpers})
-  const { archiveJourney }=await import('./porthole/archive.mjs')
+  const { signalExportJourney, archiveJourney }=await import('./porthole/archive.mjs')
+  await signalExportJourney({origin,cookie,restartWorker,...helpers})
+  cookie=await helpers.freshOwner()
   await archiveJourney({origin,cookie,persist,restartWorker,withEmptyDestination,...helpers})
   cookie=await helpers.freshOwner()
   await browserProof({origin,cookie,paths:['/app/settings/archive'],name:'archive'})
