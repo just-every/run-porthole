@@ -141,6 +141,8 @@ async function browserOperations({origin,cookie,restrictedCookie}) {
      await page.getByRole('button',{name:'Run query'}).click()
      await page.getByRole('heading',{name:'Query results',exact:true}).waitFor()
     }
+    await page.waitForFunction(()=>document.readyState==='complete')
+    await page.evaluate(async()=>{await document.fonts.ready;await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))})
     assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'operations stay within viewport')
     if(process.env.PORTHOLE_EVIDENCE_DIR) {await mkdir(process.env.PORTHOLE_EVIDENCE_DIR,{recursive:true});await page.screenshot({path:join(process.env.PORTHOLE_EVIDENCE_DIR,`operations-user-${width}-${path.endsWith('explore')?'query':'definitions'}.png`),fullPage:true})}
    }
