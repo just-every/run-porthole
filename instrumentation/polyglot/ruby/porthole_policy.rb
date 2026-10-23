@@ -23,7 +23,7 @@ class PortholePolicy
    if reason;reasons[reason]+=1;else;kept[key]=value;end
   end
   warn JSON.generate({'porthole.baggage'=>'refused','revision'=>@policy['revision'],'reasons'=>reasons}) unless reasons.empty?
-  OpenTelemetry::Baggage.clear(context: context).then{|clean|OpenTelemetry::Baggage.set_values(kept,context:clean)}
+  kept.reduce(OpenTelemetry::Baggage.clear(context: context)){|current,(key,value)|OpenTelemetry::Baggage.set_value(key,value,context:current)}
  end
  def extract(carrier,context: OpenTelemetry::Context.current,getter: OpenTelemetry::Context::Propagation.text_map_getter)
   raw=getter.get(carrier,'baggage').to_s
@@ -37,4 +37,4 @@ class PortholePolicy
   setter.set(carrier,'baggage','');@stock.inject(carrier,context:filter(context),setter:setter)
  end
 end
-OpenTelemetry.propagation=OpenTelemetry::Context::Propagation::CompositeTextMapPropagator.new([OpenTelemetry::Trace::Propagation::TraceContext::TextMapPropagator.new,PortholePolicy.new])
+OpenTelemetry.propagation=OpenTelemetry::Context::Propagation::CompositeTextMapPropagator.compose_propagators([OpenTelemetry::Trace::Propagation::TraceContext::TextMapPropagator.new,PortholePolicy.new])
