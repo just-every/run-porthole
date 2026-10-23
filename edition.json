@@ -53,6 +53,26 @@
           ]
         }
       }
+    },
+    {
+      "id": "runeditrun/import-kit",
+      "role": "module",
+      "source": {
+        "kind": "local",
+        "paths": [
+          "src/modules/import-kit",
+          "src/modules/d1-transport"
+        ],
+        "origin": {
+          "repository": "https://github.com/runeditrun/base.git",
+          "revision": "fec4051542cc2f2b1b5efd0f2f2028b5dd1c2818",
+          "path": ".",
+          "paths": [
+            "modules/import-kit",
+            "modules/d1-transport"
+          ]
+        }
+      }
     }
   ]
 }
