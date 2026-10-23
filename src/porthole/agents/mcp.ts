@@ -36,7 +36,7 @@ export async function mcpResponse(request: Request, env: Bindings): Promise<Resp
   // A native cookie cannot grant a tool authority, even alongside a key.
   await verifyCredential(request, env, { action: 'telemetry.read', scope: emptyScope, dataScope: allScope, inspectOnly: true })
   const message = await input(request)
-  if (message.jsonrpc !== '2.0' || Object.keys(message).some(key => !['jsonrpc', 'id', 'method', 'params'].includes(key))) fail('invalid_rpc_request', 400)
+  if (message.jsonrpc !== '2.0' || typeof message.method !== 'string' || Object.keys(message).some(key => !['jsonrpc', 'id', 'method', 'params'].includes(key))) fail('invalid_rpc_request', 400)
   if (typeof message.id === 'string' && message.id.length <= 128 || typeof message.id === 'number' && Number.isSafeInteger(message.id)) id = message.id
   else if (message.method !== 'notifications/initialized' || Object.hasOwn(message, 'id')) fail('invalid_rpc_request', 400)
   const params = message.params
