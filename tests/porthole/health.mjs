@@ -215,7 +215,8 @@ export async function recipientMailJourney(analyticalProof) {
  const origin=`https://127.0.0.1:${port}`,ownerEmail=analyticalProof?.ownerEmail??'synthetic-porthole-940@example.com',recipient='synthetic-porthole-941@example.com'
  const sessionSecret='synthetic-porthole-942-synthetic-porthole-942',setupToken='synthetic-porthole-943-synthetic-porthole-943'
  const scratch=await mkdtemp(join(tmpdir(),'porthole-recipient-')),messages=[]
- let providerStatus=202,mf,cookie
+ let providerStatus=202,providerRetryAfter,mf,cookie
+ const acceptedMessages=[]
  const names=['index.js',...(await readdir('dist/server/assets')).filter(name=>name.endsWith('.js')).map(name=>'assets/'+name)]
  const modules=await Promise.all(names.map(async name=>({type:'ESModule',path:resolve('dist/server',name),contents:await readFile('dist/server/'+name,'utf8')})))
  const options=convertV4MiniflareOptions({host:'127.0.0.1',port,https:true,name:'porthole',modules,modulesRoot:resolve('dist/server'),compatibilityDate:'2026-09-08',compatibilityFlags:['nodejs_compat'],d1Databases:{DB:'recipient-proof'},resourcePersistencePath:join(scratch,'db'),r2Buckets:['ARCHIVE_BUCKET'],bindings:{AUTH_ORIGIN:origin,AUTH_LOCAL:'false',OWNER_EMAIL:ownerEmail,SESSION_SECRET:sessionSecret,SETUP_TOKEN:setupToken,...analyticalProof?.bindings,MAIL_PROVIDER:'sendgrid',MAIL_API_KEY:'synthetic-porthole-944',MAIL_FROM:'synthetic-porthole-945@example.com'},
@@ -229,7 +230,8 @@ export async function recipientMailJourney(analyticalProof) {
    assert.equal(request.url,'https://api.sendgrid.com/v3/mail/send');assert.equal(request.method,'POST')
    const message=await request.json();assert.equal(message.personalizations.length,1);assert.equal(message.personalizations[0].to.length,1)
    messages.push(message)
-   return providerStatus===202?new Response(null,{status:202,headers:{'x-message-id':'synthetic-porthole-946'}}):Response.json({errors:[{message:'synthetic-porthole-948',field:null}]},{status:providerStatus})
+   if(providerStatus===202)acceptedMessages.push(message)
+   return providerStatus===202?new Response(null,{status:202,headers:{'x-message-id':'synthetic-porthole-946'}}):Response.json({errors:[{message:'synthetic-porthole-948',field:null}]},{status:providerStatus,headers:providerRetryAfter?{'retry-after':providerRetryAfter}:{}})
   }})
  const call=(path,options={})=>mf.dispatchFetch(origin+path,{...options,headers:{...options.headers,host:new URL(origin).host,'cf-connecting-ip':'127.0.0.1'}})
  const post=async(path,data,status=200,acting=cookie)=>{const response=await call(path,form(origin,acting??'',data));assert.equal(response.status,status,path+': '+(response.status===status?'':await response.clone().text()));return response}
@@ -316,6 +318,30 @@ export async function recipientMailJourney(analyticalProof) {
   const firstNotice=notices()[0].custom_args.rer_delivery_id
   await post('/api/v1/health/tick',{})
   assert.equal(notices().filter(message=>message.custom_args.rer_delivery_id===firstNotice).length,1,'accepted notice is not resubmitted after restart')
+  // A documented 429 is proven unaccepted, including on non-idempotent
+  // SendGrid. Preserve the same frozen notice and its real provider deadline.
+  await configure(ownerEmail);providerStatus=429;providerRetryAfter='5'
+  const rateStart=Date.now(),rateTick=await (await post('/api/v1/health/tick',{})).json()
+  assert.equal(rateTick.delivery.status,'pending')
+  const rateMessage=structuredClone(messages.at(-1)),rateDelivery=rateMessage.custom_args.rer_delivery_id,rateId=rateDelivery.slice('porthole-health/'.length)
+  const rateNotice=(await health()).notices.find(row=>row.id===rateId)
+  assert.equal(rateNotice.state,'pending');assert.equal(rateNotice.attempts,1);assert.equal(rateNotice.first_attempt_at,null,'a definite refusal carries no uncertain-send marker')
+  assert.ok(rateNotice.next_attempt_at>=rateStart+5000,'Retry-After is not shortened')
+  await post('/api/v1/health/tick',{})
+  assert.equal(messages.filter(row=>row.custom_args.rer_delivery_id===rateDelivery).length,1,'an early tick cannot resubmit the refused notice')
+  await mf.dispose();mf=new Miniflare(options);db=await mf.getD1Database('DB')
+  assert.deepEqual((await health()).notices.find(row=>row.id===rateId),rateNotice,'restart preserves the rate-limit receipt and due time')
+  await healthBrowser({origin,cookie,name:'health-notice-rate-limited',contains:'rate limit',dispatch})
+  await new Promise(resolve=>setTimeout(resolve,Math.max(0,rateNotice.next_attempt_at-Date.now()+100)))
+  providerStatus=202;providerRetryAfter=undefined
+  for(let attempt=0;attempt<12&&(await health()).notices.find(row=>row.id===rateId).state!=='accepted';attempt++)await post('/api/v1/health/tick',{})
+  assert.equal((await health()).notices.find(row=>row.id===rateId).state,'accepted')
+  const retries=messages.filter(row=>row.custom_args.rer_delivery_id===rateDelivery)
+  assert.equal(retries.length,2);assert.deepEqual(retries[1],rateMessage,'safe retry keeps the original body and identity')
+  assert.equal(acceptedMessages.filter(row=>row.custom_args.rer_delivery_id===rateDelivery).length,1,'one accepted external effect after the explicit refusal')
+  await mf.dispose();mf=new Miniflare(options);db=await mf.getD1Database('DB');await post('/api/v1/health/tick',{})
+  assert.equal(messages.filter(row=>row.custom_args.rer_delivery_id===rateDelivery).length,2,'accepted retry never resubmits across restart')
+  console.log('noticeRateLimitJourney passed: public configuration/tick, SendGrid 429 Retry-After, frozen durable retry, restart, one accepted effect and 1440/390 states')
   await configure();const replaced=tokenFrom(messages.at(-1))
   await configure(null)
   await post('/app/health/confirm',{token:replaced},410,'')

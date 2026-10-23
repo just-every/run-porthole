@@ -62,15 +62,17 @@ export async function deliverHealthNotice(env: HealthBindings): Promise<{attempt
   await env.DB.prepare(`UPDATE porthole_health_notices SET state='pending',first_attempt_at=CASE WHEN attempts=1 THEN NULL ELSE first_attempt_at END,next_attempt_at=?,lease_id=NULL,lease_until=NULL WHERE id=? AND lease_id=?`).bind(Date.now()+60000,notice.id,lease).run()
   return {attempted:0,status:'audit_unavailable'}
  }
- let status:'accepted'|'rejected'|'pending'|'uncertain'=idempotent?'pending':'uncertain', providerId:string|null=null
+ let status:'accepted'|'rejected'|'pending'|'uncertain'=idempotent?'pending':'uncertain', providerId:string|null=null,rateLimited=false,nextAttemptAt=Date.now()+60000
  try {
   const result=await submitNotice(env,notice.message,config.recipient!)
   providerId=result.providerMessageId
-  status=result.status==='accepted'?'accepted':result.status==='rejected'?'rejected':idempotent?'pending':'uncertain'
+  rateLimited=result.status==='rate_limited'
+  if(rateLimited)nextAttemptAt=result.retryAfter??Date.now()+60000
+  status=result.status==='accepted'?'accepted':result.status==='rejected'?'rejected':rateLimited||idempotent?'pending':'uncertain'
  } catch { /* The frozen request stays uncertain; no provider is substituted. */ }
- await env.DB.prepare(`UPDATE porthole_health_notices SET state=?,provider_id=?,next_attempt_at=?,lease_id=NULL,lease_until=NULL WHERE id=? AND lease_id=?`).bind(status,providerId,Date.now()+60000,notice.id,lease).run()
+ await env.DB.prepare(`UPDATE porthole_health_notices SET state=?,provider_id=?,next_attempt_at=?,first_attempt_at=CASE WHEN ? THEN NULL ELSE first_attempt_at END,lease_id=NULL,lease_until=NULL WHERE id=? AND lease_id=?`).bind(status,providerId,nextAttemptAt,rateLimited&&!idempotent?1:0,notice.id,lease).run()
  await append(env.DB,{...audit,phase:status==='accepted'?'succeeded':'failed',status:status==='accepted'?202:status==='rejected'?422:503})
- await recordComponentReceipt(env.DB,{component:'delivery',source:'independent-mail',status:status==='accepted'?'Healthy':'Unknown',reason:status==='accepted'?'Independent mail provider accepted the durable notice; mailbox delivery is not established.':status==='rejected'?'Independent mail provider rejected the notice; owner action required.':idempotent?'Independent mail result uncertain; durable retry retains the exact idempotency key.':'Independent mail result uncertain; automatic resubmission is stopped because this provider does not guarantee deduplication.',evidence:{noticeId:notice.id,providerStatus:status,providerId}})
+ await recordComponentReceipt(env.DB,{component:'delivery',source:'independent-mail',status:status==='accepted'?'Healthy':'Unknown',reason:status==='accepted'?'Independent mail provider accepted the durable notice; mailbox delivery is not established.':status==='rejected'?'Independent mail provider rejected the notice; owner action required.':rateLimited?'Independent mail provider refused this attempt for a rate limit; the same durable notice will retry after the provider deadline.':idempotent?'Independent mail result uncertain; durable retry retains the exact idempotency key.':'Independent mail result uncertain; automatic resubmission is stopped because this provider does not guarantee deduplication.',evidence:{noticeId:notice.id,providerStatus:status,providerId,...(rateLimited?{acceptance:'not_accepted',nextAttemptAt}:{})}})
  return {attempted:1,status}
 }
 export async function noticeSummary(db:D1Database) {
