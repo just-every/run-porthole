@@ -34,6 +34,8 @@ export async function runArchive({operation,origin,directory,cookie,confirm=fals
  const parsed=new URL(origin);if(!['http:','https:'].includes(parsed.protocol)||parsed.username||parsed.password||parsed.pathname!=='/'||parsed.search||parsed.hash)throw Error('Use the installation origin without credentials or a path')
  origin=parsed.origin;directory=resolve(directory)
  if(operation==='verify')return verifyDirectory(directory,expectedManifestDigest)
+ // The owner session is attached here, not by a browser, so its Secure flag cannot keep it off cleartext.
+ if(parsed.protocol==='http:'&&!['localhost','127.0.0.1','[::1]'].includes(parsed.hostname))throw Error('Use an HTTPS installation origin (HTTP is allowed on loopback only)')
  if(!cookie)throw Error('Set PORTHOLE_ARCHIVE_COOKIE to a fresh native owner session; bearer credentials cannot archive')
  if(operation==='export'){
   await mkdir(directory,{recursive:true,mode:0o700})

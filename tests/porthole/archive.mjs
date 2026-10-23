@@ -86,6 +86,13 @@ export async function archiveJourney({origin,cookie,sql,restartWorker,freshOwner
   assert.ok(!cli.stdout.includes(key.secret)&&!cli.stderr.includes(key.secret))
   const again=await execute(process.execPath,['scripts/porthole/archive.mjs','export',origin,cliDirectory],{env:{...process.env,PORTHOLE_ARCHIVE_COOKIE:cookie}})
   assert.match(again.stdout,/Verified archive/)
+  // The CLI attaches the owner session itself, so the cookie's Secure flag
+  // cannot keep it off a remote cleartext origin. The network edge records sends.
+  const edge='data:text/javascript,'+encodeURIComponent("globalThis.fetch=async url=>{process.stderr.write('synthetic-porthole-sent '+url+'\\n');throw Error('offline')}")
+  for(const [operation,target]of [['export',join(directory,'remote')],['restore',cliDirectory]]){
+   const remote=await execute(process.execPath,['--import',edge,'scripts/porthole/archive.mjs',operation,'http://synthetic-porthole.example',target,'--confirm'],{env:{...process.env,PORTHOLE_ARCHIVE_COOKIE:cookie}}).then(()=>null,error=>error)
+   assert.ok(remote&&!remote.stderr.includes('synthetic-porthole-sent'),'archive '+operation+' never sends the owner session to a remote HTTP origin')
+  }
   assert.equal(typeof withEmptyDestination,'function','a separate real migrated destination is required')
   await withEmptyDestination(async destination=>{
    let destCookie=destination.freshOwner?await destination.freshOwner():destination.cookie
