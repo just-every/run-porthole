@@ -181,7 +181,7 @@ export async function healthBrowser({origin,cookie,name,readOnly=false,path='/ap
   const page=await context.newPage(),errors=[];page.on('pageerror',error=>errors.push(error.message))
   const response=await page.goto(origin+path);assert.equal(response.status(),expectedStatus)
   assert.ok(await page.locator('img').evaluateAll(images=>images.every(img=>img.complete&&img.naturalWidth>0)),'page images load from actual built assets')
-  if(contains)assert.ok((await page.locator('body').innerText()).includes(contains))
+  if(contains)for(const expected of Array.isArray(contains)?contains:[contains])assert.ok((await page.locator('body').innerText()).includes(expected),expected)
   if(readOnly)assert.equal(await page.locator('form').count(),0)
   assert.equal(await page.locator('button,a').evaluateAll(controls=>controls.filter(control=>!control.textContent.trim()).length),0,'the touched health screen has no icon-only controls')
   await page.keyboard.press('Tab')
@@ -216,7 +216,7 @@ export async function recipientMailJourney(analyticalProof) {
  const origin=`https://127.0.0.1:${port}`,ownerEmail=analyticalProof?.ownerEmail??'synthetic-porthole-940@example.com',recipient='synthetic-porthole-941@example.com'
  const sessionSecret='synthetic-porthole-942-synthetic-porthole-942',setupToken='synthetic-porthole-943-synthetic-porthole-943'
  const scratch=await mkdtemp(join(tmpdir(),'porthole-recipient-')),messages=[]
- let providerStatus=202,providerRetryAfter,mf,cookie
+ let providerStatus=202,providerRetryAfter,providerFailure,mf,cookie
  const acceptedMessages=[]
  const names=['index.js',...(await readdir('dist/server/assets')).filter(name=>name.endsWith('.js')).map(name=>'assets/'+name)]
  const modules=await Promise.all(names.map(async name=>({type:'ESModule',path:resolve('dist/server',name),contents:await readFile('dist/server/'+name,'utf8')})))
@@ -231,7 +231,9 @@ export async function recipientMailJourney(analyticalProof) {
    assert.equal(request.url,'https://api.sendgrid.com/v3/mail/send');assert.equal(request.method,'POST')
    const message=await request.json();assert.equal(message.personalizations.length,1);assert.equal(message.personalizations[0].to.length,1)
    messages.push(message)
+   if(providerFailure==='before')throw Error('synthetic-porthole-952')
    if(providerStatus===202)acceptedMessages.push(message)
+   if(providerFailure==='after')throw Error('synthetic-porthole-953')
    return providerStatus===202?new Response(null,{status:202,headers:{'x-message-id':'synthetic-porthole-946'}}):Response.json({errors:[{message:'synthetic-porthole-948',field:null}]},{status:providerStatus,headers:providerRetryAfter?{'retry-after':providerRetryAfter}:{}})
   }})
  const call=(path,options={})=>mf.dispatchFetch(origin+path,{...options,headers:{...options.headers,host:new URL(origin).host,'cf-connecting-ip':'127.0.0.1'}})
@@ -332,7 +334,7 @@ export async function recipientMailJourney(analyticalProof) {
   assert.equal(messages.filter(row=>row.custom_args.rer_delivery_id===rateDelivery).length,1,'an early tick cannot resubmit the refused notice')
   await mf.dispose();mf=new Miniflare(options);db=await mf.getD1Database('DB')
   assert.deepEqual((await health()).notices.find(row=>row.id===rateId),rateNotice,'restart preserves the rate-limit receipt and due time')
-  await healthBrowser({origin,cookie,name:'health-notice-rate-limited',contains:'rate limit',dispatch})
+  await healthBrowser({origin,cookie,name:'health-notice-rate-limited',contains:['rate limit','Next attempt due: '+new Date(rateNotice.next_attempt_at).toISOString(),rateId],dispatch})
   await new Promise(resolve=>setTimeout(resolve,Math.max(0,rateNotice.next_attempt_at-Date.now()+100)))
   providerStatus=202;providerRetryAfter=undefined
   for(let attempt=0;attempt<12&&(await health()).notices.find(row=>row.id===rateId).state!=='accepted';attempt++)await post('/api/v1/health/tick',{})
@@ -343,6 +345,24 @@ export async function recipientMailJourney(analyticalProof) {
   await mf.dispose();mf=new Miniflare(options);db=await mf.getD1Database('DB');await post('/api/v1/health/tick',{})
   assert.equal(messages.filter(row=>row.custom_args.rer_delivery_id===rateDelivery).length,2,'accepted retry never resubmits across restart')
   console.log('noticeRateLimitJourney passed: public configuration/tick, SendGrid 429 Retry-After, frozen durable retry, restart, one accepted effect and 1440/390 states')
+  for(const fault of [{name:'unauthorized',status:401},{name:'forbidden',status:403},{name:'lost-before',status:202,failure:'before'},{name:'lost-after',status:202,failure:'after'}]) {
+   await configure(ownerEmail);providerStatus=fault.status;providerFailure=fault.failure
+   const outcome=await (await post('/api/v1/health/tick',{})).json(),expected=fault.failure?'uncertain':'rejected'
+   assert.equal(outcome.delivery.status,expected)
+   const message=messages.at(-1),delivery=message.custom_args.rer_delivery_id,id=delivery.slice('porthole-health/'.length)
+   const receipt=(await health()).notices.find(row=>row.id===id)
+   assert.equal(receipt.state,expected);assert.equal(receipt.attempts,1)
+   const effects=fault.failure==='after'?1:0
+   assert.equal(acceptedMessages.filter(row=>row.custom_args.rer_delivery_id===delivery).length,effects)
+   await mf.dispose();mf=new Miniflare(options);db=await mf.getD1Database('DB')
+   assert.deepEqual((await health()).notices.find(row=>row.id===id),receipt,'restart preserves the '+fault.name+' outcome')
+   for(let pass=0;pass<3;pass++)await post('/api/v1/health/tick',{})
+   assert.equal(messages.filter(row=>row.custom_args.rer_delivery_id===delivery).length,1,'no automatic retry after '+fault.name)
+   assert.equal(acceptedMessages.filter(row=>row.custom_args.rer_delivery_id===delivery).length,effects,'no duplicate external effect after '+fault.name)
+   if(fault.failure==='after')await healthBrowser({origin,cookie,name:'health-notice-uncertain',contains:['Reconcile this notice with the provider',id],dispatch})
+  }
+  providerStatus=202;providerFailure=undefined
+  console.log('noticeRefusalJourney passed: 401/403 terminal outcomes, lost response before/after acceptance, durable restart, retained identity and no automatic uncertain resubmission')
   await configure();const replaced=tokenFrom(messages.at(-1))
   await configure(null)
   await post('/app/health/confirm',{token:replaced},410,'')
