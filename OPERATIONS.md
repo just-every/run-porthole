@@ -120,3 +120,15 @@ the owner's API credential; Cloudflare also needs the owner's account ID.
 Local development suppresses mail. Its default selection is unsuitable for
 production email links; choose and configure a hosted provider before launch.
 No provider delivery or hosted installation is claimed by local checks.
+
+For an owner-account deployment, set `vars.MAIL_PROVIDER` and `vars.MAIL_FROM`
+in `deploy.json` to the selected provider and its verified sender, then commit
+that public configuration before deploying. `packaging.json` also declares
+`MAIL_FROM` as a public deployment input for hosted installation. Keep
+`MAIL_API_KEY` private. Required deployment secrets are `OWNER_EMAIL`,
+`SESSION_SECRET`, `SETUP_TOKEN`, `MAIL_API_KEY` and `INSTALLATION_KEY`;
+`INSTALLATION_KEY_PREVIOUS` is optional during rotation. Supply private values
+through the deployment environment; never commit them or an environment file.
+For independent pipeline failure notices, select Resend or SendGrid as described
+in [the recovery guide](./docs/recovery.md); Managed relay sign-in delivery does
+not establish independent failure-notice coverage.
