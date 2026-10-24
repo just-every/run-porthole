@@ -38,6 +38,7 @@
 .mv-cutover { padding: calc(20 * var(--u)) calc(22 * var(--u)); font-size: max(14px, calc(19 * var(--u))); line-height: 1.4; }
 .terminal { margin: 0; padding: calc(18 * var(--u)) calc(26 * var(--u)); background: #16151b; color: #f1f0f4; border-radius: calc(10 * var(--u)); font-size: max(12.5px, calc(17 * var(--u))); line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
 .t-prompt { color: #9a99a3; }
+.t-comment { color: #9a99a3; }
 .t-ok { color: #6ef2bd; }
 .mv-more { margin-top: calc(30 * var(--u)); text-align: center; color: var(--muted); font-size: max(13px, calc(18 * var(--u))); }
 @media (min-width: 1280px) {

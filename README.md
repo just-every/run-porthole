@@ -9,11 +9,10 @@ Porthole is a new seed on the Base technical foundation. The observability produ
 ## Run locally
 
 ```sh
-curl -fsSL https://runeditrun.com/install.sh | sh
-rer dev just-every/run-porthole
+curl -fsSL https://runeditrun.com/install.sh | sh -s -- dev just-every/run-porthole
 ```
 
-Already have Node 22 or later? `npx -y @runeditrun/rer dev just-every/run-porthole` does both steps. To start again: `cd run-porthole && rer dev`.
+Git is required; rer brings Node and pnpm. Already have Node 22 or later? `npx -y @runeditrun/rer dev just-every/run-porthole` does the same. If the installer prints a line that puts `rer` on your PATH, run that line too. To start it again later, run the same line from the same folder, or `cd run-porthole && rer dev`.
 
 Read [RUN-LOCALLY.md](RUN-LOCALLY.md) and [OPERATIONS.md](OPERATIONS.md) for commands and state. Node 22.20.0, pnpm 10.12.4 and the published `@runeditrun/rer` 0.2.76 are pinned. [edition.json](edition.json) records Base source provenance; the MIT licence is in [LICENSE](LICENSE).
 

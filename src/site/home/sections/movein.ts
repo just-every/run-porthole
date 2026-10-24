@@ -36,6 +36,13 @@ const valuesPhone = [
   ['+', '  - {name: DD_APM_ADDITIONAL_ENDPOINTS,'], ['+', `     value: '{"https://porthole-intake":`], ['+', `       ["porthole"]}'}`],
 ]
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+// Words stay whole on a phone and the installer's `install.sh | sh` stays together.
+const words = (line: string) => line.split(/(\S*install\.sh \| sh|\S+)/).map(part => {
+  const pipe = /^(.*\/)(install\.sh \| sh)$/.exec(part)
+  return pipe ? `<span class="nowrap">${esc(pipe[1])}</span><wbr><span class="nowrap">${esc(pipe[2])}</span>` : part.trim() ? `<span class="nowrap">${esc(part)}</span>` : part
+}).join('')
+// The one start line every Run Edit Run page shows (the installer, then rer dev); the npx line is the alternative.
+const startLine = (run: RunData) => `curl -fsSL https://runeditrun.com/install.sh | sh -s -- ${run.clone.slice('npx -y @runeditrun/rer '.length)}`
 const yaml = (lines: string[][], cls: string) => `<pre class="yaml ${cls}"><code>${lines.map(([mark, text]) => `<span class="${mark ? 'y-add' : 'y-ctx'}"><span class="y-mark" aria-hidden="true">${mark || ' '}</span>${esc(text)}</span>`).join('')}</code></pre>`
 
 export function moveIn(run: RunData): string {
@@ -57,7 +64,7 @@ export function moveIn(run: RunData): string {
     + `<p class="mv-values-foot">Datadog Agent and services’ OpenTelemetry SDKs unchanged · rolled out Mon Oct 12, 11:20 – 11:48 am by Sam Whitaker${check}</p></article>`
     + '</div>'
     + `<div class="mv-foot"><p class="card mv-cutover">Fri Oct 16, 4:00 pm · Agent repointed to Porthole · Porthole’s monitors page through Oncall${check}</p>`
-    + `<pre class="terminal" aria-label="Run Porthole"><code><span class="t-prompt" aria-hidden="true">$ </span>${run.clone.split(' ').map(word => `<span class="nowrap">${esc(word)}</span>`).join(' ')}\n<span class="t-ok">✓ Porthole is ready</span></code></pre></div>`
+    + `<pre class="terminal" aria-label="Run Porthole"><code><span class="t-prompt" aria-hidden="true">$ </span>${words(startLine(run))}\n<span class="t-comment"><span aria-hidden="true"># </span>${words(`Already have Node 22 or later? ${run.clone}`)}</span>\n<span class="t-ok">✓ Porthole is ready</span></code></pre></div>`
     + '<p class="mv-more">New Relic and Grafana dashboards, monitors and SLOs come across the same way.</p>'
     + '</div></section>'
 }

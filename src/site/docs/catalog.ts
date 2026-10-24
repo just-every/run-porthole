@@ -28,7 +28,7 @@ export interface Doc {
 type Guide = { slug: string; title: string; group: Group; summary: string }
 // The root guides, in reading order.
 const guides: Record<string, Guide> = {
-  'README.md': { slug: 'getting-started', title: 'Getting started', group: 'Start here', summary: 'What this repository holds today, the two lines that start Porthole on your computer and the versions it pins.' },
+  'README.md': { slug: 'getting-started', title: 'Getting started', group: 'Start here', summary: 'What this repository holds today, the one line that starts Porthole on your computer and the versions it pins.' },
   'RUN-LOCALLY.md': { slug: 'run-locally', title: 'Run it locally', group: 'Start here', summary: 'Start a copy with one command, install for a real owner, back up and restore an installation, and recover a hosted deployment.' },
   'ONBOARDING.md': { slug: 'setup', title: 'Setup', group: 'Start here', summary: 'How rer setup works on this foundation: the setup manifest and adapter, the owner’s inputs and the lifecycle’s safety rules.' },
   'OPERATIONS.md': { slug: 'operations', title: 'Operations', group: 'Operate & develop', summary: 'Everyday commands, local data and recovery, installation archives and owner-account deployment.' },

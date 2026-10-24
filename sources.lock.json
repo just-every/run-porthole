@@ -778,7 +778,7 @@
       "executable": false
     },
     "README.md": {
-      "sha256": "9237f475dfbe94ab7d2eac6dc30b6fba1846a9ee8296f65f6388a70bf7bfb941",
+      "sha256": "1655ebf7ec47654ebdb78f5742e7067eaf12c5e1c24ef123678b339a28760965",
       "executable": false
     },
     "rer-setup.json": {
@@ -2994,7 +2994,7 @@
       "executable": false
     },
     "src/site/docs/catalog.ts": {
-      "sha256": "b3bf935f31607b7b295f2ba50938d52882df86a3ff47af5722c141246c863d2c",
+      "sha256": "23c308c8bd7f9f96a48f75b038dcd81c6f3c001bab5fe7e6a27c2494839a4810",
       "executable": false
     },
     "src/site/docs/custody.ts": {
@@ -3082,7 +3082,7 @@
       "executable": false
     },
     "src/site/home/sections/movein.ts": {
-      "sha256": "14c18d834a3cc4d291ff87ce805195a3785616653f5f43a7c6ad68e0109f2d41",
+      "sha256": "71fa96f766bb416bc827981ca2bce275798d34945f0dc42808d98e46eebe5878",
       "executable": false
     },
     "src/site/home/sections/trace.ts": {
@@ -3134,7 +3134,7 @@
       "executable": false
     },
     "src/site/home/styles/movein.css": {
-      "sha256": "003315b29ebb17e84723d9407c30a745c8c131e7b022cafc6ab9e5a566045605",
+      "sha256": "3e83354824fcf887bdae31a0a4d66f5a8e0c017a00df323876a73abd62a1c8b5",
       "executable": false
     },
     "src/site/home/styles/shell.css": {
