@@ -1,0 +1,27 @@
+{
+  "schema": 1,
+  "projectId": "just-every/porthole",
+  "name": "Porthole",
+  "sourceRepository": "https://github.com/just-every/run-porthole",
+  "license": "MIT",
+  "deployment": {
+    "target": "cloudflare-workers",
+    "artifactFile": "rer-worker-artifact.json"
+  },
+  "operations": {
+    "setup": "pnpm install --frozen-lockfile && pnpm exec rer install",
+    "build": "pnpm run build",
+    "verify": "pnpm run verify && pnpm exec rer check --profile first-party && pnpm check:deployment-spec",
+    "artifact": "node scripts/delivery/base/cli.mjs artifact --config packaging.json",
+    "recovery": "Follow OPERATIONS.md: stop writes and scheduled work, retain the exact source and private configuration, export the installation with rer export, restore into fresh empty resources with rer import, establish a fresh owner, and compare a real re-export before routing traffic. Preserve applied migration names and bytes."
+  },
+  "verification": {
+    "migrationDirectories": [
+      "migrations/core"
+    ]
+  },
+  "setup": {
+    "path": "rer-setup.json",
+    "sha256": "85ca679f3ee1d18b7837cf6983385a390709e9106f232350d0efa5461c975210"
+  }
+}
