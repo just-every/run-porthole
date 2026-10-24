@@ -3106,7 +3106,7 @@
       "executable": false
     },
     "src/porthole/publication/public.ts": {
-      "sha256": "58e8e514f5c7595cba1f1c737d125d217346fc2b3dc29c9c5255f6f93a5bfed1",
+      "sha256": "3ad88d6bb058eb133a5c935b29088df3076307f312bf212e927c1e705d633e75",
       "executable": false
     },
     "src/porthole/publication/store.ts": {

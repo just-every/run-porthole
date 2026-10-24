@@ -31,7 +31,7 @@ export async function publicResponse(request:Request,env:Bindings,match:RegExpMa
   const panel=(projection as Projection).panels.find(p=>p.id===match[3])
   if(!panel)fail('publication_not_found',404)
   headers.set('content-type','image/svg+xml; charset=utf-8')
-  const image=`<svg xmlns="http://www.w3.org/2000/svg" width="640" height="180" viewBox="0 0 640 180" role="img" aria-labelledby="title value"><title id="title">${escape(panel.label)}</title><rect width="640" height="180" fill="white"/><text x="20" y="40" fill="black" font-size="24">${escape(panel.label)}</text><text id="value" x="20" y="95" fill="black" font-size="32">${escape(panel.value===null?'No complete value':panel.value)} ${escape(panel.unit)}</text><text x="20" y="145" fill="black" font-size="18">${escape(panel.state)} · Frozen snapshot</text></svg>`
+  const image=`<svg xmlns="http://www.w3.org/2000/svg" width="640" height="180" viewBox="0 0 640 180" role="img" aria-labelledby="title value"><title id="title">${escape(panel.label)}</title><rect width="640" height="180" fill="white"/><text x="20" y="40" fill="black" font-size="24">${escape(panel.label)}</text><text id="value" x="20" y="95" fill="black" font-size="32">${escape(panel.value===null?'No complete value':panel.value)} ${escape(panel.unit)}</text><text x="20" y="145" fill="black" font-size="24">${escape(panel.state)} · Frozen snapshot</text></svg>`
   return new Response(request.method==='HEAD'?null:image,{headers})
  }
  const frame=await themeFrame({href:'/rer-theme.css',productName:branding.name,accentColor:branding.primaryColor})
