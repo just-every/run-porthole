@@ -60,7 +60,7 @@ export async function dashboardResponse(request:Request,env:Bindings):Promise<Re
   }
   if(!scope.services.length||!scope.environments.length||!scope.teams.length||!scopeWithin(scope,actor.member.scope)||body.panels.some(p=>!scopeWithin({services:[p.service],environments:[body.variables.environment],teams:[body.variables.team]},scope)))fail('scope_forbidden')
   const inserting=!previous||id!==previous.id
-  const statement=inserting?env.DB.prepare(`INSERT INTO porthole_dashboards SELECT ?,?,?,?,?,?,?,?,? WHERE ${actor.fence}`).bind(id,name,JSON.stringify(scope),JSON.stringify(body),revision,state,now,now,...actor.args):env.DB.prepare(`UPDATE porthole_dashboards SET name=?,scope=?,body=?,revision=?,state=?,updated_at=? WHERE id=? AND revision=? AND ${actor.fence}`).bind(name,JSON.stringify(scope),JSON.stringify(body),revision,state,now,id,previous.revision,...actor.args)
+  const statement=inserting?env.DB.prepare(`INSERT INTO porthole_dashboards SELECT ?,?,?,?,?,?,?,? WHERE ${actor.fence}`).bind(id,name,JSON.stringify(scope),JSON.stringify(body),revision,state,now,now,...actor.args):env.DB.prepare(`UPDATE porthole_dashboards SET name=?,scope=?,body=?,revision=?,state=?,updated_at=? WHERE id=? AND revision=? AND ${actor.fence}`).bind(name,JSON.stringify(scope),JSON.stringify(body),revision,state,now,id,previous.revision,...actor.args)
   if(!(await statement.run()).meta.changes)fail('revision_or_authority_changed',409)
   return page?new Response(null,{status:303,headers:{...privateHeaders,location:app+'/'+id}}):json({id,revision,state},201)
  }catch(error) {

@@ -10,7 +10,7 @@ function cursor(value) {
  } catch { fail('invalid_query_cursor'); }
 }
 export async function query(db, input) {
- keys(input, ['sourceIdentity', 'requiredWatermark', 'signal', 'from', 'through', 'scope', 'team', 'service', 'environment', 'limit', 'cursor', 'snapshot', 'archive', 'mode', 'trace', 'uncertain']);
+ keys(input, ['sourceIdentity', 'requiredWatermark', 'signal', 'from', 'through', 'scope', 'team', 'service', 'environment', 'limit', 'cursor', 'snapshot', 'archive', 'mode', 'trace', 'metric', 'uncertain']);
  signal(input.signal); object(input.scope); keys(input.scope, ['teams', 'services', 'environments']);
  const from = nano(input.from), through = nano(input.through);
  if (from > through) fail('invalid_query_range');
@@ -21,11 +21,13 @@ export async function query(db, input) {
  const clauses = ['r.signal=?', `${time}>=?`, `${time}<=?`, 'b.completion_sequence<=?'];
  if(input.uncertain!==undefined){if(input.uncertain!==true||input.mode!=='count')fail('invalid_query');clauses.push("json_extract(r.payload,'$.delivery.uncertainTime')=1")}
  if(input.trace!==undefined){if(input.signal!=='traces'||typeof input.trace!=='string'||!/^[a-f0-9]{32}$/.test(input.trace))fail('invalid_trace_id');clauses.push('r.trace_id=?')}
+ if(input.metric!==undefined){if(input.signal!=='metrics'||typeof input.metric!=='string'||!input.metric.trim().length||input.metric.length>120||/[\u0000-\u001f\u007f-\u009f]/u.test(input.metric))fail('invalid_metric_name');clauses.push("json_extract(r.payload,'$.metric.name')=?")}
  const snapshot = input.snapshot ?? input.requiredWatermark;
  integer(snapshot); integer(input.requiredWatermark);
  if (snapshot > input.requiredWatermark) fail('invalid_query_snapshot');
  const args = [input.signal, from, through, snapshot];
  if(input.trace!==undefined)args.push(input.trace);
+ if(input.metric!==undefined)args.push(input.metric);
  for (const [column, plural] of [['team', 'teams'], ['service', 'services'], ['environment', 'environments']]) {
   const granted = input.scope[plural];
   if (!Array.isArray(granted) || granted.length > 100) fail('invalid_query_scope');
