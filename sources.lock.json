@@ -178,7 +178,7 @@
       "executable": false
     },
     "docs/signal-exports.md": {
-      "sha256": "5c1beaa9eddb902a0948699f758c0717eea818df333785d2b2a22fdb605c2f77",
+      "sha256": "251f6825ee037e8bdb898e7b6124f048907e3e580013a2f041aed6fae8f116be",
       "executable": false
     },
     "edition.json": {
@@ -2770,7 +2770,7 @@
       "executable": false
     },
     "src/porthole/exports.ts": {
-      "sha256": "9edabe4ffce334e3c172e629a1407d4815a5f5a8e5089dbcd91250ea3e9e66bf",
+      "sha256": "f553a6981495967071598229379b1c254c8cb991e046699f278ecc683621c8e2",
       "executable": false
     },
     "src/porthole/health/access.ts": {
@@ -3246,7 +3246,7 @@
       "executable": false
     },
     "tests/porthole/archive.mjs": {
-      "sha256": "995fcb6ccbaa568fcab829a37888f84f13fefc3289330db4cfbd1ae380aace86",
+      "sha256": "e92c864d542b50f2ebc3e75bf266c91727f88e2854ab95ae206ff5d9a96d354a",
       "executable": false
     },
     "tests/porthole/audit.mjs": {

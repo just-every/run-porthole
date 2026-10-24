@@ -281,6 +281,19 @@ export async function signalExportJourney({origin,cookie,freshOwner,restartWorke
  assert.equal((await fetch(origin+root,{method:'POST',headers:{authorization:'Bearer '+reader.secret,'content-type':'application/json'},body:JSON.stringify(selection)})).status,403,'a read credential cannot approve its own export')
  const preview=await runExport({operation:'preview',origin,cookie,selection})
  assert.equal(preview.state,'preview');assert.equal(preview.estimate.totalRecords,18);assert.ok(preview.estimate.payloadBytes>0);assert.equal(preview.estimate.usd,null)
+ const costModel={source:'synthetic-porthole-1714 owner rate card',fixedUsdMicros:1234567,usdMicrosPerMillionRecords:25000000,usdMicrosPerGiBPayload:1700000}
+ for(const model of [{...costModel,fixedUsdMicros:-1},{...costModel,usdMicrosPerGiBPayload:0.5},{...costModel,source:''},{...costModel,unknown:1}])assert.equal((await post(root,{...selection,costModel:model})).status,400,'invalid pricing never silently falls back to a free estimate')
+ const priced=await runExport({operation:'preview',origin,cookie,selection:{...selection,costModel}})
+ const expectedMicros=1234567n+450n+(BigInt(priced.estimate.payloadBytes)*1700000n+1073741823n)/1073741824n
+ assert.equal(priced.estimate.usdMicros,String(expectedMicros))
+ assert.equal(priced.estimate.usd,`${expectedMicros/1000000n}.${String(expectedMicros%1000000n).padStart(6,'0')}`)
+ assert.deepEqual(priced.estimate.costModel,costModel)
+ assert.deepEqual(priced.selection.costModel,costModel)
+ assert.match(priced.estimate.costNote,/not a provider quote/)
+ const approvedPrice=await value(await post(root+'/'+priced.id+'/approve',{confirm:priced.id}))
+ assert.deepEqual(approvedPrice.estimate,priced.estimate,'the exact approved estimate and rate source remain immutable')
+ await value(await post(root+'/'+priced.id+'/cancel',{confirm:priced.id}))
+
  const pages=(id,credential=reader.secret,query='')=>fetch(origin+root+'/'+id+'/pages'+query,{headers:{authorization:'Bearer '+credential}})
  for(const id of [preview.id,'00000000-0000-4000-8000-000000000000']) {
   assert.equal((await fetch(origin+root+'/'+id+'/pages',{headers:{cookie,authorization:'Bearer synthetic-porthole-1713'}})).status,401,'invalid credentials cannot probe private export existence or borrow owner authority')

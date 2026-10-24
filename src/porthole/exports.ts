@@ -14,7 +14,8 @@ const signals = ['logs','metrics','traces','profiles']
 const columns = 'id,batch_id,ordinal,source_id,signal,team,service,environment,event_time_ns,trace_id,span_id,payload'
 // Retained hot records and archive-only records, exactly once by stable ID.
 const retained = `WITH retained AS (SELECT ${columns} FROM porthole_telemetry_records UNION ALL SELECT ${columns} FROM porthole_telemetry_archive a WHERE NOT EXISTS(SELECT 1 FROM porthole_telemetry_records h WHERE h.id=a.id)) `
-interface Selection { scope: Scope; signals: string[]; from: string; through: string; pageSize: number }
+interface CostModel { source: string; fixedUsdMicros: number; usdMicrosPerMillionRecords: number; usdMicrosPerGiBPayload: number }
+interface Selection { scope: Scope; signals: string[]; from: string; through: string; pageSize: number; costModel?: CostModel }
 interface Job { id: string; owner_ref: string; owner_revision: number; created_at: number; approved_at: number|null; state: string; selection: string; snapshot: number; estimate: string; credential_ref: string|null }
 interface Fence { sql: string; args: unknown[] }
 function guard(db: D1Database, fence: Fence) {
@@ -28,14 +29,20 @@ async function owner(request: Request, env: Bindings) {
  return actor
 }
 function selection(data: Record<string, unknown>, actor: Authority): Selection {
- if (Object.keys(data).some(key => !['scope','signals','from','through','pageSize'].includes(key))) fail('invalid_export',400)
+ if (Object.keys(data).some(key => !['scope','signals','from','through','pageSize','costModel'].includes(key))) fail('invalid_export',400)
  const scope = parseScope(data.scope ?? actor.member.scope)
  if (!scopeWithin(scope,actor.member.scope) || Object.values(scope).some(list => !list.length)) fail('scope_forbidden')
  const chosen = data.signals ?? signals
  if (!Array.isArray(chosen) || !chosen.length || chosen.some(value => !signals.includes(value)) || new Set(chosen).size !== chosen.length) fail('invalid_export_signals',400)
  const from = nano(data.from), through = nano(data.through), pageSize = data.pageSize ?? 50
  if (from > through || !Number.isSafeInteger(pageSize) || Number(pageSize) < 1 || Number(pageSize) > 50) fail('invalid_export_range',400)
- return { scope, signals: chosen, from, through, pageSize: Number(pageSize) }
+ let costModel: CostModel|undefined
+ if (data.costModel !== undefined) {
+  const model = data.costModel as CostModel
+  if (!model || typeof model !== 'object' || Array.isArray(model) || Object.keys(model).sort().join(',') !== 'fixedUsdMicros,source,usdMicrosPerGiBPayload,usdMicrosPerMillionRecords' || typeof model.source !== 'string' || !model.source.trim() || model.source.length > 160 || /[\x00-\x1f\x7f]/.test(model.source) || [model.fixedUsdMicros,model.usdMicrosPerMillionRecords,model.usdMicrosPerGiBPayload].some(rate => !Number.isSafeInteger(rate) || rate < 0 || rate > 1000000000000)) fail('invalid_export_cost_model',400)
+  costModel = {...model,source:model.source.trim()}
+ }
+ return { scope, signals: chosen, from, through, pageSize: Number(pageSize), ...(costModel ? {costModel} : {}) }
 }
 function filter(value: Selection, snapshot: number) {
  const scope = scopeWhere(value.scope)
@@ -68,7 +75,14 @@ export async function signalExportResponse(request: Request, env: Bindings): Pro
    const snapshot = (await env.DB.prepare("SELECT COALESCE(MAX(completion_sequence),0) AS n FROM porthole_ingest_batches WHERE state='complete'").first<{n:number}>())!.n
    const where = filter(value,snapshot)
    const rows = (await env.DB.batch<{signal:string;records:number;payloadBytes:number}>([guard(env.DB,ownerFence(actor)),env.DB.prepare(retained+`SELECT r.signal,COUNT(*) AS records,COALESCE(SUM(length(CAST(r.payload AS BLOB))),0) AS payloadBytes FROM retained r JOIN porthole_ingest_batches b ON b.id=r.batch_id WHERE ${where.sql} GROUP BY r.signal`).bind(...where.args)]))[1].results
-   const estimate = { signals: rows, totalRecords: rows.reduce((sum,row) => sum+Number(row.records),0), payloadBytes: rows.reduce((sum,row) => sum+Number(row.payloadBytes),0), usd: null, costNote: 'USD cost is unavailable without owner infrastructure rates. Payload bytes exclude format overhead and provider scan charges.' }
+   const totalRecords = rows.reduce((sum,row) => sum+Number(row.records),0), payloadBytes = rows.reduce((sum,row) => sum+Number(row.payloadBytes),0)
+   const model = value.costModel
+   // Integer microdollars, rounding each usage component up. The owner supplies
+   // every rate; there is no fabricated free tier or implicit billing consent.
+   const ceil = (numerator: bigint, denominator: bigint) => (numerator+denominator-1n)/denominator
+   const micros = model ? BigInt(model.fixedUsdMicros)+ceil(BigInt(totalRecords)*BigInt(model.usdMicrosPerMillionRecords),1000000n)+ceil(BigInt(payloadBytes)*BigInt(model.usdMicrosPerGiBPayload),1073741824n) : null
+   const estimate = { signals: rows, totalRecords, payloadBytes, usd: micros === null ? null : `${micros/1000000n}.${String(micros%1000000n).padStart(6,'0')}`, usdMicros: micros?.toString() ?? null, costModel: model ?? null,
+    costNote: model ? 'Owner-supplied projection for the selected records and payload bytes, plus the declared fixed cost. Include scan, framing, retry and other infrastructure costs in the supplied rates. This is an estimate, not a provider quote or permission to spend.' : 'USD cost is unavailable without owner infrastructure rates. Payload bytes exclude format overhead and provider scan charges.' }
    const id = crypto.randomUUID()
    await env.DB.batch([guard(env.DB,ownerFence(actor)),env.DB.prepare("INSERT INTO porthole_signal_exports(id,owner_ref,owner_revision,created_at,state,selection,snapshot,estimate) VALUES(?,?,?,?,'preview',?,?,?)").bind(id,actor.member.operatorId,actor.member.revision,Date.now(),JSON.stringify(value),snapshot,JSON.stringify(estimate))])
    return json(manifest(await jobFor(env,id)),201,{'x-porthole-entity':id})

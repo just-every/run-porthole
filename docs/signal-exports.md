@@ -10,8 +10,7 @@ A native owner creates a preview, reviews its frozen range, scope, per-signal
 counts, payload bytes and page limits, then explicitly approves that export ID.
 The preview pins the completed ingest sequence: later arrivals with old event
 timestamps do not enter the approved export. USD cost is reported as unavailable
-until infrastructure prices are configured; the payload estimate excludes file
-framing and provider scan charges. There is no silent total row limit.
+unless the owner supplies an explicit cost model. There is no silent total row limit.
 
 The conservative authority default awaiting policy review is that only a native
 owner can preview, approve or cancel. Approval may designate one existing read
@@ -51,6 +50,32 @@ synced and renamed before its SHA-256 checkpoint advances. Replaying a page
 cannot duplicate a numbered file. Existing pages are checked before resume;
 corruption or a different origin, export ID or format refuses. `--max-pages=1`
 provides a bounded partial download, which is explicitly reported incomplete.
+
+## Cost preview
+
+A preview may include `costModel` alongside its selection. Every field is
+required: `source` names the owner's rate card; `fixedUsdMicros`,
+`usdMicrosPerMillionRecords` and `usdMicrosPerGiBPayload` are nonnegative integer
+microdollars, each at most one trillion. For example, this synthetic model has
+a fixed cost of one dollar, two dollars per million selected records and one
+dollar per GiB of selected payload:
+
+```json
+{"source":"Owner approved synthetic rate card","fixedUsdMicros":1000000,"usdMicrosPerMillionRecords":2000000,"usdMicrosPerGiBPayload":1000000}
+```
+
+The preview adds the fixed amount to each usage component rounded up to the
+next microdollar. It returns exact decimal strings in `estimate.usd` and
+`estimate.usdMicros`, together with the supplied model. Approval preserves that
+exact preview and its rate source; downloading does not update or authorize
+spending against it. Without a model both amounts remain null, never an assumed
+zero. An explicit zero rate is accepted only when the owner supplied it.
+
+This projection uses selected records and raw payload bytes. The owner must
+include provider scans, format framing, retries and other infrastructure costs
+in the supplied fixed and usage rates. It is an estimate, not a provider quote.
+Later exclusions may reduce the delivered count; the original preview remains
+visible for comparison.
 
 ## REST and file formats
 
@@ -132,9 +157,10 @@ complete subject-erasure implementation.
 
 ## Current qualification limits
 
-PORT-061 remains PARTIAL. Priced cost estimates, standard signal read APIs,
-automatic subject-to-record exclusion coverage and full erasure qualification
-remain open. Independent OTLP and standard profile readers and portable
+PORT-061 remains PARTIAL. Standard signal read APIs, automatic subject-to-record
+exclusion coverage and full erasure qualification remain open. The cost model
+projects owner-supplied rates; live provider tariffs and complete infrastructure
+cost qualification remain unproved. Independent OTLP and standard profile readers and portable
 record exclusions across old product archives are covered by the focused journey. The existing actor anonymization
 journal is not telemetry erasure. Exports explicitly disclose the distinction between record suppression and
 actual telemetry erasure. Export approvals are local authority and are
