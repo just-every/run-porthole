@@ -253,3 +253,203 @@ export async function profileArchiveJourney({origin,cookie,records,queryRef,with
  })
  console.log('profileArchiveJourney passed: byte-exact profile history/dictionaries and protected query replay after independent inactive restore, with no transferred credential or session')
 }
+
+/** Portable signal pages are a separate owner-approved public data door. */
+export async function signalExportJourney({origin,cookie,freshOwner,restartWorker,sql,signIn,withEmptyDestination}) {
+ const {otlpLogBatch,profileBatch,otlpProtoBatch,ingestScope}=await import('./ingest.mjs')
+ const {runExport}=await import('../../scripts/porthole/export.mjs')
+ const {execFile}=await import('node:child_process'),{promisify}=await import('node:util')
+ const {mkdtemp,readFile,readdir,rm,writeFile}=await import('node:fs/promises'),{tmpdir}=await import('node:os')
+ const root='/api/porthole/v1/exports',time=BigInt(Date.now())*1000000n-1000000000n
+ cookie=await freshOwner()
+ const post=(path,data)=>fetch(origin+path,{method:'POST',headers:{origin,cookie,'content-type':'application/json'},body:JSON.stringify(data)})
+ const value=async response=>{assert.equal(response.status,200,await response.clone().text());return response.json()}
+ const mint=async(kind,scope)=>{const response=await post('/app/settings/credentials/mint',{name:'synthetic-porthole-1700',class:kind,scope:{...scope,actions:[kind==='ingest'?'telemetry.write':'telemetry.read']}});assert.equal(response.status,201);return response.json()}
+ const scope={...ingestScope,teams:[...ingestScope.teams,'synthetic-porthole-1701']}
+ const source=await mint('ingest',scope),reader=await mint('read',scope)
+ const send=async(signal,body,proto=false)=>{const response=await fetch(origin+'/v1/'+signal,{method:'POST',headers:{authorization:'Bearer '+source.secret,'content-type':proto?'application/x-protobuf':'application/json'},body:proto?body:JSON.stringify(body)});assert.equal(response.status,200,await response.clone().text())}
+ for (const [index,team] of scope.teams.entries()) {
+  const logs=otlpLogBatch(Array.from({length:7},(_,i)=>time+BigInt(i)),`synthetic-porthole-${1702+index}`);logs.resourceLogs[0].resource.attributes[2].value.stringValue=team
+  await send('logs',logs)
+  const profiles=profileBatch(time);profiles.resourceProfiles[0].resource.attributes[2].value.stringValue=team
+  await send('profiles',profiles)
+ }
+ for (const signal of ['metrics','traces'])await send(signal,otlpProtoBatch(signal,time),true)
+ assert.equal((await post('/api/porthole/v1/ingest/drain',{})).status,200)
+ const selection={scope:{services:scope.services,environments:scope.environments,teams:scope.teams},signals:scope.signals,from:String(time),through:String(time+100n),pageSize:3}
+ assert.equal((await fetch(origin+root,{method:'POST',headers:{origin,'content-type':'application/json'},body:JSON.stringify(selection)})).status,401)
+ assert.equal((await fetch(origin+root,{method:'POST',headers:{authorization:'Bearer '+reader.secret,'content-type':'application/json'},body:JSON.stringify(selection)})).status,403,'a read credential cannot approve its own export')
+ const preview=await runExport({operation:'preview',origin,cookie,selection})
+ assert.equal(preview.state,'preview');assert.equal(preview.estimate.totalRecords,18);assert.ok(preview.estimate.payloadBytes>0);assert.equal(preview.estimate.usd,null)
+ const pages=(id,credential=reader.secret,query='')=>fetch(origin+root+'/'+id+'/pages'+query,{headers:{authorization:'Bearer '+credential}})
+ for(const id of [preview.id,'00000000-0000-4000-8000-000000000000']) {
+  assert.equal((await fetch(origin+root+'/'+id+'/pages',{headers:{cookie,authorization:'Bearer synthetic-porthole-1713'}})).status,401,'invalid credentials cannot probe private export existence or borrow owner authority')
+  assert.equal((await fetch(origin+root+'/'+id)).status,401,'authenticate before looking up an export manifest')
+ }
+ assert.equal((await fetch(origin+root+'/'+preview.id+'/pages',{headers:{cookie}})).status,409)
+ assert.equal((await post(root+'/'+preview.id+'/approve',{confirm:'wrong'})).status,409)
+ const narrow=await mint('read',{...scope,teams:[scope.teams[0]]})
+ assert.equal((await post(root+'/'+preview.id+'/approve',{confirm:preview.id,credentialId:narrow.credential.id})).status,403)
+ await value(await post(root+'/'+preview.id+'/approve',{confirm:preview.id,credentialId:reader.credential.id}))
+ assert.equal((await pages(preview.id,narrow.secret)).status,403,'a different read credential cannot reuse approval')
+ const directory=await mkdtemp(join(tmpdir(),'porthole-signal-export-'))
+ const otlpDirectory=await mkdtemp(join(tmpdir(),'porthole-signal-otlp-'))
+ const revokeDirectory=await mkdtemp(join(tmpdir(),'porthole-signal-revoke-'))
+ try {
+  const cli=async(directory,extra=[])=>JSON.parse((await promisify(execFile)(process.execPath,['scripts/porthole/export.mjs','download',origin,preview.id,directory,...extra],{env:{...process.env,PORTHOLE_CREDENTIAL:reader.secret},timeout:30000})).stdout)
+  const interrupted=await cli(directory,['--max-pages=1']);assert.equal(interrupted.complete,false);assert.equal(interrupted.records,3)
+  const first=await pages(preview.id),firstBytes=await first.text(),replay=await pages(preview.id)
+  assert.equal(await replay.text(),firstBytes,'same page is exactly replayable')
+  // An already approved watermark excludes later ingestion with old timestamps.
+  await send('logs',otlpLogBatch([time+50n],'synthetic-porthole-1709'));await post('/api/porthole/v1/ingest/drain',{})
+  await restartWorker();cookie=await freshOwner()
+  const resumed=await cli(directory);assert.equal(resumed.complete,true);assert.equal(resumed.records,18)
+  const files=(await readdir(directory)).filter(name=>name.endsWith('.ndjson')).sort()
+  const rows=(await Promise.all(files.map(name=>readFile(join(directory,name),'utf8')))).join('').trim().split('\n').map(JSON.parse)
+  assert.equal(new Set(rows.map(row=>row.id)).size,18,'no duplicate on resume')
+  assert.deepEqual([...new Set(rows.map(row=>row.signal))].sort(),['logs','metrics','profiles','traces'])
+  assert.deepEqual([...new Set(rows.map(row=>row.team))].sort(),[...scope.teams].sort())
+  assert.ok(rows.every(row=>BigInt(row.event_time_ns)>=time && BigInt(row.event_time_ns)<=time+100n))
+  const trace=rows.find(row=>row.signal==='traces'),log=rows.find(row=>row.signal==='logs')
+  assert.equal(log.trace_id,trace.trace_id);assert.equal(log.span_id,trace.span_id)
+  assert.equal(rows.find(row=>row.signal==='metrics').payload.metric.unit,'ms')
+  for(const signal of scope.signals) {
+   const query=await value(await post('/api/porthole/v1/query',{signal,from:String(time),through:String(time+100n),snapshot:preview.snapshot,limit:200}))
+   const exported=rows.filter(row=>row.signal===signal)
+   assert.deepEqual(query.records.map(row=>row.id).sort(),exported.map(row=>row.id).sort())
+   for(const row of exported)assert.deepEqual(row.payload,query.records.find(item=>item.id===row.id).payload)
+  }
+  const converted=await cli(otlpDirectory,['--format=otlp-json']);assert.equal(converted.records,18)
+  const otlp=(await Promise.all((await readdir(otlpDirectory)).filter(name=>name.endsWith('.ndjson')).sort().map(name=>readFile(join(otlpDirectory,name),'utf8')))).join('').trim().split('\n').map(JSON.parse)
+  const python=process.env.PORTHOLE_EXPORT_PYTHON || join(process.cwd(),'.cache/export-readers/bin/python')
+  const independentlyRead=(await promisify(execFile)(python,['tests/porthole/export-otlp-reader.py',otlpDirectory])).stdout.trim().split('\n').map(JSON.parse)
+  assert.equal(independentlyRead.length,otlp.length)
+  for(const decoded of independentlyRead) {
+   const source=otlp.find(row=>row.id===decoded.id)
+   assert.equal(decoded.signal,source.signal)
+   // Protobuf omits an empty schema URL, which is the specified default.
+   const defaults=value=>JSON.parse(JSON.stringify(value,(key,item)=>key==='schemaUrl' && item===''?undefined:item))
+   assert.deepEqual(decoded.exportRequest,defaults(source.exportRequest),'official OTLP schema preserves complete signal content, profile dictionaries and exact integers')
+  }
+  // Save history before suppression, then carry the later portable journal
+  // into an independent destination before restoring that older history.
+  const olderArchive=await savedExport(origin,cookie,await post(api+'/exports',{}))
+  const exclusions=scope.signals.map(signal=>({recordId:rows.find(row=>row.signal===signal).id,excludedAt:Date.now()}))
+  const exclusionRoot='/api/porthole/v1/export-exclusions'
+  const apply={confirm:'apply-exclusions',journal:{format:'porthole.export-exclusions.v1',records:exclusions}}
+  assert.equal((await fetch(origin+exclusionRoot,{method:'POST',headers:{origin,authorization:'Bearer '+reader.secret,'content-type':'application/json'},body:JSON.stringify(apply)})).status,403,'credentials cannot alter export exclusions')
+  assert.equal((await post(exclusionRoot,{...apply,confirm:'wrong'})).status,400)
+  await value(await post(exclusionRoot,apply))
+  const journal=await value(await fetch(origin+exclusionRoot,{headers:{cookie}}))
+  assert.deepEqual(journal.records,[...exclusions].sort((a,b)=>a.recordId.localeCompare(b.recordId)))
+  assert.equal(journal.next,null)
+  await value(await post(exclusionRoot,{...apply,journal:{...apply.journal,records:exclusions.map(row=>({...row,excludedAt:0}))}}))
+  assert.deepEqual((await value(await fetch(origin+exclusionRoot,{headers:{cookie}}))).records,journal.records,'replaying an older journal cannot remove or roll back exclusions')
+  const excludedIds=new Set(exclusions.map(row=>row.recordId))
+  let excludedCursor='',remaining=[]
+  do {
+   const page=await pages(preview.id,reader.secret,excludedCursor?'?cursor='+encodeURIComponent(excludedCursor):'')
+   assert.equal(page.status,200)
+   remaining.push(...(await page.text()).trim().split('\n').filter(Boolean).map(JSON.parse))
+   excludedCursor=page.headers.get('x-porthole-next-cursor')
+  }while(excludedCursor)
+  assert.equal(remaining.length,14)
+  assert.ok(remaining.every(row=>!excludedIds.has(row.id)),'an approval made before exclusion cannot release excluded records')
+  const archiveWithJournal=await savedExport(origin,cookie,await post(api+'/exports',{}))
+  assert.deepEqual(archiveWithJournal.rows.filter(row=>row.table==='porthole_export_exclusions').map(row=>row.row.record_id).sort(),[...excludedIds].sort(),'whole-installation archives carry the portable exclusions')
+  await withEmptyDestination(async destination=>{
+   const owner=await destination.freshOwner()
+   const send=(path,data)=>fetch(destination.origin+path,{method:'POST',headers:{origin:destination.origin,cookie:owner,'content-type':'application/json'},body:JSON.stringify(data)})
+   await value(await send(exclusionRoot,{confirm:'apply-exclusions',journal:{format:journal.format,records:journal.records}}))
+   const legacy=structuredClone(olderArchive.manifest)
+   delete legacy.tables.porthole_export_exclusions
+   const restored=await (await send(api+'/restores',{manifest:legacy})).json()
+   assert.ok(restored.id)
+   for(const chunk of olderArchive.chunks)await value(await send(api+'/restores/'+restored.id+'/chunks',{chunk}))
+   await value(await send(api+'/restores/'+restored.id+'/commit',{confirm:legacy.rootHash}))
+   const fresh=await runExport({operation:'preview',origin:destination.origin,cookie:owner,selection})
+   const archivedRecords=olderArchive.rows.filter(row=>row.table==='porthole_telemetry_records').map(row=>row.row).filter(row=>scope.services.includes(row.service)&&scope.environments.includes(row.environment)&&scope.teams.includes(row.team)&&BigInt(row.event_time_ns)>=time&&BigInt(row.event_time_ns)<=time+100n)
+   const eligible=archivedRecords.filter(row=>!excludedIds.has(row.id))
+   assert.equal(fresh.estimate.totalRecords,eligible.length,'restored history retains late arrivals but cannot revive later excluded records')
+   await runExport({operation:'approve',origin:destination.origin,cookie:owner,id:fresh.id})
+   let cursor='',records=[]
+   do {
+    const response=await fetch(destination.origin+root+'/'+fresh.id+'/pages'+(cursor?'?cursor='+encodeURIComponent(cursor):''),{headers:{cookie:owner}})
+    assert.equal(response.status,200)
+    records.push(...(await response.text()).trim().split('\n').filter(Boolean).map(JSON.parse));cursor=response.headers.get('x-porthole-next-cursor')
+   }while(cursor)
+   assert.deepEqual(records.map(row=>row.id).sort(),eligible.map(row=>row.id).sort())
+   assert.deepEqual((await value(await fetch(destination.origin+exclusionRoot,{headers:{cookie:owner}}))).records,journal.records)
+  })
+  cookie=await freshOwner()
+  // Re-ingest independently framed OTLP requests through the public wire parser.
+  // Profile dictionaries, metric types and exact original context must survive.
+  const roundtrip=await mint('ingest',scope)
+  for(const row of otlp)assert.equal((await fetch(origin+'/v1/'+row.signal,{method:'POST',headers:{authorization:'Bearer '+roundtrip.secret,'content-type':'application/json'},body:JSON.stringify(row.exportRequest)})).status,200)
+  await post('/api/porthole/v1/ingest/drain',{})
+  for(const signal of scope.signals) {
+   const queried=await value(await post('/api/porthole/v1/query',{signal,from:String(time),through:String(time+100n),limit:200}))
+   const copies=queried.records.filter(row=>row.source_id===roundtrip.credential.id),original=rows.filter(row=>row.signal===signal)
+   // Repeated identical requests are deduplicated by ingest; each unique payload
+   // still has a matching original record without lossy conversion.
+   for(const copy of copies){const source=original.find(row=>row.event_time_ns===copy.event_time_ns&&row.team===copy.team);assert.ok(source);const clean=value=>{const {delivery,...rest}=value;return rest};assert.deepEqual(clean(copy.payload),clean(source.payload))}
+   assert.ok(copies.length>0)
+  }
+  // Exercise the byte boundary independently of the row limit, using real
+  // intake envelopes with large log bodies rather than synthetic SQL rows.
+  const largeTime=time+1000000n
+  for(let index=0;index<3;index++)await send('logs',otlpLogBatch([largeTime+BigInt(index)],'synthetic-porthole-1711 '+ 'x'.repeat(600000)))
+  await post('/api/porthole/v1/ingest/drain',{})
+  const large=await runExport({operation:'preview',origin,cookie,selection:{...selection,signals:['logs'],from:String(largeTime),through:String(largeTime+2n),pageSize:50}})
+  await runExport({operation:'approve',origin,cookie,id:large.id,credentialId:reader.credential.id})
+  let largeCursor='',largeCount=0,largePages=0
+  do {
+   const response=await pages(large.id,reader.secret,largeCursor?'?cursor='+encodeURIComponent(largeCursor):'')
+   assert.equal(response.status,200)
+   const batch=(await response.text()).trim().split('\n').filter(Boolean).map(JSON.parse)
+   assert.equal(batch.length,1,'payload boundary shortens the page without truncating the export')
+   assert.ok(batch.reduce((n,row)=>n+Buffer.byteLength(JSON.stringify(row.payload)),0)<=1024*1024)
+   largeCount+=batch.length;largePages++;largeCursor=response.headers.get('x-porthole-next-cursor')
+  }while(largeCursor)
+  assert.equal(largeCount,3);assert.equal(largePages,3)
+  await cli(revokeDirectory,['--max-pages=1'])
+  await post('/app/settings/credentials/revoke',{id:reader.credential.id})
+  assert.equal((await pages(preview.id)).status,401)
+  const before=await readFile(join(revokeDirectory,'progress.json'),'utf8')
+  await assert.rejects(()=>cli(revokeDirectory),/Export refused \(401/)
+  assert.equal(await readFile(join(revokeDirectory,'progress.json'),'utf8'),before,'refused resume preserves checkpoint')
+  const parquet=join(otlpDirectory,'parquet')
+  const convertedParquet=JSON.parse((await promisify(execFile)(python,['scripts/porthole/export-parquet.py',directory,parquet])).stdout)
+  assert.equal(convertedParquet.records,18)
+  // DuckDB is independent of the Arrow writer and reads every original field.
+  const independent=JSON.parse((await promisify(execFile)(python,['-c',"import duckdb,json,sys; rows=duckdb.connect().execute('SELECT id,signal,CAST(event_time_ns AS VARCHAR),trace_id,span_id,metric_unit,payload_json FROM read_parquet(?) ORDER BY id',[sys.argv[1]]).fetchall(); print(json.dumps(rows))",join(parquet,'*.parquet')])).stdout)
+  assert.equal(independent.length,18)
+  for(const [id,signal,time,trace,span,unit,payload]of independent){const source=rows.find(row=>row.id===id);assert.equal(signal,source.signal);assert.equal(BigInt(time),BigInt(source.event_time_ns));assert.equal(trace,source.trace_id);assert.equal(span,source.span_id);assert.equal(unit,source.payload.metric?.unit??null);assert.deepEqual(JSON.parse(payload),source.payload)}
+  // File corruption is refused locally before another page can be appended.
+  await writeFile(join(directory,files[0]),'synthetic-porthole-1710\n')
+  await assert.rejects(()=>runExport({operation:'download',origin,cookie,id:preview.id,directory}),/integrity mismatch/)
+  await value(await post(root+'/'+preview.id+'/cancel',{confirm:preview.id}))
+  assert.equal((await fetch(origin+root+'/'+preview.id+'/pages',{headers:{cookie}})).status,409)
+  // Current authority fences metadata too: an old manifest's counts and
+  // selection cannot survive a narrower owner scope.
+  const stale=await runExport({operation:'preview',origin,cookie,selection})
+  await runExport({operation:'approve',origin,cookie,id:stale.id})
+  const allScope={services:['*'],environments:['*'],teams:['*']}
+  assert.equal((await post('/app/settings/members/invite',{email:'synthetic-porthole-1712@example.com',displayName:'Export reviewer',role:'admin',scope:allScope})).status,202)
+  let reviewer=await signIn('synthetic-porthole-1712@example.com')
+  const members=(await sql("SELECT id,email FROM oa_operators WHERE email IN ('owner@example.com','synthetic-porthole-1712@example.com')"))
+  const ownerId=members.find(row=>row.email==='owner@example.com').id,reviewerId=members.find(row=>row.email==='synthetic-porthole-1712@example.com').id
+  assert.equal((await post('/app/settings/members/change',{operatorId:reviewerId,role:'owner',confirmEmail:'synthetic-porthole-1712@example.com',scope:allScope})).status,200)
+  reviewer=await signIn('synthetic-porthole-1712@example.com')
+  const rescope=(scope,role)=>fetch(origin+'/app/settings/members/change',{method:'POST',headers:{origin,cookie:reviewer,'content-type':'application/json'},body:JSON.stringify({operatorId:ownerId,role,scope,confirmEmail:'owner@example.com'})})
+  assert.equal((await rescope({...selection.scope,teams:[scope.teams[0]]},'admin')).status,200)
+  cookie=await signIn('owner@example.com')
+  for(const suffix of ['', '/pages'])assert.equal((await fetch(origin+root+'/'+stale.id+suffix,{headers:{cookie}})).status,403,'narrowed owner cannot read old export metadata or payload')
+  assert.equal((await rescope(allScope,'owner')).status,200);cookie=await freshOwner()
+  for(const suffix of ['', '/pages'])assert.equal((await fetch(origin+root+'/'+stale.id+suffix,{headers:{cookie}})).status,409,'restored owner authority does not revive old export approval')
+  assert.equal((await post('/app/settings/members/remove',{operatorId:reviewerId})).status,200)
+  const facts=await sql(`SELECT action FROM porthole_audit_facts WHERE entity_ref='${preview.id}'`)
+  for(const action of ['signals.export-preview','signals.export-approved','signals.export-cancelled'])assert.ok(facts.some(row=>row.action===action))
+ } finally {for(const path of [directory,otlpDirectory,revokeDirectory])await rm(path,{recursive:true,force:true})}
+ console.log('signalExportJourney passed: owner preview and approval, bounded four-signal pages, multi-team exact counts and context, CLI interruption and restart, snapshot and credential fencing, OTLP roundtrip and cancellation; independent DuckDB Parquet reads; official OTLP readers for all four signals including standard profiles; portable exclusions fence already approved jobs and old archives; full subject erasure remains PORT-035')
+}
