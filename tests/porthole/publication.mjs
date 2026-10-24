@@ -9,7 +9,7 @@ export async function publicationJourney({origin,cookie,freshOwner,dashboardId,r
  const post=(path,data,session=cookie)=>fetch(origin+path,form(origin,session,data))
  const source=await (await fetch(origin+'/api/porthole/v1/dashboards/'+dashboardId,{headers:{cookie}})).json()
  const labels=Object.fromEntries(source.body.panels.slice(0,3).map((p,i)=>[p.id,['Office CPU','Office logs','Office latency'][i]]))
- const edge=createServer((request,response)=>{response.setHeader('content-type','text/html');response.end(`<!doctype html><html><head><meta name="referrer" content="origin"></head><body><h1>Office display</h1><iframe title="Published dashboard" width="100%" height="700" src="${origin}${new URL(request.url,'http://127.0.0.1').searchParams.get('frame')??'/missing'}"></iframe></body></html>`)})
+ const edge=createServer((request,response)=>{const parameters=new URL(request.url,'http://127.0.0.1').searchParams;response.setHeader('content-type','text/html');response.end(`<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="origin"></head><body><h1>Office display</h1>${parameters.has('image')?`<img alt="Published widget image" style="max-width:100%;height:auto" src="${origin}${parameters.get('image')}">`:`<iframe title="Published dashboard" width="100%" height="700" src="${origin}${parameters.get('frame')??'/missing'}"></iframe>`}</body></html>`)})
  await new Promise(resolve=>edge.listen(0,'127.0.0.1',resolve));const allowed='http://127.0.0.1:'+edge.address().port
  const input={dashboardId,sourceRevision:source.revision,publicTitle:'Office checkout health',labels,allowedOrigins:[allowed],expiresAt:Date.now()+3600000}
  const draft=async(data=input)=>{
@@ -87,7 +87,7 @@ async function publicationBrowser({origin,cookie,dashboardId,allowed,labels,sour
   await visitor.goto(allowed+'/?frame='+encodeURIComponent('/published/'+first.id+'/embed'))
   await visitor.frameLocator('iframe').getByRole('heading',{name:'Office checkout health',exact:true}).waitFor()
   if(process.env.PORTHOLE_EVIDENCE_DIR)await visitor.screenshot({path:join(process.env.PORTHOLE_EVIDENCE_DIR,`publication-embed-${width}.png`),fullPage:true})
-  const image=urls.find(path=>path.endsWith('.svg'));await visitor.goto(origin+image)
+  const image=urls.find(path=>path.endsWith('.svg'));await visitor.goto(allowed+'/?image='+encodeURIComponent(image));assert.ok(await visitor.getByRole('img',{name:'Published widget image'}).evaluate(image=>image.complete&&image.naturalWidth>0))
   if(process.env.PORTHOLE_EVIDENCE_DIR)await visitor.screenshot({path:join(process.env.PORTHOLE_EVIDENCE_DIR,`publication-image-${width}.png`),fullPage:true})
   await page.getByRole('button',{name:'Revoke every public address now'}).click();assert.equal((await visitor.goto(origin+publicPath)).status(),404)
   if(process.env.PORTHOLE_EVIDENCE_DIR)await visitor.screenshot({path:join(process.env.PORTHOLE_EVIDENCE_DIR,`publication-revoked-${width}.png`),fullPage:true})

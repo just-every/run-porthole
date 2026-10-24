@@ -8,7 +8,7 @@ export function groupMarkup(input:WidgetInput):string {
  if(proportional&&input.points.some(p=>p.value<0))fail('pie_and_treemap_require_nonnegative_values_choose_timeseries_or_table',400)
  const total=groups.reduce((sum,group)=>sum+group.mean,0)
  if(!Number.isFinite(total))fail('widget_numeric_overflow_reduce_value_range',400)
- const summary=`<div class="porthole-widget-table"><table data-total="${total}"><caption>Series ranked by arithmetic mean; ${escape(input.unit)}. Sum of series means: ${total}.</caption><thead><tr><th scope="col">Series</th><th scope="col">Arithmetic mean</th><th scope="col">Observations</th></tr></thead><tbody>${groups.map(g=>`<tr data-series="${escape(g.series)}" data-value="${g.mean}"><th scope="row">${escape(g.series)}</th><td>${g.mean}</td><td>${g.count}</td></tr>`).join('')}</tbody></table></div>`
+ const summary=`<div class="porthole-widget-table" role="region" aria-label="Series means" tabindex="0"><table data-total="${total}"><caption>Series ranked by arithmetic mean; ${escape(input.unit)}. Sum of series means: ${total}.</caption><thead><tr><th scope="col">Series</th><th scope="col">Arithmetic mean</th><th scope="col">Observations</th></tr></thead><tbody>${groups.map(g=>`<tr data-series="${escape(g.series)}" data-value="${g.mean}"><th scope="row">${escape(g.series)}</th><td>${g.mean}</td><td>${g.count}</td></tr>`).join('')}</tbody></table></div>`
  if(input.kind==='top_list')return summary
  if(input.kind==='list')return `<ol>${groups.map(g=>`<li>${escape(g.series)}: ${g.mean} ${escape(input.unit)} (${g.count} observations)</li>`).join('')}</ol>${summary}`
  if(!total)return `<p role="status">All series means are zero; there is no proportional area.</p>${summary}`

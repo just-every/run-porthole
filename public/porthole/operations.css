@@ -4,3 +4,5 @@
 .rer-themed form, .rer-themed label { min-width: 0; }
 
 .rer-themed .porthole-widget-table { max-width: 100%; overflow-x: auto; }
+.rer-themed .porthole-widget-table table { min-width: 640px; border-collapse: collapse; }
+.rer-themed .porthole-widget-table th, .rer-themed .porthole-widget-table td { padding: 8px; text-align: left; vertical-align: top; }

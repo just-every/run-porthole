@@ -11,7 +11,7 @@ import {dashboardResults} from './read'
 const api='/api/porthole/v1/dashboards',app='/app/dashboards'
 const json=(value:unknown,status=200)=>Response.json(value,{status,headers:privateHeaders})
 export async function dashboardResponse(request:Request,env:Bindings):Promise<Response|null> {
- const url=new URL(request.url),page=url.pathname.startsWith(app)
+ const url=new URL(request.url),page=url.pathname.startsWith(app),requestId=crypto.randomUUID()
  if(!page&&!url.pathname.startsWith(api))return null
  if(![app,api,app+'/save',app+'/reorder',app+'/clone',app+'/archive',app+'/panel',app+'/annotation',api+'/archive'].includes(url.pathname)&&!new RegExp('^('+app+'|'+api+')/[a-f0-9-]{36}$').test(url.pathname))return null
  try {
@@ -37,6 +37,6 @@ export async function dashboardResponse(request:Request,env:Bindings):Promise<Re
   return await writeDashboard(request,env,actor)
  }catch(error) {
   const status=error instanceof AuthError?error.status:error instanceof SyntaxError?400:503,code=error instanceof AuthError?error.code:status===400?'invalid_dashboard':'dashboards_unavailable'
-  return page?document('Dashboard unavailable',`<p role="alert">${escape(code.replaceAll('_',' '))}</p><p><a href="${app}">Return to Dashboards</a></p>`,status,{forms:true}):json({error:code},status)
+  return page?document('Dashboard unavailable',`<p role="alert">${escape(code.replaceAll('_',' '))}</p><p><a href="${app}">Return to Dashboards</a></p>`,status,{forms:true}):json({error:code,details:{code,status,requestId}},status)
  }
 }

@@ -28,6 +28,7 @@ function representation(row:DashboardRow,scope:Scope,signals:string[]|null) {
 /** A whole definition and every returned historical revision remain subject
  * to the current member, current definition and all panel signal grants. */
 export async function dashboardReadResponse(request:Request,env:Bindings):Promise<Response> {
+ const requestId=crypto.randomUUID()
  try {
   let scope:Scope,signals:string[]|null=null,actorRef:string,actorRevision:number,live:{sql:string;args:unknown[]}
   const bearer=request.headers.has('authorization')
@@ -79,6 +80,6 @@ export async function dashboardReadResponse(request:Request,env:Bindings):Promis
   return json({...representation(row,scope,signals),versions:results[1].results.map(row=>(row as {revision:number}).revision)},200,{...headers,etag:`"${row.revision}"`,'x-porthole-entity':id})
  } catch(error) {
   const known=error instanceof AuthError||error instanceof CredentialLimit,status=known?error.status:503,code=known?error.code:'dashboards_unavailable'
-  return json({error:code,details:{code,status}},status,error instanceof CredentialLimit?{'retry-after':String(error.retryAfter)}:{})
+  return json({error:code,details:{code,status,requestId}},status,error instanceof CredentialLimit?{'retry-after':String(error.retryAfter)}:{})
  }
 }
