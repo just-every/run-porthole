@@ -108,7 +108,7 @@ try {
   const setupPage=await fetch(`${origin}/setup`, { headers: { cookie } })
   assert.equal(setupPage.status,200)
   assert.match(await setupPage.text(),/Independent notices off — incomplete coverage/)
-  if(!process.env.PORTHOLE_MIGRATION_ONLY && !process.env.PORTHOLE_PROTOCOL_ONLY && !process.env.PORTHOLE_INGEST_ONLY && !process.env.PORTHOLE_ACCESS_ONLY && !process.env.PORTHOLE_TRACE_ONLY && (process.env.PORTHOLE_HEALTH_ONLY==='1' || !process.env.PORTHOLE_AUDIT_ONLY && !process.env.PORTHOLE_STOCK_ONLY)) {
+  if(!process.env.PORTHOLE_EXPORT_ONLY && !process.env.PORTHOLE_MIGRATION_ONLY && !process.env.PORTHOLE_PROTOCOL_ONLY && !process.env.PORTHOLE_INGEST_ONLY && !process.env.PORTHOLE_ACCESS_ONLY && !process.env.PORTHOLE_TRACE_ONLY && (process.env.PORTHOLE_HEALTH_ONLY==='1' || !process.env.PORTHOLE_AUDIT_ONLY && !process.env.PORTHOLE_STOCK_ONLY)) {
    const {healthBrowser}=await import('./porthole/health.mjs')
    await healthBrowser({origin,cookie,name:'setup-notices-off',path:'/setup',contains:'Independent notices off — incomplete coverage'})
   }
@@ -155,6 +155,11 @@ try {
   if(process.env.PORTHOLE_MIGRATION_ONLY==='1') {
    const {migrationJourney}=await import('./porthole/migration.mjs')
    await migrationJourney({origin,cookie,foreignCookie,restartWorker,...helpers})
+  } else if(process.env.PORTHOLE_EXPORT_ONLY==='1') {
+   const {signalExportJourney}=await import('./porthole/archive.mjs')
+   await signalExportJourney({origin,cookie,restartWorker,withEmptyDestination,...helpers})
+   const {browserProof}=await import('./porthole/audit.mjs')
+   await browserProof({origin,cookie:await helpers.freshOwner(),paths:['/app/explore'],name:'signal-export-explore'})
   } else if(process.env.PORTHOLE_PROTOCOL_ONLY==='1') {
    const {otlpProtocolJourney,ingestBrowserJourney}=await import('./porthole/ingest.mjs')
    const protocol=await otlpProtocolJourney({origin,cookie,persist,restartWorker,withEmptyDestination,...helpers})

@@ -15,7 +15,7 @@ async function clone(name) {
  const directory=join(scratch,name)
  await execute('git',['clone','--quiet','--local','--no-hardlinks',root,directory])
  await execute('git',['-C',directory,'config','user.name','Run Edit Run fleet'])
- await execute('git',['-C',directory,'config','user.email','synthetic-porthole-604@example.com'])
+ await execute('git',['-C',directory,'config','user.email','fixture@example.invalid'])
  await symlink(join(root,'node_modules'),join(directory,'node_modules'),'dir')
  return directory
 }
@@ -33,6 +33,8 @@ try {
  // Source-state fixture, not minting evidence: the separate HTTP credential
  // journey proves minting. This command qualifies native archive exclusion.
  await sql(source,`INSERT INTO porthole_credentials(id,name,class,custodian_id,secret_hash,prefix,last_four,scope,created_at,expires_at,requests_per_minute,accepted_bytes_per_minute,scanned_bytes_per_day,usd_micros_per_day) VALUES('${credentialId}','synthetic-porthole-601','read','${owner.id}','${hash}','${secret.slice(0,7)}','${secret.slice(-4)}','${scope}',${now},${now+3600000},600,1048576,1048576,1000000); INSERT INTO porthole_objects VALUES('${objectId}','monitor','synthetic-porthole-602','{"services":["checkout"],"environments":["production"],"teams":["commerce"]}','{"signal":"logs","operator":"above","threshold":2,"windowSeconds":60}',1,'active',${now},${now});`)
+ const exportId=randomUUID()
+ await sql(source,`INSERT INTO porthole_signal_exports(id,owner_ref,owner_revision,created_at,state,selection,snapshot,estimate,credential_ref) VALUES('${exportId}','${owner.id}',1,${now},'approved','{}',0,'{}','${credentialId}')`)
  const file=join(source,'exports','installation.rer')
  await command(source,['export','--output',file])
  const contents=await readFile(file,'utf8')
@@ -42,6 +44,7 @@ try {
  const destination=await clone('destination')
  await command(destination,['import','--input',file,'--yes'])
  assert.equal((await sql(destination,'SELECT COUNT(*) AS n FROM porthole_credentials'))[0].n,0)
+ assert.equal((await sql(destination,'SELECT COUNT(*) AS n FROM porthole_signal_exports'))[0].n,0,'signal export approvals never revive at the destination')
  assert.equal((await sql(destination,`SELECT state FROM porthole_objects WHERE id='${objectId}'`))[0].state,'quarantined')
  assert.equal((await sql(destination,'SELECT paused FROM porthole_ingest_control'))[0].paused,1)
  assert.equal((await sql(destination,"SELECT COUNT(*) AS n FROM oa_operators"))[0].n,0,'source native identities do not block the destination bootstrap')

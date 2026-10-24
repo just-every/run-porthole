@@ -6,6 +6,7 @@ import { historyColumns } from '../storage/model'
 export interface TableSpec { table: string; columns: string[]; query: string; order: string }
 const spec = (table: string, columns: string[], order: string): TableSpec => ({ table, columns, order, query: `SELECT ${columns.join(',')} FROM ${table}` })
 export const catalog: TableSpec[] = [
+ spec('porthole_export_exclusions',['record_id','excluded_at'],'record_id'),
  spec('porthole_bucket_history',historyColumns,'id'),
  spec('porthole_objects',['id','kind','name','scope','body','revision','state','created_at','updated_at'],'id'),
  spec('porthole_archive_quarantine',['object_id','source_state','archive_id','restored_at','collection','schedules','delivery','execution','leases'],'object_id'),

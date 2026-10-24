@@ -28,6 +28,16 @@
       ]
     },
     {
+      "name": "exports",
+      "browser": true,
+      "hosted": false,
+      "commands": [
+        "pnpm run build",
+        "python3 -m venv .cache/export-readers && .cache/export-readers/bin/pip install --disable-pip-version-check -r tests/porthole/export-readers.txt",
+        "PORTHOLE_EXPORT_ONLY=1 pnpm run test:runtime"
+      ]
+    },
+    {
       "name": "ingest",
       "browser": true,
       "hosted": false,
