@@ -28,7 +28,7 @@ export function svg(title:string,content:string,height=220):string {
  return `<svg viewBox="0 0 280 ${height}" width="100%" role="img" aria-label="${escape(title)}" font-family="inherit" font-size="13" fill="currentColor">${content}</svg>`
 }
 export function table(headers:string[],rows:(string|number)[][],caption:string):string {
- return `<div style="max-width:100%;overflow-x:auto"><table><caption>${escape(caption)}</caption><thead><tr>${headers.map(h=>`<th scope="col">${escape(h)}</th>`).join('')}</tr></thead><tbody>${rows.map(row=>`<tr>${row.map(value=>`<td>${escape(value)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`
+ return `<div class="porthole-widget-table"><table><caption>${escape(caption)}</caption><thead><tr>${headers.map(h=>`<th scope="col">${escape(h)}</th>`).join('')}</tr></thead><tbody>${rows.map(row=>`<tr>${row.map(value=>`<td>${escape(value)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`
 }
 export function pointTable(input:WidgetInput):string {
  return input.points.length?table(['UTC time','Unix nanoseconds','Series','Value','Unit'],input.points.map(p=>[utc(p.timeNs),p.timeNs,p.series,p.value,input.unit]),input.title+' — actual values'):empty()
