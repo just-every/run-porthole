@@ -985,63 +985,146 @@
       }
     },
     {
-      "path": "src/modules/dependencies",
-      "originPath": "modules/dependencies",
+      "path": "src/modules/dependencies/approval.mjs",
+      "originPath": "modules/dependencies/approval.mjs",
       "revision": "4280971d7c0295b8a88c3e1179048efcbbe14f30",
       "files": {
-        "src/modules/dependencies/approval.mjs": "7398c2f5ec6c8505f7fa24d5fab7848967dfb3f61720892d1f31494a68237a69",
-        "src/modules/dependencies/auth.mjs": "6dd0ee20fff4a25af3d5657a1c139af184b92f18776a21fac8906b99ee60957b",
-        "src/modules/dependencies/authority.mjs": "fe89cd1fb7da306cf145b8ef3ebe160902f4e4a82284681eccb97193c68e8750",
-        "src/modules/dependencies/crypto.mjs": "2df5bdc44e90b067e8c44514d32e4a67672765a9641d345ebe99cb520dc05040",
-        "src/modules/dependencies/custody.mjs": "281acc20689432729a07bb4b9dc8633c839b9088dbbe2897a2133da664e182f0",
-        "src/modules/dependencies/index.d.mts": "0528c460eb7f012bae6853bf2d9464aa381e8e1c66d0bd93cb41998eb063198d",
-        "src/modules/dependencies/index.mjs": "27a0aa745fdacac6deae5a58b35744e1db4db6ca3765bc95adffa21e1afa11ab",
-        "src/modules/dependencies/logout.mjs": "d2760dc2d9143094ddf9a883cf54f98ed7818c471e7ca99d5e195f524b2ae8b1",
-        "src/modules/dependencies/native.mjs": "746b101f850bbf8ab18070352bb4920e2ab7252978b2594e9b4aa66e021534ce",
-        "src/modules/dependencies/protocol.mjs": "9d51f351d80d30b37f771110b3f6cb97d383d8128229314ad59cc17947666f14",
-        "src/modules/dependencies/README.md": "79e0eef431e8211ed74a14198a39ba201ad67db3de5e03310ac297834c691d22",
-        "src/modules/dependencies/schema/approval-attempt.sql": "7d3742369189b69ea28bdc000097f150f83221c6474f7e177c7b5590691b67e9",
-        "src/modules/dependencies/schema/dependencies.sql": "3481d8aef870a9eda153a1617e99bb71a408e61a25dea92bb132efa7dd1c2526",
-        "src/modules/dependencies/schema/keys-sealed.sql": "9c8fa5f94c48a230f326cd4d666cbc2bd1e7d5a18327b89e65b339ac6a533d9a",
-        "src/modules/dependencies/sealing.mjs": "e91021a57168c8cd26b3be283ee17e8b5d8822c9c9bd2475e6d563f898fc5b8d",
-        "src/modules/dependencies/store.mjs": "cd3c17373565ff5e4ffd1222299bcc9f8f018ec476db7def8d6d3aef52fa610f"
+        "src/modules/dependencies/approval.mjs": "7398c2f5ec6c8505f7fa24d5fab7848967dfb3f61720892d1f31494a68237a69"
       },
       "modes": {
-        "src/modules/dependencies/approval.mjs": "100644",
-        "src/modules/dependencies/auth.mjs": "100644",
-        "src/modules/dependencies/authority.mjs": "100644",
-        "src/modules/dependencies/crypto.mjs": "100644",
-        "src/modules/dependencies/custody.mjs": "100644",
-        "src/modules/dependencies/index.d.mts": "100644",
-        "src/modules/dependencies/index.mjs": "100644",
-        "src/modules/dependencies/logout.mjs": "100644",
-        "src/modules/dependencies/native.mjs": "100644",
-        "src/modules/dependencies/protocol.mjs": "100644",
-        "src/modules/dependencies/README.md": "100644",
-        "src/modules/dependencies/schema/approval-attempt.sql": "100644",
-        "src/modules/dependencies/schema/dependencies.sql": "100644",
-        "src/modules/dependencies/schema/keys-sealed.sql": "100644",
-        "src/modules/dependencies/sealing.mjs": "100644",
-        "src/modules/dependencies/store.mjs": "100644"
+        "src/modules/dependencies/approval.mjs": "100644"
+      }
+    },
+    {
+      "path": "src/modules/dependencies/auth.mjs",
+      "originPath": "modules/dependencies/auth.mjs",
+      "revision": "4280971d7c0295b8a88c3e1179048efcbbe14f30",
+      "files": {
+        "src/modules/dependencies/auth.mjs": "6dd0ee20fff4a25af3d5657a1c139af184b92f18776a21fac8906b99ee60957b"
       },
-      "adapted": {
-        "src/modules/dependencies/README.md": "4280971d7c0295b8a88c3e1179048efcbbe14f30",
-        "src/modules/dependencies/sealing.mjs": "4280971d7c0295b8a88c3e1179048efcbbe14f30",
-        "src/modules/dependencies/store.mjs": "4280971d7c0295b8a88c3e1179048efcbbe14f30"
+      "modes": {
+        "src/modules/dependencies/auth.mjs": "100644"
+      }
+    },
+    {
+      "path": "src/modules/dependencies/authority.mjs",
+      "originPath": "modules/dependencies/authority.mjs",
+      "revision": "4280971d7c0295b8a88c3e1179048efcbbe14f30",
+      "files": {
+        "src/modules/dependencies/authority.mjs": "fe89cd1fb7da306cf145b8ef3ebe160902f4e4a82284681eccb97193c68e8750"
       },
-      "acknowledged": {
-        "src/modules/dependencies/README.md": {
-          "sha256": "fd0987919acea52943c70ee2e8c3faa30f397536551eba5b290883c4e063a60a",
-          "mode": "100644"
-        },
-        "src/modules/dependencies/sealing.mjs": {
-          "sha256": "e5a476e91bf2a46e224ca81763219091d002e6892a1b6800bb52986aabf39c60",
-          "mode": "100644"
-        },
-        "src/modules/dependencies/store.mjs": {
-          "sha256": "ae64596fa06961a92275db0490eb905a7dbaf628501200706085ca6df7a7d73d",
-          "mode": "100644"
-        }
+      "modes": {
+        "src/modules/dependencies/authority.mjs": "100644"
+      }
+    },
+    {
+      "path": "src/modules/dependencies/crypto.mjs",
+      "originPath": "modules/dependencies/crypto.mjs",
+      "revision": "4280971d7c0295b8a88c3e1179048efcbbe14f30",
+      "files": {
+        "src/modules/dependencies/crypto.mjs": "2df5bdc44e90b067e8c44514d32e4a67672765a9641d345ebe99cb520dc05040"
+      },
+      "modes": {
+        "src/modules/dependencies/crypto.mjs": "100644"
+      }
+    },
+    {
+      "path": "src/modules/dependencies/custody.mjs",
+      "originPath": "modules/dependencies/custody.mjs",
+      "revision": "4280971d7c0295b8a88c3e1179048efcbbe14f30",
+      "files": {
+        "src/modules/dependencies/custody.mjs": "281acc20689432729a07bb4b9dc8633c839b9088dbbe2897a2133da664e182f0"
+      },
+      "modes": {
+        "src/modules/dependencies/custody.mjs": "100644"
+      }
+    },
+    {
+      "path": "src/modules/dependencies/index.d.mts",
+      "originPath": "modules/dependencies/index.d.mts",
+      "revision": "4280971d7c0295b8a88c3e1179048efcbbe14f30",
+      "files": {
+        "src/modules/dependencies/index.d.mts": "0528c460eb7f012bae6853bf2d9464aa381e8e1c66d0bd93cb41998eb063198d"
+      },
+      "modes": {
+        "src/modules/dependencies/index.d.mts": "100644"
+      }
+    },
+    {
+      "path": "src/modules/dependencies/index.mjs",
+      "originPath": "modules/dependencies/index.mjs",
+      "revision": "4280971d7c0295b8a88c3e1179048efcbbe14f30",
+      "files": {
+        "src/modules/dependencies/index.mjs": "27a0aa745fdacac6deae5a58b35744e1db4db6ca3765bc95adffa21e1afa11ab"
+      },
+      "modes": {
+        "src/modules/dependencies/index.mjs": "100644"
+      }
+    },
+    {
+      "path": "src/modules/dependencies/logout.mjs",
+      "originPath": "modules/dependencies/logout.mjs",
+      "revision": "4280971d7c0295b8a88c3e1179048efcbbe14f30",
+      "files": {
+        "src/modules/dependencies/logout.mjs": "d2760dc2d9143094ddf9a883cf54f98ed7818c471e7ca99d5e195f524b2ae8b1"
+      },
+      "modes": {
+        "src/modules/dependencies/logout.mjs": "100644"
+      }
+    },
+    {
+      "path": "src/modules/dependencies/native.mjs",
+      "originPath": "modules/dependencies/native.mjs",
+      "revision": "4280971d7c0295b8a88c3e1179048efcbbe14f30",
+      "files": {
+        "src/modules/dependencies/native.mjs": "746b101f850bbf8ab18070352bb4920e2ab7252978b2594e9b4aa66e021534ce"
+      },
+      "modes": {
+        "src/modules/dependencies/native.mjs": "100644"
+      }
+    },
+    {
+      "path": "src/modules/dependencies/protocol.mjs",
+      "originPath": "modules/dependencies/protocol.mjs",
+      "revision": "4280971d7c0295b8a88c3e1179048efcbbe14f30",
+      "files": {
+        "src/modules/dependencies/protocol.mjs": "9d51f351d80d30b37f771110b3f6cb97d383d8128229314ad59cc17947666f14"
+      },
+      "modes": {
+        "src/modules/dependencies/protocol.mjs": "100644"
+      }
+    },
+    {
+      "path": "src/modules/dependencies/schema/approval-attempt.sql",
+      "originPath": "modules/dependencies/schema/approval-attempt.sql",
+      "revision": "4280971d7c0295b8a88c3e1179048efcbbe14f30",
+      "files": {
+        "src/modules/dependencies/schema/approval-attempt.sql": "7d3742369189b69ea28bdc000097f150f83221c6474f7e177c7b5590691b67e9"
+      },
+      "modes": {
+        "src/modules/dependencies/schema/approval-attempt.sql": "100644"
+      }
+    },
+    {
+      "path": "src/modules/dependencies/schema/dependencies.sql",
+      "originPath": "modules/dependencies/schema/dependencies.sql",
+      "revision": "4280971d7c0295b8a88c3e1179048efcbbe14f30",
+      "files": {
+        "src/modules/dependencies/schema/dependencies.sql": "3481d8aef870a9eda153a1617e99bb71a408e61a25dea92bb132efa7dd1c2526"
+      },
+      "modes": {
+        "src/modules/dependencies/schema/dependencies.sql": "100644"
+      }
+    },
+    {
+      "path": "src/modules/dependencies/schema/keys-sealed.sql",
+      "originPath": "modules/dependencies/schema/keys-sealed.sql",
+      "revision": "4280971d7c0295b8a88c3e1179048efcbbe14f30",
+      "files": {
+        "src/modules/dependencies/schema/keys-sealed.sql": "9c8fa5f94c48a230f326cd4d666cbc2bd1e7d5a18327b89e65b339ac6a533d9a"
+      },
+      "modes": {
+        "src/modules/dependencies/schema/keys-sealed.sql": "100644"
       }
     },
     {
