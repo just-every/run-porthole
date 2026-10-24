@@ -19,7 +19,7 @@ export async function startRestore(db:D1Database,actor:Authority,value:unknown):
 function rowKey(table:string,row:Record<string,unknown>):string {
  if(table==='porthole_archive_health_history')return JSON.stringify([row.stream,row.table_name,row.row_key])
  if(table==='porthole_archive_audit')return JSON.stringify([row.stream,row.sequence])
- return String(row.id??row.object_id??row.actor_ref??row.singleton)
+ return String(row.record_id??row.id??row.object_id??row.actor_ref??row.singleton)
 }
 export async function stageChunk(db:D1Database,actor:Authority,job:Job,value:unknown):Promise<Job> {
  const manifest=JSON.parse(job.manifest!) as Manifest
@@ -51,7 +51,9 @@ export async function commitRestore(db:D1Database,actor:Authority,job:Job,confir
  // The later destination journal is never replaced by an older source journal.
  const journal=byTable.get('porthole_erased_actors')!
  statements.push(db.prepare(`INSERT INTO porthole_erased_actors(${journal.columns.join(',')}) SELECT json_extract(payload,'$.row.actor_ref'),json_extract(payload,'$.row.erased_at') FROM porthole_archive_rows WHERE job_id=? AND table_name='porthole_erased_actors' ON CONFLICT(actor_ref) DO UPDATE SET erased_at=MAX(erased_at,excluded.erased_at)`).bind(job.id))
+ statements.push(db.prepare(`INSERT INTO porthole_export_exclusions(record_id,excluded_at) SELECT json_extract(payload,'$.row.record_id'),json_extract(payload,'$.row.excluded_at') FROM porthole_archive_rows WHERE job_id=? AND table_name='porthole_export_exclusions' ON CONFLICT(record_id) DO UPDATE SET excluded_at=MAX(excluded_at,excluded.excluded_at)`).bind(job.id))
  for(const item of catalog) {
+  if(item.table==='porthole_export_exclusions')continue
   if(item.table==='porthole_erased_actors')continue
   if(item.table==='porthole_ingest_control') {
    statements.push(db.prepare(`UPDATE porthole_ingest_control SET paused=1,max_pending_bytes=COALESCE((SELECT json_extract(payload,'$.row.max_pending_bytes') FROM porthole_archive_rows WHERE job_id=? AND table_name='porthole_ingest_control'),max_pending_bytes),revision=revision+1,changed_at=?`).bind(job.id,Date.now()));continue
