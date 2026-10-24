@@ -102,6 +102,7 @@ export async function dashboardApiJourney({origin,cookie,freshOwner,signIn}) {
  assert.equal((await get(root,limited.secret)).status,200)
  const throttled=await rpc(limited.secret,{limit:1})
  assert.equal(throttled.status,429);assert.ok(Number(throttled.headers.get('retry-after'))>0)
+ const refusal=await throttled.json();assert.equal(refusal.details.status,429);assert.equal(refusal.details.code,refusal.error);assert.match(refusal.details.requestId,/^[a-f0-9-]{36}$/)
  assert.equal((await post('/app/settings/credentials/revoke',{id:all.credential.id})).status,200)
  assert.equal((await get(root,all.secret)).status,401)
  assert.equal((await rpc(all.secret,{id})).status,401)
