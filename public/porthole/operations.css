@@ -6,3 +6,9 @@
 .rer-themed .porthole-widget-table { max-width: 100%; overflow-x: auto; }
 .rer-themed .porthole-widget-table table { min-width: 640px; border-collapse: collapse; }
 .rer-themed .porthole-widget-table th, .rer-themed .porthole-widget-table td { padding: 8px; text-align: left; vertical-align: top; }
+
+@media (max-width: 480px) {
+ .rer-themed .porthole-integration-declaration { display: block; }
+ .rer-themed .porthole-integration-declaration dt { margin-top: 12px; font-weight: 600; }
+ .rer-themed .porthole-integration-declaration dd { margin: 0 0 8px; }
+}

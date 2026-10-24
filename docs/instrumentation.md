@@ -1,6 +1,6 @@
 # Runtime instrumentation and retained traces
 
-Porthole receives stock OpenTelemetry OTLP HTTP/protobuf and HTTP/JSON at
+Porthole receives stock OpenTelemetry OTLP HTTP with protobuf and HTTP with JSON at
 `/v1/traces`. Use the installation's HTTPS origin in production. Mint an ingest
 credential in Settings with only the application's named services, environments,
 teams, `traces` signal and `telemetry.write` action. Keep the credential in the
@@ -14,34 +14,67 @@ Set `OTEL_SERVICE_NAME`, `OTEL_RESOURCE_ATTRIBUTES` (including
 `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` to the origin plus `/v1/traces`, and
 `OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf`. Configure exporter authentication
 through its private `OTEL_EXPORTER_OTLP_HEADERS` setting. Do not copy the value
-into a support packet. Preserve the original source code/release identifier in
+into a support packet. Preserve the original source code and release identifier in
 resource attributes; Porthole does not infer one from arrival time.
 
-Use W3C `tracecontext`. The conservative default in the supplied paths is
-`OTEL_PROPAGATORS=tracecontext`: they do not forward baggage or automatically
-copy baggage/request headers into span attributes. This is the approved
-baseline. Baggage under policy is not built yet: it stays off by default, admits
-only owner-allowlisted keys (at most 8 entries and 256 bytes per value), copies
-an entry into span attributes only when its key is separately allowlisted for
-span attributes, lets a sensitive-key denylist (auth, token, email, name and
-secret patterns) always win, and drops a refused entry visibly instead of
-silently merging it. Until the supplied paths enforce that policy, do not enable
-baggage forwarding or content capture. Telemetry already emitted by an
-application remains subject to its existing ingestion/data scope; this guide
-adds no wider reader.
+Use W3C `tracecontext` with Porthole's policy propagator. Baggage is off
+without a valid owner-deployed policy file, regardless of the stock baggage
+propagator setting. The supplied register modules replace the global propagator;
+do not install a competing baggage propagator or request-header capture plugin.
+
+The native owner opens `/app/settings/instrumentation`, reviews forwarding keys
+and the separate span-attribute allowlist, and saves with a fresh five-minute
+proof. Admins, nonowners and credentials cannot read or change this policy.
+Saving requires the current revision and explicit consent and records a private
+audit fact. Download `policy.json`, deploy it read-only, and set
+`PORTHOLE_BAGGAGE_POLICY` to its path in every process. Restart after deployment.
+A saved Settings revision does not remotely replace existing process files;
+operators must deploy and restart all affected processes, including when turning
+forwarding off. Missing, invalid or unreadable files disable baggage and emit a
+value-free diagnostic. Archive restore preserves the lists but disables the
+policy until the destination owner explicitly approves and redeploys it.
+
+Each supplied propagator filters extraction and injection, preserving explicit
+trace IDs independently. Only owner-allowlisted keys pass, with at most eight
+entries and 256 UTF-8 bytes per decoded value. A 16-KiB incoming header cap
+refuses the entire baggage header. Sensitive key patterns (`auth`, `token`,
+`email`, `name`, `secret`, `password`, `cookie`, `credential`, `session`, API key,
+`address`, `phone`, case-insensitive) always win, including over an allowlist.
+Malformed members and every copy of a duplicate key are refused before native
+parsers see them. Refusal logs contain revision, reason and counts, never refused
+keys or values. Node
+also emits `porthole.baggage.refused` span events, visible in the trace API and
+waterfall details. Node copies only separately approved attributes with the
+`baggage.` prefix; the other six supplied paths copy no baggage into attributes.
+Forwarding never grants content capture. Telemetry an application independently
+emits remains subject to existing ingestion and data scope; this policy grants no
+wider reader or request-header collection.
+
+For adoption outside these examples, retain the matching policy module:
+Node loads `./instrumentation/node/register.cjs` before clients and frameworks; Python
+imports `porthole_policy.py` before serving; Go installs `policyPropagator` beside
+`propagation.TraceContext`; .NET installs `PolicyPropagator` before building the
+host; Ruby loads `porthole_policy.rb` after SDK configuration and before serving;
+PHP registers `policy.php` before the framework obtains `Globals`; Java uses the
+shipped extension JAR, `OTEL_JAVAAGENT_EXTENSIONS=/app/policy.jar` and
+`OTEL_PROPAGATORS=tracecontext,porthole`. The Dockerfile builds that extension
+against the pinned published OTel API and SPI. The Java process classpath must also
+include the matching `opentelemetry-common` runtime JAR; the supplied launch uses
+`-cp ".:lib/*"`. Keep each process's documented
+framework setup and release metadata. No egress proxy or vendor key is added.
 
 ## Seven install paths
 
-The executable examples under `instrumentation/polyglot` are ordinary services,
+The executable examples under `./instrumentation/polyglot` are ordinary services,
 not a Porthole-specific telemetry generator. They call each other over real
-HTTP. The stock libraries create the spans and inject/extract context.
+HTTP. The stock libraries create the spans and inject and extract context.
 
 - **Node 22, HTTP and gRPC:** install the exact `@opentelemetry/sdk-node`,
   `@opentelemetry/exporter-trace-otlp-proto`,
   `@opentelemetry/instrumentation-http` and
   `@opentelemetry/instrumentation-grpc` versions in the root package manifest
   (0.300.0), plus `@opentelemetry/api` 1.10.0. The supplied register also loads `@opentelemetry/instrumentation-kafkajs` 0.33.0; install that package even if the application has no Kafka client. Load
-  `instrumentation/node/register.cjs` before importing `node:http`, `node:https`
+  `./instrumentation/node/register.cjs` before importing `node:http`, `node:https`
   or `@grpc/grpc-js`, for example with Node's `--require` flag. Applications with
   an ESM dependency graph must use OpenTelemetry's supported ESM instrumentation
   loader before those libraries load. The example and qualification use CJS.
@@ -68,7 +101,7 @@ HTTP. The stock libraries create the spans and inject/extract context.
   `instrumentation/polyglot/dotnet/Polyglot.csproj`, register
   `AddOpenTelemetry()`, explicitly set the service resource with `AddService`, and use `WithTracing(...)` with `AddAspNetCoreInstrumentation`,
   `AddHttpClientInstrumentation` and `AddOtlpExporter`, then rebuild. Use the general OTLP endpoint setting as well: this exporter registration reads `OTEL_EXPORTER_OTLP_ENDPOINT`, then adds the HTTP trace path. Hosting
-  starts/stops the provider. The example uses the actual framework middleware
+  starts and stops the provider. The example uses the actual framework middleware
   and HttpClient diagnostic listeners, with no hand-built spans.
 - **Ruby 3.3, Rack and Net::HTTP:** install the pinned Gemfile, require the SDK,
   exporter and instrumentation before the application, configure both stock
@@ -87,7 +120,7 @@ load the supplied Node register module before importing KafkaJS. Keep the
 instrumentation's context headers on actual producer messages and consumer
 processing. Do not create unrelated timestamp-based parent links. The
 qualification uses Apache Kafka 3.9.1 with a real topic and consumer group, plus
-HTTP/gRPC and asynchronous fanout. This does not claim compatibility with every
+HTTP and gRPC and asynchronous fanout. This does not claim compatibility with every
 Kafka client or deployment; missing framework/context boundaries remain gaps.
 
 ## Read and diagnose
@@ -98,13 +131,13 @@ sessions or scoped read credentials. Both enforce current service, environment
 and team grants and immediate credential revocation. Finance readers cannot
 read telemetry. Trace reads are privately audited without copying query contents.
 
-Original start/end nanoseconds, durations, status/errors, resource/version,
+Original start and end nanoseconds, durations, status and errors, resource and version,
 instrumentation scope, attributes, events and causal links remain inspectable.
 Bars show offsets and durations against the observed trace window. Async work
 may overlap or outlive its producer; it is never shortened to fit a parent.
 Identical re-deliveries are counted as copies. Different content under the same
 span ID remains separate conflicting variants, and cannot be selected as an
-unambiguous parent. Missing/out-of-scope parents have the same diagnostic so a
+unambiguous parent. Missing or out-of-scope parents have the same diagnostic so a
 restricted reader cannot infer hidden services. Cycles are never attached.
 A connected retained graph is not a claim of complete upstream instrumentation
 or sampling coverage. Empty, incomplete and unavailable states remain explicit.
@@ -121,8 +154,8 @@ it adds no separate durable domain or restore authority.
 
 Push Verify's parallel `traces` shard runs `traceJourney` in
 `tests/porthole/traces.mjs` through the emitted Worker and native auth. It drives
-stock Node HTTP/gRPC, real overlapping operations and a real TCP forwarder with
-a deliberately incorrect parent, plus schema-edge conflicting/cyclic identities.
+stock Node HTTP and gRPC, real overlapping operations and a real TCP forwarder with
+a deliberately incorrect parent, plus schema-edge conflicting and cyclic identities.
 It checks original timing/restart/snapshot, role/scope/revocation, independently owned inactive archive restore/replay, and all changed
 screen states at 1440 and 390. It does not stand in for the seven-runtime drill.
 
@@ -146,3 +179,17 @@ The journey removes its own containers and closes its own listener, including on
 failure. Screenshots, when requested with `PORTHOLE_EVIDENCE_DIR`, belong outside
 the product repository. A recorded pass on the exact candidate is required;
 successfully building an image alone proves no application clause.
+
+Run the native archive drill serially after the runtime drill:
+
+```sh
+node tests/porthole/native-archive.mjs
+```
+
+It invokes the pinned native `rer setup, export and import` commands against separate
+source and destination checkouts, including independent owner bootstrap and disabled
+policy restoration. Intact archives containing malformed allowlists or broader
+attribute permission refuse before any domain rows are published. Keep these
+qualification commands serial when they share dependencies and compiler caches. On
+a dedicated CI VM, the CLI's documented `CI=true` mode skips its local admission
+queue; it retains migrations, build, readiness and all journey assertions.

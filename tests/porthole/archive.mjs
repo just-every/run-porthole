@@ -187,6 +187,7 @@ async function archiveBrowserJourney({origin,cookie}) {
 export async function traceArchiveJourney({origin,cookie,traceId,snapshot,expected,withEmptyDestination}) {
  const query=await value(await post(origin,cookie,'/api/porthole/v1/query',{signal:'traces',trace:traceId,limit:2000,snapshot}))
  assert.equal(query.records.length,expected.recordCount)
+ const sourcePolicy=await value(await get(origin,cookie,'/app/settings/instrumentation/policy.json'))
  const saved=await savedExport(origin,cookie,await post(origin,cookie,api+'/exports',{}))
  assert.ok(saved.rows.some(row=>row.table==='porthole_query_snapshots'&&JSON.parse(row.row.scope).trace===traceId))
  await withEmptyDestination(async destination=>{
@@ -199,6 +200,9 @@ export async function traceArchiveJourney({origin,cookie,traceId,snapshot,expect
   assert.deepEqual(replay.records,query.records,'the archived bounded trace descriptor replays through the product query door')
   assert.equal(replay.snapshot,snapshot)
   assert.equal((await destination.sql('SELECT paused FROM porthole_ingest_control'))[0].paused,1)
+  const restoredPolicy=await value(await get(destination.origin,acting,'/app/settings/instrumentation/policy.json'))
+  assert.equal(restoredPolicy.enabled,false,'independent restore disables baggage forwarding')
+  assert.deepEqual(restoredPolicy.allowedKeys,sourcePolicy.allowedKeys);assert.deepEqual(restoredPolicy.attributeKeys,sourcePolicy.attributeKeys)
   assert.equal((await destination.sql('SELECT COUNT(*) AS n FROM porthole_credentials'))[0].n,0)
   assert.equal((await get(destination.origin,cookie,`/api/porthole/v1/traces/${traceId}`)).status,401)
   await browserProof({origin:destination.origin,cookie:acting,paths:[`/app/traces/${traceId}?snapshot=${snapshot}`],name:'trace-inactive-restored'})
@@ -234,6 +238,7 @@ export async function restoreAnalyticalSnapshot({context,saved,times}) {
 /** Extend the existing inactive-archive boundary to profile dictionaries and
  * protected profile query snapshots, using a separately owned real D1 store. */
 export async function profileArchiveJourney({origin,cookie,records,queryRef,withEmptyDestination}) {
+ const sourcePolicy=await value(await get(origin,cookie,'/app/settings/instrumentation/policy.json'))
  const saved=await savedExport(origin,cookie,await post(origin,cookie,api+'/exports',{}))
  const profileRows=saved.rows.filter(row=>row.table==='porthole_telemetry_records'&&row.row.signal==='profiles')
  assert.ok(profileRows.length>0)
@@ -246,6 +251,9 @@ export async function profileArchiveJourney({origin,cookie,records,queryRef,with
   const copies=await value(await get(destination.origin,acting,'/api/porthole/v1/ingest/archive?signal=profiles'))
   assert.equal(copies.records.length,profileRows.length)
   assert.equal((await destination.sql('SELECT paused FROM porthole_ingest_control'))[0].paused,1)
+  const restoredPolicy=await value(await get(destination.origin,acting,'/app/settings/instrumentation/policy.json'))
+  assert.equal(restoredPolicy.enabled,false,'independent restore disables baggage forwarding')
+  assert.deepEqual(restoredPolicy.allowedKeys,sourcePolicy.allowedKeys);assert.deepEqual(restoredPolicy.attributeKeys,sourcePolicy.attributeKeys)
   assert.equal((await destination.sql('SELECT COUNT(*) AS n FROM porthole_credentials'))[0].n,0)
   assert.equal((await get(destination.origin,cookie,'/api/porthole/v1/ingest/records?signal=profiles')).status,401)
   const reexport=await savedExport(destination.origin,acting,await post(destination.origin,acting,api+'/exports',{}))

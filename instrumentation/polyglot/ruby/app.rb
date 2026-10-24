@@ -8,10 +8,12 @@ OpenTelemetry::SDK.configure do |config|
  config.use 'OpenTelemetry::Instrumentation::Rack'
  config.use 'OpenTelemetry::Instrumentation::Net::HTTP'
 end
+require_relative 'porthole_policy'
 app=proc do |env|
  next_url=ENV['NEXT_URL']
  Net::HTTP.get_response(URI(next_url)).value if next_url && !next_url.empty?
- [200,{'content-type'=>'text/plain'},['ruby completed']]
+ values=OpenTelemetry::Baggage.values
+ [200,{'content-type'=>'text/plain','x-porthole-baggage-keys'=>values.keys.sort.join(','),'x-porthole-baggage-bytes'=>(values.values.map(&:bytesize).max || 0).to_s},['ruby completed']]
 end
 wrapped=Rack::Builder.new do
  use *OpenTelemetry::Instrumentation::Rack::Instrumentation.instance.middleware_args

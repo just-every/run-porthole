@@ -1,3 +1,4 @@
+import {baggageKeys} from '../traces/policy'
 import { canonical, digest, genesis, type AuditEntry } from '../audit/store'
 import { byTable, catalog } from './catalog'
 import {validateRow as validPublicationRow} from '../publication/model'
@@ -27,9 +28,11 @@ export function manifestInput(value: unknown): Manifest {
  // a later destination journal still wins during restore.
  if(!Object.hasOwn(value.tables,'porthole_export_exclusions'))value.tables.porthole_export_exclusions=0
  for(const table of ['porthole_dashboards','porthole_dashboard_versions','porthole_dashboard_publications'])if(!Object.hasOwn(value.tables,table))value.tables[table]=0
+ if(!Object.hasOwn(value.tables,'porthole_baggage_policy'))value.tables.porthole_baggage_policy=0
  if(Object.keys(value.tables).sort().join(',')!==catalog.map(item=>item.table).sort().join(',') || Object.values(value.tables).some(v=>!integer(v)) || Object.values(value.tables).reduce<number>((a,b)=>a+(b as number),0)!==value.rowCount || value.chunks!==Math.ceil(value.rowCount/chunkRows)) return bad()
+ const tables={porthole_baggage_policy:0,...value.tables}
  if(value.tables.porthole_ingest_control!==1)bad()
- return value as unknown as Manifest
+ return {...value,tables} as unknown as Manifest
 }
 export async function chunkInput(value: unknown, index: number, previousHash: string, count?: number): Promise<Chunk> {
  if(!object(value) || Object.keys(value).sort().join(',')!=='digest,index,previousHash,rows,version' || value.version!==1 || value.index!==index || value.previousHash!==previousHash || !hex(value.digest) || !Array.isArray(value.rows) || !value.rows.length || value.rows.length>chunkRows || count!==undefined && value.rows.length!==count) return bad()
@@ -50,6 +53,9 @@ export async function validateRow(payload: PortableRow, state: Validation): Prom
  const required=(...keys:string[])=>{for(const key of keys)if(!str(row[key]) || !(row[key] as string).length)bad()}
  if(item.table==='porthole_export_exclusions') {
   if(typeof row.record_id!=='string'||!/^[a-f0-9-]{36}:[0-9]+$/.test(row.record_id)||!integer(row.excluded_at))bad()
+ } else if(item.table==='porthole_baggage_policy') {
+  if(row.singleton!==1||![0,1].includes(row.enabled as number)||!integer(row.revision,1)||!integer(row.changed_at))bad()
+  const keys=baggageKeys(json(row.allowed_keys)),attrs=baggageKeys(json(row.attribute_keys));if(attrs.some(key=>!keys.includes(key)))bad()
  } else if(item.table==='porthole_bucket_history') {
   if(!validHistoryReference(row))bad()
  } else if(item.table==='porthole_dashboard_publications') {
