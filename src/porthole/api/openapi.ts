@@ -1,3 +1,4 @@
+import {dashboardPaths} from '../dashboards/openapi'
 const response=(description:string,schema:unknown)=>({description,content:{'application/json':{schema}}})
 const definition={$ref:'#/components/schemas/Definition'}
 const failures=Object.fromEntries([400,401,403,404,409,412,428,429,503].map(status=>[status,response('Structured refusal',{$ref:'#/components/schemas/Error'})]))
@@ -6,7 +7,7 @@ const mutations={parameters:[{name:'Idempotency-Key',in:'header',required:true,s
  * domains must add their own storage and authorization before joining it. */
 export const openapi={
  openapi:'3.1.0',info:{title:'Porthole configuration API',version:'1.0.0'},
- paths:Object.fromEntries(['monitors','repairs'].flatMap(kind=>[
+ paths:{...dashboardPaths,...Object.fromEntries(['monitors','repairs'].flatMap(kind=>[
   [`/api/porthole/v1/configuration/${kind}`,{
    get:{summary:`List ${kind} within live scope`,parameters:[{name:'limit',in:'query',schema:{type:'integer',minimum:1,maximum:200}},{name:'cursor',in:'query',schema:{type:'string'}}],responses:{200:response('Scoped page',{type:'object',properties:{objects:{type:'array',items:definition},cursor:{type:['string','null']}}}),...failures}},
    post:{summary:'Create an inactive definition with a native session',...mutations,responses:{201:response('Created definition',definition),...failures}},
@@ -17,7 +18,7 @@ export const openapi={
    delete:{summary:'Archive an exact definition revision without deleting its history',parameters:[...mutations.parameters,{name:'If-Match',in:'header',required:true,schema:{type:'string'}}],responses:{200:response('Archived definition',definition),...failures}},
    put:{summary:'Replace definition if revision still matches',...mutations,parameters:[...mutations.parameters,{name:'If-Match',in:'header',required:true,schema:{type:'string'}}],responses:{200:response('Updated inactive definition',definition),...failures}},
   }],
- ])),
+ ]))},
  components:{schemas:{
   Input:{type:'object',additionalProperties:false,required:['name','scope','body'],properties:{name:{type:'string',maxLength:120},scope:{$ref:'#/components/schemas/Scope'},body:{type:'object'}}},
   Definition:{type:'object',required:['id','kind','name','scope','body','revision','state'],properties:{id:{type:'string',format:'uuid'},kind:{enum:['monitor','repair']},name:{type:'string'},scope:{$ref:'#/components/schemas/Scope'},body:{type:'object'},revision:{type:'integer',minimum:1},state:{type:'string'},created_at:{type:'integer'},updated_at:{type:'integer'}}},

@@ -1,6 +1,6 @@
 import {resolve} from 'node:path'
 import {pathToFileURL} from 'node:url'
-import {client,definitionPages,queryPages} from './client.mjs'
+import {client,definitionRoot,definitionPages,queryPages} from './client.mjs'
 
 async function readInput(stream) {
  let raw=''
@@ -20,8 +20,7 @@ export async function run(args,{env=process.env,input=process.stdin,output=proce
   return
  }
  const [collection,id,...flags]=rest
- if(!['monitors','repairs'].includes(collection))throw Error('Use monitors or repairs')
- const root=`/api/porthole/v1/configuration/${collection}`
+ const root=definitionRoot(collection)
  if(command==='list') {
   const all=rest.slice(1).includes('--all'),options=rest.slice(1).filter(arg=>arg!=='--all')
   let limit=50,cursor
@@ -35,8 +34,11 @@ export async function run(args,{env=process.env,input=process.stdin,output=proce
   return
  }
  if(command==='get') {
-  if(!id || flags.length)throw Error('Usage: porthole ORIGIN get COLLECTION ID')
-  emit(await request(root+'/'+encodeURIComponent(id)));return
+  let suffix=''
+  if(collection==='dashboards'&&flags.length===2&&flags[0]==='--version'&&/^[1-9][0-9]*$/.test(flags[1]))suffix='?version='+flags[1]
+  else if(flags.length)throw Error('Usage: porthole ORIGIN get COLLECTION ID [--version N]')
+  if(!id)throw Error('Usage: porthole ORIGIN get COLLECTION ID')
+  emit(await request(root+'/'+encodeURIComponent(id)+suffix));return
  }
  if(!['create','update','archive'].includes(command))throw Error('Use list, get, query, create, update or archive')
  const options=command==='create'?rest.slice(1):flags
@@ -47,6 +49,12 @@ export async function run(args,{env=process.env,input=process.stdin,output=proce
   else throw Error('Mutations require --key KEY and updates require --revision N')
  }
  if(!key || command!=='create' && (!id || !Number.isSafeInteger(revision) || revision<1))throw Error('Mutations require --key KEY and updates require --revision N')
+ if(collection==='dashboards') {
+  const body=command==='archive'?{}:await readInput(input)
+  if(Object.keys(body).some(key=>!['name','scope','body'].includes(key)))throw Error('Dashboard input contains unsupported fields')
+  if(command!=='create')Object.assign(body,{id,revision})
+  emit(await request(command==='archive'?root+'/archive':root,{method:'POST',key,revision,body}));return
+ }
  const method={create:'POST',update:'PUT',archive:'DELETE'}[command]
  emit(await request(command==='create'?root:root+'/'+encodeURIComponent(id),{method,key,revision,body:command==='archive'?undefined:await readInput(input)}))
 }

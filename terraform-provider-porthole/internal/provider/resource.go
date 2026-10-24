@@ -34,7 +34,7 @@ func definitionResource(kind string) *schema.Resource {
 			},
 		},
 		CustomizeDiff: func(_ context.Context, diff *schema.ResourceDiff, _ interface{}) error {
-			if diff.HasChange("name") || diff.HasChange("scope_json") || diff.HasChange("definition_json") {
+			if diff.HasChange("name") || changedJSON(diff, "scope_json") || changedJSON(diff, "definition_json") {
 				return diff.SetNewComputed("revision")
 			}
 			return nil
@@ -118,4 +118,16 @@ func writeDefinition(ctx context.Context, data *schema.ResourceData, connection 
 		return diag.Errorf("native %s revision could not be stored", kind)
 	}
 	return readDefinition(ctx, data, connection, kind)
+}
+
+func changedJSON(diff *schema.ResourceDiff, key string) bool {
+	old, next := diff.GetChange(key)
+	a, okA := old.(string)
+	b, okB := next.(string)
+	if !okA || !okB {
+		return true
+	}
+	left, errA := normalizeJSON(a)
+	right, errB := normalizeJSON(b)
+	return errA != nil || errB != nil || left != right
 }

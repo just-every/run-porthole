@@ -71,6 +71,13 @@ try {
  read=await value(await post(primary,'/v1/query',{...query,requiredWatermark:2,snapshot:1}))
  assert.equal(read.records.length,1);assert.equal(read.records[0].id,first.records[0].id)
  const count=await value(await post(primary,'/v1/query',{...query,requiredWatermark:2,mode:'count'}));assert.equal(count.count,2)
+ const metrics=[3,4].map((sequence,index)=>{
+  const entry=batch(sequence);entry.signal='metrics';entry.records[0].payload={metric:{name:index?'unrelated':'checkout.cpu',unit:'%'},record:{asDouble:index?9999:30}};entry.digest=createHash('sha256').update(JSON.stringify(entry.records[0].payload)).digest('hex');return entry
+ })
+ await value(await post(primary,'/v1/replicate',{sourceIdentity,batches:metrics}))
+ const metricRead=await value(await post(primary,'/v1/query',{...query,requiredWatermark:4,signal:'metrics',metric:'checkout.cpu'}))
+ assert.deepEqual(metricRead.records.map(row=>row.id),[metrics[0].records[0].id]);assert.equal(metricRead.records[0].payload.record.asDouble,30)
+ assert.equal((await post(primary,'/v1/query',{...query,requiredWatermark:4,metric:'checkout.cpu'})).status,400)
  console.log('analyticalKernelJourney passed: separate Worker/D1 processes, private auth, exact replication/replay, stale standby refusal, actual process stop and original snapshot recovery; kernel-only probe; product integration is checked separately')
 } finally {
  for(const server of servers)await stop(server)

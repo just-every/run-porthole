@@ -158,6 +158,8 @@ try {
   } else if(process.env.PORTHOLE_API_ONLY==='1') {
    const {apiJourney}=await import('./porthole/api.mjs')
    await apiJourney({origin,cookie,restartWorker,...helpers})
+   const {dashboardApiJourney}=await import('./porthole/dashboard-api.mjs')
+   await dashboardApiJourney({origin,cookie,...helpers})
    const {terraformJourney}=await import('./porthole/terraform.mjs')
    await terraformJourney({origin,cookie,...helpers})
   } else if(process.env.PORTHOLE_MIGRATION_ONLY==='1') {

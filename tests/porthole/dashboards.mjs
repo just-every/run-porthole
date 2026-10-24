@@ -13,7 +13,7 @@ export async function dashboardJourney({origin,cookie,freshOwner,signIn,restartW
  const source=await value(await post('/app/settings/credentials/mint',{name:'synthetic-porthole-180',class:'ingest',scope:{...scope,signals:['metrics','logs','traces'],actions:['telemetry.write']}}),201)
  for(const [team,environment,factor]of [['commerce','production',1],['payments','staging',2]]) {
   const resource={attributes:Object.entries({'service.name':'checkout','deployment.environment.name':environment,'team.name':team}).map(([key,stringValue])=>({key,value:{stringValue}}))}
-  const envelopes={metrics:{resourceMetrics:[{resource,scopeMetrics:[{metrics:[{name:'checkout.cpu',unit:'%',gauge:{dataPoints:[{timeUnixNano:String(from),asDouble:20*factor},{timeUnixNano:String(from+1n),asDouble:40*factor}]}},{name:'unrelated',gauge:{dataPoints:[{timeUnixNano:String(from),asDouble:9999}]}}]}]}]},logs:{resourceLogs:[{resource,scopeLogs:[{logRecords:[{timeUnixNano:String(from),body:{stringValue:'Checkout dependency waiting'}},{timeUnixNano:String(from+1n),body:{stringValue:'Checkout dependency recovered'}}]}]}]},traces:{resourceSpans:[{resource,scopeSpans:[{spans:[100,200,400].map((ms,i)=>({traceId:'a'.repeat(32),spanId:String(i+1).padStart(16,'0'),name:'Checkout payment request',startTimeUnixNano:String(from),endTimeUnixNano:String(from+BigInt(ms*factor)*1000000n)}))}]}]}}
+  const envelopes={metrics:{resourceMetrics:[{resource,scopeMetrics:[{metrics:[{name:'checkout.cpu',unit:'%',gauge:{dataPoints:[{timeUnixNano:String(from),asDouble:20*factor,attributes:[{key:'host.name',value:{stringValue:'checkout-a'}}]},{timeUnixNano:String(from+1n),asDouble:40*factor,attributes:[{key:'host.name',value:{stringValue:'checkout-b'}}]}]}},{name:'unrelated',gauge:{dataPoints:[{timeUnixNano:String(from),asDouble:9999}]}}]}]}]},logs:{resourceLogs:[{resource,scopeLogs:[{logRecords:[{timeUnixNano:String(from),body:{stringValue:'Checkout dependency waiting'}},{timeUnixNano:String(from+1n),body:{stringValue:'Checkout dependency recovered'}}]}]}]},traces:{resourceSpans:[{resource,scopeSpans:[{spans:[100,200,400].map((ms,i)=>({traceId:'a'.repeat(32),spanId:String(i+1).padStart(16,'0'),name:'Checkout payment request',startTimeUnixNano:String(from),endTimeUnixNano:String(from+BigInt(ms*factor)*1000000n)}))}]}]}}
   for(const [signal,body]of Object.entries(envelopes))assert.equal((await fetch(origin+'/v1/'+signal,{method:'POST',headers:{authorization:`Bearer ${source.secret}`,'content-type':'application/json'},body:JSON.stringify(body)})).status,200)
  }
  assert.equal((await post('/api/porthole/v1/ingest/drain',{})).status,200)
@@ -29,9 +29,13 @@ export async function dashboardJourney({origin,cookie,freshOwner,signIn,restartW
  assert.equal((await get(path,restrictedCookie)).status,403)
  assert.equal((await get(api+'/'+saved.id,'')).status,401)
  assert.equal((await get(path+'?team=another-team')).status,403)
- const {explorationJourney}=await import('./explore.mjs')
+ const {explorationJourney,observabilityAgentJourney}=await import('./explore.mjs')
  await explorationJourney({origin,cookie})
+ await observabilityAgentJourney({origin,cookie,freshOwner})
  await dashboardBrowser({origin,cookie,path,restrictedCookie,expected:body})
+ const {widgetJourney}=await import('./widgets.mjs');await widgetJourney({origin,cookie,scope,body,sourceSecret:source.secret})
+ const {publicationJourney}=await import('./publication.mjs')
+ await publicationJourney({origin,cookie,freshOwner,dashboardId:saved.id,restrictedCookie})
  cookie=await freshOwner()
  const after=await value(await get(api+'/'+saved.id));assert.ok(after.revision>1)
  const archived=await post('/app/dashboards/archive',{id:saved.id,revision:after.revision});assert.equal(archived.status,303)

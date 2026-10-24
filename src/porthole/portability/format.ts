@@ -1,5 +1,6 @@
 import { canonical, digest, genesis, type AuditEntry } from '../audit/store'
 import { byTable, catalog } from './catalog'
+import {validateRow as validPublicationRow} from '../publication/model'
 import {dashboardBody} from '../dashboards/model'
 import { validateBody } from '../objects/schema'
 import { validateHealthHistory } from './health-history'
@@ -25,7 +26,7 @@ export function manifestInput(value: unknown): Manifest {
  // Older archives predate export exclusions. Their absent journal is empty;
  // a later destination journal still wins during restore.
  if(!Object.hasOwn(value.tables,'porthole_export_exclusions'))value.tables.porthole_export_exclusions=0
- for(const table of ['porthole_dashboards','porthole_dashboard_versions'])if(!Object.hasOwn(value.tables,table))value.tables[table]=0
+ for(const table of ['porthole_dashboards','porthole_dashboard_versions','porthole_dashboard_publications'])if(!Object.hasOwn(value.tables,table))value.tables[table]=0
  if(Object.keys(value.tables).sort().join(',')!==catalog.map(item=>item.table).sort().join(',') || Object.values(value.tables).some(v=>!integer(v)) || Object.values(value.tables).reduce<number>((a,b)=>a+(b as number),0)!==value.rowCount || value.chunks!==Math.ceil(value.rowCount/chunkRows)) return bad()
  if(value.tables.porthole_ingest_control!==1)bad()
  return value as unknown as Manifest
@@ -51,6 +52,8 @@ export async function validateRow(payload: PortableRow, state: Validation): Prom
   if(typeof row.record_id!=='string'||!/^[a-f0-9-]{36}:[0-9]+$/.test(row.record_id)||!integer(row.excluded_at))bad()
  } else if(item.table==='porthole_bucket_history') {
   if(!validHistoryReference(row))bad()
+ } else if(item.table==='porthole_dashboard_publications') {
+  if(!validPublicationRow(row))bad()
  } else if(['porthole_dashboards','porthole_dashboard_versions'].includes(item.table)) {
   if(!uuid(row.id)||!str(row.name)||!integer(row.revision,1)||!integer(row.created_at)||!integer(row.updated_at)||!['active','archived','quarantined'].includes(String(row.state)))bad()
   parseScope(json(row.scope));dashboardBody(json(row.body))

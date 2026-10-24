@@ -6,7 +6,9 @@ export async function validateRelations(db:D1Database,jobId:string):Promise<void
  SELECT table_name,json_extract(payload,'$.row') AS value FROM porthole_archive_rows WHERE job_id=?
  ), batches AS (SELECT value FROM staged WHERE table_name='porthole_ingest_batches'),
  retained AS (SELECT table_name,value FROM staged WHERE table_name IN ('porthole_telemetry_records','porthole_telemetry_archive'))
- SELECT EXISTS(SELECT 1 FROM staged v WHERE v.table_name='porthole_dashboard_versions' AND NOT EXISTS(SELECT 1 FROM staged d WHERE d.table_name='porthole_dashboards' AND json_extract(d.value,'$.id')=json_extract(v.value,'$.id') AND json_extract(d.value,'$.revision')>=json_extract(v.value,'$.revision')))
+ SELECT EXISTS(SELECT 1 FROM staged p WHERE p.table_name='porthole_dashboard_publications' AND NOT EXISTS(SELECT 1 FROM staged d WHERE d.table_name='porthole_dashboards' AND json_extract(d.value,'$.id')=json_extract(p.value,'$.dashboard_id') AND json_extract(d.value,'$.revision')>=json_extract(p.value,'$.source_revision')))
+ OR EXISTS(SELECT 1 FROM staged d WHERE d.table_name='porthole_dashboards' AND NOT EXISTS(SELECT 1 FROM staged v WHERE v.table_name='porthole_dashboard_versions' AND json_extract(v.value,'$.id')=json_extract(d.value,'$.id') AND json_extract(v.value,'$.revision')=json_extract(d.value,'$.revision') AND json_extract(v.value,'$.body')=json_extract(d.value,'$.body') AND json_extract(v.value,'$.scope')=json_extract(d.value,'$.scope') AND json_extract(v.value,'$.name')=json_extract(d.value,'$.name')))
+ OR EXISTS(SELECT 1 FROM staged v WHERE v.table_name='porthole_dashboard_versions' AND NOT EXISTS(SELECT 1 FROM staged d WHERE d.table_name='porthole_dashboards' AND json_extract(d.value,'$.id')=json_extract(v.value,'$.id') AND json_extract(d.value,'$.revision')>=json_extract(v.value,'$.revision')))
  OR EXISTS(SELECT 1 FROM retained r LEFT JOIN batches b ON json_extract(b.value,'$.id')=json_extract(r.value,'$.batch_id')
  WHERE b.value IS NULL OR json_extract(r.value,'$.source_id')!=json_extract(b.value,'$.source_id')
  OR json_extract(r.value,'$.signal')!=json_extract(b.value,'$.signal')

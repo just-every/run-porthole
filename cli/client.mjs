@@ -23,13 +23,18 @@ export function client({origin,credential,session,timeout=30000}) {
  }
 }
 
+export function definitionRoot(collection) {
+ if(!['monitors','repairs','dashboards'].includes(collection))throw Error('Use monitors, repairs or dashboards')
+ return collection==='dashboards'?'/api/porthole/v1/dashboards':`/api/porthole/v1/configuration/${collection}`
+}
+
 export async function* definitionPages(request,{collection,limit=50,cursor,all=false}) {
- if(!['monitors','repairs'].includes(collection))throw Error('Use monitors or repairs')
+ const root=definitionRoot(collection)
  const seen=new Set()
  do {
   const params=new URLSearchParams({limit:String(limit)})
   if(cursor)params.set('cursor',cursor)
-  const page=await request(`/api/porthole/v1/configuration/${collection}?${params}`)
+  const page=await request(`${root}?${params}`)
   yield page
   cursor=page.cursor
   if(cursor && seen.has(cursor))throw Error('Porthole returned a repeated cursor')
