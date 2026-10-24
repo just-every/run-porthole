@@ -38,7 +38,8 @@
     "migrations/core/0034_porthole_export_exclusions.sql",
     "migrations/core/0035_porthole_dashboards.sql",
     "migrations/core/0036_porthole_configuration_api.sql",
-    "migrations/core/0037_porthole_dashboard_publication.sql"
+    "migrations/core/0037_porthole_dashboard_publication.sql",
+    "migrations/core/0038_dependency_keys_sealed.sql"
   ],
   "breaking": false,
   "agentUpdateInstructions": "Install the pinned dependencies and follow OPERATIONS.md. Preserve applied migration bytes and private installation settings."

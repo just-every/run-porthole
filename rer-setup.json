@@ -188,6 +188,16 @@
         "field": "MAIL_PROVIDER",
         "equals": "cloudflare"
       }
+    },
+    {
+      "name": "INSTALLATION_KEY",
+      "label": "Installation encryption key",
+      "kind": "secret",
+      "required": true,
+      "ownerVisible": false,
+      "input": "managed",
+      "generate": "hex",
+      "group": "owner"
     }
   ],
   "steps": [

@@ -48,12 +48,14 @@
       ],
       "secretNames": [
         "SESSION_SECRET",
-        "SETUP_TOKEN"
+        "SETUP_TOKEN",
+        "INSTALLATION_KEY"
       ],
       "optionalSecretNames": [
         "MAIL_API_KEY",
         "ANALYTICS_PRIMARY_TOKEN",
-        "ANALYTICS_STANDBY_TOKEN"
+        "ANALYTICS_STANDBY_TOKEN",
+        "INSTALLATION_KEY_PREVIOUS"
       ],
       "providerEffects": [
         "outbound-mail"

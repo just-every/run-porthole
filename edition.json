@@ -139,6 +139,30 @@
           }
         ]
       }
+    },
+    {
+      "id": "just-every/porthole-auth-adapter",
+      "role": "module",
+      "source": {
+        "kind": "local",
+        "paths": [
+          "src/auth.server.ts"
+        ],
+        "origin": {
+          "repository": "https://github.com/runeditrun/base.git",
+          "revision": "4280971d7c0295b8a88c3e1179048efcbbe14f30",
+          "path": ".",
+          "paths": [
+            "foundation/template/src/auth.server.ts"
+          ]
+        },
+        "mappings": [
+          {
+            "path": "src/auth.server.ts",
+            "originPath": "foundation/template/src/auth.server.ts"
+          }
+        ]
+      }
     }
   ]
 }
