@@ -201,8 +201,8 @@
     },
     {
       "path": "migrations/core/0038_dependency_keys_sealed.sql",
-      "originPath": "modules/dependencies/schema/keys-sealed.sql",
-      "revision": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
+      "originPath": "default-seed/migrations/core/0032_dependency_keys_sealed.sql",
+      "revision": "4280971d7c0295b8a88c3e1179048efcbbe14f30",
       "files": {
         "migrations/core/0038_dependency_keys_sealed.sql": "9c8fa5f94c48a230f326cd4d666cbc2bd1e7d5a18327b89e65b339ac6a533d9a"
       },
@@ -471,12 +471,12 @@
       "revision": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
       "files": {
         "scripts/edition-authoring/adopt.mjs": "c9cf80207b5f14164ce18cce63e08e0fcbb254d93b66263911ba74cdd4079c8f",
+        "scripts/edition-authoring/lock.mjs": "255b570052a8e3cd785043c82e2088445d8e181a92c35c397444eafebe2ec1e4",
         "scripts/edition-authoring/base-acknowledgements.mjs": "fd486d607c019f2ff162830149ef717063bcae9ba995ec7f18f14fd3f2cb4b32",
         "scripts/edition-authoring/base-copies.mjs": "bcd240ebbe52adfdd58255b34ee27ab3ff118bc24bdfe7b1803c1a883ce85279",
         "scripts/edition-authoring/cli.mjs": "ea39cb9b8c101a446d6fdf023866bb2c86965926f316f6030a0394f1cffeaf17",
         "scripts/edition-authoring/copy-checkout.mjs": "7b7fff83e2cc90f4b7a1f83673ea1d77d02704377ada4e13164d9ec74e83ba00",
         "scripts/edition-authoring/files.mjs": "9dfb5940c9b793cca5ddf9556b756c81046a371a16a10c5b869487172a6c25ae",
-        "scripts/edition-authoring/lock.mjs": "255b570052a8e3cd785043c82e2088445d8e181a92c35c397444eafebe2ec1e4",
         "scripts/edition-authoring/manifest.mjs": "0c93bd39b1dd869b23a9d2727671fe8f9c933a9d56c7a3df1ba83c4a6f816e7b",
         "scripts/edition-authoring/offline-git.mjs": "ef86d89a1c7df9fef306b24032629c2e8e60b589376ccddbe9b4e3c91d11543c",
         "scripts/edition-authoring/parent-comparison.mjs": "fba6c894e2fe5a48c2f8706ab74b09d1935bd7fa38049a264d3d91ff6d336003",
@@ -487,12 +487,12 @@
       },
       "modes": {
         "scripts/edition-authoring/adopt.mjs": "100644",
+        "scripts/edition-authoring/lock.mjs": "100644",
         "scripts/edition-authoring/base-acknowledgements.mjs": "100644",
         "scripts/edition-authoring/base-copies.mjs": "100644",
         "scripts/edition-authoring/cli.mjs": "100644",
         "scripts/edition-authoring/copy-checkout.mjs": "100644",
         "scripts/edition-authoring/files.mjs": "100644",
-        "scripts/edition-authoring/lock.mjs": "100644",
         "scripts/edition-authoring/manifest.mjs": "100644",
         "scripts/edition-authoring/offline-git.mjs": "100644",
         "scripts/edition-authoring/parent-comparison.mjs": "100644",
@@ -987,7 +987,7 @@
     {
       "path": "src/modules/dependencies",
       "originPath": "modules/dependencies",
-      "revision": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
+      "revision": "4280971d7c0295b8a88c3e1179048efcbbe14f30",
       "files": {
         "src/modules/dependencies/approval.mjs": "7398c2f5ec6c8505f7fa24d5fab7848967dfb3f61720892d1f31494a68237a69",
         "src/modules/dependencies/auth.mjs": "6dd0ee20fff4a25af3d5657a1c139af184b92f18776a21fac8906b99ee60957b",
@@ -1025,9 +1025,9 @@
         "src/modules/dependencies/store.mjs": "100644"
       },
       "adapted": {
-        "src/modules/dependencies/README.md": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
-        "src/modules/dependencies/sealing.mjs": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
-        "src/modules/dependencies/store.mjs": "11f94fec479228d71ba6d7dd6ea7796c0d42c544"
+        "src/modules/dependencies/README.md": "4280971d7c0295b8a88c3e1179048efcbbe14f30",
+        "src/modules/dependencies/sealing.mjs": "4280971d7c0295b8a88c3e1179048efcbbe14f30",
+        "src/modules/dependencies/store.mjs": "4280971d7c0295b8a88c3e1179048efcbbe14f30"
       },
       "acknowledged": {
         "src/modules/dependencies/README.md": {
@@ -1446,6 +1446,7 @@
       "originPath": "modules/mail",
       "revision": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
       "files": {
+        "src/modules/mail/README.md": "00154803c5caf2fa952b4b1a26f849dc44fd9fbbc23db18a5715eb592f63fef9",
         "src/modules/mail/.gitignore": "bac5cb305c3cbf6aa42e50e7f2c0f5331a71d70dac15f239b8ec6746afed0db5",
         "src/modules/mail/doctor.mjs": "861a2be20c051247d590cc14d173037f648666fc28ac39f826d69e38e5e2f5d9",
         "src/modules/mail/index.mjs": "c0501b55f9ba53796926bed1abb22c8690ad2a66b03e09407a84a632c5a4a0c0",
@@ -1454,7 +1455,6 @@
         "src/modules/mail/live-proof/run.mjs": "e0c9a4838d6e3ab467f98a7c5be3a74f874267ced6ec025e4de26e906fb45a04",
         "src/modules/mail/package.json": "b6e2d1e285c44deffbec6ae94ab67599d8dda0aaa548066c415ec94418ffbd30",
         "src/modules/mail/pnpm-lock.yaml": "4b8846fd11bb799afabcb07e44e9a3297086144ef18521fcfc458718233941e6",
-        "src/modules/mail/README.md": "00154803c5caf2fa952b4b1a26f849dc44fd9fbbc23db18a5715eb592f63fef9",
         "src/modules/mail/src/adapters/cloudflare/headers.mjs": "6bee46c1edb6228b9d3df8b26ca1acbb163c36d94ecbd8e28ace1a6811095f23",
         "src/modules/mail/src/adapters/cloudflare/index.mjs": "377e4a322ac7803a1c56986ac909c35c1328896cff07c0610abbad5e8f8c3f86",
         "src/modules/mail/src/adapters/cloudflare/README.md": "80531ce460180b853b7db0480b4ff3d4f919fa5ccc119f71255fb1ac13485c5a",
@@ -1513,6 +1513,7 @@
         "src/modules/mail/src/unsubscribe/index.mjs": "5804439f7b5981c73dba442cb33237ba73eedfaf1a71fd1c2f5e5a91cb1b2927"
       },
       "modes": {
+        "src/modules/mail/README.md": "100644",
         "src/modules/mail/.gitignore": "100644",
         "src/modules/mail/doctor.mjs": "100644",
         "src/modules/mail/index.mjs": "100644",
@@ -1521,7 +1522,6 @@
         "src/modules/mail/live-proof/run.mjs": "100644",
         "src/modules/mail/package.json": "100644",
         "src/modules/mail/pnpm-lock.yaml": "100644",
-        "src/modules/mail/README.md": "100644",
         "src/modules/mail/src/adapters/cloudflare/headers.mjs": "100644",
         "src/modules/mail/src/adapters/cloudflare/index.mjs": "100644",
         "src/modules/mail/src/adapters/cloudflare/README.md": "100644",

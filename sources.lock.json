@@ -296,7 +296,7 @@
       "executable": false
     },
     "base-copies.json": {
-      "sha256": "845a37fa587b6bb43f2457afe427c184121f6c363f22a14b54fa39943d25c85e",
+      "sha256": "d6ed22a2a01595ff55167157c63d8675268a43a9f4d414db50b8a05d6ca31c18",
       "executable": false
     },
     "cli/client.mjs": {
