@@ -14,6 +14,7 @@ export const openapi={
   [`/api/porthole/v1/configuration/${kind}/{id}`,{
    parameters:[{name:'id',in:'path',required:true,schema:{type:'string',format:'uuid'}}],
    get:{summary:'Read current definition and ETag',responses:{200:response('Current definition',definition),...failures}},
+   delete:{summary:'Archive an exact definition revision without deleting its history',parameters:[...mutations.parameters,{name:'If-Match',in:'header',required:true,schema:{type:'string'}}],responses:{200:response('Archived definition',definition),...failures}},
    put:{summary:'Replace definition if revision still matches',...mutations,parameters:[...mutations.parameters,{name:'If-Match',in:'header',required:true,schema:{type:'string'}}],responses:{200:response('Updated inactive definition',definition),...failures}},
   }],
  ])),

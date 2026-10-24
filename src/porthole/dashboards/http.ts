@@ -17,7 +17,7 @@ async function current(env:Bindings,actor:Authority,id:string) {
 export async function dashboardResponse(request:Request,env:Bindings):Promise<Response|null> {
  const url=new URL(request.url),page=url.pathname.startsWith(app)
  if(!page&&!url.pathname.startsWith(api))return null
- if(![app,api,app+'/save',app+'/reorder',app+'/clone',app+'/archive'].includes(url.pathname)&&!new RegExp('^('+app+'|'+api+')/[a-f0-9-]{36}$').test(url.pathname))return null
+ if(![app,api,app+'/save',app+'/reorder',app+'/clone',app+'/archive',app+'/panel',app+'/annotation'].includes(url.pathname)&&!new RegExp('^('+app+'|'+api+')/[a-f0-9-]{36}$').test(url.pathname))return null
  try {
   const actor=await authority(request,env,{post:request.method==='POST'}),canEdit=['owner','admin','maintainer'].includes(actor.member.role)
   if(actor.member.role==='finance reader')fail('dashboards_forbidden')
@@ -27,8 +27,10 @@ export async function dashboardResponse(request:Request,env:Bindings):Promise<Re
     return page?dashboardList(rows,canEdit):json({dashboards:rows.map(row=>({...row,body:JSON.parse(row.body),scope:JSON.parse(row.scope)}))})
    }
    let row=await current(env,actor,url.pathname.split('/').at(-1)!)
+   const quarantined=row.state==='quarantined'
    const versions=(await env.DB.prepare(`SELECT * FROM porthole_dashboard_versions WHERE id=? AND ${actor.fence} ORDER BY revision DESC`).bind(row.id,...actor.args).all<DashboardRow>()).results.filter(v=>scopeWithin(JSON.parse(v.scope),actor.member.scope))
    if(url.searchParams.has('version')) {const version=Number(url.searchParams.get('version'));row=versions.find(v=>v.revision===version)??fail('dashboard_version_not_found',404)}
+   if(quarantined)row={...row,state:'quarantined'}
    if(!page)return json({...row,body:JSON.parse(row.body),scope:JSON.parse(row.scope),versions:versions.map(v=>v.revision)})
    return dashboardPage(row,row.state==='quarantined'?[]:await dashboardResults(request,env,row),canEdit&&!url.searchParams.has('version'),url,versions)
   }
@@ -37,11 +39,16 @@ export async function dashboardResponse(request:Request,env:Bindings):Promise<Re
   const data=await input(request),previous=typeof data.id==='string'?await current(env,actor,data.id):null,now=Date.now()
   if(previous&&Number(data.revision)!==previous.revision)fail('revision_or_authority_changed',409)
   let body:Dashboard,name:string,scope:Scope,state='active',id=previous?.id??crypto.randomUUID(),revision=(previous?.revision??0)+1
-  if(url.pathname.endsWith('/clone')||url.pathname.endsWith('/reorder')||url.pathname.endsWith('/archive')) {
+  if(url.pathname.endsWith('/clone')||url.pathname.endsWith('/reorder')||url.pathname.endsWith('/archive')||url.pathname.endsWith('/panel')||url.pathname.endsWith('/annotation')) {
    if(!previous)fail('dashboard_not_found',404)
    body=dashboardBody(JSON.parse(previous.body));name=previous.name;scope=JSON.parse(previous.scope)
    if(url.pathname.endsWith('/clone')) {id=crypto.randomUUID();revision=1;name+=' copy'}
    if(url.pathname.endsWith('/archive'))state=previous.state==='archived'?'active':'archived'
+   if(url.pathname.endsWith('/panel')) {
+    const signal=String(data.signal),aggregate=({metrics:'average',logs:'count',traces:'p95'} as const)[signal as 'metrics'|'logs'|'traces']
+    body=dashboardBody({...body,panels:[...body.panels,{id:crypto.randomUUID(),title:data.title,service:data.service,signal,aggregate,metric:data.metric,unit:signal==='logs'?'records':signal==='traces'?'ms':data.unit??''}]})
+   }
+   if(url.pathname.endsWith('/annotation'))body=dashboardBody({...body,annotations:[...body.annotations,{at:data.at,label:data.label}]})
    if(url.pathname.endsWith('/reorder')) {
     if(data.order) {
      const order=typeof data.order==='string'?JSON.parse(data.order):data.order

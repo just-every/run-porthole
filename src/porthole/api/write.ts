@@ -15,7 +15,7 @@ export async function writeDefinition(request:Request,env:Bindings,kind:Collecti
  const key=request.headers.get('idempotency-key')
  if(!key || !/^[A-Za-z0-9._:-]{8,120}$/.test(key))fail('idempotency_key_required',400)
  const method=request.method,previousRevision=id?revision(request):null
- const data=await input(request)
+ const data=method==='DELETE'?{}:await input(request)
  if(Object.keys(data).some(value=>!['name','scope','body'].includes(value)))fail('invalid_definition',400)
  const fingerprint=canonical({method,kind,id:id??null,revision:previousRevision,data})
  const lookup=()=>env.DB.prepare(`SELECT fingerprint,response,status FROM porthole_api_idempotency WHERE actor_ref=? AND request_key=? AND ${actor.fence}`).bind(actor.member.operatorId,key,...actor.args).first<Receipt>()
@@ -35,13 +35,14 @@ export async function writeDefinition(request:Request,env:Bindings,kind:Collecti
  if(previous && previous.revision!==previousRevision)fail('revision_conflict',412)
  if(previous?.state==='quarantined')fail('configuration_quarantined',409)
  const now=Date.now(),objectId=id??crypto.randomUUID(),nextRevision=(previousRevision??0)+1
- const scope=parseScope(data.scope)
+ const scope=method==='DELETE'?JSON.parse(previous!.scope):parseScope(data.scope)
  if(!scope.services.length || !scope.environments.length || !scopeWithin(scope,actor.member.scope))fail('scope_forbidden')
- const row:ObjectRow={id:objectId,kind:collections[kind],name:text(data.name),scope:JSON.stringify(scope),body:JSON.stringify(validateBody(collections[kind],data.body)),revision:nextRevision,state:'inactive',created_at:previous?.created_at??now,updated_at:now}
+ const row:ObjectRow=method==='DELETE'?{...previous!,revision:nextRevision,state:'archived',updated_at:now}:{id:objectId,kind:collections[kind],name:text(data.name),scope:JSON.stringify(scope),body:JSON.stringify(validateBody(collections[kind],data.body)),revision:nextRevision,state:'inactive',created_at:previous?.created_at??now,updated_at:now}
  const value=representation(row),status=method==='POST'?201:200
  const absent='NOT EXISTS(SELECT 1 FROM porthole_api_idempotency WHERE actor_ref=? AND request_key=?)'
  const guard=`${actor.fence} AND ${absent}`,guardArgs=[...actor.args,actor.member.operatorId,key]
  const mutation=method==='POST'?env.DB.prepare(`INSERT INTO porthole_objects SELECT ?,?,?,?,?,?,?,?,? WHERE ${guard}`).bind(row.id,row.kind,row.name,row.scope,row.body,row.revision,row.state,row.created_at,row.updated_at,...guardArgs)
+  :method==='DELETE'?env.DB.prepare(`UPDATE porthole_objects SET state='archived',revision=?,updated_at=? WHERE id=? AND kind=? AND revision=? AND state!='quarantined' AND ${guard}`).bind(nextRevision,now,objectId,collections[kind],previousRevision,...guardArgs)
   :env.DB.prepare(`UPDATE porthole_objects SET name=?,scope=?,body=?,revision=?,state='inactive',updated_at=? WHERE id=? AND kind=? AND revision=? AND state!='quarantined' AND ${guard}`).bind(row.name,row.scope,row.body,row.revision,now,objectId,collections[kind],previousRevision,...guardArgs)
  const results=await env.DB.batch([
   mutation,

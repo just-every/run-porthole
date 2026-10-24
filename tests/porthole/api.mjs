@@ -83,4 +83,7 @@ export async function apiJourney({origin,cookie,freshOwner}) {
  assert.equal((await read(root)).status,401)
  assert.equal((await mcp('query_definitions',{collection:'monitors'})).status,401)
  assert.equal((await cli(['list','monitors','--all'],key.secret)).code,1)
+ const archived=await native(root+'/'+second.value.id,'DELETE',undefined,{'if-match':`"${second.value.revision}"`,'idempotency-key':randomUUID()})
+ assert.equal(archived.status,200);assert.equal((await archived.json()).state,'archived');assert.equal((await (await native(root+'/'+second.value.id)).json()).state,'archived')
+ console.log('Configuration API journey passed: native revisions and drift, durable idempotency, CLI pagination, scoped MCP definitions, quota, refusal, revocation and audited archival')
 }

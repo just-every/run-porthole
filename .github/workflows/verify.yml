@@ -83,6 +83,24 @@ jobs:
             if [ "$(free_kib)" -ge "$((20 * 1024 * 1024))" ]; then break; fi
             sudo rm -rf -- "$unused_tools"
           done
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16
+        if: matrix.name == 'dashboards'
+        with:
+          go-version-file: terraform-provider-porthole/go.mod
+          cache-dependency-path: terraform-provider-porthole/go.sum
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd
+        if: matrix.name == 'dashboards'
+        with:
+          terraform_version: '1.17.0'
+          terraform_wrapper: false
+      - name: Build native Terraform provider
+        if: matrix.name == 'dashboards'
+        env:
+          GOMAXPROCS: '2'
+        run: |
+          mkdir -p .cache/toolchains
+          cd terraform-provider-porthole
+          go build -p 2 -o ../.cache/toolchains/terraform-provider-porthole .
       - name: Run this shard
         env:
           SHARD: ${{ matrix.name }}

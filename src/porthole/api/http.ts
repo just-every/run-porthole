@@ -31,7 +31,7 @@ export async function apiResponse(request:Request,env:Bindings):Promise<Response
    return json({objects:result.rows.slice(0,limit).map(representation),cursor:result.rows.length>limit?result.rows[limit-1].id:null},200,headers)
   }
   if(url.search)fail('invalid_query',400)
-  if(!(request.method==='POST'&&!id || request.method==='PUT'&&id))fail('method_not_allowed',405)
+  if(!(request.method==='POST'&&!id || ['PUT','DELETE'].includes(request.method)&&id))fail('method_not_allowed',405)
   const result=await writeDefinition(request,env,kind,id)
   return json(result.value,result.status,{etag:entityTag(result.value.revision),'idempotency-replayed':String(result.replayed),'x-porthole-entity':result.value.id,'x-porthole-actor':result.actor.member.operatorId,'x-porthole-actor-revision':String(result.actor.member.revision),...(request.method==='POST'?{location:`${configurationRoot}/${kind}/${result.value.id}`}:{})})
  } catch(error) {

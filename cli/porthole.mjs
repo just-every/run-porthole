@@ -38,7 +38,7 @@ export async function run(args,{env=process.env,input=process.stdin,output=proce
   if(!id || flags.length)throw Error('Usage: porthole ORIGIN get COLLECTION ID')
   emit(await request(root+'/'+encodeURIComponent(id)));return
  }
- if(!['create','update'].includes(command))throw Error('Use list, get, query, create or update')
+ if(!['create','update','archive'].includes(command))throw Error('Use list, get, query, create, update or archive')
  const options=command==='create'?rest.slice(1):flags
  let key,revision
  for(let index=0;index<options.length;index+=2) {
@@ -47,8 +47,8 @@ export async function run(args,{env=process.env,input=process.stdin,output=proce
   else throw Error('Mutations require --key KEY and updates require --revision N')
  }
  if(!key || command!=='create' && (!id || !Number.isSafeInteger(revision) || revision<1))throw Error('Mutations require --key KEY and updates require --revision N')
- const method={create:'POST',update:'PUT'}[command]
- emit(await request(command==='create'?root:root+'/'+encodeURIComponent(id),{method,key,revision,body:await readInput(input)}))
+ const method={create:'POST',update:'PUT',archive:'DELETE'}[command]
+ emit(await request(command==='create'?root:root+'/'+encodeURIComponent(id),{method,key,revision,body:command==='archive'?undefined:await readInput(input)}))
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(resolve(process.argv[1])).href) {
  try {await run(process.argv.slice(2))}catch(error){process.stderr.write(error.message+'\n');process.exitCode=1}
