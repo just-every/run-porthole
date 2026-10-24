@@ -1,5 +1,6 @@
 import { canonical, digest, genesis, type AuditEntry } from '../audit/store'
 import { byTable, catalog } from './catalog'
+import {dashboardBody} from '../dashboards/model'
 import { validateBody } from '../objects/schema'
 import { validateHealthHistory } from './health-history'
 import { fail, parseScope, roles } from '../security/authority'
@@ -24,6 +25,7 @@ export function manifestInput(value: unknown): Manifest {
  // Older archives predate export exclusions. Their absent journal is empty;
  // a later destination journal still wins during restore.
  if(!Object.hasOwn(value.tables,'porthole_export_exclusions'))value.tables.porthole_export_exclusions=0
+ for(const table of ['porthole_dashboards','porthole_dashboard_versions'])if(!Object.hasOwn(value.tables,table))value.tables[table]=0
  if(Object.keys(value.tables).sort().join(',')!==catalog.map(item=>item.table).sort().join(',') || Object.values(value.tables).some(v=>!integer(v)) || Object.values(value.tables).reduce<number>((a,b)=>a+(b as number),0)!==value.rowCount || value.chunks!==Math.ceil(value.rowCount/chunkRows)) return bad()
  if(value.tables.porthole_ingest_control!==1)bad()
  return value as unknown as Manifest
@@ -49,6 +51,9 @@ export async function validateRow(payload: PortableRow, state: Validation): Prom
   if(typeof row.record_id!=='string'||!/^[a-f0-9-]{36}:[0-9]+$/.test(row.record_id)||!integer(row.excluded_at))bad()
  } else if(item.table==='porthole_bucket_history') {
   if(!validHistoryReference(row))bad()
+ } else if(['porthole_dashboards','porthole_dashboard_versions'].includes(item.table)) {
+  if(!uuid(row.id)||!str(row.name)||!integer(row.revision,1)||!integer(row.created_at)||!integer(row.updated_at)||!['active','archived','quarantined'].includes(String(row.state)))bad()
+  parseScope(json(row.scope));dashboardBody(json(row.body))
  } else if(item.table==='porthole_objects') {
   if(!uuid(row.id) || !['monitor','repair'].includes(String(row.kind)) || !str(row.name) || !integer(row.revision,1) || !integer(row.created_at) || !integer(row.updated_at) || !['active','inactive','approved','archived','quarantined','pending','paused','draft'].includes(String(row.state))) bad()
   parseScope(json(row.scope)); const body=json(row.body); if(!object(body)) bad(); validateBody(String(row.kind),body)
@@ -60,7 +65,7 @@ export async function validateRow(payload: PortableRow, state: Validation): Prom
  } else if(item.table==='porthole_query_snapshots') {
   if(!uuid(row.id)||!uuid(row.actor_ref)||!['logs','metrics','traces','profiles'].includes(String(row.signal))||!integer(row.through_batch)||!integer(row.created_at)||!/^\d{20}$/.test(String(row.from_ns))||!/^\d{20}$/.test(String(row.through_ns))||String(row.from_ns)>String(row.through_ns))bad()
   const descriptor=json(row.scope) as Record<string,unknown>
-  if(!object(descriptor) || Object.keys(descriptor).some(key=>!['service','environment','team','cursor','limit','trace'].includes(key)))bad()
+  if(!object(descriptor) || Object.keys(descriptor).some(key=>!['service','environment','team','cursor','limit','trace','metric'].includes(key)))bad()
   for(const key of ['service','environment','team'])if(descriptor[key]!==undefined && (typeof descriptor[key]!=='string' || !/^[a-zA-Z0-9][a-zA-Z0-9._:/-]{0,119}$/.test(String(descriptor[key]))))bad()
   if(descriptor.trace!==undefined && (row.signal!=='traces'||typeof descriptor.trace!=='string'||!/^[a-f0-9]{32}$/.test(descriptor.trace)||/^0+$/.test(descriptor.trace)))bad()
   if(descriptor.cursor!==undefined && (typeof descriptor.cursor!=='string' || descriptor.cursor.length>512))bad()

@@ -6,7 +6,8 @@ export async function validateRelations(db:D1Database,jobId:string):Promise<void
  SELECT table_name,json_extract(payload,'$.row') AS value FROM porthole_archive_rows WHERE job_id=?
  ), batches AS (SELECT value FROM staged WHERE table_name='porthole_ingest_batches'),
  retained AS (SELECT table_name,value FROM staged WHERE table_name IN ('porthole_telemetry_records','porthole_telemetry_archive'))
- SELECT EXISTS(SELECT 1 FROM retained r LEFT JOIN batches b ON json_extract(b.value,'$.id')=json_extract(r.value,'$.batch_id')
+ SELECT EXISTS(SELECT 1 FROM staged v WHERE v.table_name='porthole_dashboard_versions' AND NOT EXISTS(SELECT 1 FROM staged d WHERE d.table_name='porthole_dashboards' AND json_extract(d.value,'$.id')=json_extract(v.value,'$.id') AND json_extract(d.value,'$.revision')>=json_extract(v.value,'$.revision')))
+ OR EXISTS(SELECT 1 FROM retained r LEFT JOIN batches b ON json_extract(b.value,'$.id')=json_extract(r.value,'$.batch_id')
  WHERE b.value IS NULL OR json_extract(r.value,'$.source_id')!=json_extract(b.value,'$.source_id')
  OR json_extract(r.value,'$.signal')!=json_extract(b.value,'$.signal')
  OR json_extract(r.value,'$.ordinal')>=json_extract(b.value,'$.record_count')

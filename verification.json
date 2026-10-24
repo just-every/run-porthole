@@ -72,6 +72,16 @@
         "pnpm run build",
         "PORTHOLE_MIGRATION_ONLY=1 pnpm run test:runtime"
       ]
+    },
+    {
+      "name": "dashboards",
+      "browser": true,
+      "hosted": false,
+      "commands": [
+        "pnpm run build",
+        "PORTHOLE_DASHBOARD_ONLY=1 pnpm run test:runtime",
+        "PORTHOLE_API_ONLY=1 pnpm run test:runtime"
+      ]
     }
   ],
   "nightly": []

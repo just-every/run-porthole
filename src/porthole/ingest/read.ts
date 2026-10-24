@@ -19,7 +19,7 @@ const json = (value:unknown,status=200,headers:Record<string,string>={}) => Resp
 export async function readTelemetry(request: Request, env: Bindings, options: {archive?:boolean} = {}): Promise<Response> {
  try {
   const url = new URL(request.url), params = url.searchParams, archive = !!options.archive
-  if ([...params.keys()].some(key => !['signal','service','environment','team','from','through','cursor','limit','snapshot','trace'].includes(key))) fail('invalid_query',400)
+  if ([...params.keys()].some(key => !['signal','service','environment','team','from','through','cursor','limit','snapshot','trace','metric'].includes(key))) fail('invalid_query',400)
   const limit = Number(params.get('limit') ?? 100)
   if (!Number.isSafeInteger(limit) || limit < 1 || limit > (params.has('trace')?2000:200)) fail('invalid_query_limit',400)
   const signal = params.get('signal')
@@ -53,6 +53,11 @@ export async function readTelemetry(request: Request, env: Bindings, options: {a
    if(signal!=='traces'||!/^[a-f0-9]{32}$/.test(trace)||/^0+$/.test(trace))fail('invalid_trace_id',400)
    clauses.push('r.trace_id=?');args.push(trace)
   }
+  const metric=params.get('metric')
+  if(metric!==null) {
+   if(signal!=='metrics'||!metric.trim().length||metric.length>120||/[\u0000-\u001f\u007f-\u009f]/u.test(metric)||params.getAll('metric').length!==1)fail('invalid_metric_name',400)
+   clauses.push("json_extract(r.payload,'$.metric.name')=?");args.push(metric)
+  }
   clauses.push('r.event_time_ns>=?','r.event_time_ns<=?');args.push(from,through)
   const snapshot = params.has('snapshot') ? Number(params.get('snapshot')) : (await env.DB.prepare("SELECT COALESCE(MAX(completion_sequence),0) AS snapshot FROM porthole_ingest_batches WHERE state='complete'").first<{snapshot:number}>())!.snapshot
   if (!Number.isSafeInteger(snapshot) || snapshot < 0) fail('invalid_query_snapshot',400)
@@ -67,7 +72,7 @@ export async function readTelemetry(request: Request, env: Bindings, options: {a
   }
   const table=archive ? 'porthole_telemetry_archive' : 'porthole_telemetry_records'
   const select=`SELECT r.* FROM ${table} r JOIN porthole_ingest_batches b ON b.id=r.batch_id WHERE ${clauses.join(' AND ')} AND `
-  const queryRef=crypto.randomUUID(),queryScope=JSON.stringify(Object.fromEntries([...params].filter(([key])=>['service','environment','team','cursor','limit','trace'].includes(key))))
+  const queryRef=crypto.randomUUID(),queryScope=JSON.stringify(Object.fromEntries([...params].filter(([key])=>['service','environment','team','cursor','limit','trace','metric'].includes(key))))
   const analytical=await analyticalConfiguration(env)
   if(analyticalSelected(env,analytical))return await readAnalytical(request,env,analytical,{scope,actorRef,actorRevision,fence,snapshot,queryRef,queryScope,from,through,signal,limit,archive})
   const snapshotInsert=(live:{sql:string;args:unknown[]})=>env.DB.prepare(`INSERT INTO porthole_query_snapshots SELECT ?,?,?,?,?,?,?,? WHERE ${live.sql}`).bind(queryRef,actorRef,queryScope,signal,from,through,snapshot,Date.now(),...live.args)

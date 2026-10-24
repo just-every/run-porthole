@@ -5,11 +5,11 @@ import { input } from '../security/input'
 import { readTelemetry } from '../ingest/read'
 import { verifyCredential } from '../credentials/verify'
 import { operationDocument as document,escape,privateHeaders } from '../document'
-const keys=['signal','service','environment','team','from','through','cursor','limit','snapshot','trace']
+const keys=['signal','service','environment','team','from','through','cursor','limit','snapshot','trace','metric']
 function queryRequest(request:Request,data:Record<string,unknown>):Request {
  const url=new URL('/api/porthole/v1/ingest/records',request.url)
  for(const [key,value] of Object.entries(data)) {
-  if(!keys.includes(key) || !['string','number'].includes(typeof value))fail('invalid_query',400)
+  if(!keys.includes(key) || !['string','number'].includes(typeof value) || key==='metric'&&typeof value!=='string')fail('invalid_query',400)
   url.searchParams.set(key,String(value))
  }
  return new Request(url,{headers:request.headers})
@@ -18,16 +18,18 @@ export async function queryResponse(request:Request,env:Bindings):Promise<Respon
  const url=new URL(request.url),page=url.pathname==='/app/explore'
  if(!page && url.pathname!=='/api/porthole/v1/query' && !/^\/api\/porthole\/v1\/query\/[a-f0-9-]{36}$/.test(url.pathname))return null
  try {
-  if(url.search)fail('invalid_query',400)
+  if(url.search&&!page)fail('invalid_query',400)
+  if(page&&[...url.searchParams.keys()].some(key=>!keys.includes(key)))fail('invalid_query',400)
   // Browser queries retain native session/CSRF checks. Programmatic queries
   // authenticate only their Authorization credential in readTelemetry, which
   // reserves bytes and rechecks live custody in the result transaction.
   if(page || !request.headers.has('authorization'))await authority(request,env,{post:request.method==='POST'})
   else await verifyCredential(request,env,{action:'telemetry.read',scope:emptyScope,dataScope:allScope,inspectOnly:true})
-  if(page && request.method==='GET') return document('Explore telemetry',`<p>Read retained telemetry within your current service, environment and team scope. Each query has a reproducible, private snapshot reference in Audit.</p><form method="post" action="/app/explore"><label>Signal <select name="signal" aria-label="Signal"><option>logs</option><option>metrics</option><option>traces</option><option>profiles</option></select></label><label>Service <input name="service" required></label><label>Environment <input name="environment" required></label><label>Team <input name="team" required></label><button>Run query</button></form>`,200,{forms:true})
+  if(page && request.method==='GET' && !url.search) return document('Explore telemetry',`<p><a href="/app/dashboards">Dashboards</a></p><p>Read retained telemetry within your current service, environment and team scope. Each query has a reproducible, private snapshot reference in Audit.</p><form method="post" action="/app/explore"><label>Signal <select name="signal" aria-label="Signal"><option>logs</option><option>metrics</option><option>traces</option><option>profiles</option></select></label><label>Service <input name="service" required></label><label>Environment <input name="environment" required></label><label>Team <input name="team" required></label><button>Run query</button></form>`,200,{forms:true})
   let data:Record<string,unknown>
   const id=url.pathname.split('/').at(-1)!
-  if(request.method==='GET' && id!=='query') {
+  if(page&&request.method==='GET')data=Object.fromEntries(url.searchParams)
+  else if(request.method==='GET' && id!=='query') {
    const previous=await env.DB.prepare('SELECT * FROM porthole_query_snapshots WHERE id=?').bind(id).first<{scope:string;signal:string;from_ns:string;through_ns:string;through_batch:number}>()
    if(!previous)fail('query_not_found',404)
    data={...JSON.parse(previous.scope),signal:previous.signal,snapshot:previous.through_batch}

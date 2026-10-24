@@ -108,7 +108,7 @@ try {
   const setupPage=await fetch(`${origin}/setup`, { headers: { cookie } })
   assert.equal(setupPage.status,200)
   assert.match(await setupPage.text(),/Independent notices off — incomplete coverage/)
-  if(!process.env.PORTHOLE_EXPORT_ONLY && !process.env.PORTHOLE_MIGRATION_ONLY && !process.env.PORTHOLE_PROTOCOL_ONLY && !process.env.PORTHOLE_INGEST_ONLY && !process.env.PORTHOLE_ACCESS_ONLY && !process.env.PORTHOLE_TRACE_ONLY && (process.env.PORTHOLE_HEALTH_ONLY==='1' || !process.env.PORTHOLE_AUDIT_ONLY && !process.env.PORTHOLE_STOCK_ONLY)) {
+  if(!process.env.PORTHOLE_API_ONLY && !process.env.PORTHOLE_DASHBOARD_ONLY && !process.env.PORTHOLE_EXPORT_ONLY && !process.env.PORTHOLE_MIGRATION_ONLY && !process.env.PORTHOLE_PROTOCOL_ONLY && !process.env.PORTHOLE_INGEST_ONLY && !process.env.PORTHOLE_ACCESS_ONLY && !process.env.PORTHOLE_TRACE_ONLY && (process.env.PORTHOLE_HEALTH_ONLY==='1' || !process.env.PORTHOLE_AUDIT_ONLY && !process.env.PORTHOLE_STOCK_ONLY)) {
    const {healthBrowser}=await import('./porthole/health.mjs')
    await healthBrowser({origin,cookie,name:'setup-notices-off',path:'/setup',contains:'Independent notices off — incomplete coverage'})
   }
@@ -152,7 +152,13 @@ try {
     return await run({origin,cookie:destinationCookie,persist,...destinationHelpers,restartWorker})
    } finally {await restartWorker(()=>{persist=savedStore;ownerEmail=savedOwner})}
   }
-  if(process.env.PORTHOLE_MIGRATION_ONLY==='1') {
+  if(process.env.PORTHOLE_DASHBOARD_ONLY==='1') {
+   const {dashboardJourney}=await import('./porthole/dashboards.mjs')
+   await dashboardJourney({origin,cookie,restartWorker,withEmptyDestination,...helpers})
+  } else if(process.env.PORTHOLE_API_ONLY==='1') {
+   const {apiJourney}=await import('./porthole/api.mjs')
+   await apiJourney({origin,cookie,restartWorker,...helpers})
+  } else if(process.env.PORTHOLE_MIGRATION_ONLY==='1') {
    const {migrationJourney}=await import('./porthole/migration.mjs')
    await migrationJourney({origin,cookie,foreignCookie,restartWorker,...helpers})
   } else if(process.env.PORTHOLE_EXPORT_ONLY==='1') {

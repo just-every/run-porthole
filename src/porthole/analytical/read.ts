@@ -14,11 +14,15 @@ export async function readAnalytical(request:Request,env:Bindings,config:Configu
   live=inspected.fence
  }
  if(!await env.DB.prepare(`SELECT 1 AS live WHERE (${live.sql}) AND (${active.sql})`).bind(...live.args,...active.args).first())fail('authority_changed',409)
- const data=await query(env,config,{signal,scope:{services:scope.services,environments:scope.environments,teams:scope.teams},from,through,snapshot,limit,archive,...Object.fromEntries([...params].filter(([key])=>['service','environment','team','cursor','trace'].includes(key)))})
+ const data=await query(env,config,{signal,scope:{services:scope.services,environments:scope.environments,teams:scope.teams},from,through,snapshot,limit,archive,...Object.fromEntries([...params].filter(([key])=>['service','environment','team','cursor','trace','metric'].includes(key)))})
  if(data.sourceIdentity!==config.source_identity||!Array.isArray(data.records)||data.records.length>limit||data.snapshot!==snapshot||!Number.isSafeInteger(data.watermark)||data.watermark<snapshot)fail('analytics_invalid_response',503)
  for(const row of data.records){
   for(const [column,key]of [['service','services'],['environment','environments'],['team','teams']] as const)if(!scope[key].includes('*')&&!scope[key].includes(row[column])||params.has(column)&&params.get(column)!==row[column])fail('analytics_scope_violation',503)
   if(row.signal!==signal||typeof row.event_time_ns!=='string'||row.event_time_ns<from||row.event_time_ns>through||params.has('trace')&&row.trace_id!==params.get('trace'))fail('analytics_scope_violation',503)
+  if(params.has('metric')) {
+   const metric=row.payload.metric
+   if(!metric||typeof metric!=='object'||Array.isArray(metric)||(metric as Record<string,unknown>).name!==params.get('metric'))fail('analytics_scope_violation',503)
+  }
  }
  const selected=fence(config)
  const writes=(live:{sql:string;args:unknown[]})=>{
