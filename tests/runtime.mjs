@@ -187,7 +187,7 @@ try {
   }
   if(process.env.PORTHOLE_FOLLOW_UP_ONLY==='1') {
    const {followUpJourney}=await import('./porthole/health.mjs')
-   await followUpJourney({origin,cookie,restartWorker,withPinnedClock,...helpers})
+   await followUpJourney({origin,cookie,restartWorker,withPinnedClock,withEmptyDestination,...helpers})
   } else if(process.env.PORTHOLE_ERASURE_ONLY==='1') {
    const {subjectErasureJourney}=await import('./porthole/archive.mjs')
    await subjectErasureJourney({origin,cookie,restartWorker,withEmptyDestination,withPinnedClock,...helpers})

@@ -7,8 +7,14 @@ export async function reconcileFollowUp(env:Bindings,health:HealthState) {
  const now=Date.now(),sources:Source[]=[],global=JSON.stringify(allScope)
  const owner=await env.DB.prepare("SELECT o.id FROM oa_operators o JOIN porthole_members m ON m.operator_id=o.id WHERE o.status='active' AND o.role='owner' AND m.role='owner' ORDER BY o.created_at,o.id LIMIT 1").first<{id:string}>()
  for(const component of health.components) {
-  if(component.component==='control-plane'||component.status!=='Unknown'||!component.observedAt||component.reason.startsWith('Not configured:')||component.component==='monitor-evaluation'||component.component==='delivery')continue
+  if(component.component==='control-plane'||component.status!=='Unknown'||!component.observedAt||component.reason.startsWith('Not configured:')||component.component==='monitor-evaluation'||component.component==='delivery'||component.component==='collector')continue
   sources.push({source:'component:'+component.component,kind:'telemetry',scope:global,reason:component.reason,action:'Restore telemetry and select an unchanged monitor recovery guard.'})
+ }
+ const collectors=health.components.find(row=>row.component==='collector')?.evidence.collectors
+ if(Array.isArray(collectors))for(const item of collectors) {
+  const row=item as {id:string;signal:string;service:string;environment:string;team:string;status:string}
+  if(row.status==='Healthy')continue
+  sources.push({source:'collector:'+JSON.stringify([row.id,row.signal,row.service,row.environment,row.team]),kind:'telemetry',scope:JSON.stringify({services:[row.service],environments:[row.environment],teams:[row.team]}),reason:'Collector '+row.id+' is stale or its ingest authority is revoked.',action:'Restore the collector and verify the original scoped recovery monitor.'})
  }
  const failures=(await env.DB.prepare("SELECT id,kind,reason,team,service,environment FROM porthole_ingest_events WHERE kind IN ('rejected','source_loss','buffer_loss') ORDER BY occurred_at,id").all<{id:string;kind:string;reason:string;team:string;service:string;environment:string}>()).results
  for(const row of failures)sources.push({source:'ingest:'+row.id,kind:'ingest',scope:JSON.stringify({services:[row.service],environments:[row.environment],teams:[row.team]}),reason:row.kind+': '+row.reason,action:'Reconcile the original intake failure and loss accounting; missing data cannot establish recovery.'})
