@@ -456,11 +456,11 @@ export async function recipientMailJourney(analyticalProof) {
     await reconcile({...data,providerId:'https://synthetic-porthole-1197.example'},400)
     await reconcile({...data,confirm:'no'},400)
     assert.equal(receiptReads,0,'unauthorized or invalid references never reach the provider')
-    for(const status of [401,403,404,429]) {receiptStatus=status;await reconcile(data,status===429?503:422)}
+    for(const status of [302,401,403,404,429]) {receiptStatus=status;await reconcile(data,status===429||status===302?503:422)}
     receiptStatus=200
     for(const failure of ['timeout','mismatch','recipient','extra-recipient','malformed','oversized']) {receiptFault=failure;await reconcile(data,failure==='timeout'?503:422)}
     receiptFault=undefined
-    duringReceipt=()=>post('/auth/signout',{},303)
+    duringReceipt=()=>post('/auth/signout',{},204)
     await reconcile(data,401)
     assert.equal((await db.prepare('SELECT state FROM porthole_health_notices WHERE id=?').bind(id).first()).state,'uncertain','revocation during the provider read cannot commit acceptance')
     const nextToken=randomBytes(32).toString('base64url'),nextTime=Date.now()

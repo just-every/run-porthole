@@ -30,7 +30,7 @@ export async function reconcileNotice(request:Request,env:Bindings) {
  // Resend Retrieve Email: GET /emails/{email_id}. A send-only key may refuse
  // this read; the owner must resolve that scope rather than silently broaden it.
  let response:Response
- try {response=await fetch('https://api.resend.com/emails/'+data.providerId,{method:'GET',redirect:'error',signal:AbortSignal.timeout(10000),headers:{authorization:'Bearer '+env.MAIL_API_KEY,accept:'application/json'}})}
+ try {response=await fetch('https://api.resend.com/emails/'+data.providerId,{method:'GET',redirect:'manual',signal:AbortSignal.timeout(10000),headers:{authorization:'Bearer '+env.MAIL_API_KEY,accept:'application/json'}})}
  catch {return fail('provider_receipt_unavailable',503)}
  if(response.status!==200) {
   await response.body?.cancel()

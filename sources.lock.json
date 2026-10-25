@@ -3430,7 +3430,7 @@
       "executable": false
     },
     "src/porthole/integrations/registry/reconcile.ts": {
-      "sha256": "94651a53a96d970c32fd9e9a74ec9311eea7ad265ff2669073f2408038ed353e",
+      "sha256": "69b7d3c7053cda76c688e7f18b3cef2766e431a2f5b092611ee3fffde40760fa",
       "executable": false
     },
     "src/porthole/membership/auth.ts": {
@@ -3938,7 +3938,7 @@
       "executable": false
     },
     "tests/porthole/health.mjs": {
-      "sha256": "de9bdfe3f46b672cf519ffb856b96b6d3a718a956ef06a2b214c3332e6797355",
+      "sha256": "8fe8232a9771f02d4e4620a05f06459ab4bcc671f7006fa3b988f62abff5a15f",
       "executable": false
     },
     "tests/porthole/ingest.mjs": {
