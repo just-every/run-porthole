@@ -451,6 +451,7 @@ export async function recipientMailJourney(analyticalProof) {
      const response=await call(reconcilePath,{...form(origin,acting,body),headers:{...form(origin,acting,body).headers,accept:'application/json',...extra}})
      assert.equal(response.status,status,await response.clone().text());return response.json()
     }
+    const successBefore=(await registry()).adapters.find(row=>row.id==='resend').lastSuccess
     const preserved=(await health()).notices.find(row=>row.id===id),effectsBefore=acceptedMessages.filter(row=>row.custom_args.rer_delivery_id===delivery).length,sendsBefore=messages.filter(row=>row.custom_args.rer_delivery_id===delivery).length
     for(const [acting,extra] of [['',{}],[cookie,{authorization:'Bearer synthetic-porthole-1195'}],[cookie,{origin:'https://synthetic-porthole-1196.example'}],[cookie,{'sec-fetch-site':'cross-site'}]])await reconcile(data,acting?403:401,acting,extra)
     await reconcile({...data,providerId:'https://synthetic-porthole-1197.example'},400)
@@ -484,6 +485,7 @@ export async function recipientMailJourney(analyticalProof) {
     } finally {await browser.close()}
     const reconciled=(await health()).notices.find(row=>row.id===id)
     assert.equal(reconciled.state,'accepted');assert.equal(reconciled.provider_id,providerId);assert.equal(reconciled.attempts,preserved.attempts)
+    assert.equal((await registry()).adapters.find(row=>row.id==='resend').lastSuccess,successBefore,'verifying an old provider receipt cannot freshen the last submission time')
     const readCount=receiptReads
     assert.equal((await reconcile()).replayed,true);assert.equal(receiptReads,readCount,'duplicate owner submission performs no second provider read')
     await mf.dispose();mf=new Miniflare(options());db=await mf.getD1Database('DB')
@@ -495,7 +497,6 @@ export async function recipientMailJourney(analyticalProof) {
     assert.equal(facts.length,1,'receipt acceptance has one atomic owner-attributed audit fact');assert.equal(facts[0].actorRef,session.operator.id)
     assert.ok(!JSON.stringify(audit).includes(providerId),'provider references stay out of the audit packet')
     await healthBrowser({origin,cookie,path:registryPath,name:'integration-reconciled-receipt',dispatch})
-    assert.ok((await registry()).adapters.find(row=>row.id==='resend').lastSuccess>=facts[0].occurredAt)
     console.log('noticeReceiptReconciliation passed: original-grant provider read, exact frozen payload, owner Settings form, no replacement send, fault refusals, duplicate submission, atomic private audit, restart and 1440/390 screens')
    }
 

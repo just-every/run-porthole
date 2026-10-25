@@ -151,6 +151,8 @@ requires the complete frozen message and original recipient to match, and
 checks live owner authority again before atomically recording acceptance and
 its private audit fact. The provider ID remains in the private notice receipt.
 Repeated confirmation and restart preserve that receipt without another send.
+Receipt verification does not advance the recorded submission time or assert
+fresh pipeline health.
 
 A missing, mismatched, oversized, unavailable or refused receipt leaves the
 notice uncertain. A changed provider grant or notice configuration also stays

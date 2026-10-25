@@ -378,7 +378,7 @@
       "executable": false
     },
     "docs/recovery.md": {
-      "sha256": "5e36b6693675938957e4aab9a37ecaa1ceb96bb04124c591a6a4f9e19a786536",
+      "sha256": "0beb22d2900f614a2a682deded87d82e7eecf037c6e2bdbc3ed3754f48e1b97c",
       "executable": false
     },
     "docs/signal-exports.md": {
@@ -3426,7 +3426,7 @@
       "executable": false
     },
     "src/porthole/integrations/registry/http.ts": {
-      "sha256": "8d20a3f269b0017b0f3e3eac7aa680a4d01f1f154b136d8da7dedbb99db03eac",
+      "sha256": "5588a88027e1e2d8ff2d93acd6d136b8a6b4b057e2fddbe2fa899b6a4fd6239e",
       "executable": false
     },
     "src/porthole/integrations/registry/reconcile.ts": {
@@ -3938,7 +3938,7 @@
       "executable": false
     },
     "tests/porthole/health.mjs": {
-      "sha256": "8a5133e9b1516e301adc5b86c96d1e63732f7510d13f9d17a96aa4268d4ed286",
+      "sha256": "64b6e9b1a9063ac9daecad344b679f6d421d831cdb26b023a137bf4b14d48cde",
       "executable": false
     },
     "tests/porthole/ingest.mjs": {
