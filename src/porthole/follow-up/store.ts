@@ -1,0 +1,37 @@
+import type { Bindings } from '../../auth.server'
+import type { HealthState } from '../health/model'
+import { allScope } from '../security/authority'
+export interface Task {id:string;source:string;kind:string;scope:string;owner_id:string|null;state:string;reason:string;next_action:string;due_at:number;guard_id:string|null;guard_revision:number|null;generation:number;revision:number;reminders:number;suppressed_until:number;created_at:number;updated_at:number}
+interface Source {source:string;kind:string;scope:string;reason:string;action:string;guard?:string;revision?:number}
+export async function reconcileFollowUp(env:Bindings,health:HealthState) {
+ const now=Date.now(),sources:Source[]=[],global=JSON.stringify(allScope)
+ const owner=await env.DB.prepare("SELECT o.id FROM oa_operators o JOIN porthole_members m ON m.operator_id=o.id WHERE o.status='active' AND o.role='owner' AND m.role='owner' ORDER BY o.created_at,o.id LIMIT 1").first<{id:string}>()
+ for(const component of health.components) {
+  if(component.component==='control-plane'||component.status!=='Unknown'||!component.observedAt||component.reason.startsWith('Not configured:')||component.component==='monitor-evaluation'||component.component==='delivery'||component.component==='collector')continue
+  sources.push({source:'component:'+component.component,kind:'telemetry',scope:global,reason:component.reason,action:'Restore telemetry and select an unchanged monitor recovery guard.'})
+ }
+ const collectors=health.components.find(row=>row.component==='collector')?.evidence.collectors
+ if(Array.isArray(collectors))for(const item of collectors) {
+  const row=item as {id:string;signal:string;service:string;environment:string;team:string;status:string}
+  if(row.status==='Healthy')continue
+  sources.push({source:'collector:'+JSON.stringify([row.id,row.signal,row.service,row.environment,row.team]),kind:'telemetry',scope:JSON.stringify({services:[row.service],environments:[row.environment],teams:[row.team]}),reason:'Collector '+row.id+' is stale or its ingest authority is revoked.',action:'Restore the collector and verify the original scoped recovery monitor.'})
+ }
+ const failures=(await env.DB.prepare("SELECT id,kind,reason,team,service,environment FROM porthole_ingest_events WHERE kind IN ('rejected','source_loss','buffer_loss') ORDER BY occurred_at,id").all<{id:string;kind:string;reason:string;team:string;service:string;environment:string}>()).results
+ for(const row of failures)sources.push({source:'ingest:'+row.id,kind:'ingest',scope:JSON.stringify({services:[row.service],environments:[row.environment],teams:[row.team]}),reason:row.kind+': '+row.reason,action:'Reconcile the original intake failure and loss accounting; missing data cannot establish recovery.'})
+ const monitors=(await env.DB.prepare("SELECT o.id,o.revision,o.scope,s.status,s.reason FROM porthole_objects o LEFT JOIN porthole_monitor_state s ON s.object_id=o.id AND s.revision=o.revision WHERE o.kind='monitor' AND o.state='active'").all<{id:string;revision:number;scope:string;status:string|null;reason:string|null}>()).results
+ for(const row of monitors)if(row.status!=='Healthy')sources.push({source:`monitor:${row.id}:${row.revision}`,kind:'telemetry',scope:row.scope,reason:row.reason??'Monitor has no measured evaluation.',action:'Recover the original monitor without changing its definition.',guard:row.id,revision:row.revision})
+ const notices=(await env.DB.prepare("SELECT id,state FROM porthole_health_notices WHERE state IN ('rejected','uncertain','pending','sending') AND attempts>0").all<{id:string;state:string}>()).results
+ for(const row of notices)sources.push({source:'notice:'+row.id,kind:'provider',scope:global,reason:'Original provider send is '+row.state+'. Acceptance is not recipient delivery or telemetry recovery.',action:'Inspect the original notice and reconcile its receipt in Settings; do not send a replacement.'})
+ await env.DB.prepare(`UPDATE porthole_follow_up SET reason='Provider acceptance is recorded for the original send; recipient delivery and acknowledgment remain unproved.',updated_at=? WHERE kind='provider' AND EXISTS(SELECT 1 FROM porthole_health_notices n WHERE source='notice:'||n.id AND n.state='accepted')`).bind(now).run()
+ const repairs=(await env.DB.prepare("SELECT id,revision,scope,state FROM porthole_objects WHERE kind='repair' AND state!='quarantined'").all<{id:string;revision:number;scope:string;state:string}>()).results
+ for(const row of repairs)sources.push({source:`repair:${row.id}:${row.revision}`,kind:'repair',scope:row.scope,reason:row.state==='inactive'?'Exact repair is awaiting human approval.':'Approval is recorded; execution and measured recovery remain unproved.',action:'Review the exact repair in Operations. Approval authority never transfers.'})
+ for(const row of sources)await env.DB.batch([
+  env.DB.prepare(`INSERT INTO porthole_follow_up(id,source,kind,scope,owner_id,state,reason,next_action,due_at,guard_id,guard_revision,created_at,updated_at) VALUES(?,?,?,?,?,'blocked',?,?,?,?,?,?,?) ON CONFLICT(source) DO UPDATE SET reason=excluded.reason,state=CASE WHEN state='resolved' THEN 'blocked' ELSE state END,generation=generation+CASE WHEN state='resolved' THEN 1 ELSE 0 END,revision=revision+CASE WHEN state='resolved' THEN 1 ELSE 0 END,due_at=CASE WHEN state='resolved' THEN excluded.due_at ELSE due_at END,updated_at=excluded.updated_at`).bind(crypto.randomUUID(),row.source,row.kind,row.scope,owner?.id??null,row.reason,row.action,now+86400000,row.guard??null,row.revision??null,now,now),
+ ])
+ // Only a fresh measured Healthy evaluation on the original saved revision can
+ // resolve telemetry work. Unknown, quiet alerts and edited definitions cannot.
+ await env.DB.prepare(`UPDATE porthole_follow_up SET state='resolved',reason='Fresh measured recovery on the unchanged original monitor.',revision=revision+1,updated_at=? WHERE kind='telemetry' AND state!='resolved' AND owner_id IS NOT NULL AND EXISTS(SELECT 1 FROM oa_operators a WHERE a.id=owner_id AND a.status='active') AND NOT EXISTS(SELECT 1 FROM porthole_follow_up b WHERE b.kind='telemetry' AND b.source LIKE 'component:%' AND b.source IN (${sources.filter(s=>s.source.startsWith('component:')).map(()=>'?').join(',')||"''"})) AND EXISTS(SELECT 1 FROM porthole_objects o JOIN porthole_monitor_state s ON s.object_id=o.id AND s.revision=o.revision WHERE o.id=guard_id AND o.revision=guard_revision AND o.state='active' AND s.status='Healthy' AND s.evaluated_at>=? AND s.evaluated_at<=?)`).bind(now,...sources.filter(s=>s.source.startsWith('component:')).map(s=>s.source),now-health.configuration.freshnessSeconds*1000,now).run()
+ await env.DB.prepare(`UPDATE porthole_follow_up SET state='blocked',reason='Recovery guard changed or is inactive; review the original evidence.',revision=revision+1,updated_at=? WHERE state!='resolved' AND guard_id IS NOT NULL AND NOT EXISTS(SELECT 1 FROM porthole_objects WHERE id=guard_id AND revision=guard_revision AND state='active')`).bind(now).run()
+ await env.DB.prepare(`INSERT OR IGNORE INTO porthole_follow_up_events SELECT lower(hex(randomblob(16))),id,generation,'reminder',NULL,'Due work: inspect the blocker and next action in Follow-up.',? FROM porthole_follow_up WHERE state!='resolved' AND reminders=1 AND due_at<=? AND suppressed_until<=? AND owner_id IS NOT NULL AND EXISTS(SELECT 1 FROM oa_operators WHERE id=owner_id AND status='active')`).bind(now,now,now).run()
+ return {tracked:sources.length}
+}

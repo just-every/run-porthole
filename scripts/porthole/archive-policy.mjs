@@ -2,6 +2,7 @@
 // Native identities become opaque inactive archive actors; sessions and credentials
 // are omitted entirely, including hashes. Source ids remain audit references.
 const excluded=[
+ 'porthole_follow_up','porthole_follow_up_events',
  'porthole_analytical_configuration','rer_dependency_%','oc_%','porthole_members','porthole_credentials','porthole_object_approvals',
  'porthole_audit_context','porthole_audit_facts','porthole_archive_jobs','porthole_signal_exports',
  'porthole_archive_rows','porthole_archive_chunks','porthole_transaction_guard',

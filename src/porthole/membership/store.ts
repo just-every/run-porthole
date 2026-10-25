@@ -91,7 +91,7 @@ export async function changeMember(request: Request, env: Bindings, id: string, 
   statements.push(env.DB.prepare('INSERT INTO porthole_transaction_guard(singleton,witness) VALUES(1,changes()) ON CONFLICT(singleton) DO UPDATE SET witness=excluded.witness'))
   const result=await env.DB.batch(statements)
   if(!result.at(-2)?.results.length) fail('authority_changed',409)
- } catch(error) { if(String(error).includes('last_owner')) fail('last_owner',409);if(String(error).includes('CHECK constraint failed')) fail('authority_changed',409);throw error }
+ } catch(error) { if(String(error).includes('follow_up_handover_required')) fail('follow_up_handover_required',409);if(String(error).includes('last_owner')) fail('last_owner',409);if(String(error).includes('CHECK constraint failed')) fail('authority_changed',409);throw error }
  return env.DB.prepare(`SELECT ${columns} FROM oa_operators o JOIN porthole_members m ON m.operator_id=o.id WHERE o.id=?`).bind(id).first()
 }
 export async function removeMember(request: Request, env: Bindings, id: string) {
@@ -107,6 +107,6 @@ export async function removeMember(request: Request, env: Bindings, id: string) 
    env.DB.prepare('INSERT INTO porthole_transaction_guard(singleton,witness) VALUES(1,changes()) ON CONFLICT(singleton) DO UPDATE SET witness=excluded.witness'),
   ])
   if(!result[1].results.length) fail('authority_changed',409)
- } catch(error) { if(String(error).includes('last_owner')) fail('last_owner',409);if(String(error).includes('CHECK constraint failed')) fail('authority_changed',409);throw error }
+ } catch(error) { if(String(error).includes('follow_up_handover_required')) fail('follow_up_handover_required',409);if(String(error).includes('last_owner')) fail('last_owner',409);if(String(error).includes('CHECK constraint failed')) fail('authority_changed',409);throw error }
  return env.DB.prepare(`SELECT ${columns} FROM oa_operators o JOIN porthole_members m ON m.operator_id=o.id WHERE o.id=?`).bind(id).first()
 }
