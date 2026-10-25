@@ -64,8 +64,9 @@ when due and unsuppressed. Restart and repeated evaluation cannot duplicate it.
 Assignees read only their assigned work while their current service, environment
 and team scopes still cover it. Handover refuses a successor without the existing
 role and scope; explicit unassignment remains visible for owner review. Member
-removal and role or scope changes refuse unresolved assigned work until that
-review has moved or explicitly unassigned it. Task ownership transfers neither a
+removal refuses unresolved assigned work until that review has moved or explicitly
+unassigned it. Role and scope revocation proceeds immediately, suspends affected
+assignments into visible owner review, and preserves the original work scope. Task ownership transfers neither a
 credential nor repair approval, and it never disables collection or a monitor.
 
 Telemetry tasks retain an immutable monitor ID and definition revision as their

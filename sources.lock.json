@@ -366,7 +366,7 @@
       "executable": false
     },
     "docs/operations.md": {
-      "sha256": "56a74f9ff7453a94210bd22e1722ce80a61300f04eedeea84f4b06028bb5a57b",
+      "sha256": "68c95ff528ee6a61a7a76d9a3e2b29e97380975d6350b4b18391b0875ddad52b",
       "executable": false
     },
     "docs/otlp.md": {
@@ -667,6 +667,10 @@
     },
     "migrations/core/0045_porthole_follow_up.sql": {
       "sha256": "c723969252101284929e6249242460f1c1d4f438cd290932135daadb95e70564",
+      "executable": false
+    },
+    "migrations/core/0046_porthole_follow_up_authority.sql": {
+      "sha256": "eefdc6692e1552c994399e3c11177b405cb8f6f51b1cf9f9ff3d8da35d1dcb44",
       "executable": false
     },
     "ONBOARDING.md": {
@@ -3970,7 +3974,7 @@
       "executable": false
     },
     "tests/porthole/health.mjs": {
-      "sha256": "70191bb0c0fb92fe23a4210c4d624bb426e244a9b1a152afbe4b714f5d550161",
+      "sha256": "9ae7e269284ad64569d9a5592588dbc8c8b1e19424860cfb9ea28c1f18ad5697",
       "executable": false
     },
     "tests/porthole/ingest.mjs": {
@@ -4042,7 +4046,7 @@
       "executable": false
     },
     "verification.json": {
-      "sha256": "bff6cd820b1598eae56a49c7e303a935c5c6ada1e1cb32db513e7c5c499e90dd",
+      "sha256": "24908428f06e816bdb24ab827df862548ebebe38d09b93c668b5607657b33659",
       "executable": false
     },
     "VERIFY-WORKFLOW.md": {

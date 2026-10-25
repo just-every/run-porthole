@@ -642,6 +642,13 @@ export async function followUpJourney({origin,freshOwner,signIn,restartWorker,wi
  await withPinnedClock(t+63000,async()=>{await heartbeat();await ingest('synthetic-porthole-1517',t+63000);await tick()})
  assert.equal((await work()).tasks.find(row=>row.id===task.id).state,'blocked','weakened new definition cannot resolve the original work')
  await healthBrowser({origin,cookie,name:'follow-up-regression',path:'/app/follow-up',contains:['Recovery guard changed','generation 2']})
+ await post('/app/settings/members/change',{operatorId:other,role:'maintainer',scope})
+ await review({ownerId:other})
+ await post('/app/settings/members/change',{operatorId:other,role:'maintainer',scope:{...scope,services:['synthetic-porthole-1521']}})
+ const suspended=(await work()).tasks.find(row=>row.id===task.id)
+ assert.equal(suspended.owner_id,null,'authority narrowing proceeds immediately and suspends assignment without transferring access')
+ assert.equal(suspended.state,'blocked');assert.match(suspended.reason,/native owner review required/)
+ await review({ownerId:owner})
  await withPinnedClock(t+301000,async()=>{await review({},403)})
  await restartWorker(()=>sql('ALTER TABLE porthole_follow_up RENAME TO porthole_follow_up_unavailable'))
  try{await healthBrowser({origin,cookie,name:'follow-up-unavailable',path:'/app/follow-up',expectedStatus:503,contains:'follow up unavailable'})}finally{await restartWorker(()=>sql('ALTER TABLE porthole_follow_up_unavailable RENAME TO porthole_follow_up'))}

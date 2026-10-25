@@ -24,8 +24,7 @@
       "hosted": true,
       "commands": [
         "pnpm run build",
-        "PORTHOLE_CORE_ONLY=1 pnpm run test:runtime",
-        "PORTHOLE_FOLLOW_UP_ONLY=1 pnpm run test:runtime"
+        "PORTHOLE_CORE_ONLY=1 pnpm run test:runtime"
       ]
     },
     {
@@ -92,6 +91,15 @@
       "commands": [
         "pnpm run build",
         "PORTHOLE_MAIL_ONLY=1 PORTHOLE_MAIL_PROVIDER=resend node tests/runtime.mjs"
+      ]
+    },
+    {
+      "name": "follow-up",
+      "browser": true,
+      "hosted": false,
+      "commands": [
+        "pnpm run build",
+        "PORTHOLE_FOLLOW_UP_ONLY=1 pnpm run test:runtime"
       ]
     }
   ],
