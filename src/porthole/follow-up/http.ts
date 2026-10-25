@@ -28,12 +28,12 @@ export async function followUpResponse(request:Request,env:Bindings):Promise<Res
   if(!row)fail('task_not_found',404)
   if(data.confirm!=='review')fail('review_required',400)
   const ownerId=data.ownerId?text(data.ownerId,36):null,next=text(data.nextAction,500),note=text(data.note,500),due=request.headers.get('content-type')?.startsWith('application/x-www-form-urlencoded')?Date.parse(String(data.dueAt)+'Z'):Number(data.dueAt),suppressed=request.headers.get('content-type')?.startsWith('application/x-www-form-urlencoded')?(data.suppressedUntil?Date.parse(String(data.suppressedUntil)+'Z'):0):Number(data.suppressedUntil??0)
-  if(!Number.isSafeInteger(due)||due<0||!Number.isSafeInteger(suppressed)||suppressed<0||!['on','off'].includes(String(data.reminders)))fail('invalid_policy',400)
+  if(!Number.isSafeInteger(due)||due<0||!Number.isFinite(new Date(due).getTime())||!Number.isSafeInteger(suppressed)||suppressed<0||!Number.isFinite(new Date(suppressed).getTime())||!['on','off'].includes(String(data.reminders)))fail('invalid_policy',400)
   let successorFence='1',successorArgs:unknown[]=[]
   if(ownerId) {
    const member=await memberFor(env.DB,ownerId)
    if(!member||!['owner','admin','maintainer','responder'].includes(member.role)||!scopeWithin(JSON.parse(row.scope),member.scope))fail('successor_scope_forbidden')
-   successorFence="EXISTS(SELECT 1 FROM oa_operators o JOIN porthole_members m ON m.operator_id=o.id WHERE o.id=? AND o.status='active' AND m.revision=?)";successorArgs=[ownerId,member.revision]
+   successorFence="EXISTS(SELECT 1 FROM oa_operators o JOIN porthole_members m ON m.operator_id=o.id WHERE o.id=? AND o.status='active' AND m.revision=? AND m.role IN ('owner','admin','maintainer','responder') AND o.role=CASE WHEN m.role IN ('owner','admin') THEN m.role ELSE 'member' END)";successorArgs=[ownerId,member.revision]
   }
   let guard=row.guard_id,guardRevision=row.guard_revision
   if(data.guardId&&!guard) {

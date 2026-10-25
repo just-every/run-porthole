@@ -608,6 +608,7 @@ export async function followUpJourney({origin,freshOwner,signIn,restartWorker,wi
  cookie=await freshOwner()
  assert.equal((await fetch(origin+'/app/settings/follow-up',{headers:{cookie:memberCookie}})).status,403)
  const review=async(overrides={},status=200)=>{task=(await work()).tasks.find(row=>row.id===task.id);return post('/api/porthole/v1/follow-up/review',{id:task.id,revision:task.revision,ownerId:owner,dueAt:t,nextAction:'Inspect original recovery evidence',note:'Original monitor remains authoritative; dissent retained.',reminders:'on',suppressedUntil:0,confirm:'review',...overrides},status)}
+ await review({dueAt:Number.MAX_SAFE_INTEGER},400)
  await post('/app/settings/members/invite',{email:'synthetic-porthole-1520@example.com',displayName:'Other team maintainer',role:'maintainer',scope:{...scope,services:['synthetic-porthole-1521']}},202)
  const otherCookie=await signIn('synthetic-porthole-1520@example.com'),other=(await (await fetch(origin+'/auth/session',{headers:{cookie:otherCookie}})).json()).operator.id
  cookie=await freshOwner();await review({ownerId:other},403)

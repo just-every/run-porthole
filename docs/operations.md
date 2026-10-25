@@ -45,3 +45,59 @@ See [recovery.md](recovery.md) for independent observations, collector freshness
 An installation may bind its customer R2 bucket as `ARCHIVE_BUCKET`. The owner uploads an immutable open-format historical object through `POST /api/porthole/v1/storage/history`, supplying `X-Porthole-Source`, `X-Porthole-History` and its content type. The response records an opaque identity, SHA-256, byte count and source/history labels. No request chooses a different bucket or supplies provider credentials. GET/HEAD on `/api/porthole/v1/storage/history/REFERENCE/content` verify the actual object digest before releasing bytes under the current owner session. Uploads and reauthorization require fresh native owner proof.
 
 The streaming product archive preserves those exact durable references, with no bucket access grant. Restore quarantines them. To reattach the destination bucket, the owner explicitly confirms the original digest and supplies the identical original bytes, or verifies an already present object; only then can the destination serve it. Collection and delivery remain paused independently. PORT-013/035/061 inherit this custody and audit boundary for their larger archive, erasure and export workflows.
+
+## Accountable follow-up
+
+Open Follow-up from Operations. Pipeline evaluation records durable work for
+current failed intake and recorded loss, stale authenticated collectors,
+uncertain or refused original mail notices, failing or unassessable count
+monitors, and exact repairs awaiting approval or execution. Every task starts
+with the active native owner, a blocker, next action and a due time of 24 hours;
+there is no automatic outbound escalation. An unavailable control plane remains
+an external owner recovery procedure because it cannot record its own outage.
+
+Settings → Follow-up lets a native owner with identity proof from the preceding
+five minutes review the exact task revision, assignee, due time, next action,
+review note or dissent, suppression deadline and reminder consent. Reminders
+start off. Enabling them produces one durable in-app reminder per task generation
+when due and unsuppressed. Restart and repeated evaluation cannot duplicate it.
+Assignees read only their assigned work while their current service, environment
+and team scopes still cover it. Handover refuses a successor without the existing
+role and scope; explicit unassignment remains visible for owner review. Member
+removal and role or scope changes refuse unresolved assigned work until that
+review has moved or explicitly unassigned it. Task ownership transfers neither a
+credential nor repair approval, and it never disables collection or a monitor.
+
+Telemetry tasks retain an immutable monitor ID and definition revision as their
+recovery guard. Collector tasks require an owner-reviewed monitor covering the
+same scope. Only a fresh measured Healthy evaluation of that active unchanged
+revision, with complete current telemetry coverage, resolves the work. Fresh
+heartbeats while the monitor still fires leave it blocked. Unknown data, a quiet
+alert, a closed ticket, an accepted provider receipt or a weakened replacement
+monitor cannot resolve it. A measured recurrence reopens the same task with its
+assignee and history preserved and a new reminder generation. Missing guards and
+unavailable execution remain named blockers. This minimal native monitor guard
+supplies PORT-059 recovery evidence; it makes no PORT-021 or PORT-084 SLO claim.
+
+`GET /api/porthole/v1/follow-up` returns currently authorized tasks and their
+history. `POST /api/porthole/v1/follow-up/review` takes the task `id`, `revision`,
+`ownerId` (empty explicitly unassigns), `dueAt` in UTC milliseconds, `nextAction`,
+`note`, `reminders` (`on` or `off`), `suppressedUntil` in UTC milliseconds and
+`confirm: review`. An unbound telemetry task can additionally select `guardId`;
+the server freezes that monitor's revision and refuses a guard with narrower
+scope. Native origin, current owner authority and fresh proof are rechecked at
+the write. Stale task revisions refuse without changing assignment or history.
+
+The private audit chain retains opaque task changes. Task notes, dissent,
+assignment reviews, recovery transitions and reminders remain in the protected
+work history. Both Settings archives and native installation archives preserve
+that history as quarantined evidence; restore revives no assignment, reminder,
+credential, approval or delivery consent. Re-export retains the original stream.
+
+PORT-008, PORT-019, PORT-020, PORT-021, PORT-028, PORT-029, PORT-047, PORT-051,
+PORT-053, PORT-055, PORT-077 and PORT-091 inherit these accountable work and
+unchanged-recovery boundaries before adding services, reports, investigations,
+connectors, routes or executors. Their independent DONE gates remain unchanged.
+Outbound follow-up requires an already declared owner-confirmed adapter and
+separate explicit audited consent; the current follow-up screen offers only
+in-app reminders.
