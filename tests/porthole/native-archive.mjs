@@ -15,7 +15,7 @@ async function clone(name) {
  const directory=join(scratch,name)
  await execute('git',['clone','--quiet','--local','--no-hardlinks',root,directory])
  await execute('git',['-C',directory,'config','user.name','Run Edit Run fleet'])
- await execute('git',['-C',directory,'config','user.email','fleet@runeditrun.com'])
+ await execute('git',['-C',directory,'config','user.email','fixture@example.invalid'])
  await symlink(join(root,'node_modules'),join(directory,'node_modules'),'dir')
  return directory
 }
