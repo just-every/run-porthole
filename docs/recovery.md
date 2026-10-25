@@ -138,3 +138,24 @@ for the documented Resend JSON and idempotency contract. The journeys use actual
 retry deadlines and process restarts; preserve their output and screenshots
 outside the product checkout. These are provider-edge proofs, not live mailbox
 receipts or qualification of the still-incomplete connector registry.
+
+
+## Reconcile an uncertain Resend notice
+
+In Settings → Integration declarations, an owner can review held Resend mail
+and enter the original provider email ID. Verify your identity within five
+minutes and explicitly confirm the receipt check. The existing Resend grant
+must permit Retrieve Email; a send-only grant may refuse the check. Porthole
+never broadens that grant. The provider read uses the fixed Resend endpoint,
+requires the complete frozen message and original recipient to match, and
+checks live owner authority again before atomically recording acceptance and
+its private audit fact. The provider ID remains in the private notice receipt.
+Repeated confirmation and restart preserve that receipt without another send.
+
+A missing, mismatched, oversized, unavailable or refused receipt leaves the
+notice uncertain. A changed provider grant or notice configuration also stays
+held. A receipt confirms provider acceptance only; it establishes neither
+mailbox delivery nor telemetry recovery. SendGrid uncertainty remains held for
+owner investigation, and no replacement message is authorized by this door.
+The registry and future PORT-020, PORT-050, PORT-051, PORT-053 and PORT-066
+adapters retain their complete lifecycle obligations. PORT-055 remains partial.

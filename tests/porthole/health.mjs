@@ -218,6 +218,7 @@ export async function recipientMailJourney(analyticalProof) {
  const origin=`https://127.0.0.1:${port}`,ownerEmail=analyticalProof?.ownerEmail??'synthetic-porthole-940@example.com',recipient='synthetic-porthole-941@example.com'
  const sessionSecret='synthetic-porthole-942-synthetic-porthole-942',setupToken='synthetic-porthole-943-synthetic-porthole-943'
  const scratch=await mkdtemp(join(tmpdir(),'porthole-recipient-')),messages=[]
+ let receiptStatus=200,receiptFault,receiptReads=0,duringReceipt
  let providerStatus=202,providerRetryAfter,providerFailure,mf,cookie,mailApiKey='synthetic-porthole-944'
  const acceptedMessages=[],provider=process.env.PORTHOLE_MAIL_PROVIDER??'sendgrid',idempotent=provider==='resend',providerAccepted=new Map(),providerIds=new Map()
  assert.ok(['sendgrid','resend'].includes(provider))
@@ -231,6 +232,24 @@ export async function recipientMailJourney(analyticalProof) {
    try{return new Response(await readFile(resolve('dist/client','.'+path)),{headers:{'content-type':types[extname(path)]??'application/octet-stream'}})}catch{return new Response(null,{status:404})}
   }},
   outboundService:async request=>{
+   if(idempotent && request.method==='GET') {
+    receiptReads++
+    assert.equal(request.headers.get('authorization'),'Bearer synthetic-porthole-944')
+    const id=new URL(request.url).pathname.slice('/emails/'.length)
+    assert.equal(request.url,'https://api.resend.com/emails/'+id)
+    if(duringReceipt){const run=duringReceipt;duringReceipt=undefined;await run()}
+    if(receiptFault==='timeout')throw Error('synthetic-porthole-1190')
+    if(receiptStatus!==200)return Response.json({statusCode:receiptStatus,name:'validation_error',message:'synthetic-porthole-1191'},{status:receiptStatus})
+    const identity=[...providerIds].find(([,value])=>value===id)?.[0],wire=providerAccepted.get(identity)
+    if(!wire)return Response.json({statusCode:404,name:'not_found',message:'synthetic-porthole-1192'},{status:404})
+    const receipt={object:'email',id,...wire,cc:[],bcc:[],created_at:new Date().toISOString(),last_event:'sent'}
+    if(receiptFault==='mismatch')receipt.subject='synthetic-porthole-1193'
+    if(receiptFault==='recipient')receipt.to=['synthetic-porthole-1194@example.com']
+    if(receiptFault==='extra-recipient')receipt.bcc=['synthetic-porthole-1194@example.com']
+    if(receiptFault==='malformed')return new Response('{',{headers:{'content-type':'application/json'}})
+    if(receiptFault==='oversized')return new Response('x'.repeat(65537))
+    return Response.json(receipt)
+   }
    assert.equal(request.url,idempotent?'https://api.resend.com/emails':'https://api.sendgrid.com/v3/mail/send');assert.equal(request.method,'POST')
    const wire=await request.json(),delivery=request.headers.get('idempotency-key')
    let message=wire
@@ -245,7 +264,7 @@ export async function recipientMailJourney(analyticalProof) {
    if(providerFailure==='before')throw Error('synthetic-porthole-952')
    if(providerStatus===202) {
     const identity=message.custom_args.rer_delivery_id
-    if(!providerIds.has(identity))providerIds.set(identity,`synthetic-porthole-${1100+providerIds.size}`)
+    if(!providerIds.has(identity))providerIds.set(identity,randomUUID())
     if(!idempotent||!providerAccepted.has(delivery))acceptedMessages.push(message)
     if(idempotent) {
      if(providerAccepted.has(delivery))assert.deepEqual(providerAccepted.get(delivery),wire,'a replay preserves the exact original provider payload')
@@ -425,6 +444,61 @@ export async function recipientMailJourney(analyticalProof) {
     if(rotated){assert.equal((await health()).components.find(row=>row.component==='delivery').evidence.configurationChanged,true);await healthBrowser({origin,cookie,name:'health-notice-rotated',contains:['Notice transport grant changed',id],dispatch});mailApiKey='synthetic-porthole-944';await mf.dispose();mf=new Miniflare(options());db=await mf.getD1Database('DB')}
    }
    if(fault.failure==='after'&&(!idempotent||fault.name==='lost-after-revoked'))await healthBrowser({origin,cookie,name:'health-notice-uncertain',contains:['Reconcile this notice with the provider',id],dispatch})
+   if(idempotent&&fault.name==='lost-after-revoked') {
+    const reconcilePath=registryPath+'/reconcile',providerId=providerIds.get(delivery)
+    const data={noticeId:id,providerId,confirm:'verify-provider-receipt'}
+    const reconcile=async(body=data,status=200,acting=cookie,extra={})=>{
+     const response=await call(reconcilePath,{...form(origin,acting,body),headers:{...form(origin,acting,body).headers,accept:'application/json',...extra}})
+     assert.equal(response.status,status,await response.clone().text());return response.json()
+    }
+    const preserved=(await health()).notices.find(row=>row.id===id),effectsBefore=acceptedMessages.length,sendsBefore=messages.length
+    for(const [acting,extra] of [['',{}],[cookie,{authorization:'Bearer synthetic-porthole-1195'}],[cookie,{origin:'https://synthetic-porthole-1196.example'}],[cookie,{'sec-fetch-site':'cross-site'}]])await reconcile(data,acting?403:401,acting,extra)
+    await reconcile({...data,providerId:'https://synthetic-porthole-1197.example'},400)
+    await reconcile({...data,confirm:'no'},400)
+    assert.equal(receiptReads,0,'unauthorized or invalid references never reach the provider')
+    for(const status of [401,403,404,429]) {receiptStatus=status;await reconcile(data,status===429?503:422)}
+    receiptStatus=200
+    for(const failure of ['timeout','mismatch','recipient','extra-recipient','malformed','oversized']) {receiptFault=failure;await reconcile(data,failure==='timeout'?503:422)}
+    receiptFault=undefined
+    duringReceipt=()=>post('/auth/signout',{},303)
+    await reconcile(data,401)
+    assert.equal((await db.prepare('SELECT state FROM porthole_health_notices WHERE id=?').bind(id).first()).state,'uncertain','revocation during the provider read cannot commit acceptance')
+    const nextToken=randomBytes(32).toString('base64url'),nextTime=Date.now()
+    await db.prepare('INSERT INTO oa_owner_signins(id,token_hash,operator_id,operator_version,created_at,expires_at) VALUES(?,?,?,?,?,?)').bind(randomUUID(),await ownerSigninDigest(nextToken),session.operator.id,session.operator.version,nextTime,nextTime+120000).run()
+    const nextSign=await post('/auth/owner-signin',{token:nextToken},303,'');cookie=nextSign.headers.getSetCookie().map(value=>value.split(';')[0]).join('; ')
+    assert.deepEqual((await health()).notices.find(row=>row.id===id),preserved,'failed receipt verification preserves the entire held outcome')
+    await healthBrowser({origin,cookie,path:registryPath,name:'integration-held-receipt',contains:['Reconcile held mail',id],dispatch})
+    // Exercise the actual Settings form, with both responsive layouts captured.
+    const {chromium}=await import('@playwright/test'),browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']})
+    try {
+     const context=await browser.newContext({viewport:{width:390,height:844}})
+     await context.addCookies(cookie.split('; ').map(value=>({name:value.slice(0,value.indexOf('=')),value:value.slice(value.indexOf('=')+1),url:origin})))
+     await context.route(origin+'/**',async route=>{const request=route.request(),response=await dispatch(request.url(),{method:request.method(),headers:request.headers(),...(request.postDataBuffer()?{body:request.postDataBuffer()}:{})});await route.fulfill({status:response.status,headers:Object.fromEntries(response.headers),body:Buffer.from(await response.arrayBuffer())})})
+     const page=await context.newPage();await page.goto(origin+registryPath)
+     const target=page.locator('form').filter({has:page.locator('input[name="noticeId"][value="'+id+'"]')})
+     await target.getByLabel('Resend email ID').fill(providerId)
+     await target.getByLabel('Verify this original provider receipt').check()
+     const finished=page.waitForResponse(response=>response.url().endsWith('/reconcile')&&response.request().method()==='POST')
+     await target.getByRole('button',{name:'Verify receipt',exact:true}).click();assert.equal((await finished).status(),303)
+     await page.waitForURL(origin+registryPath);await context.close()
+    } finally {await browser.close()}
+    const reconciled=(await health()).notices.find(row=>row.id===id)
+    assert.equal(reconciled.state,'accepted');assert.equal(reconciled.provider_id,providerId);assert.equal(reconciled.attempts,preserved.attempts)
+    const readCount=receiptReads
+    assert.equal((await reconcile()).replayed,true);assert.equal(receiptReads,readCount,'duplicate owner submission performs no second provider read')
+    await mf.dispose();mf=new Miniflare(options());db=await mf.getD1Database('DB')
+    assert.equal((await reconcile()).replayed,true);await post('/api/v1/health/tick',{})
+    assert.equal(messages.length,sendsBefore,'receipt reconciliation and restart send no replacement email')
+    assert.equal(acceptedMessages.length,effectsBefore,'one external effect remains one')
+    const audit=await (await call('/api/v1/audit/export',{headers:{cookie}})).json()
+    const facts=audit.records.map(row=>row.entry).filter(row=>row.action==='integration.notice-reconcile'&&row.phase==='committed'&&row.entityRef===id)
+    assert.equal(facts.length,1,'receipt acceptance has one atomic owner-attributed audit fact');assert.equal(facts[0].actorRef,session.operator.id)
+    assert.ok(!JSON.stringify(audit).includes(providerId),'provider references stay out of the audit packet')
+    await healthBrowser({origin,cookie,path:registryPath,name:'integration-reconciled-receipt',dispatch})
+    assert.ok((await registry()).adapters.find(row=>row.id==='resend').lastSuccess>=facts[0].occurredAt)
+    console.log('noticeReceiptReconciliation passed: original-grant provider read, exact frozen payload, owner Settings form, no replacement send, fault refusals, duplicate submission, atomic private audit, restart and 1440/390 screens')
+   }
+
   }
   providerStatus=429;providerFailure=undefined;providerRetryAfter='1';await configure(ownerEmail)
   await post('/api/v1/health/tick',{})
