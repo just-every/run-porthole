@@ -82,6 +82,15 @@
         "PORTHOLE_DASHBOARD_ONLY=1 pnpm run test:runtime",
         "PORTHOLE_API_ONLY=1 pnpm run test:runtime"
       ]
+    },
+    {
+      "name": "mail-receipts",
+      "browser": true,
+      "hosted": false,
+      "commands": [
+        "pnpm run build",
+        "PORTHOLE_MAIL_ONLY=1 PORTHOLE_MAIL_PROVIDER=resend node tests/runtime.mjs"
+      ]
     }
   ],
   "nightly": []

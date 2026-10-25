@@ -17,6 +17,7 @@ export async function integrationRegistryResponse(request:Request,env:Bindings):
  try {
   if(url.search)fail('invalid_query',400)
   if(url.pathname===path+'/reconcile') {
+   if(request.method!=='POST')fail('method_not_allowed',405)
    const result=await reconcileNotice(request,env)
    return request.headers.get('accept')?.includes('application/json')?Response.json(result,{headers:privateHeaders}):new Response(null,{status:303,headers:{...privateHeaders,location:path}})
   }
@@ -31,8 +32,8 @@ export async function integrationRegistryResponse(request:Request,env:Bindings):
    const selected=env.MAIL_PROVIDER===declaration.id
    return {...declaration,version:1,region:'Provider-managed; no regional custody guarantee',egress:'Approved recipient address, sender, health notice and installation link',owner:configuration.configured_by,lastSuccess:Math.max(success?.at??0,reconciled?.at??0)||null,freshnessSeconds:configuration.freshness_ms/1000,quota:'Provider account limits; durable 429 deadlines enforced',credentialStatus:selected&&env.MAIL_API_KEY?'Runtime binding present; validity requires a successful submission':'Not configured',availability:'Owner must verify provider account and sender availability before enabling delivery',nextAction:selected?'Review retained Pipeline health receipts before changing provider authority':'Configure an owner-controlled runtime binding, then explicitly approve the recipient',selected}
   }))
-  if(!await env.DB.prepare(`SELECT 1 WHERE ${actor.fence}`).bind(...actor.args).first())fail('authority_changed',409)
   const uncertain=(await env.DB.prepare(`SELECT id FROM porthole_health_notices WHERE state='uncertain' AND configuration_revision=? AND json_extract(message,'$.provider')='resend' ORDER BY created_at DESC,id DESC LIMIT 50`).bind(configuration.revision).all<{id:string}>()).results
+  if(!await env.DB.prepare(`SELECT 1 WHERE ${actor.fence}`).bind(...actor.args).first())fail('authority_changed',409)
   const reconciliation=uncertain.length?`<h2>Reconcile held mail</h2><p>Verify your identity within five minutes, then supply the Resend email ID from the original provider account. The receipt must match the complete frozen notice. This reads the provider receipt and sends no replacement message. A changed grant remains held.</p>${uncertain.map(row=>`<form method="post" action="${path}/reconcile"><p>Notice ${escape(row.id)}</p><input type="hidden" name="noticeId" value="${escape(row.id)}"><label>Resend email ID <input name="providerId" required maxlength="36" autocomplete="off"></label><label><input type="checkbox" name="confirm" value="verify-provider-receipt" required> Verify this original provider receipt</label><button>Verify receipt</button></form>`).join('')}`:''
   const result={version:1,adapters,unavailable:[{id:'opsgenie',availability:'Existing accounts only; no Porthole adapter is implemented',nextAction:'Keep source coverage. Use a supported provider export or handoff before cutover.'}],scope:'Only the two implemented independent-mail adapters are declared here. Other named adapters remain unqualified.'}
   if(request.headers.get('accept')?.includes('application/json'))return Response.json({...result,uncertainNotices:uncertain},{headers:privateHeaders})
