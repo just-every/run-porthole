@@ -23,6 +23,7 @@ const actions: Record<string, string> = {
  '/api/v1/health/configuration':'health.configure', '/app/health/configuration':'health.configure', '/api/v1/health/tick':'health.reconcile', '/app/health/tick':'health.reconcile',
  '/api/porthole/v1/approvals':'repair.approve', '/app/operations/approve':'repair.approve',
  '/api/porthole/v1/actors/erase':'privacy.erase-actor', '/app/settings/privacy/erase':'privacy.erase-actor',
+ '/api/porthole/v1/follow-up/review':'follow-up.review', '/app/settings/follow-up/review':'follow-up.review',
  '/auth/signout':'identity.signout', '/auth/owner-signin':'identity.signin', '/auth/magic-link':'identity.request-signin', '/auth/review-session':'identity.review-session', '/auth/setup-complete':'identity.setup-complete',
  '/auth/step-up':'identity.step-up', '/auth/confirm':'identity.confirm',
  '/auth/invite': 'membership.invite', '/auth/invite/cancel': 'membership.cancel-invitation',

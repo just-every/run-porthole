@@ -624,3 +624,24 @@ export async function subjectErasureJourney({origin,freshOwner,restartWorker,sql
  })
  console.log('subjectErasureJourney passed: exact four-signal mapping, no-effect preview, stale approval refusal, fresh native owner authorization, pending and retained envelope deletion, retry refusal, private journal, restart and old-archive re-export fence')
 }
+
+export async function followUpArchiveJourney({origin,freshOwner,withEmptyDestination}) {
+ const cookie=await freshOwner(),source=await savedExport(origin,cookie,await post(origin,cookie,api+'/exports',{}))
+ const history=source.rows.filter(row=>row.table==='porthole_archive_health_history'&&['porthole_follow_up','porthole_follow_up_events'].includes(row.row.table_name))
+ assert.ok(history.some(row=>row.row.table_name==='porthole_follow_up'))
+ assert.ok(history.some(row=>row.row.table_name==='porthole_follow_up_events'&&JSON.parse(row.row.row).kind==='review'))
+ assert.ok(history.every(row=>row.row.state==='quarantined'))
+ await withEmptyDestination(async destination=>{
+  const owner=await destination.freshOwner(),restore=await value(await post(destination.origin,owner,api+'/restores',{manifest:source.manifest}),201)
+  for(const chunk of source.chunks)await value(await post(destination.origin,owner,`${api}/restores/${restore.id}/chunks`,{chunk}))
+  await value(await post(destination.origin,owner,`${api}/restores/${restore.id}/commit`,{confirm:source.manifest.rootHash}))
+  const work=await value(await get(destination.origin,owner,'/api/porthole/v1/follow-up'))
+  assert.deepEqual(work,{tasks:[],events:[]},'restored task assignments and reminders remain inactive history')
+  const retained=await destination.sql("SELECT row,state FROM porthole_archive_health_history WHERE table_name IN ('porthole_follow_up','porthole_follow_up_events') ORDER BY row")
+  assert.deepEqual(retained,history.map(row=>({row:row.row.row,state:row.row.state})).sort((a,b)=>a.row.localeCompare(b.row)))
+  const again=await savedExport(destination.origin,owner,await post(destination.origin,owner,api+'/exports',{}))
+  const portable=again.rows.filter(row=>row.table==='porthole_archive_health_history'&&['porthole_follow_up','porthole_follow_up_events'].includes(row.row.table_name))
+  assert.deepEqual(portable,history,'re-export retains the original inert follow-up stream')
+ })
+ console.log('Follow-up archive passed: exact task, handover, dissent and reminder history survives an independent inactive restore and re-export without live assignments, reminders, credentials or approval authority.')
+}
