@@ -58,4 +58,5 @@ export async function widgetJourney({origin,cookie,scope,body,sourceSecret,resta
  }}finally{await browser.close()}
  console.log('Widget functions passed: exact rollup, rank, smoothing and counter rate, schema and reset refusals, original source ranges, native edit and reload, restart and empty scopes at 1440 and 390')
  console.log('Widget journey passed: actual scalar values, exact timestamp lines, raw tables, ranked series, bin counts, proportional totals, source log bodies and escaped notes at both widths')
+ return {id,panels}
 }

@@ -1,4 +1,5 @@
 import {fail,parseScope} from '../security/authority'
+import {panelFunctions} from '../dashboards/functions'
 import {timestamp} from '../dashboards/model'
 
 export interface PublicPanel {id:string;label:string;value:number|null;state:'empty'|'complete'|'partial'|'stale'|'error';unit:string}
@@ -47,7 +48,8 @@ export function validateRow(v:Record<string,unknown>):boolean {
   parseScope(source.filters.scope)
   const ids=new Set<string>()
   return source.panels.every((panel:unknown,index:number)=>{
-   if(!object(panel)||!exact(panel,['sourcePanel','publicPanel','query','queryRef'])||!publicText(panel.sourcePanel)||ids.has(panel.sourcePanel)||panel.publicPanel!==projection.panels[index].id||typeof panel.query!=='string'||panel.query.length>4000||!panel.query.startsWith('/app/explore?')||!(panel.queryRef===null||uuid(panel.queryRef)))return false
+   if(!object(panel)||!exact(panel,['sourcePanel','publicPanel','query','queryRef',...(Object.hasOwn(panel,'functions')?['functions']:[])])||!publicText(panel.sourcePanel)||ids.has(panel.sourcePanel)||panel.publicPanel!==projection.panels[index].id||typeof panel.query!=='string'||panel.query.length>4000||!panel.query.startsWith('/app/explore?')||!(panel.queryRef===null||uuid(panel.queryRef)))return false
+   if(Object.hasOwn(panel,'functions'))panelFunctions(panel.functions)
    ids.add(panel.sourcePanel);return true
   })
  }catch{return false}
