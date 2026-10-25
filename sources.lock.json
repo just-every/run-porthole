@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "parent": null,
   "edition": "just-every/porthole",
-  "manifest": "5127a230c8d3ee4efda9f166add5ab4e646d7a6b594578b5a8ec1c7b44ebc14e",
+  "manifest": "8c7ee7b2ef17bb4474b2eeb40d8bd23f4546dd0c5da505d92024abadefef2c53",
   "toolchain": {
     "id": "runeditrun/edition-authoring",
     "version": "1.1.0",
@@ -35,7 +35,8 @@
           "src/modules/demo",
           "src/modules/ai",
           "src/modules/dependencies",
-          "src/modules/owner-claim"
+          "src/modules/owner-claim",
+          "src/mail.server.d.mts"
         ],
         "origin": {
           "repository": "https://github.com/runeditrun/base.git",
@@ -49,7 +50,8 @@
             "modules/demo",
             "modules/ai",
             "modules/dependencies",
-            "modules/owner-claim"
+            "modules/owner-claim",
+            "foundation/template/src/mail.server.d.mts"
           ]
         },
         "mappings": [
@@ -76,13 +78,17 @@
           {
             "path": "src/modules/dependencies/store.mjs",
             "originPath": "modules/dependencies/store.mjs"
+          },
+          {
+            "path": "src/mail.server.d.mts",
+            "originPath": "foundation/template/src/mail.server.d.mts"
           }
         ]
       },
       "baseline": {
-        "key": "02c9a581fc796b3d5e484b41400323ffbb60d5f5e1b464e36b055f197079aa89",
-        "digest": "6ceb017ee27c43a3d24fc4c4606551869f1aa92872838b5e92982672f8bdb0b1",
-        "sha256": "cd75b915845c21b398781f96b3a9ec86dca0608d1b5b84253be10f960157d89d"
+        "key": "315708e5ea0e5db7665d1d54db07c95f78f2e9fc54787d2eea2b3644ca337409",
+        "digest": "f8c512070b82a8da66293f11fd7c08b6e03dcadf9f91567b49303e94d1704a1d",
+        "sha256": "96b8ddf60eae3e9a526097dd42a83c2180e2322427a11fbd3aab082e63b7de05"
       }
     },
     {
@@ -296,7 +302,7 @@
       "executable": false
     },
     "base-copies.json": {
-      "sha256": "1686cb4fe950ddec40510d9df85b91856ebb04e4afce1305b62deabfd955e01a",
+      "sha256": "9f61460db1bf86e904cfa7fa01310c219437aefa750f049560c2bbaacae65198",
       "executable": false
     },
     "cli/client.mjs": {
@@ -380,7 +386,7 @@
       "executable": false
     },
     "edition.json": {
-      "sha256": "5127a230c8d3ee4efda9f166add5ab4e646d7a6b594578b5a8ec1c7b44ebc14e",
+      "sha256": "8c7ee7b2ef17bb4474b2eeb40d8bd23f4546dd0c5da505d92024abadefef2c53",
       "executable": false
     },
     "HOMEPAGE-VARIANTS.md": {
@@ -476,7 +482,7 @@
       "executable": false
     },
     "management/integration/deployment-spec.json": {
-      "sha256": "0d4f4121e12339cea34e9cd83be5b7add80cf7f7c26fc0d7d3b514c1ed0d73aa",
+      "sha256": "bcbfa53e542b1fef4c7fa75c3a68a59fe0a427881e1c61a0ed10592881d303d8",
       "executable": false
     },
     "migrations/core/0001_owner.sql": {
@@ -1060,7 +1066,7 @@
       "executable": false
     },
     "RELEASE.json": {
-      "sha256": "fd58b7431952a9b0836b86a1921494fe9b95122f9da3d7a99d8e792ab7945abd",
+      "sha256": "e3315019a07bc730a18c8c74480a88fd53b45936e8a40c84488fd0d1a38b4304",
       "executable": false
     },
     "rer-project.json": {

@@ -238,6 +238,24 @@
       "name": "0038_dependency_keys_sealed.sql",
       "sha256": "9c8fa5f94c48a230f326cd4d666cbc2bd1e7d5a18327b89e65b339ac6a533d9a",
       "sql": "ALTER TABLE rer_dependency_installation ADD COLUMN keys_sealed INTEGER NOT NULL DEFAULT 0 CHECK(keys_sealed IN (0,1));\n-- Nonsecret version history lets restored rows name an unavailable retired key\n-- without confusing ciphertext tampering or a wrong current secret with restore.\nALTER TABLE rer_dependency_installation ADD COLUMN key_ids TEXT NOT NULL DEFAULT '[]' CHECK(json_valid(key_ids) AND json_type(key_ids)='array');\n"
+    },
+    {
+      "binding": "DB",
+      "name": "0039_porthole_baggage.sql",
+      "sha256": "c03fbc98e3f035ab5b8805d9ea9c2769adaeb5a9f4bd60de60525af3f7ab499e",
+      "sql": "CREATE TABLE porthole_baggage_policy (\n singleton INTEGER PRIMARY KEY CHECK(singleton=1),\n enabled INTEGER NOT NULL DEFAULT 0 CHECK(enabled IN (0,1)),\n allowed_keys TEXT NOT NULL DEFAULT '[]' CHECK(json_valid(allowed_keys)),\n attribute_keys TEXT NOT NULL DEFAULT '[]' CHECK(json_valid(attribute_keys)),\n revision INTEGER NOT NULL DEFAULT 1 CHECK(revision>0),\n changed_at INTEGER NOT NULL DEFAULT 0\n);\nINSERT INTO porthole_baggage_policy(singleton) VALUES(1);\nCREATE TRIGGER porthole_baggage_audit AFTER UPDATE ON porthole_baggage_policy WHEN EXISTS(SELECT 1 FROM porthole_audit_context) BEGIN\n INSERT INTO porthole_entity_refs(kind,key_ref,entity_ref) VALUES('porthole_baggage_policy',NEW.singleton,lower(hex(randomblob(16)))) ON CONFLICT DO NOTHING;\n INSERT INTO porthole_audit_facts SELECT lower(hex(randomblob(16))),COALESCE((SELECT MAX(ordinal) FROM porthole_audit_facts),0)+1,operation_ref,actor_ref,actor_revision,action,(SELECT entity_ref FROM porthole_entity_refs WHERE kind='porthole_baggage_policy' AND key_ref=NEW.singleton),NEW.revision,occurred_at,CAST(unixepoch('subsec')*1000 AS INTEGER) FROM porthole_audit_context;\nEND;\n"
+    },
+    {
+      "binding": "DB",
+      "name": "0040_porthole_notice_uncertainty.sql",
+      "sha256": "4e330cbb5a2e012eae3eeb1f5de01e502b2cf9b5274b315782bb4688a523b06f",
+      "sql": "-- Retain earlier unknown submissions independently of the deduplication clock.\nALTER TABLE porthole_health_notices ADD COLUMN had_uncertain INTEGER NOT NULL DEFAULT 0 CHECK(had_uncertain IN (0,1));\n-- Older pending attempts do not carry sufficient outcome history to disprove\n-- acceptance. Preserve that uncertainty when a later attempt is refused.\nUPDATE porthole_health_notices SET had_uncertain=1 WHERE state IN ('sending','uncertain') OR (state='pending' AND first_attempt_at IS NOT NULL);\n"
+    },
+    {
+      "binding": "DB",
+      "name": "0041_porthole_notice_grant.sql",
+      "sha256": "e6b26276c80bf3f5bdbaceaf981768393a902aa1388bba165f50b0f6912e2551",
+      "sql": "-- Private transport identity is operational custody, omitted from both archive\n-- projections. Legacy work without a binding proof requires owner review.\nALTER TABLE porthole_health_notices ADD COLUMN transport_grant TEXT CHECK(transport_grant IS NULL OR (length(transport_grant)=64 AND transport_grant NOT GLOB '*[^0-9a-f]*'));\n"
     }
   ],
   "compatibilityDate": "2026-09-08",

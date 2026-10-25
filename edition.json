@@ -35,7 +35,8 @@
           "src/modules/demo",
           "src/modules/ai",
           "src/modules/dependencies",
-          "src/modules/owner-claim"
+          "src/modules/owner-claim",
+          "src/mail.server.d.mts"
         ],
         "origin": {
           "repository": "https://github.com/runeditrun/base.git",
@@ -49,7 +50,8 @@
             "modules/demo",
             "modules/ai",
             "modules/dependencies",
-            "modules/owner-claim"
+            "modules/owner-claim",
+            "foundation/template/src/mail.server.d.mts"
           ]
         },
         "mappings": [
@@ -76,6 +78,10 @@
           {
             "path": "src/modules/dependencies/store.mjs",
             "originPath": "modules/dependencies/store.mjs"
+          },
+          {
+            "path": "src/mail.server.d.mts",
+            "originPath": "foundation/template/src/mail.server.d.mts"
           }
         ]
       }
