@@ -1,3 +1,5 @@
+import {AuthError} from '../../modules/operator-auth/index.mjs'
+import {applyFunctions} from './functions'
 import type {Bindings} from '../../auth.server'
 import {attributes} from '../ingest/normalize'
 import {canonical} from '../ingest/model'
@@ -38,12 +40,17 @@ export async function dashboardResults(request:Request,env:Bindings,row:Dashboar
   }
   const ranked=[...values].sort((a,b)=>a-b)
   const units=new Set(records.filter(row=>panel.signal==='metrics').map(row=>String((row.payload as unknown as {metric:{unit?:string}}).metric.unit??'')))
-  const unit=panel.signal==='metrics'?(units.values().next().value??panel.unit):panel.signal==='traces'?'ms':'records'
+  let unit=panel.signal==='metrics'?(units.values().next().value??panel.unit):panel.signal==='traces'?'ms':'records'
   if(units.size>1||panel.signal==='metrics'&&panel.unit&&panel.unit!==unit)return {panel,value:null,state:'error' as const,count:records.length,query:'/app/explore?'+query,values:[],error:'incompatible_metric_units'}
-  const value=partial?null:!records.length?null:panel.aggregate==='count'?records.length:panel.aggregate==='p95'?ranked[Math.max(0,Math.ceil(ranked.length*.95)-1)]??null:values.length?values.reduce((total,value)=>total+value/values.length,0):null
+  let value=partial?null:!records.length?null:panel.aggregate==='count'?records.length:panel.aggregate==='p95'?ranked[Math.max(0,Math.ceil(ranked.length*.95)-1)]??null:values.length?values.reduce((total,value)=>total+value/values.length,0):null
   if(value!==null&&!Number.isFinite(value))return {panel,value:null,state:'error' as const,count:records.length,query:'/app/explore?'+query,values:[],error:'numeric_range_too_wide'}
+  if(panel.functions?.length&&partial)points.splice(0)
+  if(panel.functions?.length&&!partial) {
+   try {const transformed=applyFunctions(points,panel.functions,from,unit);points.splice(0,points.length,...transformed.points);unit=transformed.unit;value=transformed.value}
+   catch(error) {if(!(error instanceof AuthError))throw error;return {panel,value:null,state:'error' as const,count:records.length,query:'/app/explore?'+query,values:[],points:[],records:[],from,through,error:error.code}}
+  }
   const stale=records.length>0&&Date.now()-Number(BigInt(String(records.at(-1)!.event_time_ns))/1000000n)>600000
-  return {panel,value,state:partial?'partial':!records.length?'empty':stale?'stale':'complete',count:records.length,query:'/app/explore?'+query+'&snapshot='+snapshot,values,unit,reference,points,records,from,through} as PanelResult
+  return {panel,value,state:partial?'partial':!records.length||panel.functions?.length&&!points.length?'empty':stale?'stale':'complete',count:records.length,query:'/app/explore?'+query+'&snapshot='+snapshot,values,unit,reference,points,records,from,through} as PanelResult
  })) as PanelResult[]
  const compared=body.panels.filter(panel=>panel.compareWeek)
  if(compared.length) {

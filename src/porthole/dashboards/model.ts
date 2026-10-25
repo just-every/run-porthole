@@ -1,6 +1,7 @@
+import {panelFunctions,type PanelFunction} from './functions'
 import {fail} from '../security/authority'
 import {widgetKinds,type WidgetKind} from './widgets/kinds'
-export interface Panel {id:string;title:string;signal:'metrics'|'logs'|'traces';service:string;aggregate:'average'|'count'|'p95';unit:string;metric?:string;widget?:WidgetKind;note?:string;compareWeek?:boolean}
+export interface Panel {id:string;title:string;signal:'metrics'|'logs'|'traces';service:string;aggregate:'average'|'count'|'p95';unit:string;metric?:string;widget?:WidgetKind;note?:string;compareWeek?:boolean;functions?:PanelFunction[]}
 export interface Dashboard {panels:Panel[];variables:{team:string;environment:string};range:{from:string;through:string};annotations:{at:string;label:string}[]}
 export interface DashboardRow {id:string;name:string;scope:string;body:string;revision:number;state:string;created_at:number;updated_at:number}
 const object=(v:unknown):Record<string,unknown>=>v!==null&&typeof v==='object'&&!Array.isArray(v)?v as Record<string,unknown>:fail('invalid_dashboard',400)
@@ -14,12 +15,14 @@ export function dashboardBody(raw:unknown):Dashboard {
  if(BigInt(from)>BigInt(through))fail('invalid_dashboard_range',400)
  const ids=new Set<string>()
  const panels=b.panels.map(raw=>{const p=object(raw),id=scopeLabel(p.id),signal=String(p.signal)
-  if(ids.has(id)||!['metrics','logs','traces'].includes(signal)||Object.keys(p).some(k=>!['id','title','signal','service','aggregate','unit','metric','widget','note','compareWeek'].includes(k)))fail('invalid_panel',400)
+  if(ids.has(id)||!['metrics','logs','traces'].includes(signal)||Object.keys(p).some(k=>!['id','title','signal','service','aggregate','unit','metric','widget','note','compareWeek','functions'].includes(k)))fail('invalid_panel',400)
   ids.add(id)
+  const functions=p.functions===undefined?undefined:panelFunctions(p.functions)
+  if(functions?.length&&(signal!=='metrics'||p.widget==='notes'))fail('dashboard_functions_require_numeric_metric_panel',400)
   if(p.compareWeek!==undefined&&typeof p.compareWeek!=='boolean'||p.compareWeek&&p.widget==='notes')fail('invalid_week_comparison',400)
   if(p.widget!==undefined&&!(widgetKinds as readonly unknown[]).includes(p.widget)||p.widget==='log_stream'&&signal!=='logs'||p.note!==undefined&&(p.widget!=='notes'||typeof p.note!=='string'||p.note.length>5000))fail('invalid_panel_widget',400)
   if(p.aggregate!==({metrics:'average',logs:'count',traces:'p95'} as Record<string,string>)[signal])fail('unsupported_panel_aggregate',400)
-  return {id,...(p.compareWeek!==undefined?{compareWeek:p.compareWeek}:{}),...(p.widget!==undefined?{widget:p.widget}:{}),...(p.widget==='notes'?{note:p.note??''}:{}),...(signal==='metrics'?{metric:label(p.metric)}:{}),title:label(p.title),signal,service:scopeLabel(p.service),aggregate:p.aggregate,unit:typeof p.unit==='string'&&p.unit.length<=32?p.unit:fail('invalid_panel_unit',400)} as Panel
+  return {id,...(functions!==undefined?{functions}:{}),...(p.compareWeek!==undefined?{compareWeek:p.compareWeek}:{}),...(p.widget!==undefined?{widget:p.widget}:{}),...(p.widget==='notes'?{note:p.note??''}:{}),...(signal==='metrics'?{metric:label(p.metric)}:{}),title:label(p.title),signal,service:scopeLabel(p.service),aggregate:p.aggregate,unit:typeof p.unit==='string'&&p.unit.length<=32?p.unit:fail('invalid_panel_unit',400)} as Panel
  })
  return {panels,variables:{team:scopeLabel(vars.team),environment:scopeLabel(vars.environment)},range:{from,through},annotations:b.annotations.map(raw=>{const a=object(raw);return {at:timestamp(a.at),label:label(a.label,300)}})}
 }

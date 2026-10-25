@@ -36,7 +36,7 @@ export async function publicationJourney({origin,cookie,freshOwner,dashboardId,r
   assert.equal((await post(root+'/preview',{...input,publicTitle:'https://private.example/auth?token=synthetic-porthole-220'})).status,400)
   assert.equal((await post(root+'/preview',{...input,allowedOrigins:['https://office.example/path']})).status,400)
   const first=await draft(),review=await packet(first)
-  assert.ok(review.html.includes('Private source queries and filters'));assert.ok(review.html.includes('Office CPU'))
+  assert.ok(review.html.includes('Private source queries and filters'));assert.ok(review.html.includes('Office CPU'));assert.ok(review.html.includes('functions'));assert.ok(review.html.includes('rank'),'the exact transformation is part of the private consent packet')
   assert.equal((await fetch(origin+'/published/'+first.id+'/tv')).status,404,'draft never publishes')
   assert.equal((await post(root+'/approve',{...review.values,digest:'synthetic-porthole-221',confirm:'reviewed-public-snapshot'})).status,409)
   await approve(first)

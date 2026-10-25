@@ -58,3 +58,52 @@ are unsupported. No service, SLO, monitor, event or check data is inferred from
 numeric points. Public publication remains the separately reviewed frozen
 projection workflow; these private widget inputs are never publicized by the
 renderer.
+
+## Bounded native metric functions
+
+In the existing Dashboard JSON editor, numeric metric panels accept an ordered
+`functions` array with at most eight steps. The same definition is accepted by
+the documented dashboard API and survives revision history and inactive restore.
+For example:
+
+```json
+"functions": [
+  {"kind": "rollup", "seconds": 60, "operation": "average"},
+  {"kind": "rank", "limit": 5},
+  {"kind": "smooth", "window": 3}
+]
+```
+
+Each step acts independently on the complete actual series identity from intake.
+Rollup buckets start at the selected range start, include their lower boundary,
+and exclude their upper boundary. A point on the inclusive range end belongs to
+its own next bucket if it lies on a boundary. The operation is `average` or `sum`;
+empty buckets stay absent. Seconds are whole numbers from 1 through 604800.
+Rank retains the highest observed arithmetic means, with series identity as the
+stable ascending tie break. Limits are 1 through 2000. Smoothing uses a trailing
+mean of up to `window` observed samples in time order per series; windows are
+1 through 2000. Neither operation inserts timestamps or fills missing data.
+
+`{"kind": "rate"}` explicitly requests a nonnegative counter difference divided
+by elapsed seconds between adjacent observations of the same series. It omits
+each series' first sample, labels units as the source unit followed by
+"per second", and refuses a decrease or duplicate timestamp with an actionable
+panel error. It does not guess a reset value, extrapolate at window boundaries,
+or claim Prometheus counter semantics. A single observation gives no rate data.
+The displayed scalar is the mean of the resulting observations. The source
+record count remains the count before transformations. Underlying links retain
+the original authorized metric, variables, range and snapshot; they show source
+observations. The panel separately discloses its transformation order.
+
+All functions require numeric metric panels. Unknown functions, extra fields,
+invalid bounds and use on log, trace or note panels are refused before saving.
+Mixed units and non-finite numerical results are refused. An incomplete read
+shows no transformed points or complete scalar. Empty scopes stay empty.
+Previous-week panels run the same functions on the actual previous range before
+shifting timestamps only for display. Publication consent includes the exact
+function definitions in its private review packet and digest; public surfaces
+still receive only the expressly approved frozen numeric projection.
+
+These four native operations are bounded slices of the required function
+families. They do not qualify cross-query arithmetic, interpolation and fill,
+source-language functions, complete rate semantics or source-import parity.
