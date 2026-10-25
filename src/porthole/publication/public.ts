@@ -17,6 +17,7 @@ export async function publicResponse(request:Request,env:Bindings,match:RegExpMa
  if(!validProjection(projection))fail('publication_not_found',404)
  const embed=match[2]==='embed',origins=allowedOrigins(row.allowed_origins)
  if(embed) {
+  if(!request.headers.has('origin')&&!request.headers.has('referer'))fail('embed_origin_forbidden')
   for(const name of ['origin','referer']) {
    const value=request.headers.get(name)
    if(value!==null) {
