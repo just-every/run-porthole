@@ -18,3 +18,12 @@ CREATE TRIGGER porthole_follow_up_removal BEFORE UPDATE OF status ON oa_operator
 CREATE TRIGGER porthole_follow_up_fact AFTER UPDATE ON porthole_follow_up WHEN EXISTS(SELECT 1 FROM porthole_audit_context) BEGIN
  INSERT INTO porthole_audit_facts SELECT lower(hex(randomblob(16))),COALESCE((SELECT MAX(ordinal) FROM porthole_audit_facts),0)+1,operation_ref,actor_ref,actor_revision,'follow-up.change',NEW.id,NEW.revision,occurred_at,CAST(unixepoch('subsec')*1000 AS INTEGER) FROM porthole_audit_context;
 END;
+CREATE TRIGGER porthole_follow_up_scope_change BEFORE UPDATE OF role,scope ON porthole_members
+ WHEN (NEW.role!=OLD.role OR NEW.scope!=OLD.scope) AND EXISTS(SELECT 1 FROM porthole_follow_up WHERE owner_id=OLD.operator_id AND state!='resolved')
+ BEGIN SELECT RAISE(ABORT,'follow_up_handover_required'); END;
+CREATE TRIGGER porthole_follow_up_open_fact AFTER INSERT ON porthole_follow_up WHEN EXISTS(SELECT 1 FROM porthole_audit_context) BEGIN
+ INSERT INTO porthole_audit_facts SELECT lower(hex(randomblob(16))),COALESCE((SELECT MAX(ordinal) FROM porthole_audit_facts),0)+1,operation_ref,actor_ref,actor_revision,'follow-up.open',NEW.id,NEW.revision,occurred_at,CAST(unixepoch('subsec')*1000 AS INTEGER) FROM porthole_audit_context;
+END;
+CREATE TRIGGER porthole_follow_up_transition AFTER UPDATE OF state ON porthole_follow_up WHEN NEW.state!=OLD.state BEGIN
+ INSERT INTO porthole_follow_up_events VALUES(lower(hex(randomblob(16))),NEW.id,NEW.generation,CASE WHEN NEW.state='resolved' THEN 'recovery' ELSE 'regression' END,NULL,NEW.reason,NEW.updated_at);
+END;

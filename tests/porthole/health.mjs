@@ -168,7 +168,7 @@ async function healthAccessJourney({origin,freshOwner,signIn}) {
  return readers
 }
 
-export async function healthBrowser({origin,cookie,name,readOnly=false,path='/app/health',contains,expectedStatus=200,dispatch}) {
+export async function healthBrowser({origin,cookie,name,readOnly=false,path='/app/health',contains,expectedStatus=200,dispatch,exercise}) {
  const {chromium}=await import('@playwright/test'),{mkdir}=await import('node:fs/promises'),{join}=await import('node:path')
  const browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']})
  try {for(const width of [1440,390]) {
@@ -181,6 +181,7 @@ export async function healthBrowser({origin,cookie,name,readOnly=false,path='/ap
   const page=await context.newPage(),errors=[];page.on('pageerror',error=>errors.push(error.message))
   const response=await page.goto(origin+path);assert.equal(response.status(),expectedStatus)
   assert.ok(await page.locator('img').evaluateAll(images=>images.every(img=>img.complete&&img.naturalWidth>0)),'page images load from actual built assets')
+  if(exercise)await exercise(page,width)
   if(contains)for(const expected of Array.isArray(contains)?contains:[contains])assert.ok((await page.locator('body').innerText()).includes(expected),expected)
   if(readOnly)assert.equal(await page.locator('form').count(),0)
   assert.equal(await page.locator('button,a').evaluateAll(controls=>controls.filter(control=>!control.textContent.trim()).length),0,'the touched health screen has no icon-only controls')
@@ -601,9 +602,12 @@ export async function followUpJourney({origin,freshOwner,signIn,restartWorker,wi
  await post('/app/settings/members/invite',{email:'synthetic-porthole-1510@example.com',displayName:'Follow-up maintainer',role:'maintainer',scope},202)
  const memberCookie=await signIn('synthetic-porthole-1510@example.com'),member=(await (await fetch(origin+'/auth/session',{headers:{cookie:memberCookie}})).json()).operator.id
  cookie=await freshOwner()
- for(const path of ['/api/porthole/v1/follow-up','/app/settings/follow-up'])assert.equal((await fetch(origin+path,{headers:{cookie:memberCookie}})).status,403)
+ assert.equal((await fetch(origin+'/app/settings/follow-up',{headers:{cookie:memberCookie}})).status,403)
  const review=async(overrides={},status=200)=>{task=(await work()).tasks.find(row=>row.id===task.id);return post('/api/porthole/v1/follow-up/review',{id:task.id,revision:task.revision,ownerId:owner,dueAt:t,nextAction:'Inspect original recovery evidence',note:'Original monitor remains authoritative; dissent retained.',reminders:'on',suppressedUntil:0,confirm:'review',...overrides},status)}
  await review({ownerId:member,suppressedUntil:t+120000})
+ const assigned=await (await fetch(origin+'/api/porthole/v1/follow-up',{headers:{cookie:memberCookie}})).json()
+ assert.deepEqual(assigned.tasks.map(row=>row.id),[task.id],'assignee sees only their currently authorized scoped work')
+ assert.equal((await fetch(origin+'/api/porthole/v1/follow-up/review',form(origin,memberCookie,{id:task.id}))).status,403)
  await post('/app/settings/members/remove',{operatorId:member},409)
  await withPinnedClock(t+12000,async()=>{await heartbeat();await ingest('synthetic-porthole-1511',t);await tick();assert.equal((await work()).events.filter(row=>row.task_id===task.id&&row.kind==='reminder').length,0)})
  await review({ownerId:owner})
@@ -614,8 +618,9 @@ export async function followUpJourney({origin,freshOwner,signIn,restartWorker,wi
  assert.equal(snapshot.events.filter(row=>row.task_id===task.id&&row.kind==='reminder').length,1)
  assert.ok(snapshot.events.some(row=>row.task_id===task.id&&row.kind==='review'&&row.detail.includes('dissent retained')))
  const stale=task.revision;await post('/api/porthole/v1/follow-up/review',{id:task.id,revision:stale-1,ownerId:owner,dueAt:t,nextAction:'synthetic-porthole-1513',note:'synthetic-porthole-1514',reminders:'off',confirm:'review'},409)
+ await healthBrowser({origin,cookie,name:'follow-up-operations',path:'/app/operations',contains:['Follow-up','execution remains unavailable']})
  await healthBrowser({origin,cookie,name:'follow-up-blocked',path:'/app/follow-up',contains:['Follow-up','blocked','Inspect original recovery evidence']})
- await healthBrowser({origin,cookie,name:'follow-up-settings',path:'/app/settings/follow-up',contains:['Reminder settings and handover','One in-app reminder per generation']})
+ await healthBrowser({origin,cookie,name:'follow-up-settings',path:'/app/settings/follow-up',contains:['Reminder settings and handover','Review assignment and reminders'],exercise:async page=>{const article=page.locator('[data-task-id="'+task.id+'"]');await article.locator('summary').click();assert.equal(await article.locator('select[name=reminders]').inputValue(),'on');await article.locator('textarea[name=note]').fill('Reviewed through the native settings form.');await article.locator('input[name=confirm]').check();const saved=page.waitForResponse(response=>response.url().endsWith('/app/settings/follow-up/review')&&response.request().method()==='POST');await article.getByRole('button',{name:'Save reviewed handover'}).click();assert.equal((await saved).status(),303);await page.waitForURL(origin+'/app/settings/follow-up');await page.locator('[data-task-id="'+task.id+'"] summary').click()}})
  await restartWorker();cookie=await freshOwner()
  await withPinnedClock(t+61000,async()=>{await heartbeat();await ingest('synthetic-porthole-1515',t);await tick()})
  snapshot=await work();assert.equal(snapshot.tasks.find(row=>row.id===task.id).state,'resolved','only a measured zero on the unchanged 60-second monitor resolves')
