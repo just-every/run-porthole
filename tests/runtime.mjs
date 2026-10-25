@@ -1,6 +1,7 @@
 import {queuedEntrypoint} from '@runeditrun/rer/queued-entry';
 const queued=await queuedEntrypoint(import.meta.url,'verify:runtime');if(queued!==null)process.exit(queued);
 import assert from 'node:assert/strict'
+import {createRequire} from 'node:module'
 import { execFile, execFileSync, spawn } from 'node:child_process'
 import { createServer } from 'node:net'
 import { mkdtemp, readFile, rm, mkdir, writeFile, readdir, copyFile } from 'node:fs/promises'
@@ -16,6 +17,37 @@ const socket = createServer()
 await new Promise(resolve => socket.listen(0, '127.0.0.1', resolve))
 const port = socket.address().port
 await new Promise(resolve => socket.close(resolve))
+const inspectorSocket = createServer()
+await new Promise(resolve => inspectorSocket.listen(0, '127.0.0.1', resolve))
+const inspectorPort = inspectorSocket.address().port
+await new Promise(resolve => inspectorSocket.close(resolve))
+async function withPinnedClock(now, run) {
+ const targets = await (await fetch(`http://127.0.0.1:${inspectorPort}/json`)).json()
+ // Use Wrangler's own inspector transport with its required local origin.
+ const {WebSocket:InspectorWebSocket}=createRequire(import.meta.resolve('wrangler/package.json'))('ws')
+ const connection = new InspectorWebSocket(targets[0].webSocketDebuggerUrl,{origin:'http://localhost',handshakeTimeout:10000})
+ await new Promise((resolve,reject) => {connection.addEventListener('open',resolve,{once:true});connection.addEventListener('error',reject,{once:true})})
+ let next=0
+ const command=(method,params={})=>new Promise((resolve,reject)=>{
+  const id=++next
+  const timer=setTimeout(()=>{connection.removeEventListener('message',receive);reject(Error('Inspector command timed out: '+method))},10000)
+  const receive=event=>{const message=JSON.parse(event.data);if(message.id!==id)return;clearTimeout(timer);connection.removeEventListener('message',receive);message.error||message.result?.exceptionDetails?reject(Error(JSON.stringify(message))):resolve(message.result)}
+  connection.addEventListener('message',receive);connection.send(JSON.stringify({id,method,params}))
+ })
+ let contextId,pinned=false
+ const context=new Promise((resolve,reject)=>{
+  const timer=setTimeout(()=>{connection.removeEventListener('message',receive);reject(Error('Worker execution context unavailable'))},10000)
+  const receive=event=>{const message=JSON.parse(event.data);if(message.method!=='Runtime.executionContextCreated')return;clearTimeout(timer);connection.removeEventListener('message',receive);resolve(message.params.context.id)}
+  connection.addEventListener('message',receive)
+ })
+ const evaluate=expression=>command('Runtime.evaluate',{expression,contextId})
+ try {
+  await command('Runtime.disable')
+  const [,id]=await Promise.all([command('Runtime.enable'),context]);contextId=id
+  await evaluate(`globalThis.__journeyDateNow=Date.now;Date.now=()=>${now}`);pinned=true
+  return await run()
+ } finally {if(pinned)await evaluate('Date.now=globalThis.__journeyDateNow;delete globalThis.__journeyDateNow');connection.close()}
+}
 // The installed homepage reads the claim state from D1: run the emitted Worker
 // on its own migrated store, never the checkout's local data.
 let persist = await mkdtemp(join(tmpdir(), 'foundation-runtime-'))
@@ -44,7 +76,7 @@ let ownerEmail='owner@example.com'
 let output = ''
 let allOutput = ''
 function startWorker() {
- worker = spawn(process.execPath, ['node_modules/wrangler/bin/wrangler.js', 'dev', '--inspector-port', '0', '--local', '--persist-to', persist, '--ip', '127.0.0.1', '--config', 'dist/server/wrangler.json', '--port', String(port), '--var', `AUTH_ORIGIN:${origin}`, '--var', 'AUTH_LOCAL:true', '--var', `OWNER_EMAIL:${ownerEmail}`, '--var', 'MAIL_FROM:synthetic-porthole-4@example.com', '--var', 'SESSION_SECRET:runtime-session-secret-1234567890123456', '--var', `SETUP_TOKEN:${setupToken}`], { stdio: ['ignore', 'pipe', 'pipe'] })
+ worker = spawn(process.execPath, ['node_modules/wrangler/bin/wrangler.js', 'dev', '--inspector-port', String(inspectorPort), '--local', '--persist-to', persist, '--ip', '127.0.0.1', '--config', 'dist/server/wrangler.json', '--port', String(port), '--var', `AUTH_ORIGIN:${origin}`, '--var', 'AUTH_LOCAL:true', '--var', `OWNER_EMAIL:${ownerEmail}`, '--var', 'MAIL_FROM:synthetic-porthole-4@example.com', '--var', 'SESSION_SECRET:runtime-session-secret-1234567890123456', '--var', `SETUP_TOKEN:${setupToken}`], { stdio: ['ignore', 'pipe', 'pipe'] })
 worker.stdout.on('data', chunk => { output += chunk; allOutput += chunk })
 worker.stderr.on('data', chunk => { output += chunk; allOutput += chunk })
 }
@@ -155,7 +187,7 @@ try {
   }
   if(process.env.PORTHOLE_ERASURE_ONLY==='1') {
    const {subjectErasureJourney}=await import('./porthole/archive.mjs')
-   await subjectErasureJourney({origin,cookie,restartWorker,withEmptyDestination,...helpers})
+   await subjectErasureJourney({origin,cookie,restartWorker,withEmptyDestination,withPinnedClock,...helpers})
   } else if(process.env.PORTHOLE_DASHBOARD_ONLY==='1') {
    const {dashboardJourney}=await import('./porthole/dashboards.mjs')
    await dashboardJourney({origin,cookie,restartWorker,withEmptyDestination,...helpers})

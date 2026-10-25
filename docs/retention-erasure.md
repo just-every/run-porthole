@@ -75,3 +75,9 @@ receipt history, imported evidence, dashboard projections, every derived cache,
 service-wide erasure and late arrivals remain unqualified. It never reports
 those domains deleted or sends an external deletion. Full PORT-035 and PORT-061
 acceptance remains partial until those custody paths are implemented and proven.
+
+The ct ruling of 25 October 2026 at 17:55Z approves this PARTIAL slice with
+digest-bound inventory consent and five-minute identity proof. The erasure
+receipt reports counts and exact batch IDs, never erased content. PORT-096
+retains mixed-subject erasure, analytical custody and audited owner-configured
+retention expiry as named Gaps. ct judges any DONE promotion.

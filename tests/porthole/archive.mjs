@@ -476,7 +476,7 @@ export async function signalExportJourney({origin,cookie,freshOwner,restartWorke
 }
 
 /** Exact owner-approved local envelope erasure and later-journal restore fence. */
-export async function subjectErasureJourney({origin,freshOwner,restartWorker,sql,withEmptyDestination}) {
+export async function subjectErasureJourney({origin,freshOwner,restartWorker,sql,withEmptyDestination,withPinnedClock}) {
  const {otlpLogBatch,profileBatch,ingestScope}=await import('./ingest.mjs')
  const root='/api/porthole/v1/subject-erasure',identifier='synthetic-porthole-1800@example.com'
  const scope={...ingestScope,services:['synthetic-porthole-1801']}
@@ -516,22 +516,65 @@ export async function subjectErasureJourney({origin,freshOwner,restartWorker,sql
  await value(await intake('logs',mixed))
  const mixedPreview=await value(await send(root,{identifier:mixedIdentifier}))
  assert.equal(mixedPreview.canApply,false)
+ const mixedBefore=await sql('SELECT * FROM porthole_ingest_batches ORDER BY id')
  assert.equal((await send(root+'/apply',{identifier:mixedIdentifier,digest:mixedPreview.digest,confirm:'erase-exact-batches'})).status,409,'mixed envelope cannot erase unrelated records')
+ assert.deepEqual(await sql('SELECT * FROM porthole_ingest_batches ORDER BY id'),mixedBefore,'mixedSubjectStorageUnchanged')
  const before=await savedExport(origin,cookie,await send(api+'/exports',{}))
+ // One D1 read captures every custody table consistently; parallel Wrangler
+ // readers contend on the same local SQLite migration connection.
+ const snapshotQueries=[]
+ for(const table of ['porthole_ingest_batches','porthole_telemetry_records','porthole_telemetry_archive','porthole_erased_batches','porthole_archive_jobs','porthole_archive_rows','porthole_archive_chunks']) {
+  const columns=await sql(`PRAGMA table_info(${table})`)
+  const fields=columns.flatMap(row=>[literal(row.name),'"'+row.name+'"']).join(',')
+  snapshotQueries.push(`${literal(table)},(SELECT json_group_array(json_object(${fields})) FROM (SELECT * FROM ${table} ORDER BY rowid))`)
+ }
+ const storage=()=>sql(`SELECT json_object(${snapshotQueries.join(',')}) AS custody`)
  const preview=await value(await send(root,{identifier}))
  assert.equal(preview.batches.length,4);assert.equal(preview.records,5)
  assert.ok((await sql(`SELECT COUNT(*) AS n FROM porthole_ingest_batches WHERE instr(records,${literal(identifier)})>0`))[0].n===4,'preview deletes nothing')
+ const unapproved=await storage()
  assert.equal((await send(root+'/apply',{identifier,digest:preview.digest,confirm:'wrong'})).status,409)
+ assert.deepEqual(await storage(),unapproved,'noDeletionWithoutExactApproval')
+ const session=await value(await get(origin,cookie,'/auth/session'))
+ const proofAt=Number((await sql(`SELECT MAX(consumed_at) AS at FROM oa_step_up_challenges WHERE session_id=${literal(session.id)}`))[0].at)
+ assert.ok(proofAt>0)
+ await withPinnedClock(proofAt+300001,async()=>{
+  const refused=await send(root+'/apply',{identifier,digest:preview.digest,confirm:'erase-exact-batches'})
+  assert.equal(refused.status,403);assert.equal((await refused.json()).error,'step_up_required')
+  assert.deepEqual(await storage(),unapproved,'proofOlderThanFiveMinutesRefused')
+ })
+ await withPinnedClock(proofAt+299000,async()=>{
+  assert.equal((await send(root,{identifier})).status,200,'proofAtFourMinutesFiftyNineAccepted')
+ })
  assert.equal((await fetch(origin+root,{method:'POST',headers:{origin,authorization:'Bearer '+source.secret,'content-type':'application/json'},body:JSON.stringify({identifier})})).status,403)
  assert.equal((await send(root,{identifier},'')).status,401)
  assert.equal((await fetch(origin+root,{method:'POST',headers:{origin:'https://example.invalid',cookie,'content-type':'application/json'},body:JSON.stringify({identifier})})).status,403)
  const late=otlpLogBatch([time+20n]);late.resourceLogs[0].resource.attributes=attributes(identifier)
  await value(await intake('logs',late))
+ const changedBefore=await storage()
  assert.equal((await send(root+'/apply',{identifier,digest:preview.digest,confirm:'erase-exact-batches'})).status,409,'a changed inventory requires a new preview')
+ assert.deepEqual(await storage(),changedBefore,'changedInventoryDeletesNothing')
  const exact=await value(await send(root,{identifier}))
  assert.equal(exact.batches.length,5);assert.equal(exact.records,6,'pending original wire is part of the reviewed erasure')
- const result=await value(await send(root+'/apply',{identifier,digest:exact.digest,confirm:'erase-exact-batches'}))
- assert.equal(result.erasedRecords,6)
+ await restartWorker(()=>sql('UPDATE porthole_analytical_configuration SET changed_at=1 WHERE singleton=1'))
+ const analyticalBefore=await storage()
+ const analyticalRefusal=await send(root+'/apply',{identifier,digest:exact.digest,confirm:'erase-exact-batches'})
+ assert.equal(analyticalRefusal.status,409);assert.equal((await analyticalRefusal.json()).error,'analytical_erasure_not_supported')
+ assert.deepEqual(await storage(),analyticalBefore,'configuredAnalyticalCustodyDeletesNothing')
+ await restartWorker(()=>sql('UPDATE porthole_analytical_configuration SET changed_at=0 WHERE singleton=1'))
+ const noTimerBefore=await storage()
+ const now=Date.now()
+ await withPinnedClock(now+31*86400000,async()=>{assert.equal((await get(origin,cookie,'/health')).status,200);assert.deepEqual(await storage(),noTimerBefore,'noAutomaticExpiryOrDeletion')})
+ // Age the real consumed proof so the successful 4:59 fixture does not
+ // create future-dated tombstones for the later journal restore.
+ const approvalAt=Date.now()
+ await restartWorker(()=>sql(`UPDATE oa_step_up_challenges SET consumed_at=${approvalAt-299000} WHERE session_id=${literal(session.id)} AND consumed_at IS NOT NULL`))
+ const result=await withPinnedClock(approvalAt,async()=>value(await send(root+'/apply',{identifier,digest:exact.digest,confirm:'erase-exact-batches'})))
+ assert.deepEqual(result,{batchIds:exact.batches.map(row=>row.id),erasedBatches:exact.batches.length,erasedRecords:exact.records,digest:exact.digest,limitations:exact.limitations},'receiptContainsNoErasedContent')
+ assert.deepEqual(result.batchIds,exact.batches.map(row=>row.id),'receiptHasExactBatchIds')
+ assert.equal(result.erasedRecords,6,'proofAtFourMinutesFiftyNineAccepted')
+ // Later archive reads require their own still-fresh proof after this boundary.
+ cookie=await freshOwner()
  const skeletons=await sql('SELECT wire_base64,records,record_count,identity FROM porthole_ingest_batches WHERE id IN (SELECT id FROM porthole_erased_batches)')
  assert.equal(skeletons.length,5)
  assert.ok(skeletons.every(row=>row.wire_base64===''&&row.records==='[]'&&row.record_count===0&&row.identity.startsWith('erased:')),'opaque skeletons preserve nonreusable sequence watermarks without original data')
@@ -559,7 +602,9 @@ export async function subjectErasureJourney({origin,freshOwner,restartWorker,sql
   const owner=await destination.freshOwner()
   const request=(path,data)=>post(destination.origin,owner,path,data)
   const apply={...journal,confirm:'apply-erasure-journal'}
-  await value(await request(root+'/journal',apply));await value(await request(root+'/journal',apply))
+  const receipt=await value(await request(root+'/journal',apply))
+  assert.deepEqual(receipt,{applied:journal.records.length,batchIds:journal.records.map(row=>row.id)},'journalReceiptContainsNoErasedContent')
+  await value(await request(root+'/journal',apply))
   const conflict=structuredClone(apply);conflict.records[0].content_digest='0'.repeat(64)
   assert.equal((await request(root+'/journal',conflict)).status,503,'conflicting journal cannot replace a committed content fence')
   assert.deepEqual(await value(await get(destination.origin,owner,root+'/journal')),journal)

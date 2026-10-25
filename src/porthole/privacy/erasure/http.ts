@@ -47,7 +47,7 @@ export async function subjectErasureResponse(request: Request, env: Bindings): P
      env.DB.prepare('DELETE FROM porthole_archive_chunks'),env.DB.prepare('DELETE FROM porthole_archive_rows'),env.DB.prepare('DELETE FROM porthole_archive_jobs'),
      ...eraseJournaledBatches(env.DB),
     ])
-    return json({applied:entries.length})
+    return json({applied:entries.length,batchIds:entries.map(row=>row.id)})
    }
    if(request.method!=='GET')fail('method_not_allowed',405)
    const rows=(await env.DB.prepare(`SELECT id,content_digest,erased_at FROM porthole_erased_batches WHERE ${actor.fence} ORDER BY id LIMIT 101`).bind(...actor.args).all()).results
@@ -66,7 +66,7 @@ export async function subjectErasureResponse(request: Request, env: Bindings): P
   if(!apply)return json({digest:fingerprint,batches:rows.map(row=>({id:row.id,records:row.record_count,bytes:row.byte_count})),records:rows.reduce((n,row)=>n+row.record_count,0),canApply:!mixedBatch,limitations})
   if(mixedBatch)fail('mixed_subject_batch_requires_record_erasure',409)
   if(data.confirm!=='erase-exact-batches'||data.digest!==fingerprint)fail('erasure_preview_changed',409)
-  if(!rows.length)return json({erasedBatches:0,erasedRecords:0,digest:fingerprint,limitations})
+  if(!rows.length)return json({batchIds:[],erasedBatches:0,erasedRecords:0,digest:fingerprint,limitations})
   // Never imply that replicated copies have been erased by local deletion.
   const analytical=await env.DB.prepare('SELECT changed_at FROM porthole_analytical_configuration WHERE singleton=1').first<{changed_at:number}>()
   if(analytical?.changed_at)fail('analytical_erasure_not_supported',409)
@@ -79,7 +79,7 @@ export async function subjectErasureResponse(request: Request, env: Bindings): P
    env.DB.prepare('DELETE FROM porthole_archive_chunks'),env.DB.prepare('DELETE FROM porthole_archive_rows'),env.DB.prepare('DELETE FROM porthole_archive_jobs'),
    ...eraseJournaledBatches(env.DB),
   ])
-  return json({erasedBatches:rows.length,erasedRecords:rows.reduce((n,row)=>n+row.record_count,0),digest:fingerprint,limitations})
+  return json({batchIds:rows.map(row=>row.id),erasedBatches:rows.length,erasedRecords:rows.reduce((n,row)=>n+row.record_count,0),digest:fingerprint,limitations})
  }catch(error) {
   return json({error:error instanceof AuthError?error.code:'subject_erasure_unavailable'},error instanceof AuthError?error.status:503)
  }
