@@ -3938,7 +3938,7 @@
       "executable": false
     },
     "tests/porthole/health.mjs": {
-      "sha256": "15941d02bf26ee7f46fd3e436a0a5761dffb0543eefdcb6ae1b819cb02a61e9a",
+      "sha256": "de9bdfe3f46b672cf519ffb856b96b6d3a718a956ef06a2b214c3332e6797355",
       "executable": false
     },
     "tests/porthole/ingest.mjs": {

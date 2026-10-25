@@ -218,7 +218,7 @@ export async function recipientMailJourney(analyticalProof) {
  const origin=`https://127.0.0.1:${port}`,ownerEmail=analyticalProof?.ownerEmail??'synthetic-porthole-940@example.com',recipient='synthetic-porthole-941@example.com'
  const sessionSecret='synthetic-porthole-942-synthetic-porthole-942',setupToken='synthetic-porthole-943-synthetic-porthole-943'
  const scratch=await mkdtemp(join(tmpdir(),'porthole-recipient-')),messages=[]
- let receiptStatus=200,receiptFault,receiptReads=0,duringReceipt
+ let receiptStatus=200,receiptFault,receiptReads=0,duringReceipt,receiptProbe
  let providerStatus=202,providerRetryAfter,providerFailure,mf,cookie,mailApiKey='synthetic-porthole-944'
  const acceptedMessages=[],provider=process.env.PORTHOLE_MAIL_PROVIDER??'sendgrid',idempotent=provider==='resend',providerAccepted=new Map(),providerIds=new Map()
  assert.ok(['sendgrid','resend'].includes(provider))
@@ -441,12 +441,12 @@ export async function recipientMailJourney(analyticalProof) {
     await mf.dispose();mf=new Miniflare(options());db=await mf.getD1Database('DB')
     for(let pass=0;pass<3;pass++)await post('/api/v1/health/tick',{})
     assert.equal(messages.filter(row=>row.custom_args.rer_delivery_id===delivery).length,rotated?1:2,'a reconciled or held notice does not retry again')
-    if(rotated){assert.equal((await health()).components.find(row=>row.component==='delivery').evidence.configurationChanged,true);await healthBrowser({origin,cookie,name:'health-notice-rotated',contains:['Notice transport grant changed',id],dispatch});mailApiKey='synthetic-porthole-944';await mf.dispose();mf=new Miniflare(options());db=await mf.getD1Database('DB')}
+    if(rotated){const reads=receiptReads;await post('/app/settings/integrations/reconcile',{noticeId:id,providerId:providerIds.get(delivery),confirm:'verify-provider-receipt'},409);assert.equal(receiptReads,reads,'a rotated grant never reads a receipt from another account');assert.equal((await health()).components.find(row=>row.component==='delivery').evidence.configurationChanged,true);await healthBrowser({origin,cookie,name:'health-notice-rotated',contains:['Notice transport grant changed',id],dispatch});mailApiKey='synthetic-porthole-944';await mf.dispose();mf=new Miniflare(options());db=await mf.getD1Database('DB')}
    }
    if(fault.failure==='after'&&(!idempotent||fault.name==='lost-after-revoked'))await healthBrowser({origin,cookie,name:'health-notice-uncertain',contains:['Reconcile this notice with the provider',id],dispatch})
    if(idempotent&&fault.name==='lost-after-revoked') {
     const reconcilePath=registryPath+'/reconcile',providerId=providerIds.get(delivery)
-    const data={noticeId:id,providerId,confirm:'verify-provider-receipt'}
+    const data={noticeId:id,providerId,confirm:'verify-provider-receipt'};receiptProbe=data
     const reconcile=async(body=data,status=200,acting=cookie,extra={})=>{
      const response=await call(reconcilePath,{...form(origin,acting,body),headers:{...form(origin,acting,body).headers,accept:'application/json',...extra}})
      assert.equal(response.status,status,await response.clone().text());return response.json()
@@ -541,6 +541,7 @@ export async function recipientMailJourney(analyticalProof) {
   await db.prepare(`INSERT INTO oa_tokens(id,token_hash,kind,operator_id,operator_version,issuer_id,issuer_version,return_to,created_at,expires_at) VALUES(?,?,'invite',?,?,?,?, '/app',?,?)`).bind(randomUUID(),await hashToken(sessionSecret,'link',adminToken),admin.id,admin.version,session.operator.id,session.operator.version,time,time+120000).run()
   const adminSign=await post('/auth/confirm',{token:adminToken},303,'');const adminCookie=adminSign.headers.getSetCookie().map(value=>value.split(';')[0]).join('; ')
   assert.equal((await configure(adminEmail,adminCookie)).noticesEnabled,true)
+  if(receiptProbe){await post('/app/settings/integrations/reconcile',receiptProbe,403,adminCookie);assert.equal((await call(registryPath,{headers:{cookie:adminCookie}})).status,403,'admins cannot reconcile or read owner-only integration declarations')}
   const adminTick=await (await post('/api/v1/health/tick',{},200,adminCookie)).json()
   assert.equal(adminTick.delivery.status,'accepted');assert.equal(notices().at(-1).personalizations[0].to[0].email,adminEmail)
   await db.prepare('UPDATE oa_sessions SET created_at=? WHERE operator_id=?').bind(Date.now()-360000,admin.id).run()
