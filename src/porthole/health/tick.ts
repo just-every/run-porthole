@@ -1,3 +1,4 @@
+import { reconcileFollowUp } from '../follow-up/store'
 import type { HealthBindings } from './model'
 import { observeHealth } from './observe'
 import { evaluateMonitors } from '../recovery/monitors'
@@ -11,5 +12,6 @@ export async function healthTick(env: HealthBindings) {
  const state=await observeHealth(env)
  await reconcileHealthIncidents(env,state)
  const delivery=await deliverHealthNotice(env)
- return {state,delivery,monitors}
+ const followUp=await reconcileFollowUp(env,await observeHealth(env))
+ return {state,delivery,monitors,followUp}
 }

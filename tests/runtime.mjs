@@ -185,7 +185,10 @@ try {
     return await run({origin,cookie:destinationCookie,persist,...destinationHelpers,restartWorker})
    } finally {await restartWorker(()=>{persist=savedStore;ownerEmail=savedOwner})}
   }
-  if(process.env.PORTHOLE_ERASURE_ONLY==='1') {
+  if(process.env.PORTHOLE_FOLLOW_UP_ONLY==='1') {
+   const {followUpJourney}=await import('./porthole/health.mjs')
+   await followUpJourney({origin,cookie,restartWorker,withPinnedClock,...helpers})
+  } else if(process.env.PORTHOLE_ERASURE_ONLY==='1') {
    const {subjectErasureJourney}=await import('./porthole/archive.mjs')
    await subjectErasureJourney({origin,cookie,restartWorker,withEmptyDestination,withPinnedClock,...helpers})
   } else if(process.env.PORTHOLE_DASHBOARD_ONLY==='1') {

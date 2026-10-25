@@ -2,6 +2,8 @@ import { fail } from '../security/authority'
 const uuid=(value:unknown):value is string=>typeof value==='string'&&/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(value)
 interface Projection {table:string;columns:string[];keys:string[]}
 export const healthHistory:Projection[]=[
+ {table:'porthole_follow_up',columns:['id','source','kind','scope','owner_id','state','reason','next_action','due_at','guard_id','guard_revision','generation','revision','reminders','suppressed_until','created_at','updated_at'],keys:['id']},
+ {table:'porthole_follow_up_events',columns:['id','task_id','generation','kind','actor_id','detail','occurred_at'],keys:['id']},
  {table:'porthole_analytical_configuration',columns:['singleton','source_identity','enabled','active_role','revision','changed_at','configured_by','configurer_revision','configurer_version'],keys:['singleton']},
  {table:'porthole_health_receipts',columns:['component','source','status','reason','observed_at','expires_at','last_accepted_at','last_queryable_at','evidence'],keys:['component','source']},
  {table:'porthole_health_collectors',columns:['credential_id','collector_id','team','service','environment','signal','observed_at'],keys:['credential_id','collector_id','team','service','environment','signal']},
@@ -31,5 +33,5 @@ export function validateHealthHistory(row:Record<string,unknown>):void {
  }
  if(nested.status!==undefined&&!['Healthy','Firing','Unknown'].includes(String(nested.status)))return bad()
  if(nested.phase!==undefined&&!['failure','recovery'].includes(String(nested.phase)))return bad()
- if(nested.state!==undefined&&!['pending','sending','accepted','uncertain','rejected','cancelled'].includes(String(nested.state)))return bad()
+ if(nested.state!==undefined&&!['pending','sending','accepted','uncertain','rejected','cancelled','open','blocked','resolved'].includes(String(nested.state)))return bad()
 }
