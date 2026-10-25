@@ -26,6 +26,10 @@ try {
  if(event) {
   if(event.kind==='snapshot-actors') {
    await proxy.env.DB.prepare("INSERT INTO porthole_archive_health_history(stream,table_name,row_key,row,state) SELECT ?, 'porthole_analytical_configuration','[1]',json_object('singleton',singleton,'source_identity',source_identity,'enabled',enabled,'active_role',active_role,'revision',revision,'changed_at',changed_at,'configured_by',configured_by,'configurer_revision',configurer_revision,'configurer_version',configurer_version),'quarantined' FROM porthole_analytical_configuration").bind(crypto.randomUUID()).run()
+   for(const [table,columns]of [
+    ['porthole_follow_up',['id','source','kind','scope','owner_id','state','reason','next_action','due_at','guard_id','guard_revision','generation','revision','reminders','suppressed_until','created_at','updated_at']],
+    ['porthole_follow_up_events',['id','task_id','generation','kind','actor_id','detail','occurred_at']],
+   ])await proxy.env.DB.prepare(`INSERT INTO porthole_archive_health_history(stream,table_name,row_key,row,state) SELECT ?,?,json_array(id),json_object(${columns.map(column=>"'"+column+"',"+column).join(',')}),'quarantined' FROM ${table}`).bind(crypto.randomUUID(),table).run()
    await proxy.env.DB.prepare("INSERT INTO porthole_archive_actors(actor_ref,role,scope,state) SELECT operator_id,role,scope,'inactive' FROM porthole_members WHERE 1 ON CONFLICT(actor_ref) DO UPDATE SET role=excluded.role,scope=excluded.scope").run()
   } else {
   const actor=await proxy.env.DB.prepare("SELECT id,version FROM oa_operators WHERE role='owner' AND status='active' ORDER BY created_at,id LIMIT 1").first()
