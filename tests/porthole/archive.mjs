@@ -474,3 +474,108 @@ export async function signalExportJourney({origin,cookie,freshOwner,restartWorke
  } finally {for(const path of [directory,otlpDirectory,revokeDirectory])await rm(path,{recursive:true,force:true})}
  console.log('signalExportJourney passed: owner preview and approval, bounded four-signal pages, multi-team exact counts and context, CLI interruption and restart, snapshot and credential fencing, OTLP roundtrip and cancellation; independent DuckDB Parquet reads; official OTLP readers for all four signals including standard profiles; portable exclusions fence already approved jobs and old archives; full subject erasure remains PORT-035')
 }
+
+/** Exact owner-approved local envelope erasure and later-journal restore fence. */
+export async function subjectErasureJourney({origin,freshOwner,restartWorker,sql,withEmptyDestination}) {
+ const {otlpLogBatch,profileBatch,ingestScope}=await import('./ingest.mjs')
+ const root='/api/porthole/v1/subject-erasure',identifier='synthetic-porthole-1800@example.com'
+ const scope={...ingestScope,services:['synthetic-porthole-1801']}
+ let cookie=await freshOwner()
+ const send=(path,data,session=cookie)=>post(origin,session,path,data)
+ const source=await value(await send('/app/settings/credentials/mint',{name:'synthetic-porthole-1802',class:'ingest',scope}),201)
+ const time=BigInt(Date.now())*1000000n-5000000000n
+ const attributes=marker=>[{key:'service.name',value:{stringValue:scope.services[0]}},{key:'deployment.environment.name',value:{stringValue:scope.environments[0]}},{key:'team.name',value:{stringValue:scope.teams[0]}},{key:'user.email',value:{stringValue:marker}}]
+ const logs=otlpLogBatch([time,time+1n]);logs.resourceLogs[0].resource.attributes=attributes(identifier)
+ const profiles=profileBatch(time);profiles.resourceProfiles[0].resource.attributes=attributes(identifier)
+ const metrics={resourceMetrics:[{resource:{attributes:attributes(identifier)},scopeMetrics:[{metrics:[{name:'synthetic_porthole_1803',gauge:{dataPoints:[{timeUnixNano:String(time),asDouble:2}]}}]}]}]}
+ const traces={resourceSpans:[{resource:{attributes:attributes(identifier)},scopeSpans:[{spans:[{traceId:'1234567890abcdef1234567890abcdef',spanId:'1234567890abcdef',name:'synthetic-porthole-1804',startTimeUnixNano:String(time),endTimeUnixNano:String(time+100n)}]}]}]}
+ const intake=(signal,body)=>fetch(origin+'/v1/'+signal,{method:'POST',headers:{authorization:'Bearer '+source.secret,'content-type':'application/json'},body:JSON.stringify(body)})
+ for(const [signal,body] of [['logs',logs],['metrics',metrics],['traces',traces],['profiles',profiles]])await value(await intake(signal,body))
+ await value(await send('/api/porthole/v1/ingest/drain',{}))
+ const unrelated=otlpLogBatch([time+10n]);unrelated.resourceLogs[0].resource.attributes=attributes('synthetic-porthole-1805@example.com')
+ await value(await intake('logs',unrelated));await value(await send('/api/porthole/v1/ingest/drain',{}))
+ const old=otlpLogBatch([time-20n*86400n*1000000000n]);old.resourceLogs[0].resource.attributes=attributes('synthetic-porthole-1806@example.com')
+ await value(await intake('logs',old));await value(await send('/api/porthole/v1/ingest/drain',{}))
+ const retention='/api/porthole/v1/retention',selection={signal:'logs',service:scope.services[0],team:scope.teams[0]}
+ const thirty=await value(await send(retention+'/preview',{selection,days:30}))
+ assert.equal(thirty.volumes.records,0)
+ assert.equal((await send(retention+'/approve',{selection,days:30,cutoffNs:thirty.cutoffNs,confirm:'wrong'})).status,409)
+ await value(await send(retention+'/approve',{selection,days:30,cutoffNs:thirty.cutoffNs,confirm:thirty.digest}))
+ const reduction=await value(await send(retention+'/preview',{selection,days:15}))
+ assert.equal(reduction.volumes.records,1);assert.ok(reduction.volumes.payloadBytes>0)
+ const policy=await value(await get(origin,cookie,retention))
+ assert.equal(policy.policies[0].days,30,'unapproved reduction changes no policy')
+ assert.equal((await sql(`SELECT COUNT(*) AS n FROM porthole_ingest_batches WHERE instr(records,${literal('synthetic-porthole-1806@example.com')})>0`))[0].n,1,'unapproved reduction removes no original envelope')
+ for(const days of [15,30,7]) {
+  const preview=await value(await send(retention+'/preview',{selection:{...selection,signal:'traces'},days}))
+  assert.match(preview.qualification,days<15?/Below/:/unproved/)
+ }
+ const mixedIdentifier='synthetic-porthole-1807@example.com',mixed=otlpLogBatch([time+30n,time+31n])
+ mixed.resourceLogs[0].resource.attributes=attributes('synthetic-porthole-1808@example.com')
+ mixed.resourceLogs[0].scopeLogs[0].logRecords[0].attributes.push({key:'user.email',value:{stringValue:mixedIdentifier}})
+ await value(await intake('logs',mixed))
+ const mixedPreview=await value(await send(root,{identifier:mixedIdentifier}))
+ assert.equal(mixedPreview.canApply,false)
+ assert.equal((await send(root+'/apply',{identifier:mixedIdentifier,digest:mixedPreview.digest,confirm:'erase-exact-batches'})).status,409,'mixed envelope cannot erase unrelated records')
+ const before=await savedExport(origin,cookie,await send(api+'/exports',{}))
+ const preview=await value(await send(root,{identifier}))
+ assert.equal(preview.batches.length,4);assert.equal(preview.records,5)
+ assert.ok((await sql(`SELECT COUNT(*) AS n FROM porthole_ingest_batches WHERE instr(records,${literal(identifier)})>0`))[0].n===4,'preview deletes nothing')
+ assert.equal((await send(root+'/apply',{identifier,digest:preview.digest,confirm:'wrong'})).status,409)
+ assert.equal((await fetch(origin+root,{method:'POST',headers:{origin,authorization:'Bearer '+source.secret,'content-type':'application/json'},body:JSON.stringify({identifier})})).status,403)
+ assert.equal((await send(root,{identifier},'')).status,401)
+ assert.equal((await fetch(origin+root,{method:'POST',headers:{origin:'https://example.invalid',cookie,'content-type':'application/json'},body:JSON.stringify({identifier})})).status,403)
+ const late=otlpLogBatch([time+20n]);late.resourceLogs[0].resource.attributes=attributes(identifier)
+ await value(await intake('logs',late))
+ assert.equal((await send(root+'/apply',{identifier,digest:preview.digest,confirm:'erase-exact-batches'})).status,409,'a changed inventory requires a new preview')
+ const exact=await value(await send(root,{identifier}))
+ assert.equal(exact.batches.length,5);assert.equal(exact.records,6,'pending original wire is part of the reviewed erasure')
+ const result=await value(await send(root+'/apply',{identifier,digest:exact.digest,confirm:'erase-exact-batches'}))
+ assert.equal(result.erasedRecords,6)
+ const skeletons=await sql('SELECT wire_base64,records,record_count,identity FROM porthole_ingest_batches WHERE id IN (SELECT id FROM porthole_erased_batches)')
+ assert.equal(skeletons.length,5)
+ assert.ok(skeletons.every(row=>row.wire_base64===''&&row.records==='[]'&&row.record_count===0&&row.identity.startsWith('erased:')),'opaque skeletons preserve nonreusable sequence watermarks without original data')
+ const delivery=await value(await get(origin,cookie,'/api/porthole/v1/ingest/status'))
+ const erasedSources=delivery.sources.filter(row=>row.sourceId===source.credential.id&&row.lost>0)
+ assert.equal(erasedSources.reduce((n,row)=>n+row.lost,0),6)
+ assert.ok(erasedSources.every(row=>row.evaluation==='Unknown'&&row.reasons.some(reason=>reason.reason==='owner_erasure')),'erasure remains explicit missing evidence')
+ assert.equal((await get(origin,cookie,api+'/exports/'+before.job.id+'/manifest')).status,404,'a frozen old product export is invalidated')
+ for(const table of ['porthole_ingest_batches','porthole_telemetry_records','porthole_telemetry_archive','porthole_archive_rows','porthole_archive_chunks']) {
+  const column=table==='porthole_ingest_batches'?'records':table==='porthole_archive_chunks'?'packet':'payload'
+  assert.equal((await sql(`SELECT COUNT(*) AS n FROM ${table} WHERE instr(${column},${literal(identifier)})>0`))[0].n,0,'no mapped local payload remnants in '+table)
+ }
+ assert.equal((await intake('logs',logs)).status,409,'the same original wire cannot be reintroduced by retry')
+ const journal=await value(await get(origin,cookie,root+'/journal'))
+ assert.equal(journal.records.length,5);assert.ok(!JSON.stringify(journal).includes(identifier))
+ await restartWorker();cookie=await freshOwner()
+ assert.deepEqual(await value(await get(origin,cookie,root+'/journal')),journal)
+ for(const signal of scope.signals) {
+  const response=await value(await get(origin,cookie,'/api/porthole/v1/ingest/records?'+new URLSearchParams({signal,service:scope.services[0]})))
+  assert.equal(response.records.length,signal==='logs'?2:0,'query recomputes from remaining local records')
+ }
+ const portable=await savedExport(origin,cookie,await send(api+'/exports',{}))
+ assert.deepEqual(portable.rows.filter(row=>row.table==='porthole_erased_batches').map(row=>row.row),journal.records)
+ await withEmptyDestination(async destination=>{
+  const owner=await destination.freshOwner()
+  const request=(path,data)=>post(destination.origin,owner,path,data)
+  const apply={...journal,confirm:'apply-erasure-journal'}
+  await value(await request(root+'/journal',apply));await value(await request(root+'/journal',apply))
+  const conflict=structuredClone(apply);conflict.records[0].content_digest='0'.repeat(64)
+  assert.equal((await request(root+'/journal',conflict)).status,503,'conflicting journal cannot replace a committed content fence')
+  assert.deepEqual(await value(await get(destination.origin,owner,root+'/journal')),journal)
+  const restored=await value(await request(api+'/restores',{manifest:before.manifest}),201)
+  for(const chunk of before.chunks)await value(await request(api+'/restores/'+restored.id+'/chunks',{chunk}))
+  await value(await request(api+'/restores/'+restored.id+'/commit',{confirm:before.manifest.rootHash}))
+  const selection={scope:{services:scope.services,environments:scope.environments,teams:scope.teams},signals:scope.signals,from:String(time),through:String(time+100n)}
+  const exported=await value(await request('/api/porthole/v1/exports',selection),201)
+  assert.equal(exported.estimate.totalRecords,1,'old archive plus later real erasure journal cannot export the erased envelopes')
+  await value(await request('/api/porthole/v1/exports/'+exported.id+'/approve',{confirm:exported.id}))
+  const page=await get(destination.origin,owner,'/api/porthole/v1/exports/'+exported.id+'/pages')
+  assert.equal(page.status,200);assert.ok(!(await page.text()).includes(identifier))
+  assert.deepEqual(await value(await get(destination.origin,owner,root+'/journal')),journal,'older archive cannot overwrite the later journal')
+  assert.equal((await value(await get(destination.origin,owner,retention))).policies[0].active,0,'restored retention selection has no active approval')
+  const {browserProof}=await import('./audit.mjs')
+  await browserProof({origin:destination.origin,cookie:owner,paths:['/app/explore','/app/explore?'+new URLSearchParams({signal:'traces',service:scope.services[0],environment:scope.environments[0],team:scope.teams[0]})],name:'subject-erasure-restored'})
+ })
+ console.log('subjectErasureJourney passed: exact four-signal mapping, no-effect preview, stale approval refusal, fresh native owner authorization, pending and retained envelope deletion, retry refusal, private journal, restart and old-archive re-export fence')
+}

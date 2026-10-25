@@ -26,6 +26,8 @@ export function manifestInput(value: unknown): Manifest {
  if(!object(value) || Object.keys(value).sort().join(',')!==['format','id','createdAt','rowCount','chunks','rootHash','tables','inactive'].sort().join(',') || value.format!==format || !uuid(value.id) || !integer(value.createdAt) || !integer(value.rowCount) || !integer(value.chunks) || !hex(value.rootHash) || value.inactive!==true || !object(value.tables)) return bad()
  // Older archives predate export exclusions. Their absent journal is empty;
  // a later destination journal still wins during restore.
+ if(!Object.hasOwn(value.tables,'porthole_retention_policies'))value.tables.porthole_retention_policies=0
+ if(!Object.hasOwn(value.tables,'porthole_erased_batches'))value.tables.porthole_erased_batches=0
  if(!Object.hasOwn(value.tables,'porthole_export_exclusions'))value.tables.porthole_export_exclusions=0
  for(const table of ['porthole_dashboards','porthole_dashboard_versions','porthole_dashboard_publications'])if(!Object.hasOwn(value.tables,table))value.tables[table]=0
  if(!Object.hasOwn(value.tables,'porthole_baggage_policy'))value.tables.porthole_baggage_policy=0
@@ -51,7 +53,15 @@ export async function validateRow(payload: PortableRow, state: Validation): Prom
  if(Object.keys(row).sort().join(',')!==[...item.columns].sort().join(',')) bad()
  for(const value of Object.values(row)) if(value!==null && typeof value!=='string' && !integer(value)) bad()
  const required=(...keys:string[])=>{for(const key of keys)if(!str(row[key]) || !(row[key] as string).length)bad()}
- if(item.table==='porthole_export_exclusions') {
+ if(item.table==='porthole_retention_policies') {
+  if(typeof row.id!=='string'||!/^[a-f0-9]{32}$/.test(row.id)||!integer(row.days,1)||Number(row.days)>730||!integer(row.revision,1)||!integer(row.changed_at)||![0,1].includes(Number(row.active)))bad()
+  const selection=json(row.selection)
+  if(!object(selection))return bad()
+  if(Object.keys(selection).sort().join(',')!=='service,signal,team'||!['logs','metrics','traces','profiles'].includes(String(selection.signal))||[selection.service,selection.team].some(value=>typeof value!=='string'||!/^([a-zA-Z0-9][a-zA-Z0-9._:-]{0,119}|\*)$/.test(value)))bad()
+  if((await digest(JSON.stringify({signal:selection.signal,service:selection.service,team:selection.team}))).slice(0,32)!==row.id)bad()
+ } else if(item.table==='porthole_erased_batches') {
+  if(!uuid(row.id)||!hex(row.content_digest)||!integer(row.erased_at))bad()
+ } else if(item.table==='porthole_export_exclusions') {
   if(typeof row.record_id!=='string'||!/^[a-f0-9-]{36}:[0-9]+$/.test(row.record_id)||!integer(row.excluded_at))bad()
  } else if(item.table==='porthole_baggage_policy') {
   if(row.singleton!==1||![0,1].includes(row.enabled as number)||!integer(row.revision,1)||!integer(row.changed_at))bad()

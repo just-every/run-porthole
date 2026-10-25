@@ -28,6 +28,9 @@ function check(scope: CredentialScope, signal: string, records: TelemetryRecord[
 export async function acceptEnvelope(request: Request, env: Bindings, envelope: Envelope) {
  const hash = await secretHash((request.headers.get('authorization') ?? '').slice(7)), now = Date.now()
  const encodedWire=base64(envelope.wire)
+ // Older three-signal installations can intake during their schema upgrade.
+ // They cannot have an erasure journal before its additive migration exists.
+ const journalAvailable=!!await env.DB.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='porthole_erased_batches'").first()
  let granted: CredentialScope | undefined
  try {
   const response = await verifyCredential(request,env,{ action:'telemetry.write',scope:emptyScope,dataScope:allScope,acceptedBytes:envelope.wire.length,
@@ -54,8 +57,8 @@ export async function acceptEnvelope(request: Request, env: Bindings, envelope: 
     const pressure = '(SELECT COALESCE(SUM(byte_count),0) FROM porthole_ingest_batches WHERE state=\'pending\')+?>(SELECT max_pending_bytes FROM porthole_ingest_control WHERE singleton=1)'
     return [env.DB.prepare(`INSERT INTO porthole_ingest_batches(id,sequence,source_id,signal,identity,digest,protocol,accepted_at,byte_count,record_count,wire_base64,records)
      SELECT ?,(SELECT COALESCE(MAX(sequence),0)+1 FROM porthole_ingest_batches),c.id,?,?,?,?,?,?,?,?,? FROM porthole_credentials c WHERE c.secret_hash=? AND ${fence.sql}
-     AND NOT (${pressure}) ON CONFLICT(source_id,signal,identity) DO NOTHING`)
-     .bind(envelope.id,envelope.signal,envelope.identity,envelope.digest,envelope.protocol,now,bufferedBytes,envelope.records.length,encodedWire,encodedRecords,hash,...fence.args,bufferedBytes),
+     AND ${journalAvailable?'NOT EXISTS(SELECT 1 FROM porthole_erased_batches WHERE content_digest=?)':"NOT EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name='porthole_erased_batches')"} AND NOT (${pressure}) ON CONFLICT(source_id,signal,identity) DO NOTHING`)
+     .bind(envelope.id,envelope.signal,envelope.identity,envelope.digest,envelope.protocol,now,bufferedBytes,envelope.records.length,encodedWire,encodedRecords,hash,...fence.args,...(journalAvailable?[envelope.digest]:[]),bufferedBytes),
      ...eventStatements(env,hash,envelope.signal,envelope.records,scope,'duplicate','batch_retried',null,fence,`${same} AND NOT EXISTS(SELECT 1 FROM porthole_ingest_batches WHERE id=?)`,[...duplicateArgs,envelope.id]),
      ...eventStatements(env,hash,envelope.signal,envelope.records,scope,'rejected','batch_identity_conflict',null,fence,`${exists} AND NOT (${same})`,[hash,envelope.signal,envelope.identity,...duplicateArgs]),
      ...eventStatements(env,hash,envelope.signal,envelope.records,scope,'rejected','queue_pressure',null,fence,`NOT (${exists}) AND ${pressure}`,[hash,envelope.signal,envelope.identity,bufferedBytes]),
@@ -64,6 +67,8 @@ export async function acceptEnvelope(request: Request, env: Bindings, envelope: 
    },
   })
   const row = response.results.at(-1)?.results[0] as {id:string;digest:string;state:string;record_count:number;accepted_at:number} | undefined
+  const erased=journalAvailable&&await env.DB.prepare('SELECT 1 FROM porthole_erased_batches WHERE content_digest=?').bind(envelope.digest).first()
+  if(erased)throw new IntakeError('erased_batch_refused',409)
   if (!row) throw new IntakeError('queue_pressure',429,5)
   if (row.digest !== envelope.digest) throw new IntakeError('batch_identity_conflict',409)
   return { batchId:row.id,accepted:row.record_count,duplicate:row.id !== envelope.id,state:row.state,acceptedAt:row.accepted_at }

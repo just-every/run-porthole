@@ -1,3 +1,4 @@
+import { eraseJournaledBatches } from '../privacy/erasure/http'
 import type { Authority } from '../security/authority'
 import { fail } from '../security/authority'
 import { genesis } from '../audit/store'
@@ -53,7 +54,9 @@ export async function commitRestore(db:D1Database,actor:Authority,job:Job,confir
  const journal=byTable.get('porthole_erased_actors')!
  statements.push(db.prepare(`INSERT INTO porthole_erased_actors(${journal.columns.join(',')}) SELECT json_extract(payload,'$.row.actor_ref'),json_extract(payload,'$.row.erased_at') FROM porthole_archive_rows WHERE job_id=? AND table_name='porthole_erased_actors' ON CONFLICT(actor_ref) DO UPDATE SET erased_at=MAX(erased_at,excluded.erased_at)`).bind(job.id))
  statements.push(db.prepare(`INSERT INTO porthole_export_exclusions(record_id,excluded_at) SELECT json_extract(payload,'$.row.record_id'),json_extract(payload,'$.row.excluded_at') FROM porthole_archive_rows WHERE job_id=? AND table_name='porthole_export_exclusions' ON CONFLICT(record_id) DO UPDATE SET excluded_at=MAX(excluded_at,excluded.excluded_at)`).bind(job.id))
+ statements.push(db.prepare(`INSERT INTO porthole_erased_batches(id,content_digest,erased_at) SELECT json_extract(payload,'$.row.id'),json_extract(payload,'$.row.content_digest'),json_extract(payload,'$.row.erased_at') FROM porthole_archive_rows WHERE job_id=? AND table_name='porthole_erased_batches' ON CONFLICT(id) DO UPDATE SET erased_at=MAX(erased_at,excluded.erased_at)`).bind(job.id))
  for(const item of catalog) {
+  if(item.table==='porthole_erased_batches')continue
   if(item.table==='porthole_export_exclusions')continue
   if(item.table==='porthole_erased_actors')continue
   if(item.table==='porthole_baggage_policy') {
@@ -62,13 +65,15 @@ export async function commitRestore(db:D1Database,actor:Authority,job:Job,confir
   if(item.table==='porthole_ingest_control') {
    statements.push(db.prepare(`UPDATE porthole_ingest_control SET paused=1,max_pending_bytes=COALESCE((SELECT json_extract(payload,'$.row.max_pending_bytes') FROM porthole_archive_rows WHERE job_id=? AND table_name='porthole_ingest_control'),max_pending_bytes),revision=revision+1,changed_at=?`).bind(job.id,Date.now()));continue
   }
-  const expressions=item.columns.map(column=>['porthole_objects','porthole_bucket_history','porthole_dashboards','porthole_dashboard_publications'].includes(item.table)&&column==='state'?"'quarantined'":`json_extract(payload,'$.row.${column}')`)
+  const expressions=item.columns.map(column=>item.table==='porthole_retention_policies'&&column==='active'?'0':['porthole_objects','porthole_bucket_history','porthole_dashboards','porthole_dashboard_publications'].includes(item.table)&&column==='state'?"'quarantined'":`json_extract(payload,'$.row.${column}')`)
   statements.push(db.prepare(`INSERT INTO ${item.table}(${item.columns.join(',')}) SELECT ${expressions.join(',')} FROM porthole_archive_rows WHERE job_id=? AND table_name=? ORDER BY ordinal`).bind(job.id,item.table))
  }
  statements.push(db.prepare(`INSERT INTO porthole_archive_quarantine(object_id,source_state,archive_id,restored_at) SELECT json_extract(payload,'$.row.id'),json_extract(payload,'$.row.state'),?,? FROM porthole_archive_rows WHERE job_id=? AND table_name='porthole_objects' AND NOT EXISTS(SELECT 1 FROM porthole_archive_quarantine q WHERE q.object_id=json_extract(payload,'$.row.id'))`).bind(manifest.id,Date.now(),job.id))
  // FK constraints plus this relational guard reject dangling, cross-source and
  // impossible ordinal relationships inside the same rollback boundary.
  statements.push(guard(db,actor,`NOT EXISTS(SELECT 1 FROM porthole_telemetry_records r LEFT JOIN porthole_ingest_batches b ON b.id=r.batch_id WHERE b.id IS NULL OR b.source_id!=r.source_id OR b.signal!=r.signal OR r.ordinal>=b.record_count) AND NOT EXISTS(SELECT 1 FROM porthole_telemetry_archive r LEFT JOIN porthole_ingest_batches b ON b.id=r.batch_id WHERE b.id IS NULL OR b.source_id!=r.source_id OR b.signal!=r.signal OR r.ordinal>=b.record_count)`))
+ statements.push(...eraseJournaledBatches(db))
+ statements.push(db.prepare('DELETE FROM porthole_archive_chunks WHERE job_id=?').bind(job.id),db.prepare('DELETE FROM porthole_archive_rows WHERE job_id=?').bind(job.id))
  statements.push(db.prepare("UPDATE porthole_archive_jobs SET state='committed' WHERE id=?").bind(job.id))
  // D1 batch is a single transaction: even a final constraint/authority failure
  // rolls back the journal, configuration, history and all telemetry inserts.

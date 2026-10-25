@@ -13,6 +13,7 @@ export default {
  excludeTables:excluded,
  requiredConfiguration:['OWNER_EMAIL','SESSION_SECRET','SETUP_TOKEN','AUTH_ORIGIN','MAIL_PROVIDER','MAIL_FROM'],
  importSafety:{
+  porthole_retention_policies:{active:[0]},
   porthole_baggage_policy:{enabled:[0]},
   porthole_objects:{state:['quarantined']},porthole_bucket_history:{state:['quarantined']},
   porthole_ingest_control:{paused:[1]},porthole_health_receipts:{status:['Unknown'],expires_at:[0]},
@@ -20,6 +21,7 @@ export default {
  },
  importRow(table,row) {
   if(['porthole_objects','porthole_bucket_history'].includes(table))return {...row,state:'quarantined'}
+  if(table==='porthole_retention_policies')return {...row,active:0}
   if(table==='porthole_baggage_policy')return {...row,enabled:0}
   if(table==='porthole_ingest_control')return {...row,paused:1}
   if(table==='porthole_health_receipts')return {...row,status:'Unknown',expires_at:0}
