@@ -239,7 +239,7 @@ export async function recipientMailJourney(analyticalProof) {
     assert.equal(request.url,'https://api.resend.com/emails/'+id)
     if(duringReceipt){const run=duringReceipt;duringReceipt=undefined;await run()}
     if(receiptFault==='timeout')throw Error('synthetic-porthole-1190')
-    if(receiptStatus!==200)return Response.json({statusCode:receiptStatus,name:'validation_error',message:'synthetic-porthole-1191'},{status:receiptStatus})
+    if(receiptStatus!==200)return Response.json({statusCode:receiptStatus,name:'validation_error',message:'synthetic-porthole-1191'},{status:receiptStatus,headers:receiptStatus===302?{location:'https://synthetic-porthole-1198.example/receipt'}:{}})
     const identity=[...providerIds].find(([,value])=>value===id)?.[0],wire=providerAccepted.get(identity)
     if(!wire)return Response.json({statusCode:404,name:'not_found',message:'synthetic-porthole-1192'},{status:404})
     const receipt={object:'email',id,...wire,cc:[],bcc:[],created_at:new Date().toISOString(),last_event:'sent'}
@@ -451,12 +451,12 @@ export async function recipientMailJourney(analyticalProof) {
      const response=await call(reconcilePath,{...form(origin,acting,body),headers:{...form(origin,acting,body).headers,accept:'application/json',...extra}})
      assert.equal(response.status,status,await response.clone().text());return response.json()
     }
-    const preserved=(await health()).notices.find(row=>row.id===id),effectsBefore=acceptedMessages.length,sendsBefore=messages.length
+    const preserved=(await health()).notices.find(row=>row.id===id),effectsBefore=acceptedMessages.filter(row=>row.custom_args.rer_delivery_id===delivery).length,sendsBefore=messages.filter(row=>row.custom_args.rer_delivery_id===delivery).length
     for(const [acting,extra] of [['',{}],[cookie,{authorization:'Bearer synthetic-porthole-1195'}],[cookie,{origin:'https://synthetic-porthole-1196.example'}],[cookie,{'sec-fetch-site':'cross-site'}]])await reconcile(data,acting?403:401,acting,extra)
     await reconcile({...data,providerId:'https://synthetic-porthole-1197.example'},400)
     await reconcile({...data,confirm:'no'},400)
     assert.equal(receiptReads,0,'unauthorized or invalid references never reach the provider')
-    for(const status of [302,401,403,404,429]) {receiptStatus=status;await reconcile(data,status===429||status===302?503:422)}
+    for(const status of [302,401,403,404,429]) {receiptStatus=status;const reads=receiptReads;await reconcile(data,status===429||status===302?503:422);assert.equal(receiptReads,reads+1,'provider reads never follow a redirect or retry automatically')}
     receiptStatus=200
     for(const failure of ['timeout','mismatch','recipient','extra-recipient','malformed','oversized']) {receiptFault=failure;await reconcile(data,failure==='timeout'?503:422)}
     receiptFault=undefined
@@ -473,7 +473,7 @@ export async function recipientMailJourney(analyticalProof) {
     try {
      const context=await browser.newContext({viewport:{width:390,height:844}})
      await context.addCookies(cookie.split('; ').map(value=>({name:value.slice(0,value.indexOf('=')),value:value.slice(value.indexOf('=')+1),url:origin})))
-     await context.route(origin+'/**',async route=>{const request=route.request(),response=await dispatch(request.url(),{method:request.method(),headers:request.headers(),...(request.postDataBuffer()?{body:request.postDataBuffer()}:{})});await route.fulfill({status:response.status,headers:Object.fromEntries(response.headers),body:Buffer.from(await response.arrayBuffer())})})
+     await context.route(origin+'/**',async route=>{const request=route.request(),response=await dispatch(request.url(),{method:request.method(),redirect:'manual',headers:request.headers(),...(request.postDataBuffer()?{body:request.postDataBuffer()}:{})});await route.fulfill({status:response.status,headers:Object.fromEntries(response.headers),body:Buffer.from(await response.arrayBuffer())})})
      const page=await context.newPage();await page.goto(origin+registryPath)
      const target=page.locator('form').filter({has:page.locator('input[name="noticeId"][value="'+id+'"]')})
      await target.getByLabel('Resend email ID').fill(providerId)
@@ -488,8 +488,8 @@ export async function recipientMailJourney(analyticalProof) {
     assert.equal((await reconcile()).replayed,true);assert.equal(receiptReads,readCount,'duplicate owner submission performs no second provider read')
     await mf.dispose();mf=new Miniflare(options());db=await mf.getD1Database('DB')
     assert.equal((await reconcile()).replayed,true);await post('/api/v1/health/tick',{})
-    assert.equal(messages.length,sendsBefore,'receipt reconciliation and restart send no replacement email')
-    assert.equal(acceptedMessages.length,effectsBefore,'one external effect remains one')
+    assert.equal(messages.filter(row=>row.custom_args.rer_delivery_id===delivery).length,sendsBefore,'receipt reconciliation and restart send no replacement email for the original notice')
+    assert.equal(acceptedMessages.filter(row=>row.custom_args.rer_delivery_id===delivery).length,effectsBefore,'one external effect for the original notice remains one')
     const audit=await (await call('/api/v1/audit/export',{headers:{cookie}})).json()
     const facts=audit.records.map(row=>row.entry).filter(row=>row.action==='integration.notice-reconcile'&&row.phase==='committed'&&row.entityRef===id)
     assert.equal(facts.length,1,'receipt acceptance has one atomic owner-attributed audit fact');assert.equal(facts[0].actorRef,session.operator.id)
