@@ -1,3 +1,4 @@
+import { definitionInput } from '../slos/model'
 import {baggageKeys} from '../traces/policy'
 import { canonical, digest, genesis, type AuditEntry } from '../audit/store'
 import { byTable, catalog } from './catalog'
@@ -26,6 +27,7 @@ export function manifestInput(value: unknown): Manifest {
  if(!object(value) || Object.keys(value).sort().join(',')!==['format','id','createdAt','rowCount','chunks','rootHash','tables','inactive'].sort().join(',') || value.format!==format || !uuid(value.id) || !integer(value.createdAt) || !integer(value.rowCount) || !integer(value.chunks) || !hex(value.rootHash) || value.inactive!==true || !object(value.tables)) return bad()
  // Older archives predate export exclusions. Their absent journal is empty;
  // a later destination journal still wins during restore.
+ if(!Object.hasOwn(value.tables,'porthole_slo_versions'))value.tables.porthole_slo_versions=0
  if(!Object.hasOwn(value.tables,'porthole_retention_policies'))value.tables.porthole_retention_policies=0
  if(!Object.hasOwn(value.tables,'porthole_erased_batches'))value.tables.porthole_erased_batches=0
  if(!Object.hasOwn(value.tables,'porthole_export_exclusions'))value.tables.porthole_export_exclusions=0
@@ -53,7 +55,10 @@ export async function validateRow(payload: PortableRow, state: Validation): Prom
  if(Object.keys(row).sort().join(',')!==[...item.columns].sort().join(',')) bad()
  for(const value of Object.values(row)) if(value!==null && typeof value!=='string' && !integer(value)) bad()
  const required=(...keys:string[])=>{for(const key of keys)if(!str(row[key]) || !(row[key] as string).length)bad()}
- if(item.table==='porthole_retention_policies') {
+ if(item.table==='porthole_slo_versions') {
+  if(!uuid(row.id)||!integer(row.revision,1)||!str(row.name)||!uuid(row.owner_id)||!integer(row.created_at)||!['active','quarantined'].includes(String(row.state)))bad()
+  definitionInput(json(row.definition))
+ } else if(item.table==='porthole_retention_policies') {
   if(typeof row.id!=='string'||!/^[a-f0-9]{32}$/.test(row.id)||!integer(row.days,1)||Number(row.days)>730||!integer(row.revision,1)||!integer(row.changed_at)||![0,1].includes(Number(row.active)))bad()
   const selection=json(row.selection)
   if(!object(selection))return bad()

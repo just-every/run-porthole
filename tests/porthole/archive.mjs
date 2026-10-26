@@ -645,3 +645,18 @@ export async function followUpArchiveJourney({origin,freshOwner,withEmptyDestina
  })
  console.log('Follow-up archive passed: exact task, handover, dissent and reminder history survives an independent inactive restore and re-export without live assignments, reminders, credentials or approval authority.')
 }
+
+export async function sloArchiveJourney({origin,freshOwner,withEmptyDestination,sloId}) {
+ const cookie=await freshOwner(),packet=await savedExport(origin,cookie,await post(origin,cookie,api+'/exports',{}))
+ assert.ok(packet.rows.some(row=>row.table==='porthole_slo_versions'&&row.row.id===sloId))
+ await withEmptyDestination(async destination=>{
+  const owner=await destination.freshOwner(),restore=await value(await post(destination.origin,owner,api+'/restores',{manifest:packet.manifest}),201)
+  for(const chunk of packet.chunks)await value(await post(destination.origin,owner,`${api}/restores/${restore.id}/chunks`,{chunk}))
+  await value(await post(destination.origin,owner,`${api}/restores/${restore.id}/commit`,{confirm:packet.manifest.rootHash}))
+  const response=await fetch(destination.origin+'/api/porthole/v1/slos',{headers:{cookie:await destination.freshOwner()}})
+  assert.equal(response.status,200);assert.deepEqual((await response.json()).versions,[])
+  const exported=await savedExport(destination.origin,owner,await post(destination.origin,owner,api+'/exports',{}))
+  const restored=exported.rows.filter(row=>row.table==='porthole_slo_versions')
+  assert.ok(restored.some(row=>row.row.id===sloId));assert.ok(restored.every(row=>row.row.state==='quarantined'))
+ })
+}

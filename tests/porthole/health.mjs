@@ -656,3 +656,91 @@ export async function followUpJourney({origin,freshOwner,signIn,restartWorker,wi
  await followUpArchiveJourney({origin,freshOwner,withEmptyDestination})
  console.log('Accountable follow-up passed: original monitor failure, stale collector, pending exact repair, restart, reviewed scope-safe handover before removal, suppressed and deduplicated in-app reminder, dissent, unchanged measured recovery, regression and changed-guard refusal at 1440 and 390.')
 }
+
+/** Native SLO definitions and reports use the emitted Worker and OTLP intake. */
+export async function sloJourney({origin,freshOwner,signIn,restartWorker,withEmptyDestination}) {
+ let cookie=await freshOwner()
+ const root='/api/porthole/v1/slos'
+ const post=async(path,data,status=200)=>{
+  const response=await fetch(origin+path,form(origin,cookie,data))
+  assert.equal(response.status,status,path+': '+(response.status===status?'':await response.clone().text()))
+  return response.json()
+ }
+ const get=async()=>{const r=await fetch(origin+root,{headers:{cookie}});assert.equal(r.status,200);return r.json()}
+ assert.equal((await fetch(origin+root)).status,401)
+ assert.equal((await fetch(origin+root,form('https://invalid.example',cookie,{}))).status,403)
+ const scope={services:['synthetic-porthole-1800'],environments:['production'],teams:['synthetic-porthole-1801']}
+ const source=await post('/app/settings/credentials/mint',{name:'synthetic-porthole-1802',class:'ingest',scope:{...scope,signals:['traces','metrics'],actions:['telemetry.write']}},201)
+ const now=Date.now(),from=now-3600000,through=now-1000,time=now-10000
+ const ns=ms=>String(BigInt(ms)*1000000n)
+ const definition={type:'event-ratio',scope,sourceId:source.credential.id,targetPpm:990000,latencyMs:300,exclusions:[]}
+ const create=async(d=definition,extra={})=>post(root,{name:'synthetic-porthole-1803',definition:d,confirm:'save-slo',...extra},201)
+ const event=await create()
+ const evaluate=async(slo=event,extra={})=>(await post(root+'/evaluate',{slos:[slo],from,through,...extra})).reports[0]
+ const empty=await evaluate()
+ assert.equal(empty.total,'0');assert.equal(empty.budget.consumed,null);assert.equal(empty.health,'Unknown')
+ const resource={attributes:[{key:'service.name',value:{stringValue:scope.services[0]}},{key:'deployment.environment.name',value:{stringValue:'production'}},{key:'team',value:{stringValue:scope.teams[0]}}]}
+ let sequence=1804
+ const ingest=async(signal,records,drain=true)=>{
+  const body=signal==='traces'?{resourceSpans:[{resource,scopeSpans:[{spans:records}]}]}:{resourceMetrics:[{resource,scopeMetrics:[{metrics:records}]}]}
+  const response=await fetch(origin+'/v1/'+signal,{method:'POST',headers:{authorization:'Bearer '+source.secret,'content-type':'application/json','x-porthole-batch-id':'synthetic-porthole-'+sequence++,'x-porthole-team':scope.teams[0],'x-porthole-service':scope.services[0],'x-porthole-environment':'production'},body:JSON.stringify(body)})
+  assert.equal(response.status,200,await response.clone().text())
+  if(drain)await post('/api/porthole/v1/ingest/drain',{})
+ }
+ const span=(i,at,duration=100,code=0)=>({traceId:i.toString(16).padStart(32,'0'),spanId:i.toString(16).padStart(16,'0'),name:'synthetic-porthole-1805',kind:2,startTimeUnixNano:ns(at),endTimeUnixNano:ns(at+duration),status:{code}})
+ await ingest('traces',[span(1,time),span(2,time,400),span(3,time,100,2),span(4,from-1),span(5,through)])
+ let report=await evaluate()
+ assert.equal(report.total,'3');assert.equal(report.good,'1');assert.equal(report.bad,'2')
+ assert.deepEqual(report.budget.allowed,{numerator:'30000',denominator:'1000000'})
+ assert.deepEqual(report.budget.remaining,{numerator:'-1970000',denominator:'1000000'})
+ assert.deepEqual(report.budget.consumed,{numerator:'2000000',denominator:'30000'})
+ assert.equal(report.coverage.status,'unverified');assert.equal(report.budget75,'crossed')
+ const json=await post('/api/porthole/v1/reports/slo',{slos:[event],from,through})
+ assert.deepEqual(json.reports[0],report)
+ const csv=await fetch(origin+'/api/porthole/v1/reports/slo',form(origin,cookie,{slos:[event],from,through,format:'csv'}))
+ assert.equal(csv.status,200);assert.match(csv.headers.get('content-type'),/^text\/csv/)
+ const csvText=await csv.text();assert.ok(csvText.includes('"1","3","2","30000","-1970000","1000000","unverified","Unknown","crossed"'))
+ await ingest('traces',[span(6,from+1000)])
+ report=await evaluate();assert.equal(report.total,'4');assert.equal(report.good,'2');assert.equal(report.coverage.lateRecords,1)
+ const changed=await create({...definition,latencyMs:500},{...event})
+ assert.equal(changed.revision,2)
+ assert.equal((await evaluate(changed)).good,'3');assert.equal((await evaluate(event)).good,'2')
+ await post(root,{name:'stale',definition,confirm:'save-slo',...event},409)
+ const excluded=await create({...definition,exclusions:[{from:time,through:time+1,reason:'Reviewed maintenance interval'}]})
+ const exclusion=await evaluate(excluded)
+ assert.equal(exclusion.total,'1');assert.equal(exclusion.coverage.excludedRecords,3)
+ await post(root,{name:'invalid',definition:{...definition,exclusions:[{from:time,through:time+2,reason:'a'},{from:time+1,through:time+3,reason:'b'}]},confirm:'save-slo'},400)
+ const metricDefinition={...definition,type:'metric-ratio',latencyMs:null,goodMetric:'synthetic_porthole_good',totalMetric:'synthetic_porthole_total'}
+ const metric=await create(metricDefinition)
+ const point=(name,value,at=time)=>({name,sum:{aggregationTemporality:1,isMonotonic:true,dataPoints:[{startTimeUnixNano:ns(at-1000),timeUnixNano:ns(at),asInt:String(value)}]}})
+ await ingest('metrics',[point(metricDefinition.goodMetric,'90071992547409930'),point(metricDefinition.totalMetric,'90071992547409931')])
+ let m=await evaluate(metric)
+ assert.equal(m.good,'90071992547409930');assert.equal(m.total,'90071992547409931');assert.equal(m.bad,'1')
+ assert.equal(m.coverage.invalidRecords,0)
+ await ingest('metrics',[point(metricDefinition.goodMetric,5,time+1000)])
+ m=await evaluate(metric);assert.equal(m.total,'90071992547409931');assert.equal(m.coverage.status,'incomplete');assert.equal(m.coverage.invalidRecords,1);assert.equal(m.budget75,'Unknown')
+ await ingest('traces',[span(7,time+2000)],false)
+ assert.equal((await evaluate()).coverage.status,'incomplete')
+ await post('/api/porthole/v1/ingest/drain',{})
+ assert.equal((await evaluate()).total,'5')
+ const multi=await post('/api/porthole/v1/reports/slo',{slos:[event,metric],from,through})
+ assert.equal(multi.reports.length,2);assert.equal(multi.reports[1].coverage.status,'incomplete')
+ await post(root+'/evaluate',{slos:[event,event],from,through},400)
+ await post(root+'/evaluate',{slos:[event],from,through:Date.now()+1000000},400)
+ await post('/api/porthole/v1/reports/slo',{slos:[event],from,through,format:'pdf'},400)
+ await post('/app/settings/members/invite',{email:'synthetic-porthole-1806@example.com',displayName:'Scoped SLO reader',role:'read-only analyst',scope:{...scope,services:['synthetic-porthole-1807']}},202)
+ const other=await signIn('synthetic-porthole-1806@example.com')
+ const forbidden=await fetch(origin+root+'/evaluate',form(origin,other,{slos:[event],from,through}))
+ assert.equal(forbidden.status,403)
+ const hidden=await fetch(origin+root,{headers:{cookie:other}})
+ assert.equal((await hidden.json()).versions.length,0)
+ assert.equal((await fetch(origin+root,form(origin,other,{name:'x',definition,confirm:'save-slo'}))).status,403)
+ await restartWorker();cookie=await freshOwner()
+ assert.equal((await get()).versions.filter(row=>row.id===event.id).length,2)
+ assert.equal((await evaluate(event)).total,'5')
+ // Archive round-trip retains definitions as inert history in an independent
+ // destination. No old owner or definition becomes active there.
+ const {sloArchiveJourney}=await import('./archive.mjs')
+ await sloArchiveJourney({origin,freshOwner,withEmptyDestination,sloId:event.id})
+ console.log('Native SLO journey passed: event ratios, exact large integer delta sums, exclusions, no traffic, late data, revisions, pending intake, missing pair, scoped refusal, restart, matching JSON and CSV, inactive archive restore.')
+}
