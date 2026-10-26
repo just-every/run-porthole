@@ -3622,7 +3622,7 @@
       "executable": false
     },
     "src/porthole/slos/evaluate.ts": {
-      "sha256": "085c71c58ca4d3b22643beaed9c6c62de835a76345e549f988249a28612f6b50",
+      "sha256": "130b019df5dbf6ca09185445cea2e1ff912f91a5387246afc957f0af697cff43",
       "executable": false
     },
     "src/porthole/slos/http.ts": {

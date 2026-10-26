@@ -41,7 +41,7 @@ export async function evaluate(env:Bindings,d:Definition,from:number,through:num
   let previousEnd=-1n
   for(const [key,pair] of [...pairs].sort(([a],[b])=>BigInt(a.split(':')[0])<BigInt(b.split(':')[0])?-1:1)) {
    const [start,end]=key.split(':').map(BigInt)
-   if(pair.good.length!==1||pair.total.length!==1||pair.good[0]>pair.total[0]||start<previousEnd){invalid++;continue}
+   if(pair.good.length!==1||pair.total.length!==1||pair.good[0]>pair.total[0]||start<previousEnd){invalid+=pair.good.length+pair.total.length;continue}
    previousEnd=end;good+=pair.good[0];total+=pair.total[0]
   }
  }
