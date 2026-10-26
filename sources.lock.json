@@ -3514,7 +3514,7 @@
       "executable": false
     },
     "src/porthole/migration/http.ts": {
-      "sha256": "39fc5aae2bc20ff03df42ab0ba6000c6ca7f2cf5cdabf04bdbe0bf88862bc924",
+      "sha256": "ec239be11e32db29f43080f8f7c2b2379479c3427510950567d2b26403a4944c",
       "executable": false
     },
     "src/porthole/migration/replay.ts": {
