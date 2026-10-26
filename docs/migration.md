@@ -37,13 +37,19 @@ credentials into a source definition, free text or an investigation attachment.
 For Splunk, the supported v2 resource subset follows the official
 [chart](https://dev.splunk.com/observability/reference/api/charts/latest),
 [dashboard](https://dev.splunk.com/observability/reference/api/dashboards/latest)
-and [detector](https://dev.splunk.com/observability/reference/api/detectors/latest)
-schemas. Each collection accepts either an original-resource array or a complete
+[detector](https://dev.splunk.com/observability/reference/api/detectors/latest)
+and [SLO](https://dev.splunk.com/observability/reference/api/slo/latest/)
+resource schemas. Each collection accepts either an original-resource array or a complete
 `{count, results}` envelope. A count that differs from the supplied resource count
 produces a named incomplete-export rejection; it cannot establish completeness.
 Chart lists omit `programText` and tags: retrieve every chart's detail resource.
 Dashboard variables belong in `filters.variables`, with array-valued `value`.
 Original rules, chart references, variables and tags remain retained source data.
+The SLO reader recognizes the documented RequestBased resource, its inputs
+object, metadata strings and one rolling or calendar target with source alert
+rules. The official response schema and example disagree about cycle fields;
+that discrepancy stays named source work. It retains definitions only, without
+evaluating an SLO, registering an alert or authorizing native SLO mutation.
 Other source collections still require full official-schema qualification.
 
 Run the read-only definition extractor from this checkout:
@@ -81,6 +87,40 @@ export schema. Preserve source search text and authorized links. Log Observer
 Connect export still needs the authorized Splunk platform export workflow.
 A security dashboard carries an explicit Splunk Enterprise Security handoff;
 importing its reference does not provide security analytics.
+
+### Explicit source review
+
+After applying an inactive evidence plan, choose **Review source items** beside a
+retained record on Move in. The owner reviews each expression, lexical construct
+and schema issue, then records either **Retain source dependency** or **Require
+specialist handoff**. The exact source text and offsets stay visible. Structured
+challenger queries are inventoried as complete JSON expressions; their syntax is
+not presented as a translated native language. Credential removal precedes the
+inventory, so a removed structured credential cannot reappear in query text.
+
+Each save requires a current native owner, fresh identity proof, exact origin,
+explicit confirmation, a server-inventoried item and the current record revision.
+The API is `POST /api/porthole/v1/migration/resolutions`, with `kind`, `id`,
+`revision`, `item`, `decision` and `confirm: "reviewed"`. Decisions are
+`keep-source` or `specialist-handoff`. Unknown items, other decisions, extra
+fields, missing confirmation and stale submissions refuse. No free-text note or
+external recipient is accepted. The existing private audit records the decision
+mutation without copying the query text.
+
+A saved decision is a native edit of the evidence record. It survives restart.
+Undo removes unchanged imported siblings and preserves the complete reviewed
+record, its original definition and its decisions. Inspect retained records after
+Undo. Both decisions keep cutover blocked: a specialist disposition records a
+required handoff, sends nothing and supplies no query-parity qualification.
+
+To collect new data, mint a separate scoped ingest identity in Credentials and
+configure a standard OTel exporter using the installation's OTLP endpoints and
+that new identity. Follow [the OTLP guide](otlp.md). Inspect intake and a new trace
+before considering a separate cutover. Source permission metadata, linked history
+and imported credentials supply no collection authority. The migration journey
+runs a real local request through the stock Node SDK with a fresh installation
+identity after each source import, then reads its correlated trace and log and
+its new metric through the native records API.
 
 ### Retained metric sample analysis
 
@@ -126,8 +166,10 @@ an explicit comparison with the previous source snapshot. Neither an applied
 job nor a successful evidence reconciliation means equivalent cutover.
 
 PORT-043 and PORT-044 remain partial. Source-exact detector replay, full native query and alert
-meaning, supported OTel repointing, full source schemas, exact named construct
-resolution and complete historical extraction are still required. PORT-034,
+meaning, supported collector repointing, full source schemas, source-qualified
+resolution beyond retained-dependency dispositions, and complete historical
+extraction are still required. The new native collection proof does not establish
+source parity or configure a source collector. PORT-034,
 PORT-035 and PORT-045 inherit import custody and archive continuity before this
 new domain can qualify complete product portability or erasure. The existing
 product archive refuses when this new import custody exists, so it cannot
