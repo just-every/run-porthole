@@ -735,6 +735,11 @@ export async function sloJourney({origin,freshOwner,signIn,restartWorker,withEmp
  const hidden=await fetch(origin+root,{headers:{cookie:other}})
  assert.equal((await hidden.json()).versions.length,0)
  assert.equal((await fetch(origin+root,form(origin,other,{name:'x',definition,confirm:'save-slo'}))).status,403)
+ const reader=(await (await fetch(origin+'/auth/session',{headers:{cookie:other}})).json()).operator
+ await post('/app/settings/members/change',{operatorId:reader.id,role:'read-only analyst',scope})
+ assert.equal((await fetch(origin+root+'/evaluate',form(origin,other,{slos:[event],from,through}))).status,200)
+ await post('/app/settings/members/change',{operatorId:reader.id,role:'read-only analyst',scope:{...scope,services:['synthetic-porthole-1807']}})
+ assert.equal((await fetch(origin+'/api/porthole/v1/reports/slo',form(origin,other,{slos:[event],from,through}))).status,403,'next-request revocation fences reports')
  await restartWorker();cookie=await freshOwner()
  assert.equal((await get()).versions.filter(row=>row.id===event.id).length,2)
  assert.equal((await evaluate(event)).total,'5')

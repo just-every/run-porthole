@@ -18,7 +18,7 @@ export async function startRestore(db:D1Database,actor:Authority,value:unknown):
  return jobFor(db,id,actor,'restore')
 }
 function rowKey(table:string,row:Record<string,unknown>):string {
- if(table==='porthole_dashboard_versions')return JSON.stringify([row.id,row.revision])
+ if(['porthole_slo_versions','porthole_dashboard_versions'].includes(table))return JSON.stringify([row.id,row.revision])
  if(table==='porthole_archive_health_history')return JSON.stringify([row.stream,row.table_name,row.row_key])
  if(table==='porthole_archive_audit')return JSON.stringify([row.stream,row.sequence])
  return String(row.record_id??row.id??row.object_id??row.actor_ref??row.singleton)
