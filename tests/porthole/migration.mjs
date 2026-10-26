@@ -2,6 +2,8 @@ import assert from 'node:assert/strict'
 import {createHash} from 'node:crypto'
 import {mkdir} from 'node:fs/promises'
 import {join} from 'node:path'
+import {splunkReplayJourney} from './splunk-replay.mjs'
+import {splunkExtractionJourney} from './splunk-extraction.mjs'
 import {chromium} from '@playwright/test'
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex')
 const vendors={splunk:'charts',dash0:'dashboards',signoz:'dashboards',clickstack:'savedSearches',honeycomb:'boards',resolve:'investigations',cleric:'investigations',traversal:'investigations'}
@@ -50,12 +52,27 @@ export async function migrationJourney({origin,cookie,foreignCookie,restartWorke
   }
  }
  try{
-  await capture('move-in-empty');await capture('move-in-guide','/app/import/guide')
-  const definitions=Array.from({length:25},(_,i)=>({id:`synthetic-porthole-${i}`,name:`Chart ${i}`,programText:"data('requests', filter=filter('service', 'checkout')).sum().publish()",options:{variables:[{property:'environment',value:'test'}]},tags:['team:ops','customer:synthetic-porthole-43']}))
-  const source={charts:definitions,detectors:[{id:'synthetic-porthole-100',programText:"detect(data('requests').sum() > 10).publish('high')",rules:[{detectLabel:'high',severity:'Critical'}],tags:['team:ops']}],services:[{id:'synthetic-porthole-101',serviceName:'checkout',tags:['team:ops']}],logSearches:[{id:'synthetic-porthole-102',query:'index=application | stats count by service'}],securityDashboards:[{id:'synthetic-porthole-103',name:'Security investigation',sourceReference:'https://security.example.invalid/dashboard'}],unknownCollection:[{id:'synthetic-porthole-104'}]}
   const baselineArchive=await fetch(origin+'/api/porthole/v1/archive/exports',{method:'POST',headers:{origin,cookie,'content-type':'application/json'},body:'{}'});assert.equal(baselineArchive.status,201)
+  const extracted=await splunkExtractionJourney()
+  const extractedPlan=await upload('splunk',extracted.definitions)
+  assert.equal(extractedPlan.summary.sourceRecords,103);assert.equal(extractedPlan.rejected.length,0)
+  await finish('apply',{planId:extractedPlan.planId,reviewedFingerprint:extractedPlan.fingerprint},'splunk','completed')
+  const extractedRows=await snapshot()
+  assert.deepEqual(extractedRows.find(row=>row.targetKind==='charts').value.definition,extracted.definitions.charts[0])
+  await finish('undo',{planId:extractedPlan.planId},'splunk','undone');assert.deepEqual(await snapshot(),[])
+  await capture('move-in-empty');await capture('move-in-guide','/app/import/guide')
+  const definitions=Array.from({length:25},(_,i)=>({id:`synthetic-porthole-${i}`,name:`Chart ${i}`,programText:"data('requests', filter=filter('service', 'checkout')).sum().publish(label='A')",options:{type:'TimeSeriesChart'},tags:['team:ops','customer:synthetic-porthole-43']}))
+  const dashboard={id:'synthetic-porthole-105',name:'Checkout overview',charts:[{chartId:definitions[0].id,column:0,row:0,width:6,height:1}],filters:{variables:[{property:'environment',value:['test'],alias:'Environment',required:true,restricted:false}]},tags:['team:ops']}
+  const detector={id:'synthetic-porthole-100',name:'High requests',programText:"A = data('requests').sum(); detect(when(A > 10, lasting='5m'), off=when(A < 5)).publish('high')",rules:[{detectLabel:'high',severity:'Critical',notifications:[{type:'Email',email:'synthetic-porthole-43@example.com'}]}],tags:['team:ops']}
+  const simpleDetector={id:'synthetic-porthole-106',name:'Immediate request comparison',programText:"A = data('requests', filter=filter('service', 'checkout')).mean(); detect(when(A > 10)).publish('high')",rules:[{detectLabel:'high',severity:'Critical'}],tags:['team:ops']}
+  const source={charts:{count:definitions.length,results:definitions},dashboards:{count:1,results:[dashboard]},detectors:{count:2,results:[detector,simpleDetector]},services:[{id:'synthetic-porthole-101',serviceName:'checkout',tags:['team:ops']}],logSearches:[{id:'synthetic-porthole-102',query:'index=application | stats count by service'}],securityDashboards:[{id:'synthetic-porthole-103',name:'Security investigation',sourceReference:'https://security.example.invalid/dashboard'}],unknownCollection:[{id:'synthetic-porthole-104'}]}
   const before=await snapshot(),plan=await upload('splunk',source)
-  assert.equal(plan.summary.sourceRecords,30);assert.equal(plan.rejected.length,1);assert.match(plan.rejected[0].reason,/Unsupported/)
+  assert.equal(plan.summary.sourceRecords,32);assert.equal(plan.rejected.length,1);assert.match(plan.rejected[0].reason,/Unsupported/)
+  const diagnostics=plan.diagnostics.filter(d=>d.code==='UNMAPPED')
+  for(const name of ['data','filter','.sum','.publish','detect','when','lasting','off'])assert.ok(diagnostics.some(d=>d.message.includes(name)),name+' remains named source work')
+  assert.ok(diagnostics.some(d=>d.kind==='logSearches'&&d.message.includes('SPL')&&d.message.includes('stats')))
+  assert.ok(diagnostics.some(d=>d.field==='filters.variables'))
+  assert.ok(diagnostics.some(d=>d.field==='rules[0].notifications'))
   assert.deepEqual(await snapshot(),before,'preview has no native effects')
   const excludedArchive=await fetch(origin+'/api/porthole/v1/archive/exports',{method:'POST',headers:{origin,cookie,'content-type':'application/json'},body:'{}'});assert.equal(excludedArchive.status,409);assert.equal((await excludedArchive.json()).error,'migration_custody_archive_pending')
   await json('apply',{planId:plan.planId,reviewedFingerprint:'0'.repeat(64)},'splunk',403)
@@ -64,14 +81,21 @@ export async function migrationJourney({origin,cookie,foreignCookie,restartWorke
   assert.equal(first.job.state,'applying');assert.ok(first.job.checkpoint>0&&first.job.checkpoint<first.job.total)
   await restartWorker();cookie=await freshOwner()
   await finish('apply',{planId:plan.planId,reviewedFingerprint:plan.fingerprint},'splunk','completed')
-  const rows=await snapshot();assert.equal(rows.length-before.length,29)
+  const rows=await snapshot();assert.equal(rows.length-before.length,31)
   const chart=rows.find(r=>r.targetId==='splunk:charts:synthetic-porthole-0');assert.deepEqual(chart.value.definition,definitions[0])
   const security=rows.find(r=>r.targetKind==='securityDashboards');assert.equal(security.value.specialist,'Splunk Enterprise Security')
   assert.match(chart.value.qualification,/unproved/)
-  const report=await json('reconcile',{planId:plan.planId});assert.equal(report.ok,true);assert.equal(report.counts.sourceRecords,30);assert.equal(report.counts.nativeTargets,29);assert.equal(report.counts.present,0);assert.equal(report.counts.explained,30)
-  await capture('move-in-applied')
+  assert.deepEqual(rows.find(r=>r.targetKind==='dashboards').value.definition,dashboard)
+  assert.deepEqual(rows.find(r=>r.targetKind==='detectors').value.definition,detector)
+  const replayWork=rows.find(r=>r.targetKind==='detectors').value.review.expressions[0]
+  assert.equal(replayWork.text,detector.programText);assert.equal(replayWork.field,'programText')
+  assert.ok(replayWork.constructs.some(c=>c.text==='lasting'&&detector.programText.slice(c.offset).startsWith('lasting')))
+  assert.equal(chart.value.review.cutover,'blocked')
+  const report=await json('reconcile',{planId:plan.planId});assert.equal(report.ok,true);assert.equal(report.counts.sourceRecords,32);assert.equal(report.counts.nativeTargets,31);assert.equal(report.counts.present,0);assert.equal(report.counts.explained,32)
+  await capture('move-in-applied','/app/import',async page=>{assert.ok(await page.getByRole('region',{name:'Security specialist handoff'}).isVisible())})
+  await splunkReplayJourney({origin,cookie,capture,member,foreignCookie})
   await finish('undo',{planId:plan.planId},'splunk','undone');assert.deepEqual(await snapshot(),before)
-  console.log('Splunk source-evidence import: reviewed fingerprint, 30 records, 29 exact retained definitions, named rejection, cold resume, specialist boundary, reconciliation and undo passed')
+  console.log('Splunk source-evidence import: reviewed fingerprint, 32 records, 31 exact retained definitions, named rejection, cold resume, specialist boundary, reconciliation and undo passed')
   for(const [vendor,collection]of Object.entries(vendors).filter(([v])=>v!=='splunk')){
    const definition={id:'synthetic-porthole-44',name:'Prior source object',query:{expression:'unsupported native function'},attributes:{'customer.id':'synthetic-porthole-777'},sampling:{probability:0.1},retention:{days:30},permissions:{team:'ops'},openIssues:[{id:'synthetic-porthole-445',state:'open'}],historyReference:'https://source.example.invalid/retained-history',connector:{scope:['read']},apiKey:'synthetic-porthole-446'}
    const clean={...definition};delete clean.apiKey
@@ -95,11 +119,21 @@ export async function migrationJourney({origin,cookie,foreignCookie,restartWorke
   assert.equal(approved.approval.owner,'synthetic-porthole-11@example.com')
   await finish('undo',{planId:ownerPlan.planId},'dash0','undone');assert.deepEqual(await snapshot(),before)
   cookie=originalCookie
+  // An incomplete list remains visible as a source dependency, never a silently complete export.
+  const incomplete=await upload('splunk',{charts:{count:2,results:[definitions[0]]},detectors:{count:'invalid',results:[]},dashboards:{count:0,results:[]}})
+  assert.equal(incomplete.rejected.length,2)
+  assert.ok(incomplete.rejected.some(r=>r.reason.includes('received 1 of 2')))
+  assert.ok(incomplete.rejected.some(r=>r.reason.includes('Invalid official list envelope')))
+  await finish('apply',{planId:incomplete.planId,reviewedFingerprint:incomplete.fingerprint},'splunk','completed')
+  await finish('undo',{planId:incomplete.planId},'splunk','undone');assert.deepEqual(await snapshot(),before)
   // The screen calls the same shared door, with explicit review and native reads.
-  const one={charts:[{id:'synthetic-porthole-4300',name:'Browser chart',tags:['team:ops']}]}
+  const one={charts:[{id:'synthetic-porthole-4300',name:'Browser chart',programText:"data('requests').mean(over='5m').publish(label='A')",options:{type:'TimeSeriesChart'},tags:['team:ops']}]}
   await capture('move-in-preview','/app/import',async page=>{
    await page.locator('input[type=file]').setInputFiles({name:'synthetic-porthole-43.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(one))})
    await page.getByRole('button',{name:'Save preview',exact:true}).click();await page.getByRole('heading',{name:'Saved plan and result'}).waitFor()
+   const unresolved=page.getByRole('region',{name:'Unresolved source work'})
+   await unresolved.waitFor();assert.match(await unresolved.innerText(),/Untranslated SignalFlow/)
+   assert.match(await unresolved.innerText(),/over/)
    assert.match(await page.locator('body').innerText(),/Native query translation/)
   })
   await capture('move-in-history')
