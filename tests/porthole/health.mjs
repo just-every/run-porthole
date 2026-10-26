@@ -719,6 +719,10 @@ export async function sloJourney({origin,freshOwner,signIn,restartWorker,withEmp
  assert.equal(m.coverage.invalidRecords,0)
  await ingest('metrics',[point(metricDefinition.goodMetric,5,time+1000)])
  m=await evaluate(metric);assert.equal(m.total,'90071992547409931');assert.equal(m.coverage.status,'incomplete');assert.equal(m.coverage.invalidRecords,1);assert.equal(m.budget75,'Unknown')
+ await ingest('metrics',[point(metricDefinition.goodMetric,2,time+2000),point(metricDefinition.totalMetric,1,time+2000)])
+ m=await evaluate(metric);assert.equal(m.good,'90071992547409930');assert.equal(m.total,'90071992547409931')
+ assert.equal(m.coverage.invalidRecords,3,'missing partner and both records of an impossible ratio are disclosed')
+ assert.equal(m.budget75,'Unknown')
  await ingest('traces',[span(7,time+2000)],false)
  assert.equal((await evaluate()).coverage.status,'incomplete')
  await post('/api/porthole/v1/ingest/drain',{})
@@ -748,5 +752,5 @@ export async function sloJourney({origin,freshOwner,signIn,restartWorker,withEmp
  // destination. No old owner or definition becomes active there.
  const {sloArchiveJourney}=await import('./archive.mjs')
  await sloArchiveJourney({origin,freshOwner,withEmptyDestination,sloId:event.id})
- console.log('Native SLO journey passed: event ratios, exact large integer delta sums, exclusions, no traffic, late data, revisions, pending intake, missing pair, scoped refusal, restart, matching JSON and CSV, inactive archive restore.')
+ console.log('Native SLO journey passed: event ratios, exact large integer delta sums, exclusions, no traffic, late data, revisions, pending intake, missing and impossible metric pairs, scoped refusal, restart, matching JSON and CSV, inactive archive restore.')
 }
