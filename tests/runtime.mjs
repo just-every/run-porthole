@@ -114,7 +114,7 @@ try {
   for (const path of ['/missing', '/health/extra', '/api', '/api/missing']) {
     assert.equal((await fetch(`${origin}${path}`)).status, 404, path)
   }
-  // A deployed installation must never accept demo/setup claims without its linked provider.
+  // A deployed installation must never accept demo or setup claims without its linked provider.
   for (const body of [{}, { token: 'wrong-setup-token' }]) {
     const claim = await fetch(`${origin}/auth/owner-claim`, {
       method: 'POST', headers: { origin, 'content-type': 'application/json', 'x-rer-demo': '1' },
@@ -157,7 +157,7 @@ try {
     for (const [, imported] of (await sheet.text()).matchAll(/@import url\('(\/[^']+)'\)/g)) assert.equal((await fetch(`${origin}${imported}`)).status, 200, imported)
   }
   // Obtain a valid native session from a second, independently bootstrapped
-  // installation. Even with the same fixture secret, its account/session rows
+  // installation. Even with the same fixture secret, its account and session rows
   // belong only to its own store and cannot authenticate in the first one.
   const originalStore=persist
   const foreignStore=await mkdtemp(join(tmpdir(),'porthole-other-installation-'));stores.push(foreignStore)
@@ -185,7 +185,13 @@ try {
     return await run({origin,cookie:destinationCookie,persist,...destinationHelpers,restartWorker})
    } finally {await restartWorker(()=>{persist=savedStore;ownerEmail=savedOwner})}
   }
-  if(process.env.PORTHOLE_SLO_ONLY==='1') {
+  if(process.env.PORTHOLE_SPLUNK_COLLECTOR_ONLY==='1') {
+   const {splunkCollectorJourney}=await import('./porthole/migration-collector.mjs')
+   const result=await splunkCollectorJourney({origin,cookie,restartWorker,...helpers})
+   cookie=result.cookie
+   const {cookie:privateSession,...qualification}=result
+   console.log('Splunk collector qualification passed: '+JSON.stringify(qualification))
+  } else if(process.env.PORTHOLE_SLO_ONLY==='1') {
    const {sloJourney}=await import('./porthole/health.mjs')
    await sloJourney({origin,withEmptyDestination,restartWorker,...helpers})
   } else if(process.env.PORTHOLE_FOLLOW_UP_ONLY==='1') {
@@ -206,7 +212,7 @@ try {
    await terraformJourney({origin,cookie,...helpers})
   } else if(process.env.PORTHOLE_MIGRATION_ONLY==='1') {
    const {migrationJourney}=await import('./porthole/migration.mjs')
-   await migrationJourney({origin,cookie,foreignCookie,restartWorker,...helpers})
+   await migrationJourney({origin,cookie,foreignCookie,restartWorker,withEmptyDestination,withPinnedClock,...helpers})
   } else if(process.env.PORTHOLE_EXPORT_ONLY==='1') {
    const {signalExportJourney}=await import('./porthole/archive.mjs')
    await signalExportJourney({origin,cookie,restartWorker,withEmptyDestination,...helpers})

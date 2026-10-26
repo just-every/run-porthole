@@ -1,0 +1,40 @@
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: ${env:PORTHOLE_COLLECTOR_LISTEN}
+exporters:
+  otlphttp:
+    endpoint: ${env:PORTHOLE_COLLECTOR_DESTINATION}
+    headers:
+      Authorization: ${env:PORTHOLE_COLLECTOR_AUTHORIZATION}
+    encoding: json
+    compression: none
+    timeout: 5s
+    sending_queue:
+      enabled: false
+    retry_on_failure:
+      enabled: true
+      initial_interval: 100ms
+      max_interval: 1s
+      max_elapsed_time: 10s
+extensions:
+  health_check:
+    endpoint: ${env:PORTHOLE_COLLECTOR_HEALTH_LISTEN}
+service:
+  extensions: [health_check]
+  telemetry:
+    logs:
+      level: error
+    metrics:
+      level: none
+  pipelines:
+    traces:
+      receivers: [otlp]
+      exporters: [otlphttp]
+    metrics:
+      receivers: [otlp]
+      exporters: [otlphttp]
+    logs:
+      receivers: [otlp]
+      exporters: [otlphttp]

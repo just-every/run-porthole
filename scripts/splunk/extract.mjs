@@ -1,13 +1,18 @@
 import {resolve} from 'node:path'
 import {ENDPOINTS, KINDS, PAGE_SIZE, ExtractionError, getDefinitionPage, resourceId} from './provider.mjs'
 import {exists, encodePrivate, atomicWrite, freshState, loadState, acquireLock} from './state.mjs'
+import {assertImportBounds} from './state.mjs'
+import {exportSelection} from './selection.mjs'
+import {extractSelected} from './extras.mjs'
 
-export async function extractSplunk({realm, output, resume}) {
+export async function extractSplunk({realm, output, resume, ...selected}) {
   // A realm can supply only a bounded single DNS label; host and API paths are fixed.
   if (typeof realm !== 'string' || !/^[a-z]{2}[0-9]$/.test(realm)) throw new ExtractionError('Provide a Splunk realm such as us0 with --realm; custom hosts and URLs are not accepted.')
   if (typeof output !== 'string' || !output) throw new ExtractionError('Provide a private JSON destination with --output. Use --help for usage.')
   const token = process.env.SPLUNK_ACCESS_TOKEN
   if (!token || /[\r\n]/.test(token)) throw new ExtractionError('Set SPLUNK_ACCESS_TOKEN in the environment to an authorized read token; never pass credentials as arguments.')
+  const selection = exportSelection(selected)
+  encodePrivate(selection, token)
   output = resolve(output)
   if (output.includes(token)) throw new ExtractionError('Choose a private destination whose name does not contain authentication content.')
   const checkpoint = output + '.checkpoint.json'
@@ -17,7 +22,7 @@ export async function extractSplunk({realm, output, resume}) {
     const hasCheckpoint = await exists(checkpoint)
     if (hasCheckpoint && !resume) throw new ExtractionError('Incomplete checkpoint already exists. Use --resume with the same realm and output, or choose a new private output path.')
     if (!hasCheckpoint && resume) throw new ExtractionError('No resume checkpoint exists. Omit --resume to start a new extraction.')
-    const state = resume ? await loadState(checkpoint, realm, output, token) : freshState(realm, output)
+    const state = resume ? await loadState(checkpoint, realm, output, token, selection) : freshState(realm, output, selection)
     const save = () => atomicWrite(checkpoint, encodePrivate(state, token))
     const waitError = () => new ExtractionError(`Export incomplete: provider rate limit. Resume with --resume at or after ${new Date(state.notBefore).toISOString()}. No automatic retries were made.`, 75)
     if (Date.now() < state.notBefore) throw waitError()
@@ -52,7 +57,7 @@ export async function extractSplunk({realm, output, resume}) {
         // Lists omit important source fields (notably chart programText and tags).
         const detail = await request(`${endpoint}/${encodeURIComponent(id)}`)
         if (!detail || typeof detail !== 'object' || Array.isArray(detail) || detail.id !== id) throw new ExtractionError('Export incomplete: provider detail identity is missing or changed. Review source consistency before using --resume.')
-        if (Object.values(state.records).reduce((total, rows) => total + rows.length, 0) >= 200) throw new ExtractionError('Export incomplete: definitions exceed the 200-object import limit. Obtain a separately scoped supported export; no data was truncated.')
+        assertImportBounds(state.records, detail, token)
         records.push(detail); state.pendingIndex++
         encodePrivate(state.records, token)
         await save()
@@ -61,6 +66,7 @@ export async function extractSplunk({realm, output, resume}) {
       if (state.offset === state.count) { state.kind++; state.offset = 0; state.count = null }
       await save()
     }
+    await extractSelected({state, selection, request, save, token})
     await atomicWrite(output, encodePrivate(state.records, token), true)
   } finally { await unlock() }
 }

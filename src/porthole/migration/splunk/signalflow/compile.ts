@@ -1,57 +1,61 @@
-/** Strict retained-sample replay grammar, never a full SignalFlow evaluator. */
-export class SignalFlowUnsupported extends Error {
- constructor(readonly offset:number,readonly construct:string){super(`Unqualified SignalFlow construct at ${offset}: ${construct}`)}
-}
-type Token={text:string;offset:number;value?:string}
-export type CompiledSignalFlow={metric:string;filter?:{property:string;value:string};aggregate:'mean'|'sum'|'min'|'max';label:string;condition?:{operator:string;threshold:number}}
-function tokenize(source:string):Token[]{
- const tokens:Token[]=[]
- const pattern=/\s+|#[^\n]*|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|[A-Za-z_][\w]*|\d+(?:\.\d+)?|>=|<=|==|!=|./g
- for(const match of source.matchAll(pattern)){
-  const text=match[0],offset=match.index!
-  if(/^\s|^#/.test(text))continue
-  let value:string|undefined
-  if(/^["']/.test(text)){
-   const quote=text[0];if(text.at(-1)!==quote||text.length<2)throw new SignalFlowUnsupported(offset,'unterminated string')
-   // Decode only explicit SignalFlow string escapes; other forms remain unqualified.
-   value=text.slice(1,-1).replace(/\\([\\'"nrt])/g,(_all,c:string)=>({n:'\n',r:'\r',t:'\t'}[c]??c))
-   if(/\\/.test(value))throw new SignalFlowUnsupported(offset,'string escape')
-  }
-  tokens.push({text,offset,...(value!==undefined?{value}:{})})
- }
- return tokens
-}
+import {syntax,duration,SignalFlowUnsupported} from './syntax'
+export {SignalFlowUnsupported} from './syntax'
+export type Aggregate='mean'|'sum'|'min'|'max'
+export type Condition={operator:string;threshold:number;lastingMs?:number;atLeast?:number}
+export type CompiledSignalFlow={metric:string;filter?:{property:string;value:string};aggregate:Aggregate;label:string;condition?:Condition;off?:Condition;resolutionMs?:number;rollup?:string;window?:{aggregate:Aggregate;milliseconds:number}}
+/** Closed finite-window grammar. Compilation never qualifies source execution parity. */
 export function compileSignalFlow(source:string):CompiledSignalFlow{
- const tokens=tokenize(source);let index=0
- const current=()=>tokens[index]
- const unsupported=():never=>{const token=current();throw new SignalFlowUnsupported(token?.offset??source.length,token?.text??'end of program')}
- const take=(text:string)=>{if(current()?.text!==text)unsupported();index++}
- const string=()=>{const token=current();if(token?.value===undefined)unsupported();index++;return token!.value!}
+ const p=syntax(source),{current,take,string,number,reject}=p
  let variable:string|undefined
- if(tokens[1]?.text==='='){if(!/^[A-Za-z_]\w*$/.test(current().text))unsupported();variable=current().text;index+=2}
- take('data');take('(');const metric=string();let filter:CompiledSignalFlow['filter']
- if(current()?.text===','){
-  take(',');take('filter');take('=');take('filter');take('(');const property=string();take(',');const value=string();take(')')
-  if(!['service','environment','team'].includes(property)||/[?*]/.test(value))throw new SignalFlowUnsupported(tokens[index-1].offset,'filter property or wildcard')
-  filter={property,value}
+ if(p.peek()?.text==='='){if(!/^[A-Za-z_]\w*$/.test(current().text))reject();variable=current().text;take(variable);take('=')}
+ take('data');take('(');const metric=string(),options=new Set<string>()
+ let filter:CompiledSignalFlow['filter'],resolutionMs:number|undefined,rollup:string|undefined
+ while(current()?.text===','){
+  take(',');const key=current()?.text;if(!key||options.has(key))reject('duplicate or invalid data option');options.add(key);take(key);take('=')
+  if(key==='filter'){
+   take('filter');take('(');const property=string();take(',');const value=string();take(')')
+   if(!['service','environment','team'].includes(property)||/[?*]/.test(value))reject('filter property or wildcard')
+   filter={property,value}
+  }else if(key==='resolution'){
+   resolutionMs=current()?.value!==undefined?duration(string()):number()
+   if(!Number.isSafeInteger(resolutionMs)||resolutionMs<1000||resolutionMs>86400000||resolutionMs%1000)reject('data resolution')
+  }else if(key==='rollup'){
+   rollup=string();if(!['average','sum','min','max','latest'].includes(rollup))reject('rollup')
+  }else if(key==='extrapolation'){
+   if(string()!=='null')reject('extrapolation requires source inactivity qualification')
+  }else reject(key)
  }
- take(')');take('.');const aggregate=current()?.text
- if(!['mean','sum','min','max'].includes(aggregate??''))unsupported()
- index++;take('(');take(')')
+ take(')');take('.')
+ const aggregate=current()?.text
+ if(!['mean','sum','min','max'].includes(aggregate??''))reject()
+ take(aggregate!);take('(');take(')')
+ let window:CompiledSignalFlow['window']
+ if(current()?.text==='.'&&['mean','sum','min','max'].includes(p.peek()?.text??'')){
+  take('.');const operation=current().text as Aggregate;take(operation);take('(');take('over');take('=');const milliseconds=duration(string());take(')')
+  if(!resolutionMs||milliseconds%resolutionMs)reject('window requires an explicit divisible data resolution')
+  window={aggregate:operation,milliseconds}
+ }
+ const publish=()=>{take('.');take('publish');take('(');if(current()?.text==='label'){take('label');take('=')}const label=string();take(')');return label}
+ if(variable&&current()?.text==='.')publish()
  if(current()?.text===';')take(';')
- let condition:CompiledSignalFlow['condition']
- if(variable){
-  take('detect');take('(');take('when');take('(');take(variable)
-  const operator=current()?.text
-  if(!['>','>=','<','<=','==','!='].includes(operator??''))unsupported()
-  index++;let sign=1;if(current()?.text==='-'){sign=-1;index++}
-  const number=current();if(!number||!/^\d+(?:\.\d+)?$/.test(number.text))unsupported()
-  const threshold=sign*Number(number!.text);if(!Number.isFinite(threshold))unsupported();index++
-  condition={operator:operator!,threshold};take(')');take(')')
+ const when=():Condition=>{
+  take('when');take('(');take(variable!);const operator=current()?.text
+  if(!['>','>=','<','<=','==','!='].includes(operator??''))reject()
+  take(operator!);const wrapped=current()?.text==='threshold';if(wrapped){take('threshold');take('(')}const threshold=number();if(wrapped)take(')')
+  const result:Condition={operator:operator!,threshold},seen=new Set<string>()
+  while(current()?.text===','){
+   take(',');const key=current()?.text;if(!key||seen.has(key))reject();seen.add(key);take(key);take('=')
+   if(key==='lasting')result.lastingMs=duration(string())
+   else if(key==='at_least'){result.atLeast=number();if(result.atLeast<=0||result.atLeast>1)reject('at_least')}
+   else reject(key)
+  }
+  take(')')
+  if((result.lastingMs||result.atLeast!==undefined)&&(!resolutionMs||!result.lastingMs||result.lastingMs%resolutionMs))reject('lasting requires an explicit divisible data resolution')
+  return result
  }
- take('.');take('publish');take('(')
- if(current()?.text==='label'){take('label');take('=')}
- const label=string();take(')');if(current()?.text===';')take(';')
- if(index!==tokens.length)unsupported()
- return {metric,...(filter?{filter}:{}),aggregate:aggregate as CompiledSignalFlow['aggregate'],label,...(condition?{condition}:{})}
+ let condition:Condition|undefined,off:Condition|undefined
+ if(variable){take('detect');take('(');condition=when();if(current()?.text===','){take(',');take('off');take('=');off=when()}take(')')}
+ const label=publish();if(current()?.text===';')take(';');if(!p.end())reject()
+ if((rollup||window)&&!resolutionMs)throw new SignalFlowUnsupported(0,'timing options require an explicit data resolution')
+ return {metric,...(filter?{filter}:{}),aggregate:aggregate as Aggregate,label,...(condition?{condition}:{}),...(off?{off}:{}),...(resolutionMs?{resolutionMs}:{}),...(rollup?{rollup}:{}),...(window?{window}:{})}
 }

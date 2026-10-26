@@ -12,3 +12,7 @@
  .rer-themed .porthole-integration-declaration dt { margin-top: 12px; font-weight: 600; }
  .rer-themed .porthole-integration-declaration dd { margin: 0 0 8px; }
 }
+
+.rer-themed .porthole-observation-table { width: 100%; border-collapse: collapse; font-size: 16px; margin: 12px 0 20px; }
+.rer-themed .porthole-observation-table th, .rer-themed .porthole-observation-table td { padding: 6px; text-align: left; vertical-align: top; }
+.rer-themed .porthole-observation-table th, .rer-themed .porthole-observation-table td:nth-child(n+2) { white-space: nowrap; }

@@ -1,15 +1,16 @@
+import {readSourceStream} from './stream/index'
 import {splunkReview} from './review'
 import type {Json,ParsedRecord} from '../../../modules/import-kit/src/types.ts'
-export const splunkCollections=['charts','dashboards','detectors','services','rum','slos','notifications','logSearches','history','securityDashboards'] as const
-export function readCollections(value:Json,index:number,vendor:string,collections:readonly string[],maxItemBytes?:number):ParsedRecord[]{
+export const splunkCollections=['charts','dashboards','detectors','services','rum','slos','notifications','logSearches','history','sourceStreams','securityDashboards'] as const
+export function readCollections(value:Json,index:number,vendor:string,collections:readonly string[],maxItemBytes?:number,idFields:readonly string[]=['id','uuid','name']):ParsedRecord[]{
  if(!value||typeof value!=='object'||Array.isArray(value))return [{kind:'unsupported',sourceId:String(index),payload:value}]
  const records:ParsedRecord[]=[]
  for(const [kind,items]of Object.entries(value)){
   if(!collections.includes(kind)||!Array.isArray(items)){records.push({kind:'unsupported',sourceId:`${index}:${kind}`,payload:{reason:'Unsupported export collection: '+kind}});continue}
   items.forEach((item,i)=>{
-   if(maxItemBytes&&new TextEncoder().encode(JSON.stringify(item)).length>maxItemBytes){records.push({kind:'unsupported',sourceId:`${index}:${kind}:${i}`,payload:{reason:'Source object exceeds 64 KiB; retain the source and obtain a bounded export'}});return}
+   if(maxItemBytes&&new TextEncoder().encode(JSON.stringify(item)).length>maxItemBytes){records.push({kind:'unsupported',sourceId:`${index}:${kind}:${i}`,payload:{reason:'Source object exceeds its bounded reader size; retain the source and obtain a bounded export'}});return}
    if(!item||typeof item!=='object'||Array.isArray(item)){records.push({kind:'unsupported',sourceId:`${index}:${kind}:${i}`,payload:item});return}
-   const id=item.id??item.uuid??item.name
+   const id=idFields.map(key=>item[key]).find(value=>value!==undefined&&value!==null)
    if(typeof id!=='string'||!id||id.length>200){records.push({kind:'unsupported',sourceId:`${index}:${kind}:${i}`,payload:{reason:'Missing stable source id'}});return}
    records.push({kind,sourceId:id,payload:{vendor,kind,definition:item,status:'source-evidence',qualification:'Native query and alert equivalence remains unproved',...(kind==='securityDashboards'?{specialist:'Splunk Enterprise Security',handoff:'Retain the source security dashboard and use the authorized security specialist'}:{})}})
   })
@@ -27,7 +28,13 @@ export function parseSplunk(value:Json,index:number):ParsedRecord[]{
   if(!splunkCollections.includes(kind as typeof splunkCollections[number])){
    records.push(refusal(index,kind,'Unsupported export collection: '+kind));continue
   }
-  let items:Json=collection
+  let items:Json=collection,topology:Json|undefined
+  // APM's official POST response contains original service nodes and directed edges.
+  // This is a file reader, not a guessed GET discovery endpoint.
+  if(kind==='services'&&object(collection)&&'nodes' in collection){
+   if(!Array.isArray(collection.nodes)||!Array.isArray(collection.edges)||new TextEncoder().encode(JSON.stringify(collection)).length>65536){records.push(refusal(index,kind,'APM topology needs nodes and edges arrays within the 64 KiB source-object bound'));continue}
+   topology=collection;items=collection.nodes
+  }
   if(object(collection)&&'results' in collection){
    items=collection.results
    if(!Array.isArray(items)||!Number.isSafeInteger(collection.count)||Number(collection.count)<0){
@@ -37,9 +44,11 @@ export function parseSplunk(value:Json,index:number):ParsedRecord[]{
    for(const key of Object.keys(collection))if(!['count','results'].includes(key))records.push(refusal(index,kind+':'+key,'Unqualified list metadata: '+key))
   }
   if(Array.isArray(items)&&!items.length)continue
-  for(const record of readCollections({[kind]:items},index,'splunk',[kind],65536)){
+  const identities=kind==='services'?['id','uuid','name','serviceName']:kind==='rum'?['id','uuid','name','applicationName']:['id','uuid','name']
+  for(const record of readCollections({[kind]:items},index,'splunk',[kind],['history','sourceStreams'].includes(kind)?1048576:65536,identities)){
    if(record.kind!=='unsupported'&&object(record.payload)){
-    record.payload={...record.payload,review:splunkReview(kind,record.payload.definition)}
+    if(kind==='sourceStreams'){const capture=readSourceStream(record.payload.definition);if(!capture.ok){records.push({kind:'unsupported',sourceId:record.sourceId,payload:{reason:capture.reason}});continue}}
+    record.payload={...record.payload,...(topology?{sourceTopology:topology}:{}),review:splunkReview(kind,record.payload.definition,topology)}
    }
    records.push(record)
   }

@@ -2,13 +2,18 @@ import assert from 'node:assert/strict'
 import {createHash} from 'node:crypto'
 import {mkdir} from 'node:fs/promises'
 import {join} from 'node:path'
+import {splunkStreamJourney} from './splunk-stream.mjs'
+import {splunkLogSearchJourney} from './splunk-log-search.mjs'
+import {splunkHistoryJourney} from './splunk-history.mjs'
+import {migrationCustodyJourney} from './migration-custody.mjs'
+import {migrationErasureJourney} from './migration-erasure.mjs'
 import {splunkReplayJourney} from './splunk-replay.mjs'
 import {collectAfterMigration} from './migration-collection.mjs'
 import {splunkExtractionJourney} from './splunk-extraction.mjs'
 import {chromium} from '@playwright/test'
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex')
 const vendors={splunk:'charts',dash0:'dashboards',signoz:'dashboards',clickstack:'savedSearches',honeycomb:'boards',resolve:'investigations',cleric:'investigations',traversal:'investigations'}
-export async function migrationJourney({origin,cookie,foreignCookie,restartWorker,signIn,freshOwner}){
+export async function migrationJourney({origin,cookie,foreignCookie,restartWorker,withEmptyDestination,withPinnedClock,sql,signIn,freshOwner}){
  const post=(action,body,source='splunk',session=cookie,extra={})=>fetch(origin+'/api/operator/import/'+action,{method:'POST',headers:{origin,cookie:session,'content-type':'application/json','x-import-source':source,...extra},body:JSON.stringify(body)})
  const json=async(action,body,source='splunk',status=200)=>{const r=await post(action,body,source);const value=await r.json();assert.equal(r.status,status,JSON.stringify(value));return value}
  const snapshot=async()=>{const r=await fetch(origin+'/api/porthole/v1/migration/records',{headers:{cookie}});assert.equal(r.status,200);return (await r.json()).records}
@@ -40,19 +45,20 @@ export async function migrationJourney({origin,cookie,foreignCookie,restartWorke
  assert.ok(auditPacket.includes('migration.request'),'migration attempts use a fixed private audit label')
  const captures=[]
  const browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']})
- const capture=async(name,path='/app/import',act,session=cookie)=>{
+ const capture=async(name,path='/app/import',act,session=cookie,targetOrigin=origin)=>{
   for(const width of [1440,390]){
    const context=await browser.newContext({viewport:{width,height:width===1440?900:844}})
-   await context.addCookies(session.split('; ').map(value=>{const p=value.indexOf('=');return {name:value.slice(0,p),value:value.slice(p+1),url:origin}}))
-   const page=await context.newPage();await page.goto(origin+path);if(act)await act(page)
+   await context.addCookies(session.split('; ').map(value=>{const p=value.indexOf('=');return {name:value.slice(0,p),value:value.slice(p+1),url:targetOrigin}}))
+   const page=await context.newPage();await page.goto(targetOrigin+path);if(act)await act(page)
    await page.locator('h1').waitFor();assert.equal(await page.locator('h1').count(),1)
    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'no horizontal overflow')
    const controls=await page.locator('button').allTextContents();assert.ok(controls.every(s=>s.trim().length>1),'all controls have visible word labels; no icon-only controls')
    const directory=process.env.PORTHOLE_BROWSER_EVIDENCE??'test-results/migration';await mkdir(directory,{recursive:true})
-   const screenshotPath=join(directory,`${name}-${width}.png`);await page.screenshot({path:screenshotPath,fullPage:true});captures.push(screenshotPath);if(name.startsWith('source-review')||name==='move-in-guide'||name==='move-in-empty'||name==='move-in-history')await page.screenshot({path:join(directory,`${name}-${width}-viewport.png`)});await context.close()
+   const screenshotPath=join(directory,`${name}-${width}.png`);await page.screenshot({path:screenshotPath,fullPage:true});captures.push(screenshotPath);if(name.startsWith('source-review')||name==='move-in-guide'||name==='move-in-empty'||name==='move-in-history'||name.startsWith('move-in-'))await page.screenshot({path:join(directory,`${name}-${width}-viewport.png`)});await context.close()
   }
  }
  try{
+  if(process.env.PORTHOLE_IMPORT_ERASURE_ONLY==='1'){await migrationErasureJourney({withEmptyDestination,withPinnedClock,capture});return}
   const baselineArchive=await fetch(origin+'/api/porthole/v1/archive/exports',{method:'POST',headers:{origin,cookie,'content-type':'application/json'},body:'{}'});assert.equal(baselineArchive.status,201)
   const extracted=await splunkExtractionJourney()
   const extractedPlan=await upload('splunk',extracted.definitions)
@@ -61,6 +67,11 @@ export async function migrationJourney({origin,cookie,foreignCookie,restartWorke
   const extractedRows=await snapshot()
   assert.deepEqual(extractedRows.find(row=>row.targetKind==='charts').value.definition,extracted.definitions.charts[0])
   await finish('undo',{planId:extractedPlan.planId},'splunk','undone');assert.deepEqual(await snapshot(),[])
+  await splunkHistoryJourney({origin,cookie,capture,member,foreignCookie,selectedDefinitions:extracted.selectedDefinitions,emptyDefinitions:extracted.emptyDefinitions,upload,finish,snapshot,restartWorker,freshOwner:async()=>{cookie=await freshOwner();return cookie}})
+  cookie=await freshOwner()
+  await splunkStreamJourney({origin,cookie,capture,member,foreignCookie,selectedDefinitions:extracted.selectedDefinitions,upload,finish,snapshot})
+  await splunkLogSearchJourney({origin,cookie,member,foreignCookie,upload,finish,snapshot,restartWorker,freshOwner:async()=>{cookie=await freshOwner();return cookie},capture})
+  cookie=await freshOwner()
   await capture('move-in-empty');await capture('move-in-guide','/app/import/guide')
   const definitions=Array.from({length:25},(_,i)=>({id:`synthetic-porthole-${i}`,name:`Chart ${i}`,programText:"data('requests', filter=filter('service', 'checkout')).sum().publish(label='A')",options:{type:'TimeSeriesChart'},tags:['team:ops','customer:synthetic-porthole-43']}))
   const dashboard={id:'synthetic-porthole-105',name:'Checkout overview',charts:[{chartId:definitions[0].id,column:0,row:0,width:6,height:1}],filters:{variables:[{property:'environment',value:['test'],alias:'Environment',required:true,restricted:false}]},tags:['team:ops']}
@@ -77,7 +88,7 @@ export async function migrationJourney({origin,cookie,foreignCookie,restartWorke
   assert.ok(diagnostics.some(d=>d.field==='filters.variables'))
   assert.ok(diagnostics.some(d=>d.field==='rules[0].notifications'))
   assert.deepEqual(await snapshot(),before,'preview has no native effects')
-  const excludedArchive=await fetch(origin+'/api/porthole/v1/archive/exports',{method:'POST',headers:{origin,cookie,'content-type':'application/json'},body:'{}'});assert.equal(excludedArchive.status,409);assert.equal((await excludedArchive.json()).error,'migration_custody_archive_pending')
+  const excludedArchive=await fetch(origin+'/api/porthole/v1/archive/exports',{method:'POST',headers:{origin,cookie,'content-type':'application/json'},body:'{}'});assert.equal(excludedArchive.status,201,'source custody participates in complete private archives')
   await json('apply',{planId:plan.planId,reviewedFingerprint:'0'.repeat(64)},'splunk',403)
   assert.deepEqual(await snapshot(),before,'wrong fingerprint has no effects')
   const first=await json('apply',{planId:plan.planId,reviewedFingerprint:plan.fingerprint})
@@ -238,6 +249,9 @@ export async function migrationJourney({origin,cookie,foreignCookie,restartWorke
    assert.match(await page.locator('body').innerText(),/Native query translation/)
   })
   await capture('move-in-history')
+  await migrationCustodyJourney({origin,cookie,sql,restartWorker,freshOwner,withEmptyDestination,capture})
+  await migrationErasureJourney({withEmptyDestination,withPinnedClock,capture})
+  cookie=await freshOwner()
   console.log('Seven challenger source-evidence readers: exact sanitized definitions, high-cardinality metadata, source scope and open-history references, persisted resume, reconciliation and undo passed')
   console.log('Migration browser proof passed at 1440 and 390:',captures.length,'screens; no icon-only controls')
  }finally{await browser.close()}

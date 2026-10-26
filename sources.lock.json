@@ -294,7 +294,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "2d14fed239fc738a7144ee73de70dd5c1964a02c728187910f637a62e3826721",
+      "sha256": "7aa6b93d2047da41e62a3cd08bd9558c1cc4f3abbae56f870316611040c5b576",
       "executable": false
     },
     "AGENTS.md": {
@@ -313,12 +313,28 @@
       "sha256": "e97aa0fb50bbb0e98010b075abad8269257869addd6101bb1063990151f6437b",
       "executable": false
     },
+    "collectors/splunk/collector.yaml": {
+      "sha256": "1b61c6e551e9c4f4312237f1537607b861338dbafc2d9c3bb56e80373d8e0399",
+      "executable": false
+    },
+    "collectors/splunk/process.mjs": {
+      "sha256": "0ba2225631a31614e39bac85830833152ed2991643961f8919822ad84a34912e",
+      "executable": false
+    },
+    "collectors/splunk/reconcile.mjs": {
+      "sha256": "b8b4aae65ff8fe2a4fa485c7a1fde5b15d9ee8dc7091cbc07d28c7b6e71dcd54",
+      "executable": false
+    },
+    "collectors/splunk/release.mjs": {
+      "sha256": "93162417043cab67bf3761d3cac065f7ed187efd4a8bc3d54ce8813c09df7cfa",
+      "executable": false
+    },
     "composition.lock.json": {
       "sha256": "513be01f9f95e79601e77258a48103d214a8607063bae3d7fc2aa5568100b365",
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "c4f6b07101f8d1a8df6ccb4683784d835517b3dbc5726829d99c74c42067324e",
+      "sha256": "70988b83eefcdaa170ee30776583a23dc5e00e3a89d4a8a169239bdc4d25a9e3",
       "executable": false
     },
     "DEMO.md": {
@@ -362,7 +378,7 @@
       "executable": false
     },
     "docs/migration.md": {
-      "sha256": "1bb68f74bfdb8ac5e72934dd6495bc43d81ce3a023f56b40bc46594ef97117e1",
+      "sha256": "cd1922a2808536cbb726f8b905db475360a35e23217ecd85c7601a24509a0a76",
       "executable": false
     },
     "docs/operations.md": {
@@ -391,6 +407,10 @@
     },
     "docs/slos.md": {
       "sha256": "9458ca5b138a589c15f2303f298e8f97aab82e0647ad1d622839333b89a639a0",
+      "executable": false
+    },
+    "docs/splunk-collector.md": {
+      "sha256": "1aa60e3c3e97c86129cc2c4de8ede27ebd2204101a2dc1754a64aabfa6c2474b",
       "executable": false
     },
     "edition.json": {
@@ -681,6 +701,14 @@
       "sha256": "a4925455b492f20d1853a8cca9ad204513feae90412e9e4cc81c22aa5402216a",
       "executable": false
     },
+    "migrations/core/0048_porthole_migration_custody.sql": {
+      "sha256": "fbaf9e83f32d2654ac346379cc268d397832bc8973c118d149b57a997583fdd0",
+      "executable": false
+    },
+    "migrations/core/0049_porthole_import_erasure.sql": {
+      "sha256": "4305fa856bfa891f6e74f61ff069c5a7c962477f043e48e7d6e436928b9778e4",
+      "executable": false
+    },
     "ONBOARDING.md": {
       "sha256": "3bfe0cb88ac22d51ebe29ff54d0143219096c0ac07eb3b2b81c574c5baf57332",
       "executable": false
@@ -822,7 +850,7 @@
       "executable": false
     },
     "public/porthole/operations.css": {
-      "sha256": "1dec2edb2bf4361f714538368e0443d80a1b6902d81ea053e21f400679491d37",
+      "sha256": "051954f08028f723bfa0fc9d37e5452a29ff4c5fc91f49e25465937d99292379",
       "executable": false
     },
     "public/rer-theme.css": {
@@ -1354,19 +1382,27 @@
       "executable": false
     },
     "scripts/splunk-export.mjs": {
-      "sha256": "08320dfb6681216627b9847add4ec095b691c0efc5ed461cfc117c10d0294288",
+      "sha256": "5f7d3f220fabf5dc75283594a8f3526870511b2ecb258dd990aa5e91c934b2c3",
       "executable": false
     },
     "scripts/splunk/extract.mjs": {
-      "sha256": "178b1ae1912b25efc23e24fde7c7333bbf09d9f61713070d559a6a4eda8d807b",
+      "sha256": "02bfa9cee855d16e5bfe5903fdeae650f8b16ae185f938f857a29bbddf80eef8",
+      "executable": false
+    },
+    "scripts/splunk/extras.mjs": {
+      "sha256": "693714011dad34dea9dd8a814e117d2165036b740660498691bffb48128403f0",
       "executable": false
     },
     "scripts/splunk/provider.mjs": {
-      "sha256": "e30d954bd374d08a3d6a8823d7944b43587c1a6cd02eb90ee2dcffc0e4564437",
+      "sha256": "6e7e98719b94f52b1ce190cc4a28432f353590d18bcefae429b7362f18a2fc20",
+      "executable": false
+    },
+    "scripts/splunk/selection.mjs": {
+      "sha256": "2d503f1e7fae6fb4ad1bd17f5719da7e6cfb61fd822f6277fdd63b59aff13bc9",
       "executable": false
     },
     "scripts/splunk/state.mjs": {
-      "sha256": "d2c74f74263fb3f96bc7694fe7374e197ad3163b229cb7cb70949cfd6f1b3c6e",
+      "sha256": "508b356a740a53a331a3b6417df8563df2be915c93191a38eab30e276561da42",
       "executable": false
     },
     "scripts/verify-app.mjs": {
@@ -3242,7 +3278,7 @@
       "executable": false
     },
     "src/porthole/audit/capture.ts": {
-      "sha256": "8331da7e0d553c485422fed63da1754be4071eabcc4965ceaab9983e180d39df",
+      "sha256": "7eb22340c07eb3126e7a82f6d78bae80f4c00a3d85f4d82828655a6d742c32e9",
       "executable": false
     },
     "src/porthole/audit/export.ts": {
@@ -3505,8 +3541,68 @@
       "sha256": "a32390d824abc10dcddb8230cfe3fe3b89d3445dc4baea63884d719b66626052",
       "executable": false
     },
+    "src/porthole/migration/authority.ts": {
+      "sha256": "d24f6b2e775743bb91ba5040af94bd6928d5e6bf4656e3020ffda3305be28c87",
+      "executable": false
+    },
     "src/porthole/migration/challengers/source.ts": {
       "sha256": "659f70a391794188e44f7266c949a90c8a01be6bc347d555914d561a941a0f18",
+      "executable": false
+    },
+    "src/porthole/migration/custody/boundary.ts": {
+      "sha256": "99e5d950fb2704029f39ec2c9c8647c53022dc1b7dba1b3418f85a2b042f971f",
+      "executable": false
+    },
+    "src/porthole/migration/custody/catalog.ts": {
+      "sha256": "900d012777df0ca45adc718f0bcb02959e860b5b77ef3db44d3098da3ae7ba12",
+      "executable": false
+    },
+    "src/porthole/migration/custody/documents.ts": {
+      "sha256": "c615b9635a71b1999093cae9f8349e422f9a0d661d2dc2f98f9cefcee78f6471",
+      "executable": false
+    },
+    "src/porthole/migration/custody/erasure-fence.ts": {
+      "sha256": "ae9ea40bc38c57b35f864daeb68eae8d0f56f883530fe1260f6217206edc3a71",
+      "executable": false
+    },
+    "src/porthole/migration/custody/history.ts": {
+      "sha256": "b12a7008c3276d9ecc84aca3de2996dc9d534a379887d3f3540d763868c35f57",
+      "executable": false
+    },
+    "src/porthole/migration/custody/reader.ts": {
+      "sha256": "d669e42d8cb7c16259fc9c4cffb3d48216f8bfc4c2c0144ad1da8bb9d0d7cede",
+      "executable": false
+    },
+    "src/porthole/migration/custody/rows.ts": {
+      "sha256": "1a59db276948abca6d738c57a2a337ac48e256514f982a7278a8fd51975a02d7",
+      "executable": false
+    },
+    "src/porthole/migration/custody/validate.ts": {
+      "sha256": "975b1a355dbe2f8d9a61286542406911a4d994e91a8bfdd72f169142f147bbb2",
+      "executable": false
+    },
+    "src/porthole/migration/erasure-page.ts": {
+      "sha256": "32f853b7d0959f14d759d229a9dd7eb0ffa98b7f62822a582ae5e4115387c1cf",
+      "executable": false
+    },
+    "src/porthole/migration/erasure/apply.ts": {
+      "sha256": "55005a56f775d67cbb36af553e6c4e5dfe20d3ff7830a8db826b0aca96208c4a",
+      "executable": false
+    },
+    "src/porthole/migration/erasure/authority.ts": {
+      "sha256": "ec06eea058f457ecff8d274e6e5d2cb0495a006c8011e285e560f9369fed2c01",
+      "executable": false
+    },
+    "src/porthole/migration/erasure/http.ts": {
+      "sha256": "82e852ece038a6a506981456ed4c3abf868108776e5d28eade1922da21da81e2",
+      "executable": false
+    },
+    "src/porthole/migration/erasure/inventory.ts": {
+      "sha256": "fffeaf6139a30ff403050704f7781aab59e9ca2374292b15fb573d6fa5a19dbc",
+      "executable": false
+    },
+    "src/porthole/migration/erasure/journal.ts": {
+      "sha256": "cab1783a40eeed63d46f6d251b5966ab062caacf23bd505d0639fa453f589cb7",
       "executable": false
     },
     "src/porthole/migration/evidence/expressions.ts": {
@@ -3521,32 +3617,96 @@
       "sha256": "13f691555b70e58564dc4baacc2dbed1b50ecc5ec92d185cff176b6c99c1db93",
       "executable": false
     },
+    "src/porthole/migration/historical.ts": {
+      "sha256": "4a31d3b748a2d9951b84e0246bc84b9a51eb95fd69fb6c2548065e664d297304",
+      "executable": false
+    },
     "src/porthole/migration/http.ts": {
-      "sha256": "fda8d32238387bd2cca0564a3c79a128843666f707b3932db5209dd4ee7d7dd7",
+      "sha256": "6c3a7bc3a64067507fc77bd4e2e155e0a2c7f7dbcb6b85d528870b4882551b1d",
+      "executable": false
+    },
+    "src/porthole/migration/log-search-page.ts": {
+      "sha256": "9229ca4ac7745f9478fb27b305cfb7960d5dc832797c18f607c01a3915e6bd81",
+      "executable": false
+    },
+    "src/porthole/migration/observation-page.ts": {
+      "sha256": "7a0c16518728c568c954fe5b5691530d412c9525539b7d61d26d8740e3f433b1",
       "executable": false
     },
     "src/porthole/migration/replay.ts": {
-      "sha256": "58383c6b0123d52041c1ce75629d3b5b989bb3e589a5105df8ab5722a7b79ea5",
+      "sha256": "2a38bf7eda123d872ad949f2dfeb5b5feecce637b6b888fa24da7138a6d42caf",
+      "executable": false
+    },
+    "src/porthole/migration/source-comparison.ts": {
+      "sha256": "05d1f08ceb6c2d84d206f469d9b1bb21e5d888135324bc5b6ecf6dd3a4ac36c8",
       "executable": false
     },
     "src/porthole/migration/sources.ts": {
       "sha256": "9b04cabd62786075fa580756d04285abf82e93c9114e9a883bcaad825839b031",
       "executable": false
     },
+    "src/porthole/migration/splunk/history.ts": {
+      "sha256": "5993b107bac67b2e99abecb8fbb0e823430fdd7648f56d89644a332b12b4e0d7",
+      "executable": false
+    },
     "src/porthole/migration/splunk/review.ts": {
-      "sha256": "e3ffe9bd416d548bd2b413d69708e8358f734177be3fd8f4c37e4b306a915614",
+      "sha256": "e227f5ce54af386485af414e2119afb84739c8d5fd1ab6b67de526636356de98",
+      "executable": false
+    },
+    "src/porthole/migration/splunk/signalflow/aligned.ts": {
+      "sha256": "a73f7945323caab608d54dc95a2e525f11494fd2062145905764af533d51bf8c",
       "executable": false
     },
     "src/porthole/migration/splunk/signalflow/compile.ts": {
-      "sha256": "cb57d771e3a9a7b7d0325a74bb5eb3c589f30961c13a24ae43fd7eb894242316",
+      "sha256": "6350cda6306c80e2cc67b37a408a9310e2acbe85754ce4b03c6634684923a538",
       "executable": false
     },
     "src/porthole/migration/splunk/signalflow/evaluate.ts": {
-      "sha256": "8917257bf9b82f4aaf5573b3384e56eeb171d028e626a37a0d418f5c427cb8cc",
+      "sha256": "509c7b1de5561ea1d18156d621c0eff92cb2a3898390e472b1014b37f7639ccd",
+      "executable": false
+    },
+    "src/porthole/migration/splunk/signalflow/syntax.ts": {
+      "sha256": "56eaf4bdab13119a83a9927dbb9f30f77b5a31b1263d296cade4f29c519091a6",
       "executable": false
     },
     "src/porthole/migration/splunk/source.ts": {
-      "sha256": "95bbf739405f12bdec9a287c1df6d3628df030b3487eeaa45e39be5e5bdc7904",
+      "sha256": "bc6414e0d173d355de35edc02206dd3b5d5ec3fb6621520e8d2c32f87d4d0b95",
+      "executable": false
+    },
+    "src/porthole/migration/splunk/spl/compile.ts": {
+      "sha256": "afc41f98d7954643b48640f988f336cd5373d413121da8a164bd3b1ccedbd255",
+      "executable": false
+    },
+    "src/porthole/migration/splunk/spl/execute.ts": {
+      "sha256": "464065b178c041127bc7560b8b851952893dcd6db84128982d7aeb0202e377a0",
+      "executable": false
+    },
+    "src/porthole/migration/splunk/spl/mapping.ts": {
+      "sha256": "e907361d5a6a0da2b92b3b3ca6e1aa08a20cf5706dc5d7d595a09df9f57226bf",
+      "executable": false
+    },
+    "src/porthole/migration/splunk/spl/read.ts": {
+      "sha256": "863df2a3b8b1da24ae40fe59e3f19095ef92d23757a34e8b1eec3a7132f8383f",
+      "executable": false
+    },
+    "src/porthole/migration/splunk/stream/compare.ts": {
+      "sha256": "7e090c9aa8e1071b25fe0fc68077036004c9c48b0de6054485a302933799e0f8",
+      "executable": false
+    },
+    "src/porthole/migration/splunk/stream/index.ts": {
+      "sha256": "f453cbc356906b1a07d03d0b10dd095ad2cebdbba4757b1c3cf5108c02833178",
+      "executable": false
+    },
+    "src/porthole/migration/splunk/stream/messages.ts": {
+      "sha256": "33fc7021909ed2a52d9209c6ccfb0a83f75858d20e0358f9d2d37f7dd2af0b79",
+      "executable": false
+    },
+    "src/porthole/migration/splunk/stream/sse.ts": {
+      "sha256": "cd58928c59ffed8b03cf1800c3eca62abb1d0767e9afc4723ebf56518a620a29",
+      "executable": false
+    },
+    "src/porthole/migration/splunk/stream/types.ts": {
+      "sha256": "c9c621071f2d01e739f1630abb265399715b20733eeba9112328254440089fa8",
       "executable": false
     },
     "src/porthole/objects/http.ts": {
@@ -3562,11 +3722,11 @@
       "executable": false
     },
     "src/porthole/portability/catalog.ts": {
-      "sha256": "133613445c4b32ecb835529b83de22fa21779773446e61f0962adcb57ab2a4ea",
+      "sha256": "6426fb04ce1321cd9d75ec7f99eb96c7375b539e47e3efd6588b0703050f625c",
       "executable": false
     },
     "src/porthole/portability/format.ts": {
-      "sha256": "dad797809301ba5b43c6f3b4a14fc5c46fc05bce5ecebf84d1e610dc8198d8eb",
+      "sha256": "d98b7f466db3a17e2a7ae847fb6fb09063cbf65e7d1d4207617d01cce4473a08",
       "executable": false
     },
     "src/porthole/portability/health-history.ts": {
@@ -3586,11 +3746,11 @@
       "executable": false
     },
     "src/porthole/portability/restore.ts": {
-      "sha256": "71cab51ab7ac60e95cd710689e797604e6d33f3cae6b0b864ea3f401fc2a8b9d",
+      "sha256": "30032efadaf784445fd1f3d309b4bbdea30bb27a68ba6da8f67c875ccc073fcf",
       "executable": false
     },
     "src/porthole/portability/store.ts": {
-      "sha256": "55441c53cba7c26690dd52468dcafc145726b3cdbceb7a37970fe7df3d95167f",
+      "sha256": "7cabe5376ce981dc963506eb860bb7fd5caf1da3cc0ff1ab260a49839bc6ccfe",
       "executable": false
     },
     "src/porthole/privacy/actor-erasure/http.ts": {
@@ -4057,8 +4217,20 @@
       "sha256": "15b00a2277bee5c58bb94ecec91a7146147c475d58286818edcff75ea8838c9f",
       "executable": false
     },
+    "tests/porthole/migration-collector.mjs": {
+      "sha256": "7b249ae2d775f8a2b8ca11fdc1844d016c13ab91f5beec115e9862b15b67c6e9",
+      "executable": false
+    },
+    "tests/porthole/migration-custody.mjs": {
+      "sha256": "e6d4502f8183ac4683c8c42f300452697691341446359789bf2dfa0dfb95360d",
+      "executable": false
+    },
+    "tests/porthole/migration-erasure.mjs": {
+      "sha256": "1831add1931c23cca911b28e0964c72e2dbd1f092db02a3679cdefe52c4ecfb5",
+      "executable": false
+    },
     "tests/porthole/migration.mjs": {
-      "sha256": "18d6a37fd18c31bc03bc6e2c604b479874d9c46b6cb01433aa71d66c147eb5f5",
+      "sha256": "fd315a1870d69f7200dcd22ebabf44eb489069968a1b654908dce574fc862601",
       "executable": false
     },
     "tests/porthole/native-archive.mjs": {
@@ -4081,16 +4253,32 @@
       "sha256": "db271efb275f06defdf70e43eea4ca2683a21e1c563e90659d8cd72c4cbf70cd",
       "executable": false
     },
+    "tests/porthole/spl/logs.cjs": {
+      "sha256": "b6368e4804f688abfd250ff92725f2ec8f9eef3f84c81d4cbde12ce154ee6545",
+      "executable": false
+    },
     "tests/porthole/splunk-extraction-edge.mjs": {
-      "sha256": "7e32efe31ff5912645c37072202c59ad48dac1fc1e3b2041ccfce00bfd151449",
+      "sha256": "646c98ee6b80d444bf5683eb91cbf8df02726998cdb5f073463a39117591701b",
       "executable": false
     },
     "tests/porthole/splunk-extraction.mjs": {
-      "sha256": "24991276288a63156d86b5d2e6e8b223aa7a24b0c6e61f66694de543a9ae36bc",
+      "sha256": "2b540bbc640bf29fd25bf96ce4ee8a8b4974c57e88d4c525910475a878d3a36f",
+      "executable": false
+    },
+    "tests/porthole/splunk-history.mjs": {
+      "sha256": "d78ac9e60d1ec28137f62645c013fb953c7744b75ac7fb92740df4e2373ef418",
+      "executable": false
+    },
+    "tests/porthole/splunk-log-search.mjs": {
+      "sha256": "124bd6d38b9168a7978b9ca52a7aa32036fe462a2b16ac3ada60810295bb8310",
       "executable": false
     },
     "tests/porthole/splunk-replay.mjs": {
-      "sha256": "e1f27c15e9bce1acf29196ce5c63832d206f230fe73bd3bd69a50ff05e231eb0",
+      "sha256": "3d5c89bb159af9126a1566a5445d5e749cd2f82c9b874abf30577c5e412176c6",
+      "executable": false
+    },
+    "tests/porthole/splunk-stream.mjs": {
+      "sha256": "6cc29698a466517beef639aec72711602b09e4018ed7a7ddd37f7723bb0b4954",
       "executable": false
     },
     "tests/porthole/stock-ingest.mjs": {
@@ -4110,7 +4298,7 @@
       "executable": false
     },
     "tests/runtime.mjs": {
-      "sha256": "5c3e48a15904fd9a09283e521ecb8d7ec04945ab05d20b233808eb45b254edbc",
+      "sha256": "a90a24feb41456bf03adb7990e8c21e058141983bbac911c8c482b9935e10147",
       "executable": false
     },
     "tests/typecheck-checks.mjs": {

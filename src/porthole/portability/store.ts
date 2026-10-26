@@ -2,8 +2,11 @@ import type { Authority } from '../security/authority'
 import { fail, proofFence } from '../security/authority'
 import { digest, genesis } from '../audit/store'
 import { projectFacts } from '../audit/facts'
-import { catalog, snapshotQuery } from './catalog'
+import { catalog, snapshotQueries } from './catalog'
 import { chunkRows, format, initialValidation, validateRow, type Chunk, type Manifest, type PortableRow, type Validation } from './format'
+import {custodyBoundary,preflightSourceBytes} from '../migration/custody/boundary'
+import {validateCustody} from '../migration/custody/validate'
+import {requireReviewedUploads,reviewedUploadsAfterErasure} from '../migration/custody/erasure-fence'
 
 export interface Job {id:string;direction:'export'|'restore';owner_ref:string;created_at:number;state:string;manifest:string|null;row_count:number;next_chunk:number;chain_hash:string;validation:string}
 export function guard(db:D1Database,actor:Authority,extra='1',args:unknown[]=[]):D1PreparedStatement {
@@ -16,17 +19,26 @@ export async function jobFor(db:D1Database,id:string,actor:Authority,direction?:
  return row
 }
 export async function startExport(db:D1Database,actor:Authority):Promise<Job> {
- const custody=await db.prepare('SELECT 1 FROM ik_door_uploads UNION ALL SELECT 1 FROM ik_door_plans UNION ALL SELECT 1 FROM porthole_migration_records LIMIT 1').first()
- if(custody)fail('migration_custody_archive_pending',409)
+ const boundary=await custodyBoundary(db)
+ await preflightSourceBytes(db)
+ await requireReviewedUploads(db)
  await projectFacts(db)
  const id=crypto.randomUUID(),stream=crypto.randomUUID(),now=Date.now()
- const statements:D1PreparedStatement[]=[guard(db,actor,'NOT EXISTS(SELECT 1 FROM ik_door_uploads) AND NOT EXISTS(SELECT 1 FROM ik_door_plans) AND NOT EXISTS(SELECT 1 FROM porthole_migration_records)'), db.prepare(`INSERT INTO porthole_archive_jobs(id,direction,owner_ref,created_at,state,chain_hash) VALUES(?,'export',?,?,'snapshot',?)`).bind(id,actor.member.operatorId,now,genesis)]
- for(const item of catalog) statements.push(db.prepare(`INSERT INTO porthole_archive_rows(job_id,ordinal,payload) SELECT ?,COALESCE((SELECT MAX(ordinal)+1 FROM porthole_archive_rows WHERE job_id=?),0)+ROW_NUMBER() OVER ()-1,payload FROM (${snapshotQuery(item,stream)})`).bind(id,id))
+ const statements:D1PreparedStatement[]=[guard(db,actor,`(${boundary}) AND (${reviewedUploadsAfterErasure})`), db.prepare(`INSERT INTO porthole_archive_jobs(id,direction,owner_ref,created_at,state,chain_hash) VALUES(?,'export',?,?,'staging',?)`).bind(id,actor.member.operatorId,now,genesis)]
+ for(const item of catalog)for(const snapshot of snapshotQueries(item,stream))statements.push(db.prepare(`INSERT INTO porthole_archive_rows(job_id,ordinal,payload) SELECT ?,COALESCE((SELECT MAX(ordinal)+1 FROM porthole_archive_rows WHERE job_id=?),0)+ROW_NUMBER() OVER ()-1,payload FROM (${snapshot})`).bind(id,id))
  statements.push(db.prepare('UPDATE porthole_archive_jobs SET row_count=(SELECT COUNT(*) FROM porthole_archive_rows WHERE job_id=?) WHERE id=?').bind(id,id))
  await db.batch(statements)
+ try{
+  await validateCustody(db,id)
+  await db.batch([guard(db,actor),db.prepare("UPDATE porthole_archive_jobs SET state='snapshot' WHERE id=? AND state='staging'").bind(id)])
+ }catch(error){
+  await db.batch([db.prepare('DELETE FROM porthole_archive_rows WHERE job_id=?').bind(id),db.prepare('DELETE FROM porthole_archive_jobs WHERE id=?').bind(id)])
+  throw error
+ }
  return jobFor(db,id,actor,'export')
 }
 export async function exportChunk(db:D1Database,actor:Authority,job:Job,index:number):Promise<Chunk|null> {
+ if(!['snapshot','complete'].includes(job.state))fail('archive_validation_incomplete',409)
  const old=await db.prepare('SELECT packet FROM porthole_archive_chunks WHERE job_id=? AND chunk_index=?').bind(job.id,index).first<{packet:string}>()
  if(old){await db.batch([guard(db,actor)]);return JSON.parse(old.packet) as Chunk}
  if(index!==job.next_chunk)fail('archive_cursor_invalid',409)

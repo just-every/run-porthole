@@ -8,6 +8,8 @@ import { validateBody } from '../objects/schema'
 import { validateHealthHistory } from './health-history'
 import { fail, parseScope, roles } from '../security/authority'
 import { validHistoryReference } from '../storage/model'
+import {validateCustodyRow,validateMigrationRecord} from '../migration/custody/rows'
+import {validateImportErasureFence} from '../migration/erasure/journal'
 
 export const format = 'porthole.product-archive.v1'
 export const chunkRows = 8
@@ -33,6 +35,8 @@ export function manifestInput(value: unknown): Manifest {
  if(!Object.hasOwn(value.tables,'porthole_export_exclusions'))value.tables.porthole_export_exclusions=0
  for(const table of ['porthole_dashboards','porthole_dashboard_versions','porthole_dashboard_publications'])if(!Object.hasOwn(value.tables,table))value.tables[table]=0
  if(!Object.hasOwn(value.tables,'porthole_baggage_policy'))value.tables.porthole_baggage_policy=0
+ for(const table of ['porthole_migration_records','porthole_migration_custody'])if(!Object.hasOwn(value.tables,table))value.tables[table]=0
+ if(!Object.hasOwn(value.tables,'porthole_migration_erasure_fences'))value.tables.porthole_migration_erasure_fences=0
  if(Object.keys(value.tables).sort().join(',')!==catalog.map(item=>item.table).sort().join(',') || Object.values(value.tables).some(v=>!integer(v)) || Object.values(value.tables).reduce<number>((a,b)=>a+(b as number),0)!==value.rowCount || value.chunks!==Math.ceil(value.rowCount/chunkRows)) return bad()
  const tables={porthole_baggage_policy:0,...value.tables}
  if(value.tables.porthole_ingest_control!==1)bad()
@@ -55,7 +59,13 @@ export async function validateRow(payload: PortableRow, state: Validation): Prom
  if(Object.keys(row).sort().join(',')!==[...item.columns].sort().join(',')) bad()
  for(const value of Object.values(row)) if(value!==null && typeof value!=='string' && !integer(value)) bad()
  const required=(...keys:string[])=>{for(const key of keys)if(!str(row[key]) || !(row[key] as string).length)bad()}
- if(item.table==='porthole_slo_versions') {
+ if(item.table==='porthole_migration_erasure_fences') {
+  validateImportErasureFence(row)
+ } else if(item.table==='porthole_migration_custody') {
+  validateCustodyRow(row)
+ } else if(item.table==='porthole_migration_records') {
+  validateMigrationRecord(row)
+ } else if(item.table==='porthole_slo_versions') {
   if(!uuid(row.id)||!integer(row.revision,1)||!str(row.name)||!uuid(row.owner_id)||!integer(row.created_at)||!['active','quarantined'].includes(String(row.state)))bad()
   definitionInput(json(row.definition))
  } else if(item.table==='porthole_retention_policies') {

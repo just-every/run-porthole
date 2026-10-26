@@ -4,6 +4,9 @@ import {assertNoCredentials, reflectedCredentialMatcher} from '../../src/modules
 // https://dev.splunk.com/observability/reference/api/charts/latest
 // https://dev.splunk.com/observability/reference/api/dashboards/latest
 // https://dev.splunk.com/observability/reference/api/detectors/latest
+// https://dev.splunk.com/observability/reference/api/slo/latest/
+// https://dev.splunk.com/observability/reference/api/retrieve_timeserieswindow/latest/
+// https://dev.splunk.com/observability/reference/api/metrics_metadata/latest/
 export const MAX_BYTES = 1024 * 1024
 export const PAGE_SIZE = 100
 export const ENDPOINTS = ['/v2/chart', '/v2/dashboard', '/v2/detector']
@@ -52,7 +55,7 @@ export async function getDefinitionPage(realm, path, token) {
   }
   if (!response.ok) {
     await response.body?.cancel()
-    if (response.status === 401 || response.status === 403) throw new ExtractionError('Export incomplete: provider refused access. Check the environment token and read permissions, then use --resume.')
+    if (response.status === 401 || response.status === 403) throw new ExtractionError('Export incomplete: provider refused access. Check the environment token, read permissions and source entitlement or paid export limits, then use --resume.')
     throw new ExtractionError('Export incomplete: provider returned an unsuccessful HTTP status. Check provider availability and read permissions, then use --resume.')
   }
   const reader = response.body?.getReader()

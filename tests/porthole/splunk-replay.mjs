@@ -10,7 +10,9 @@ export async function splunkReplayJourney({origin,cookie,capture,member,foreignC
  const intake=await fetch(origin+'/v1/metrics',{method:'POST',headers:{authorization:'Bearer '+source.secret,'content-type':'application/json','x-porthole-batch-id':'synthetic-porthole-4312'},body:JSON.stringify({resourceMetrics:resources})})
  assert.equal(intake.status,200,await intake.clone().text())
  assert.equal((await post('/api/porthole/v1/ingest/drain',{})).status,200)
- const body={...scope,from,through,targetId:'splunk:detectors:synthetic-porthole-106'}
+ const records=(await (await fetch(origin+'/api/porthole/v1/migration/records',{headers:{cookie}})).json()).records
+ const targetRevision=id=>records.find(row=>row.targetId===id).revision
+ const body={...scope,from,through,targetId:'splunk:detectors:synthetic-porthole-106',targetRevision:targetRevision('splunk:detectors:synthetic-porthole-106')}
  const route='/api/porthole/v1/migration/replay'
  assert.equal((await post(route,body,'')).status,401)
  assert.equal((await post(route,body,member)).status,403)
@@ -43,31 +45,31 @@ export async function splunkReplayJourney({origin,cookie,capture,member,foreignC
  assert.equal((await partial.json()).error,'replay_window_incomplete_narrow_range')
  const ledger=await (await fetch(origin+'/api/v1/audit/export',{headers:{cookie}})).text()
  assert.ok(ledger.includes('migration.replay'));assert.ok(!ledger.includes("data('requests'"),'source program stays out of private action labels')
- const unsupported=await post(route,{...body,targetId:'splunk:detectors:synthetic-porthole-100'})
- assert.equal(unsupported.status,422);assert.equal((await unsupported.json()).construct,',')
+ const unsupported=await post(route,{...body,targetId:'splunk:detectors:synthetic-porthole-100',targetRevision:targetRevision('splunk:detectors:synthetic-porthole-100')})
+ assert.equal(unsupported.status,422);assert.match((await unsupported.json()).construct,/explicit divisible data resolution/)
  const mismatch=await post(route,{...body,service:'elsewhere'});assert.equal(mismatch.status,422)
  const empty=await post(route,{...body,from:String(start-6000000000n),through:String(start-5000000000n)});assert.equal(empty.status,200)
  const noData=await empty.json();assert.deepEqual(noData.points,[]);assert.equal(noData.coverage,'no-data')
  const fillAnalysis=async page=>{
   await page.getByText('Analyze retained metric samples',{exact:true}).click()
   const form=page.locator('form[action="/app/import/replay"]')
-  await form.locator('select[name="targetId"]').selectOption(body.targetId)
+  await form.locator('select[name="targetRef"]').selectOption(JSON.stringify([body.targetId,body.targetRevision]))
   for(const key of ['service','environment','team','from','through'])await form.locator(`input[name="${key}"]`).fill(body[key])
  }
  await capture('move-in-analysis-form','/app/import',fillAnalysis)
  await capture('move-in-replay','/app/import',async page=>{
   await page.getByText('Analyze retained metric samples',{exact:true}).click()
   const form=page.locator('form[action="/app/import/replay"]')
-  await form.locator('select[name="targetId"]').selectOption(body.targetId)
+  await form.locator('select[name="targetRef"]').selectOption(JSON.stringify([body.targetId,body.targetRevision]))
   for(const key of ['service','environment','team','from','through'])await form.locator(`input[name="${key}"]`).fill(body[key])
   await form.getByRole('button',{name:'Analyze retained samples',exact:true}).click()
   await page.getByRole('heading',{name:'Retained sample replay'}).waitFor()
-  const result=JSON.parse(await page.locator('pre').innerText());assert.deepEqual(result.points,replay.points)
+  await page.getByText('Exact replay data',{exact:true}).click();const result=JSON.parse(await page.locator('pre').innerText());assert.deepEqual(result.points,replay.points);await page.getByText('Exact replay data',{exact:true}).click()
  })
  await capture('move-in-replay-refused','/app/import',async page=>{
   await page.getByText('Analyze retained metric samples',{exact:true}).click()
   const form=page.locator('form[action="/app/import/replay"]')
-  await form.locator('select[name="targetId"]').selectOption('splunk:detectors:synthetic-porthole-100')
+  await form.locator('select[name="targetRef"]').selectOption(JSON.stringify(['splunk:detectors:synthetic-porthole-100',targetRevision('splunk:detectors:synthetic-porthole-100')]))
   for(const key of ['service','environment','team','from','through'])await form.locator(`input[name="${key}"]`).fill(body[key])
   await form.getByRole('button',{name:'Analyze retained samples',exact:true}).click()
   await page.getByRole('heading',{name:'Replay unavailable'}).waitFor();assert.ok(await page.getByRole('alert').isVisible())

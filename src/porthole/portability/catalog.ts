@@ -1,11 +1,17 @@
 import { healthHistoryQuery } from './health-history'
 import { historyColumns } from '../storage/model'
+import {custodyColumns,custodyQueries} from '../migration/custody/catalog'
+import {emptyCustody} from '../migration/custody/boundary'
+import {journalColumns} from '../migration/erasure/journal'
 /** This is a closed product schema, not a database dump. Adding a domain table
  * requires an explicit projection and semantic validator here. Native auth, provider secrets, credential hashes and approval grants
  * are deliberately absent. Delivery history is inert, never a live outbox. */
 export interface TableSpec { table: string; columns: string[]; query: string; order: string }
 const spec = (table: string, columns: string[], order: string): TableSpec => ({ table, columns, order, query: `SELECT ${columns.join(',')} FROM ${table}` })
 export const catalog: TableSpec[] = [
+ spec('porthole_migration_erasure_fences',journalColumns,'receipt_id'),
+ spec('porthole_migration_records',['kind','id','body','revision'],'kind,id'),
+ {table:'porthole_migration_custody',columns:custodyColumns,order:'stream,source_table,source_key',query:''},
  spec('porthole_slo_versions',['id','revision','name','definition','owner_id','created_at','state'],'id,revision'),
  spec('porthole_retention_policies',['id','selection','days','revision','changed_at','active'],'id'),
  spec('porthole_erased_batches',['id','content_digest','erased_at'],'id'),
@@ -30,8 +36,44 @@ export const catalog: TableSpec[] = [
  spec('porthole_ingest_events',['id','source_id','signal','team','service','environment','occurred_at','kind','reason','record_count','batch_ref','range_start_ns','range_end_ns'],'id'),
 ]
 export const byTable = new Map(catalog.map(value => [value.table,value]))
-export function snapshotQuery(item: TableSpec, stream: string): string {
+export function snapshotQueries(item: TableSpec, stream: string): string[] {
  const query = item.table==='porthole_archive_audit' ? `SELECT '${stream}' AS stream,sequence,event_id,previous_hash,hash,entry FROM porthole_audit_entries UNION ALL SELECT stream,sequence,event_id,previous_hash,hash,entry FROM porthole_archive_audit` : item.table==='porthole_archive_health_history'?healthHistoryQuery(stream) : item.query
- return `SELECT json_object('table','${item.table}','row',json_object(${item.columns.map(column => `'${column}',${item.table==='porthole_archive_health_history'&&['row','row_key'].includes(column)?`CAST(${column} AS TEXT)`:column}`).join(',')})) AS payload FROM (${query}) ORDER BY ${item.order}`
+ return (item.table==='porthole_migration_custody'?custodyQueries(stream):[query]).map(query=>`SELECT json_object('table','${item.table}','row',json_object(${item.columns.map(column => `'${column}',${(item.table==='porthole_archive_health_history'&&['row','row_key'].includes(column)||item.table==='porthole_migration_custody'&&['source_key','body'].includes(column))?`CAST(${column} AS TEXT)`:column}`).join(',')})) AS payload FROM (${query}) ORDER BY ${item.order}`)
 }
-export const emptyProduct = `NOT EXISTS(SELECT 1 FROM porthole_slo_versions) AND NOT EXISTS(SELECT 1 FROM porthole_follow_up) AND NOT EXISTS(SELECT 1 FROM porthole_follow_up_events) AND NOT EXISTS(SELECT 1 FROM porthole_retention_policies) AND NOT EXISTS(SELECT 1 FROM porthole_baggage_policy WHERE changed_at!=0 OR enabled!=0) AND NOT EXISTS(SELECT 1 FROM porthole_dashboard_publications) AND NOT EXISTS(SELECT 1 FROM porthole_dashboards) AND NOT EXISTS(SELECT 1 FROM porthole_dashboard_versions) AND NOT EXISTS(SELECT 1 FROM ik_door_uploads) AND NOT EXISTS(SELECT 1 FROM ik_door_plans) AND NOT EXISTS(SELECT 1 FROM porthole_migration_records) AND NOT EXISTS(SELECT 1 FROM porthole_analytical_configuration WHERE changed_at!=0 OR enabled!=0) AND NOT EXISTS(SELECT 1 FROM porthole_bucket_history) AND NOT EXISTS(SELECT 1 FROM porthole_health_collectors) AND NOT EXISTS(SELECT 1 FROM porthole_health_notices) AND NOT EXISTS(SELECT 1 FROM porthole_health_incidents) AND NOT EXISTS(SELECT 1 FROM porthole_monitor_state) AND NOT EXISTS(SELECT 1 FROM porthole_health_configuration WHERE changed_at!=0 OR notices_enabled!=0 OR recipient IS NOT NULL OR configured_by IS NOT NULL) AND NOT EXISTS(SELECT 1 FROM porthole_archive_health_history) AND NOT EXISTS(SELECT 1 FROM porthole_monitor_evaluations) AND NOT EXISTS(SELECT 1 FROM porthole_query_snapshots) AND NOT EXISTS(SELECT 1 FROM porthole_objects) AND NOT EXISTS(SELECT 1 FROM porthole_archive_actors) AND NOT EXISTS(SELECT 1 FROM porthole_archive_audit) AND NOT EXISTS(SELECT 1 FROM porthole_ingest_batches) AND NOT EXISTS(SELECT 1 FROM porthole_telemetry_records) AND NOT EXISTS(SELECT 1 FROM porthole_telemetry_archive) AND NOT EXISTS(SELECT 1 FROM porthole_ingest_events)`
+// The complete restore fence must also fit D1 expression depth after the
+// native session and fresh-proof predicates are added to the transaction.
+function allPredicates(clauses:string[]):string {
+ if(clauses.length===1)return clauses[0]
+ const middle=Math.floor(clauses.length/2)
+ return `(${allPredicates(clauses.slice(0,middle))} AND ${allPredicates(clauses.slice(middle))})`
+}
+export const emptyProduct = allPredicates([emptyCustody,
+ 'NOT EXISTS(SELECT 1 FROM porthole_slo_versions)',
+ 'NOT EXISTS(SELECT 1 FROM porthole_follow_up)',
+ 'NOT EXISTS(SELECT 1 FROM porthole_follow_up_events)',
+ 'NOT EXISTS(SELECT 1 FROM porthole_retention_policies)',
+ 'NOT EXISTS(SELECT 1 FROM porthole_baggage_policy WHERE changed_at!=0 OR enabled!=0)',
+ 'NOT EXISTS(SELECT 1 FROM porthole_dashboard_publications)',
+ 'NOT EXISTS(SELECT 1 FROM porthole_dashboards)',
+ 'NOT EXISTS(SELECT 1 FROM porthole_dashboard_versions)',
+ 'NOT EXISTS(SELECT 1 FROM ik_door_uploads)',
+ 'NOT EXISTS(SELECT 1 FROM ik_door_plans)',
+ 'NOT EXISTS(SELECT 1 FROM porthole_migration_records)',
+ 'NOT EXISTS(SELECT 1 FROM porthole_analytical_configuration WHERE changed_at!=0 OR enabled!=0)',
+ 'NOT EXISTS(SELECT 1 FROM porthole_bucket_history)',
+ 'NOT EXISTS(SELECT 1 FROM porthole_health_collectors)',
+ 'NOT EXISTS(SELECT 1 FROM porthole_health_notices)',
+ 'NOT EXISTS(SELECT 1 FROM porthole_health_incidents)',
+ 'NOT EXISTS(SELECT 1 FROM porthole_monitor_state)',
+ 'NOT EXISTS(SELECT 1 FROM porthole_health_configuration WHERE changed_at!=0 OR notices_enabled!=0 OR recipient IS NOT NULL OR configured_by IS NOT NULL)',
+ 'NOT EXISTS(SELECT 1 FROM porthole_archive_health_history)',
+ 'NOT EXISTS(SELECT 1 FROM porthole_monitor_evaluations)',
+ 'NOT EXISTS(SELECT 1 FROM porthole_query_snapshots)',
+ 'NOT EXISTS(SELECT 1 FROM porthole_objects)',
+ 'NOT EXISTS(SELECT 1 FROM porthole_archive_actors)',
+ 'NOT EXISTS(SELECT 1 FROM porthole_archive_audit)',
+ 'NOT EXISTS(SELECT 1 FROM porthole_ingest_batches)',
+ 'NOT EXISTS(SELECT 1 FROM porthole_telemetry_records)',
+ 'NOT EXISTS(SELECT 1 FROM porthole_telemetry_archive)',
+ 'NOT EXISTS(SELECT 1 FROM porthole_ingest_events)',
+])

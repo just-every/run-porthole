@@ -8,6 +8,10 @@ import { append, digest, type AuditInput } from './store'
 // handlers must adopt this seam; this list does not claim to implement them.
 const actions: Record<string, string> = {
  '/api/porthole/v1/migration/resolutions':'migration.resolution','/app/import/resolutions':'migration.resolution',
+ '/api/porthole/v1/migration/erasure':'migration.erasure-preview','/app/import/erasure':'migration.erasure-preview',
+ '/api/porthole/v1/migration/erasure/apply':'migration.erasure','/app/import/erasure/apply':'migration.erasure',
+ '/api/porthole/v1/migration/erasure/journal':'migration.erasure-journal',
+ '/api/porthole/v1/migration/log-search':'migration.log-search', '/app/import/log-search':'migration.log-search',
  '/api/porthole/v1/migration/replay':'migration.replay', '/app/import/replay':'migration.replay',
  '/api/porthole/v1/slos':'slo.revision', '/api/porthole/v1/slos/evaluate':'slo.evaluate', '/api/porthole/v1/reports/slo':'slo.report',
  '/api/porthole/v1/retention/preview':'retention.preview', '/api/porthole/v1/retention/approve':'retention.approve',
@@ -57,7 +61,7 @@ async function overBudget(request: Request, env: Bindings, now: number): Promise
  * write; HTTP outcomes follow projection. An absent HTTP result is uncertain. */
 export async function capture(request: Request, env: Bindings, handle: (env: Bindings) => Promise<Response | null>): Promise<Response | null> {
  const path=new URL(request.url).pathname
- const action=request.method==='GET'&&path==='/api/porthole/v1/slos'?'slo.read':request.method==='GET'&&(path.startsWith('/app/dashboards')||path.startsWith('/api/porthole/v1/dashboards'))?'dashboards.read':path.startsWith('/api/porthole/v1/configuration/')?request.method==='GET'?'configuration.read':'configuration.change':path==='/api/porthole/v1/export-exclusions'?'signals.export-exclusions':request.method==='POST'
+ const action=request.method==='GET'&&['/api/porthole/v1/migration/history','/app/import/history'].includes(path)?'migration.history-read':request.method==='GET'&&path==='/api/porthole/v1/slos'?'slo.read':request.method==='GET'&&(path.startsWith('/app/dashboards')||path.startsWith('/api/porthole/v1/dashboards'))?'dashboards.read':path.startsWith('/api/porthole/v1/configuration/')?request.method==='GET'?'configuration.read':'configuration.change':path==='/api/porthole/v1/export-exclusions'?'signals.export-exclusions':request.method==='POST'
   ? (path.startsWith('/app/dashboards/')||path.startsWith('/api/porthole/v1/dashboards')?'dashboards.change':undefined) ?? (path.startsWith('/api/porthole/v1/exports')?'signals.export':undefined) ?? actions[path] ?? (path.startsWith('/api/operator/import/')||path.startsWith('/app/import/')?'migration.request':undefined) ?? (path.startsWith('/api/porthole/v1/storage/history')?'storage.history':undefined) ?? (path.startsWith('/auth/dependencies/')?'connector.attempt':undefined) ?? (path.startsWith('/api/porthole/v1/archive/')||path.startsWith('/app/settings/archive/')?'installation.archive':undefined)
   : request.method==='GET' && path.startsWith('/api/porthole/v1/exports/')?'signals.export-read'
   : request.method==='GET' && (path.startsWith('/api/porthole/v1/archive/')||path.startsWith('/app/settings/archive/jobs/'))?'installation.archive-read'

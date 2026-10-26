@@ -4,7 +4,7 @@ import {mkdtemp, readFile, writeFile, stat, readdir, rm} from 'node:fs/promises'
 import {tmpdir} from 'node:os'
 import {join, resolve} from 'node:path'
 import {fileURLToPath} from 'node:url'
-import {sourceDefinitions} from './splunk-extraction-edge.mjs'
+import {sourceDefinitions, selectedDefinitions} from './splunk-extraction-edge.mjs'
 
 const root = fileURLToPath(new URL('../../', import.meta.url))
 const preload = fileURLToPath(new URL('./splunk-extraction-edge.mjs', import.meta.url))
@@ -82,8 +82,52 @@ export async function splunkExtractionJourney() {
     result = await run(['--token', 'synthetic-porthole-rejected']); assert.notEqual(result.code, 0)
     result = await run(['--realm', 'us0.evil.invalid']); assert.notEqual(result.code, 0)
     assert.equal((await requests()).length, 0)
+    const selected = selectedDefinitions()
+    const selectedArgs = ['--slo-id', selected.slo.id, '--metric-query', selected.request.query, '--start-ms', String(selected.request.startMs), '--end-ms', String(selected.request.endMS), '--resolution', String(selected.request.resolution)]
+    await configure({scenario: 'history-rate', small: true})
+    result = await run(selectedArgs); assert.equal(result.code, 75, result.stderr); await absent(output); await privateState()
+    state = JSON.parse(await readFile(checkpoint, 'utf8'))
+    assert.deepEqual(state.records.slos, [selected.slo]); assert.deepEqual(state.historyProgress.response, selected.response)
+    assert.deepEqual(Object.keys(state.historyProgress.metadata), ['synthetic-porthole-301'])
+    const pausedRequests = (await requests()).length
+    result = await run([...selectedArgs, '--resume']); assert.equal(result.code, 75)
+    assert.equal((await requests()).length, pausedRequests)
+    const changedArgs = [...selectedArgs]; changedArgs[changedArgs.indexOf('--resolution') + 1] = '60000'
+    result = await run([...changedArgs, '--resume']); assert.notEqual(result.code, 0)
+    assert.equal((await requests()).length, pausedRequests, 'resume cannot change the approved query, time window or resolution')
+    await configure({now: config.now + 31_000})
+    result = await run([...selectedArgs, '--resume']); assert.equal(result.code, 0, result.stderr)
+    const selectedExport = JSON.parse(await readFile(output, 'utf8'))
+    assert.deepEqual(selectedExport.slos, [selected.slo])
+    const exportedHistory = selectedExport.history[0]
+    assert.deepEqual(exportedHistory.request, selected.request)
+    assert.deepEqual(exportedHistory.response, selected.response)
+    assert.deepEqual(exportedHistory.metadata, selected.metadata, 'historical values, exact source timestamps, dimensions, tags and source metadata remain unchanged')
+    assert.ok(exportedHistory.limitations.length > 0)
+    const selectedRequests = await requests()
+    assert.equal(selectedRequests.filter(event => event.path.startsWith('/v1/timeserieswindow?')).length, 1, 'resume retains the original historical response')
+    assert.equal(selectedRequests.filter(event => event.path === '/v2/metrictimeseries/synthetic-porthole-301').length, 1, 'resume does not refetch completed metadata')
+    for (const event of selectedRequests) assert.equal(event.method, 'GET')
+    await rm(output); await rm(checkpoint)
+    for (const scenario of ['history-errors', 'history-partial', 'history-duplicate', 'history-unsafe', 'history-window', 'history-metadata', 'history-identity', 'history-secret', 'history-large']) {
+      await writeFile(historyPath, '[]'); await configure({scenario})
+      result = await run(selectedArgs); assert.notEqual(result.code, 0, scenario); await absent(output); await privateState()
+      assert.ok(!(await readFile(checkpoint, 'utf8')).includes('synthetic-porthole-304'))
+      await rm(checkpoint)
+    }
+    await writeFile(historyPath, '[]'); await configure({scenario: 'history-empty'})
+    const emptyArgs=[...selectedArgs];emptyArgs[emptyArgs.indexOf('--metric-query')+1]='sf_metric:requests AND service:empty'
+    result = await run(emptyArgs); assert.equal(result.code, 0, result.stderr)
+    const emptyDefinitions=JSON.parse(await readFile(output, 'utf8')),emptyHistory=emptyDefinitions.history[0]
+    assert.deepEqual(emptyHistory.response.data, {}); assert.deepEqual(emptyHistory.metadata, {})
+    await rm(output); await rm(checkpoint)
+    await writeFile(historyPath, '[]')
+    for (const extra of [['--metric-query', selected.request.query], ['--slo-id', selected.slo.id, '--slo-id', selected.slo.id], [...selectedArgs, '--end-ms', '1700000001000']]) {
+      result = await run(extra); assert.notEqual(result.code, 0)
+      assert.equal((await requests()).length, 0, 'invalid or incomplete selections fail before source requests')
+    }
     assert.ok((await readdir(directory)).every(name => !name.endsWith('.lock') && !name.endsWith('.tmp')))
-    return {definitions: JSON.parse(original), requestCount: history.length}
+    return {definitions: JSON.parse(original), selectedDefinitions: selectedExport, emptyDefinitions, requestCount: history.length}
   } finally { await rm(directory, {recursive: true, force: true}) }
 }
 

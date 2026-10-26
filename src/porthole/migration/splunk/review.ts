@@ -1,12 +1,16 @@
 import {expressionInventory} from '../evidence/expressions'
 import type {Json} from '../../../modules/import-kit/src/types.ts'
+import {readSourceStream} from './stream/index'
+import {readSplunkHistory,splunkHistoryLimits} from './history'
 type ObjectValue = {[key:string]:Json}
 const object=(value:Json|undefined):value is ObjectValue=>!!value&&typeof value==='object'&&!Array.isArray(value)
 type Issue={field:string;reason:string}
-export function splunkReview(kind:string,value:Json|undefined):Json{
+export function splunkReview(kind:string,value:Json|undefined,topology?:Json):Json{
  const issues:Issue[]=[],queries=expressionInventory(value,kind)
  const issue=(field:string,reason:string)=>issues.push({field,reason})
  const source=object(value)?value:{}
+ for(const field of ['created','lastUpdated'])if(source[field]!==undefined&&(!Number.isSafeInteger(source[field])||Number(source[field])<0))issue(field,'Original source timestamp must remain an exact nonnegative millisecond integer')
+ if(source.tags!==undefined&&(!Array.isArray(source.tags)||source.tags.some(tag=>typeof tag!=='string')))issue('tags','Source tags must remain the original array of strings')
  if(['charts','dashboards','detectors','slos'].includes(kind)){
   for(const key of ['id','name'])if(typeof source[key]!=='string'||!source[key])issue(key,'Official resource requires a nonempty string')
   if(kind==='charts'||kind==='detectors'){
@@ -45,8 +49,36 @@ export function splunkReview(kind:string,value:Json|undefined):Json{
    })
    if(object(source.filters)&&Array.isArray(source.filters.variables))issue('filters.variables','Retained dashboard variables need native binding qualification')
   }
+ }else if(kind==='services'){
+  if(typeof source.serviceName!=='string'||!source.serviceName)issue('serviceName','Official APM topology node requires a serviceName')
+  if(typeof source.inferred!=='boolean')issue('inferred','Preserve whether the official APM node was inferred')
+  if(!['service','database','pubsub'].includes(String(source.type)))issue('type','Official APM topology node type must be service, database or pubsub')
+  if(object(topology)){
+   const nodes=Array.isArray(topology.nodes)?topology.nodes:[],edges=Array.isArray(topology.edges)?topology.edges:[]
+   const names=nodes.filter(object).map(node=>node.serviceName)
+   if(new Set(names).size!==names.length)issue('sourceTopology.nodes','Duplicate service identities prevent complete topology qualification')
+   edges.forEach((edge,index)=>{if(!object(edge)||typeof edge.fromNode!=='string'||typeof edge.toNode!=='string'||!names.includes(edge.fromNode)||!names.includes(edge.toNode))issue(`sourceTopology.edges[${index}]`,'Unresolved APM topology edge; retain both original endpoint identities')})
+   for(const key of Object.keys(topology))if(!['nodes','edges'].includes(key))issue('sourceTopology.'+key,'Unqualified topology response metadata; review possible provider limits')
+  }
+  issue('sourceTopology','Service nodes and directed edges are retained source evidence. Preserve the authorized POST topology request timeRange and tagFilters separately; a service node does not export all APM configuration or historical traces')
+ }else if(kind==='rum'){
+  if(typeof source.applicationName!=='string'||!source.applicationName)issue('applicationName','Browser initialization evidence requires its explicit applicationName')
+  if(typeof source.realm!=='string'&&typeof source.beaconEndpoint!=='string')issue('realm','Retain the original realm or explicit beaconEndpoint from browser setup')
+  for(const key of ['applicationName','realm','beaconEndpoint','cookieDomain','deploymentEnvironment','version'])if(source[key]!==undefined&&typeof source[key]!=='string')issue(key,'Documented browser initialization setting must be a string')
+  for(const key of ['debug','disableAutomationFrameworks','disableBots'])if(source[key]!==undefined&&typeof source[key]!=='boolean')issue(key,'Documented browser initialization setting must be boolean')
+  for(const key of ['globalAttributes','instrumentations','privacy','tracer','user','context','exporter'])if(source[key]!==undefined&&!object(source[key]))issue(key,'Documented browser initialization setting requires an object; executable callbacks are not a JSON export')
+  if(source.tracer!==undefined||source.exporter!==undefined||source.ignoreUrls!==undefined)issue('configuration','Sampler instances, callbacks and regular expressions require the original reviewed application configuration; JSON cannot establish their runtime meaning')
+  issue('definition','Browser initialization settings are retained from an authorized application export, with credentials removed. This is not a RUM account export API; mobile setup, URL grouping, sessions, retention and native collection remain separate source work')
+ }else if(kind==='sourceStreams'){
+  const checked=readSourceStream(source)
+  if(!checked.ok)issue('capture',checked.reason)
+  issue('comparison','Retained finite source stream only. Source incident identities remain source evidence; no native notification, prior state or full lifecycle parity is inferred')
+ }else if(kind==='history'&&source.source==='splunk-timeserieswindow'){
+  const checked=readSplunkHistory(source)
+  if(!checked.ok)issue('response',checked.reason)
+  splunkHistoryLimits.forEach(reason=>issue('history',reason))
  }else issue('definition','Source evidence retained; this collection has no qualified official resource schema yet')
- return {schema:['charts','dashboards','detectors','slos'].includes(kind)?'Splunk Observability v2 resource subset':'unqualified source evidence',issues,expressions:queries,cutover:'blocked'}
+ return {schema:['charts','dashboards','detectors','slos','services'].includes(kind)?'Splunk Observability v2 resource subset':kind==='rum'?'Documented Splunk browser initialization evidence':kind==='history'&&source.source==='splunk-timeserieswindow'?'Splunk timeserieswindow response prose and example subset':'unqualified source evidence',issues,expressions:queries,cutover:'blocked'}
 }
 export function splunkUnmapped(payload:Json):{field?:string;reason:string}[]{
  if(!object(payload)||!object(payload.review))return []
