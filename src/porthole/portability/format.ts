@@ -1,3 +1,4 @@
+import { definition as metricDefinition } from '../metrics/span-rules/model'
 import { definitionInput } from '../slos/model'
 import {baggageKeys} from '../traces/policy'
 import { canonical, digest, genesis, type AuditEntry } from '../audit/store'
@@ -29,6 +30,7 @@ export function manifestInput(value: unknown): Manifest {
  if(!object(value) || Object.keys(value).sort().join(',')!==['format','id','createdAt','rowCount','chunks','rootHash','tables','inactive'].sort().join(',') || value.format!==format || !uuid(value.id) || !integer(value.createdAt) || !integer(value.rowCount) || !integer(value.chunks) || !hex(value.rootHash) || value.inactive!==true || !object(value.tables)) return bad()
  // Older archives predate export exclusions. Their absent journal is empty;
  // a later destination journal still wins during restore.
+ for(const table of ['porthole_metric_rules','porthole_metric_points'])if(!Object.hasOwn(value.tables,table))value.tables[table]=0
  if(!Object.hasOwn(value.tables,'porthole_slo_versions'))value.tables.porthole_slo_versions=0
  if(!Object.hasOwn(value.tables,'porthole_retention_policies'))value.tables.porthole_retention_policies=0
  if(!Object.hasOwn(value.tables,'porthole_erased_batches'))value.tables.porthole_erased_batches=0
@@ -57,9 +59,15 @@ export async function validateRow(payload: PortableRow, state: Validation): Prom
  const item=byTable.get(payload.table); if(!item) return bad()
  const row=payload.row
  if(Object.keys(row).sort().join(',')!==[...item.columns].sort().join(',')) bad()
- for(const value of Object.values(row)) if(value!==null && typeof value!=='string' && !integer(value)) bad()
+ for(const [key,value] of Object.entries(row)) if(value!==null && typeof value!=='string' && !(item.table==='porthole_metric_points'&&key==='value'?Number.isSafeInteger(value):integer(value))) bad()
  const required=(...keys:string[])=>{for(const key of keys)if(!str(row[key]) || !(row[key] as string).length)bad()}
- if(item.table==='porthole_migration_erasure_fences') {
+ if(item.table==='porthole_metric_rules') {
+  if(!uuid(row.id)||!integer(row.revision,1)||!integer(row.from_sequence,1)||!integer(row.created_at)||!uuid(row.owner_id)||!['active','quarantined'].includes(String(row.state)))bad()
+  metricDefinition(json(row.definition))
+ } else if(item.table==='porthole_metric_points') {
+  if(!uuid(row.rule_id)||!uuid(row.batch_id)||!integer(row.revision,1)||!integer(row.ordinal)||row.valid!==1||row.value!==null&&(!Number.isSafeInteger(row.value)||Math.abs(Number(row.value))>1000000000000)||typeof row.event_time_ns!=='string'||!/^\d{20}$/.test(row.event_time_ns)||typeof row.trace_id!=='string'||!/^[a-f0-9]{32}$/.test(row.trace_id)||typeof row.span_id!=='string'||!/^[a-f0-9]{16}$/.test(row.span_id))bad()
+  const dimensions=json(row.dimensions);if(!Array.isArray(dimensions)||dimensions.length>3||dimensions.some(d=>typeof d!=='string'||d.length>80))bad()
+ } else if(item.table==='porthole_migration_erasure_fences') {
   validateImportErasureFence(row)
  } else if(item.table==='porthole_migration_custody') {
   validateCustodyRow(row)

@@ -9,6 +9,8 @@ import {journalColumns} from '../migration/erasure/journal'
 export interface TableSpec { table: string; columns: string[]; query: string; order: string }
 const spec = (table: string, columns: string[], order: string): TableSpec => ({ table, columns, order, query: `SELECT ${columns.join(',')} FROM ${table}` })
 export const catalog: TableSpec[] = [
+ spec('porthole_metric_rules',['id','revision','definition','from_sequence','created_at','owner_id','state'],'id,revision'),
+ spec('porthole_metric_points',['rule_id','revision','batch_id','ordinal','dimensions','value','valid','event_time_ns','trace_id','span_id'],'rule_id,revision,batch_id,ordinal'),
  spec('porthole_migration_erasure_fences',journalColumns,'receipt_id'),
  spec('porthole_migration_records',['kind','id','body','revision'],'kind,id'),
  {table:'porthole_migration_custody',columns:custodyColumns,order:'stream,source_table,source_key',query:''},
@@ -48,6 +50,8 @@ function allPredicates(clauses:string[]):string {
  return `(${allPredicates(clauses.slice(0,middle))} AND ${allPredicates(clauses.slice(middle))})`
 }
 export const emptyProduct = allPredicates([emptyCustody,
+ 'NOT EXISTS(SELECT 1 FROM porthole_metric_rules)',
+ 'NOT EXISTS(SELECT 1 FROM porthole_metric_points)',
  'NOT EXISTS(SELECT 1 FROM porthole_slo_versions)',
  'NOT EXISTS(SELECT 1 FROM porthole_follow_up)',
  'NOT EXISTS(SELECT 1 FROM porthole_follow_up_events)',

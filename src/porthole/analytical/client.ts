@@ -62,7 +62,8 @@ export async function reconcile(env:Bindings) {
   const packets=[];let bytes=0
   for(const batch of batches){
    const records=(await env.DB.prepare('SELECT r.*,a.archived_at FROM porthole_telemetry_records r JOIN porthole_telemetry_archive a ON a.id=r.id WHERE r.batch_id=? ORDER BY r.ordinal').bind(batch.id).all<AnalyticalRecord&{ordinal:number;payload:string;archived_at:number}>()).results
-   if(records.length!==batch.record_count)fail('analytics_source_coverage_incomplete',503)
+   const expected=(await env.DB.prepare("SELECT COUNT(*) AS n FROM porthole_ingest_batches b,json_each(b.records) j WHERE b.id=? AND COALESCE(json_extract(j.value,'$.payload.inputStage'),'accepted')!='pre-sampling'").bind(batch.id).first<{n:number}>())!.n
+   if(records.length!==expected)fail('analytics_source_coverage_incomplete',503)
    const packet={id:batch.id,completionSequence:batch.completion_sequence,sourceId:batch.source_id,signal:batch.signal,digest:batch.digest,acceptedAt:batch.accepted_at,completedAt:batch.completed_at,records:records.map(row=>({id:row.id,ordinal:row.ordinal,team:row.team,service:row.service,environment:row.environment,eventTimeNs:row.event_time_ns,traceId:row.trace_id,spanId:row.span_id,payload:JSON.parse(row.payload),indexedAt:row.indexed_at,archivedAt:row.archived_at,late:row.late,outOfOrder:row.out_of_order}))}
    const length=new TextEncoder().encode(JSON.stringify(packet)).length
    if(bytes+length>1800*1024){if(!packets.length)fail('analytics_replication_batch_too_large',503);break}

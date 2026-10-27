@@ -14,7 +14,7 @@ import { lokiProto, lokiRecords, remoteWrite } from './vendor'
 import { readBytes, unsnappy, utf8 } from './wire'
 
 const root='/api/porthole/v1/ingest'
-const intake:Record<string,Signal>={'/v1/traces':'traces','/v1/logs':'logs','/v1/metrics':'metrics','/v1/profiles':'profiles','/api/v1/write':'metrics','/loki/api/v1/push':'logs'}
+const intake:Record<string,Signal>={'/api/porthole/v1/ingest/pre-sampling/traces':'traces','/v1/traces':'traces','/v1/logs':'logs','/v1/metrics':'metrics','/v1/profiles':'profiles','/api/v1/write':'metrics','/loki/api/v1/push':'logs'}
 const native=new Set(['/app/ingest',root+'/status',root+'/records',root+'/archive',root+'/control',root+'/drain',root+'/loss'])
 const json=(value:unknown,status=200,extra:Record<string,string>={})=>Response.json(value,{status,headers:{...privateHeaders,...extra}})
 function failure(request:Request,error:unknown) {
@@ -86,12 +86,13 @@ export async function ingestResponse(request: Request,env: Bindings):Promise<Res
    await rejectEnvelope(request,env,kind,failure.code,records)
    throw failure
   }
+  if(path==='/api/porthole/v1/ingest/pre-sampling/traces')for(const record of records)record.payload.inputStage='pre-sampling'
   const explicit=request.headers.get('x-porthole-batch-id')
   if(explicit!==null&&!/^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,119}$/.test(explicit)){await rejectEnvelope(request,env,kind,'invalid_batch_identity',records);throw new IntakeError('invalid_batch_identity')}
-  const digest=await sha256(new TextEncoder().encode(canonical({wire:base64(wire),service:request.headers.get('x-porthole-service'),environment:request.headers.get('x-porthole-environment'),team:request.headers.get('x-porthole-team'),tenant:request.headers.get('x-scope-orgid')})))
+  const digest=await sha256(new TextEncoder().encode(canonical({...(path==='/api/porthole/v1/ingest/pre-sampling/traces'?{inputStage:'pre-sampling'}:{}),wire:base64(wire),service:request.headers.get('x-porthole-service'),environment:request.headers.get('x-porthole-environment'),team:request.headers.get('x-porthole-team'),tenant:request.headers.get('x-scope-orgid')})))
   const receipt=await acceptEnvelope(request,env,{id:crypto.randomUUID(),identity:explicit??digest,digest,signal:kind,protocol,wire,records})
   const headers={...privateHeaders,'x-porthole-batch':receipt.batchId,'x-porthole-accepted':String(receipt.accepted),'x-porthole-duplicate':String(receipt.duplicate)}
-  if(path.startsWith('/v1/'))return type==='application/x-protobuf'?new Response(new Uint8Array(),{headers:{...headers,'content-type':'application/x-protobuf'}}):json({},200,headers)
+  if(path.startsWith('/v1/')||path==='/api/porthole/v1/ingest/pre-sampling/traces')return type==='application/x-protobuf'?new Response(new Uint8Array(),{headers:{...headers,'content-type':'application/x-protobuf'}}):json({},200,headers)
   return new Response(null,{status:204,headers})
  }catch(error){return failure(request,error)}
 }

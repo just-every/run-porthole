@@ -333,8 +333,8 @@ Judged from the code and tests at commit `a0f1cc9f100630f413461e13ba6e47bc6d6362
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 1 | 0 | 0 | 1 |
-| Target and push further | 8 | 11 | 76 | 95 |
-| All | 9 | 11 | 76 | 96 |
+| Target and push further | 8 | 13 | 74 | 95 |
+| All | 9 | 13 | 74 | 96 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -361,7 +361,7 @@ Judged from the code and tests at commit `a0f1cc9f100630f413461e13ba6e47bc6d6362
 | `PORT-007` | Infrastructure and Kubernetes explorer | target | missing |  | Native infrastructure explorer/collector and both full journeys remain unimplemented. Real OOM/churn qualification requires an owner-authorized Kubernetes cluster and disposable-namespace credentials; no qualified cluster is held by this run. |
 | `PORT-008` | APM and service catalog | target | missing |  | No implementation for apm and service catalog; the complete public-door journey above remains required. |
 | `PORT-009` | Trace explorer | target | missing |  | No implementation for trace explorer; the complete public-door journey above remains required. |
-| `PORT-010` | Sampling that keeps what matters | target | missing |  | No implementation for sampling that keeps what matters; the complete public-door journey above remains required. |
+| `PORT-010` | Sampling that keeps what matters | target | partial | `collectors/sampling/collector.yaml` and `tests/porthole/ingest.mjs` spanMetricJourney: official OTel Contrib full-input fork and tail policies, delayed errors and slow traces, ordinary ten-percent probabilistic rate, unsampled custom metric inputs and scoped retained reads. `docs/span-metrics.md` states memory-buffer and loss boundaries. | Collector restart, distributed routing, post-window spans, exhausted-buffer uncertainty and protected-error handling, automatic loss reporting and official-schema Datadog Agent full-traffic stats remain unproved. Full-input storage remains durable; physical sampled retention is not implemented. Conservative scoped owner-only metric-rule policy awaits CT approval. |
 | `PORT-011` | Log management | target | missing |  | No implementation for log management; the complete public-door journey above remains required. |
 | `PORT-012` | Log pipelines | target | missing |  | No implementation for log pipelines; the complete public-door journey above remains required. |
 | `PORT-013` | Tiered storage and archives | target | missing |  | No implementation for tiered storage and archives; the complete public-door journey above remains required. |
@@ -421,7 +421,7 @@ Judged from the code and tests at commit `a0f1cc9f100630f413461e13ba6e47bc6d6362
 | `PORT-075` | Public documentation and guided first service | target | missing |  | No implementation for public documentation and guided first service; the complete public-door journey above remains required. |
 | `PORT-076` | Defined anomaly forecast and outlier quality | target | missing |  | No implementation for defined anomaly forecast and outlier quality; the complete public-door journey above remains required. |
 | `PORT-077` | Executable approved repair targets | push-further | missing |  | No implementation for executable approved repair targets; the complete public-door journey above remains required. |
-| `PORT-078` | Custom span-derived metrics before sampling | target | missing |  | No implementation for custom span-derived metrics before sampling; the complete public-door journey above remains required. |
+| `PORT-078` | Custom span-derived metrics before sampling | target | partial | `tests/porthole/ingest.mjs` spanMetricJourney: native preview and single-use approval; exact counters, integer sums and nearest-rank distributions; explicit dimensions and scoped exemplars; durable batch retry and restart; forbidden and high-cardinality refusal; incomplete upstream labels. `docs/span-metrics.md` records the bounded API and qualification commands. | Complete before-decision computation, cost estimation, arbitrary permitted predicates and numeric attributes, programmatic export and monitor integration, complete custody and authority qualification remain open. Conservative owner-only fresh-proof and exact-preview policy adopted; CT approval pending. No DONE claim. |
 | `PORT-079` | Guard releases before monitors fire | push-further | missing |  | No implementation for guard releases before monitors fire; the complete public-door journey above remains required. |
 | `PORT-080` | Run and explain the Datadog switch | push-further | missing |  | No implementation for run and explain the datadog switch; the complete public-door journey above remains required. |
 | `PORT-081` | Learn incidents and audit missed detections | push-further | missing |  | No implementation for learn incidents and audit missed detections; the complete public-door journey above remains required. |

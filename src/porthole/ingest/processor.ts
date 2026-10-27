@@ -1,3 +1,4 @@
+import { contributions } from '../metrics/span-rules/derive'
 import {reconcile as reconcileAnalytical} from '../analytical/client'
 import type { Bindings } from '../../auth.server'
 import { recordComponentReceipt } from '../health/receipts'
@@ -24,21 +25,23 @@ async function drain(env: Bindings, options: {force?:boolean}, limit:number) {
    // Conditional inserts + transition are atomic. A crash or concurrent drain
    // can only leave the original pending envelope or one complete pair of
    // retained/archive copies. Retry resumes without a lease to get stranded.
+   const metricWrites=await contributions(env,batch.id)
    const results = await env.DB.batch([
+    ...metricWrites,
     env.DB.prepare(`INSERT INTO porthole_telemetry_records(id,batch_id,ordinal,source_id,signal,team,service,environment,event_time_ns,trace_id,span_id,payload,indexed_at,late,out_of_order)
      SELECT b.id||':'||j.key,b.id,CAST(j.key AS INTEGER),b.source_id,b.signal,json_extract(j.value,'$.team'),json_extract(j.value,'$.service'),json_extract(j.value,'$.environment'),json_extract(j.value,'$.eventTimeNs'),json_extract(j.value,'$.traceId'),json_extract(j.value,'$.spanId'),json_extract(j.value,'$.payload'),?,json_extract(j.value,'$.late'),
      CASE WHEN EXISTS(SELECT 1 FROM porthole_telemetry_records old WHERE old.source_id=b.source_id AND old.signal=b.signal AND old.team=json_extract(j.value,'$.team') AND old.event_time_ns>json_extract(j.value,'$.eventTimeNs')) OR EXISTS(SELECT 1 FROM json_each(b.records) earlier WHERE CAST(earlier.key AS INTEGER)<CAST(j.key AS INTEGER) AND json_extract(earlier.value,'$.eventTimeNs')>json_extract(j.value,'$.eventTimeNs')) THEN 1 ELSE 0 END
-     FROM porthole_ingest_batches b,json_each(b.records) j WHERE b.id=? AND b.state='pending' AND (?=1 OR (SELECT paused FROM porthole_ingest_control WHERE singleton=1)=0)
+     FROM porthole_ingest_batches b,json_each(b.records) j WHERE b.id=? AND b.state='pending' AND COALESCE(json_extract(j.value,'$.payload.inputStage'),'accepted')!='pre-sampling' AND (?=1 OR (SELECT paused FROM porthole_ingest_control WHERE singleton=1)=0)
      ON CONFLICT(batch_id,ordinal) DO NOTHING`).bind(now,batch.id,options.force ? 1 : 0),
     env.DB.prepare(`INSERT INTO porthole_telemetry_archive(id,batch_id,ordinal,source_id,signal,team,service,environment,event_time_ns,trace_id,span_id,payload,archived_at)
      SELECT id,batch_id,ordinal,source_id,signal,team,service,environment,event_time_ns,trace_id,span_id,payload,? FROM porthole_telemetry_records WHERE batch_id=?
      ON CONFLICT(batch_id,ordinal) DO NOTHING`).bind(now,batch.id),
     env.DB.prepare(`UPDATE porthole_ingest_batches SET state='complete',completed_at=?,completion_sequence=(SELECT COALESCE(MAX(completion_sequence),0)+1 FROM porthole_ingest_batches) WHERE id=? AND state='pending'
-     AND (SELECT COUNT(*) FROM porthole_telemetry_records WHERE batch_id=?)=record_count
-     AND (SELECT COUNT(*) FROM porthole_telemetry_archive WHERE batch_id=?)=record_count
+     AND (SELECT COUNT(*) FROM porthole_telemetry_records WHERE batch_id=?)=(SELECT COUNT(*) FROM json_each(records) item WHERE COALESCE(json_extract(item.value,'$.payload.inputStage'),'accepted')!='pre-sampling')
+     AND (SELECT COUNT(*) FROM porthole_telemetry_archive WHERE batch_id=?)=(SELECT COUNT(*) FROM json_each(records) item WHERE COALESCE(json_extract(item.value,'$.payload.inputStage'),'accepted')!='pre-sampling')
      AND (?=1 OR (SELECT paused FROM porthole_ingest_control WHERE singleton=1)=0) RETURNING record_count`).bind(now,batch.id,batch.id,batch.id,options.force ? 1 : 0),
    ])
-   if (results[2].results.length) { processedBatches++; processedRecords += Number((results[2].results[0] as {record_count:number}).record_count) }
+   if (results[metricWrites.length+2].results.length) { processedBatches++; processedRecords += Number((results[metricWrites.length+2].results[0] as {record_count:number}).record_count) }
   }
  }
  const pending = await env.DB.prepare("SELECT COUNT(*) AS count FROM porthole_ingest_batches WHERE state='pending'").first<{count:number}>()

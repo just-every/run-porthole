@@ -366,3 +366,89 @@ export async function otlpProtocolJourney({origin,cookie,sql,restartWorker,fresh
   return {scope:ingestScope,profile,queryRef:saved.queryRef}
  }finally{clients.forEach(client=>client.close());await running.close()}
 }
+
+
+export async function spanMetricJourney({origin,freshOwner,restartWorker,signIn,sql,withEmptyDestination}) {
+ let cookie=await freshOwner()
+ const call=(path,data,session=cookie)=>fetch(origin+path,{method:data===undefined?'GET':'POST',headers:{cookie:session,origin,'content-type':'application/json'},...(data===undefined?{}:{body:JSON.stringify(data)})})
+ const post=async(path,data,status=200,session=cookie)=>{const response=await call(path,data,session);assert.equal(response.status,status,await response.clone().text());return response.json()}
+ const root='/api/porthole/v1/metric-rules',scope={services:['orders'],environments:['production'],teams:['commerce']}
+ const source=await post('/app/settings/credentials/mint',{name:'synthetic-porthole-7801',class:'ingest',scope:{...scope,signals:['traces'],actions:['telemetry.write']},requestsPerMinute:10000,acceptedBytesPerMinute:100000000},201)
+ const base={...(process.env.PORTHOLE_METRIC_COLLECTOR==='1'?{inputStage:'pre-sampling'}:{}),name:'orders_count',service:'orders',environment:'production',team:'commerce',spanName:'process_order',kind:'counter',value:'count',unit:'orders',dimensions:[{key:'region',values:['us','eu']},{key:'plan',values:['basic','pro']}],upstream:'complete'}
+ const create=async d=>{const preview=await post(root+'/preview',{definition:d});assert.equal(preview.maximumSeries,9);const body={previewId:preview.id,digest:preview.digest,confirm:'approve-metric-rule'};const result=await post(root+'/approve',body,201);await post(root+'/approve',body,409);return result}
+ const rules=[]
+ for(const d of [base,{...base,name:'orders_amount',kind:'sum',value:'amount',unit:'cents'},{...base,name:'orders_duration',kind:'distribution',value:'duration',unit:'ns'}])rules.push(await create(d))
+ await post(root+'/preview',{definition:{...base,dimensions:[{key:'user_id',values:['synthetic-porthole-7802']}]}},422)
+ await post(root+'/preview',{definition:{...base,dimensions:[{key:'region',values:Array.from({length:20},(_,i)=>'r'+i)},{key:'plan',values:Array.from({length:20},(_,i)=>'p'+i)}]}},422)
+ const errorRule=process.env.PORTHOLE_METRIC_COLLECTOR==='1'?await create({...base,name:'orders_errors',status:'error'}):null
+ const archiveRoot='/api/porthole/v1/archive',saved=process.env.PORTHOLE_METRIC_COLLECTOR==='1'?null:await post(archiveRoot+'/exports',{},201),chunks=[]
+ if(saved)for(let i=0;i<saved.totalChunks;i++){const response=await call(archiveRoot+'/exports/'+saved.id+'/chunks/'+i);assert.equal(response.status,200);chunks.push(await response.json())}
+ const manifest=saved?await (await call(archiveRoot+'/exports/'+saved.id+'/manifest')).json():null
+ if(saved){assert.equal(manifest.tables.porthole_metric_rules,3);assert.equal(manifest.tables.porthole_metric_points,0);assert.ok(chunks.flatMap(c=>c.rows).every(r=>r.table!=='porthole_metric_previews'))}
+ const at=1770000000000000000n,total=process.env.PORTHOLE_METRIC_SCALE==='1'?10000:1000
+ const packets=[]
+ let collector=null,collectorOrigin=null
+ if(process.env.PORTHOLE_METRIC_COLLECTOR==='1') {
+  const {startSamplingCollector}=await import('./sampling-process.mjs');collector=await startSamplingCollector({origin,secret:source.secret});collectorOrigin=collector.origin
+ }
+ try {
+ const expected=new Map([['eu,basic',{count:0,sum:0,durations:[]}],['eu,pro',{count:0,sum:0,durations:[]}],['us,basic',{count:0,sum:0,durations:[]}],['us,pro',{count:0,sum:0,durations:[]}]])
+ for(let begin=0;begin<total;begin+=100){
+  const spans=[]
+  for(let i=begin;i<Math.min(total,begin+100);i++) {
+   const region=i%2?'eu':'us',plan=Math.floor(i/2)%2?'pro':'basic',duration=process.env.PORTHOLE_METRIC_COLLECTOR==='1'&&i%10===3?200000000:(i%100+1)*1000000,amount=i%17+1
+   const group=expected.get(region+','+plan);group.count++;group.sum+=amount;group.durations.push(duration)
+   spans.push({traceId:process.env.PORTHOLE_METRIC_COLLECTOR==='1'?createHash('sha256').update('synthetic-porthole-78-trace-'+Math.floor(i/2)).digest('hex').slice(0,32):(i+1).toString(16).padStart(32,'0'),spanId:(i+1).toString(16).padStart(16,'0'),name:'process_order',kind:2,startTimeUnixNano:(at+BigInt(process.env.PORTHOLE_METRIC_COLLECTOR==='1'?Math.floor(i/2):i)*1000000000n).toString(),endTimeUnixNano:(at+BigInt(process.env.PORTHOLE_METRIC_COLLECTOR==='1'?Math.floor(i/2):i)*1000000000n+BigInt(duration)).toString(),status:{code:i%10===0?2:1},attributes:[{key:'region',value:{stringValue:region}},{key:'plan',value:{stringValue:plan}},{key:'amount',value:{intValue:String(amount)}}]})
+  }
+  packets.push({resourceSpans:[{resource:{attributes:[{key:'service.name',value:{stringValue:'orders'}},{key:'deployment.environment.name',value:{stringValue:'production'}},{key:'team.name',value:{stringValue:'commerce'}}]},scopeSpans:[{spans}]}]})
+ }
+ const send=async(index,packet=packets[index])=>{const response=await fetch((collectorOrigin??origin)+'/v1/traces',{method:'POST',headers:{authorization:'Bearer '+source.secret,'content-type':'application/json','x-porthole-batch-id':'synthetic-porthole-78-'+index},body:JSON.stringify(packet)});assert.equal(response.status,200,await response.clone().text());return response}
+ for(let index=0;index<packets.length;index++) {
+  if(collectorOrigin){const ordinary=structuredClone(packets[index]),delayed=structuredClone(packets[index]);ordinary.resourceSpans[0].scopeSpans[0].spans=ordinary.resourceSpans[0].scopeSpans[0].spans.filter(s=>s.status.code!==2);delayed.resourceSpans[0].scopeSpans[0].spans=delayed.resourceSpans[0].scopeSpans[0].spans.filter(s=>s.status.code===2);await send(index,ordinary);await new Promise(resolve=>setTimeout(resolve,100));await send(index,delayed)}else await send(index)
+  if(index%10===9)await post('/api/porthole/v1/ingest/drain',{})
+  if(index===Math.floor(packets.length/2)){await restartWorker();cookie=await freshOwner();if(!collectorOrigin){const duplicate=await send(index);assert.equal(duplicate.headers.get('x-porthole-duplicate'),'true')}}
+ }
+ if(collectorOrigin)await new Promise(resolve=>setTimeout(resolve,5000))
+ for(let drain=0;drain<100;drain++){if(!(await post('/api/porthole/v1/ingest/drain',{})).pendingBatches)break}
+ const range={from:String(at),through:String(at+BigInt(total)*1000000000n)}
+ const query=rule=>post(root+'/query',{id:rule.id,revision:rule.revision,...range})
+ for(let index=0;index<rules.length;index++) {
+  const result=await query(rules[index]);assert.equal(result.inputStage,'accepted-before-retention');assert.equal(result.coverage.status,'accepted-input-complete',JSON.stringify(result.coverage));assert.equal(result.coverage.independentlyVerified,false)
+  assert.deepEqual(result.groups.map(g=>g.dimensions),[{plan:'basic',region:'eu'},{plan:'basic',region:'us'},{plan:'pro',region:'eu'},{plan:'pro',region:'us'}])
+  for(const group of result.groups){const wanted=expected.get(group.dimensions.region+','+group.dimensions.plan);assert.equal(group.count,wanted.count);assert.equal(group.valid,wanted.count);assert.equal(group.sum,index===0?wanted.count:index===1?wanted.sum:wanted.durations.reduce((a,b)=>a+b,0));if(index===2){const sorted=[...wanted.durations].sort((a,b)=>a-b);for(const [key,p]of [['p50',.5],['p95',.95],['p99',.99]])assert.equal(group.quantiles[key],sorted[Math.ceil(sorted.length*p)-1])}const exemplar=group.exemplar;assert.equal(exemplar.service,'orders');assert.ok(BigInt(exemplar.eventTimeNs)>=at&&BigInt(exemplar.eventTimeNs)<BigInt(range.through));const n=parseInt(exemplar.spanId,16)-1;assert.equal(n%2?'eu':'us',group.dimensions.region);assert.equal(Math.floor(n/2)%2?'pro':'basic',group.dimensions.plan)}
+ }
+ if(collectorOrigin) {
+  const errorMetrics=await query(errorRule);assert.equal(errorMetrics.coverage.status,'accepted-input-complete');assert.equal(errorMetrics.groups.reduce((n,g)=>n+g.sum,0),total/10,'full-input RED error count equals unsampled source');assert.deepEqual(errorMetrics.groups.map(g=>[g.dimensions,g.count]),[[{plan:'basic',region:'us'},total/20],[{plan:'pro',region:'us'},total/20]])
+  const records=[];let cursor=null
+  do{const params=new URLSearchParams({signal:'traces',service:'orders',from:range.from,through:range.through,limit:'200',...(cursor?{cursor}:{})});const response=await call('/api/porthole/v1/ingest/records?'+params);assert.equal(response.status,200);const page=await response.json();records.push(...page.records);cursor=page.cursor}while(cursor)
+  const spans=records.map(r=>r.payload.record),ids=new Set(spans.map(s=>s.spanId))
+  assert.equal(ids.size,spans.length,'full-input fork never appears as duplicate retained spans')
+  const protectedIds=[]
+  for(let i=0;i<total;i++)if(Math.floor((i%10)/2)<2)protectedIds.push((i+1).toString(16).padStart(16,'0'))
+  assert.equal(protectedIds.length,total*.4)
+  for(const id of protectedIds)assert.ok(ids.has(id),'protected whole-trace span '+id)
+  const errors=spans.filter(s=>s.status.code===2).length,slow=spans.filter(s=>BigInt(s.endTimeUnixNano)-BigInt(s.startTimeUnixNano)>=150000000n).length
+  assert.equal(errors,total/10);assert.equal(slow,total/10)
+  const ordinary=spans.length-protectedIds.length
+  console.log('Stock collector observed '+JSON.stringify({total,retained:spans.length,ordinary,errors,slow}))
+  assert.ok(ordinary>total*.03&&ordinary<total*.09,'stock probabilistic ordinary cohort remains near ten percent; it is not an exact cohort quota')
+  console.log('PORTHOLE_STOCK_SAMPLING '+JSON.stringify({total,retained:spans.length,errors,slow,ordinary,ordinarySource:total*.6,ordinaryRate:10,decisionWaitSeconds:2,bufferTraces:20000}));return
+ }
+ const before=await query(rules[0]);await restartWorker();cookie=await freshOwner();for(let i=0;i<packets.length;i++)assert.equal((await send(i)).headers.get('x-porthole-duplicate'),'true');await post('/api/porthole/v1/ingest/drain',{});assert.deepEqual(await query(rules[0]),before,'restart and duplicate batches preserve every metric and exemplar')
+ const altered=structuredClone(packets[0]);altered.resourceSpans[0].scopeSpans[0].spans[0].name='changed';const conflict=await fetch((collectorOrigin??origin)+'/v1/traces',{method:'POST',headers:{authorization:'Bearer '+source.secret,'content-type':'application/json','x-porthole-batch-id':'synthetic-porthole-78-0'},body:JSON.stringify(altered)});assert.equal(conflict.status,409)
+ const incomplete=await create({...base,name:'sampled_orders',upstream:'sampled'})
+ await send(packets.length,packets[0]);await post('/api/porthole/v1/ingest/drain',{});assert.equal((await query(incomplete)).coverage.status,'incomplete','head-sampled business inputs never borrow unrelated RED totals')
+ await post('/app/settings/members/invite',{email:'synthetic-porthole-7803@example.com',displayName:'Scoped analyst',role:'read-only analyst',scope:{services:['payments'],environments:['production'],teams:['commerce']}},202)
+ const analyst=await signIn('synthetic-porthole-7803@example.com')
+ await post(root+'/query',{id:rules[0].id,revision:1,...range},403,analyst);await post(root+'/preview',{definition:base},403,analyst);assert.equal((await call(root,undefined,analyst)).status,200);assert.deepEqual((await (await call(root,undefined,analyst)).json()).rules,[])
+ assert.equal((await call(root,undefined,'')).status,401)
+ const audits=await (await call('/api/v1/audit/export')).json();assert.ok(audits.records.some(row=>row.entry.action==='metrics.rule-approve'&&row.entry.phase==='committed'))
+ if(saved)await withEmptyDestination(async destination=>{
+  const acting=await destination.freshOwner(),send=async(path,data,status=200)=>{const response=await fetch(destination.origin+path,{method:'POST',headers:{cookie:acting,origin:destination.origin,'content-type':'application/json'},body:JSON.stringify(data)});assert.equal(response.status,status,await response.clone().text());return response.json()}
+  const restored=await send(archiveRoot+'/restores',{manifest},201);for(const chunk of chunks)await send(archiveRoot+'/restores/'+restored.id+'/chunks',{chunk});await send(archiveRoot+'/restores/'+restored.id+'/commit',{confirm:manifest.rootHash})
+  const response=await fetch(destination.origin+root,{headers:{cookie:acting}});assert.equal(response.status,200);const listed=(await response.json()).rules;assert.equal(listed.length,3);assert.ok(listed.every(r=>r.state==='quarantined'));await send(root+'/query',{id:rules[0].id,revision:1,...range},404)
+  const preview=await send(root+'/preview',{definition:base,id:rules[0].id,revision:1});const enabled=await send(root+'/approve',{previewId:preview.id,digest:preview.digest,confirm:'approve-metric-rule'},201);assert.equal(enabled.revision,2);const empty=await send(root+'/query',{id:enabled.id,revision:2,...range});assert.deepEqual(empty.groups,[]);assert.equal(empty.coverage.status,'incomplete')
+ })
+ console.log('spanMetricJourney passed: '+total+' accepted spans; exact counter and integer sum; exact p50, p95 and p99; four explicit dimension groups; scoped exemplars, restart, duplicate identity, conflict, forbidden and high-cardinality refusal, upstream sampling labels, native authority and inactive definition restore. Full tail-sampling lifecycle remains unqualified.')
+ }finally{if(collector)await collector.stop()}
+}
