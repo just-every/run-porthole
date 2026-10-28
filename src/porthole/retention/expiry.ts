@@ -17,18 +17,19 @@ export async function expireRetention(env:Bindings,now=Date.now()) {
   const predicate=`b.signal=? AND (?='*' OR json_extract(j.value,'$.service')=?) AND (?='*' OR json_extract(j.value,'$.team')=?) AND json_extract(j.value,'$.eventTimeNs')<? AND j.type='object'`
   const selected=[selection.signal,selection.service,selection.service,selection.team,selection.team,cutoff]
   const matches=(await env.DB.prepare(`SELECT b.id,b.digest,json_group_array(CAST(j.key AS INTEGER)) AS ordinals FROM porthole_ingest_batches b,json_each(b.records) j WHERE ${predicate} GROUP BY b.id ORDER BY b.id LIMIT 101`).bind(...selected).all<{id:string;digest:string;ordinals:string}>()).results
-  // Advance no schedule until the entire bounded inventory can be removed.
-  if(matches.length>100)continue
-  const journal:ErasedBatch[]=matches.map(row=>({id:row.id,content_digest:row.digest,ordinals:JSON.parse(row.ordinals),erased_at:now})),id=crypto.randomUUID(),count=journal.reduce((n,row)=>n+row.ordinals!.length,0)
+  // Drain a large due inventory in bounded passes without postponing the
+  // remaining history for another retention interval.
+  const pending=matches.length>100
+  const journal:ErasedBatch[]=matches.slice(0,100).map(row=>({id:row.id,content_digest:row.digest,ordinals:JSON.parse(row.ordinals),erased_at:now})),id=crypto.randomUUID(),count=journal.reduce((n,row)=>n+row.ordinals!.length,0)
   await env.DB.batch([
    env.DB.prepare(`INSERT INTO porthole_transaction_guard(singleton,witness) VALUES(1,CASE WHEN ${liveSchedule} THEN 1 ELSE 0 END) ON CONFLICT(singleton) DO UPDATE SET witness=excluded.witness`).bind(...args),
    ...appendJournal(env.DB,journal),
    ...(matches.length?[...invalidateArchives(env.DB),...eraseJournaledBatches(env.DB)]:[]),
    env.DB.prepare('INSERT INTO porthole_retention_runs(id,policy_id,policy_revision,started_at,cutoff_ns,erased_records) VALUES(?,?,?,?,?,?)').bind(id,schedule.policy_id,schedule.policy_revision,now,cutoff,count),
-   env.DB.prepare('UPDATE porthole_retention_schedules SET next_run_at=? WHERE policy_id=?').bind(now+interval,schedule.policy_id),
+   env.DB.prepare('UPDATE porthole_retention_schedules SET next_run_at=? WHERE policy_id=?').bind(pending?schedule.next_run_at:now+interval,schedule.policy_id),
   ])
   await append(env.DB,{operationRef:id,actorRef:schedule.owner_ref,actorRevision:schedule.owner_revision,action:'retention.expire',entityRef:schedule.policy_id,revision:schedule.policy_revision,phase:'committed',status:200,occurredAt:now})
-  runs.push({id,erasedRecords:count})
+  runs.push({id,erasedRecords:count,pending})
  }
  return {runs,custody:await syncErasure(env)}
 }
