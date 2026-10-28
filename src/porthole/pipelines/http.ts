@@ -8,6 +8,7 @@ import { definition, pipelineScope } from './model'
 import { current, processed, type Version } from './intake'
 import { sanitize } from './redact'
 import { page } from './page'
+import { nativeCatalog } from './catalog'
 
 const root='/api/porthole/v1/pipelines',screen='/app/settings/pipelines'
 const json=(value:unknown,status=200)=>Response.json(value,{status,headers:privateHeaders})
@@ -16,14 +17,17 @@ export async function pipelineResponse(request:Request,env:Bindings):Promise<Res
  const url=new URL(request.url),path=url.pathname
  if(path!==root&&!path.startsWith(root+'/')&&path!==screen&&!path.startsWith(screen+'/'))return null
  const html=path.startsWith(screen)
+ let visible:Parameters<typeof page>[0]={revision:0,definition:null,history:[]}
  try {
   if(url.search)fail('invalid_query',400)
   const activation=path.endsWith('/activate')
   const actor=await authority(request,env,{post:request.method==='POST',stepUp:activation})
   if(actor.session.kind!=='native'||actor.member.role!=='owner')fail('owner_required')
+  if(path===root+'/catalog'&&request.method==='GET')return json(nativeCatalog)
   const state=await current(env)
   const history=(await env.DB.prepare(`SELECT * FROM porthole_pipeline_versions WHERE ${actor.fence} ORDER BY revision DESC LIMIT 50`).bind(...actor.args).all<Version>()).results.filter(row=>scopeWithin(pipelineScope(definition(JSON.parse(row.definition))),actor.member.scope))
   const view={revision:state.revision,definition:state.definition&&scopeWithin(pipelineScope(state.definition),actor.member.scope)?state.definition:null,history:history.map(row=>({...row,definition:JSON.parse(row.definition)}))}
+  visible=view
   if(request.method==='GET'&&(path===root||path===screen))return html?page(view):json(view)
   if(request.method!=='POST')fail('method_not_allowed',405)
   const data=await input(request)
@@ -75,6 +79,6 @@ export async function pipelineResponse(request:Request,env:Bindings):Promise<Res
   return json({retained:{records:retained.records,...projected(retained.bytes)},excluded:{records:excluded.records,...projected(excluded.bytes)},rateModel:rate,basis:'Exact UTF-8 sanitized payload bytes. Queue envelopes and infrastructure overhead are not projected. No provider bill or purchase is asserted.'})
  }catch(error) {
   const known=error instanceof AuthError||error instanceof IntakeError,code=known?error.code:'pipelines_unavailable',status=known?error.status:503
-  return html?page({revision:0,definition:null,history:[],error:code},status):json({error:code},status)
+  return html?page({...visible,error:code},status):json({error:code},status)
  }
 }

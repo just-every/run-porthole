@@ -23,7 +23,8 @@ Definitions name one exact `service`, `environment` and `team`, ordered
 }
 ```
 
-Native processors include JSON, key-value and bounded named grok captures,
+GET `/api/porthole/v1/pipelines/catalog` publishes the native examples and
+bounds. Native processors include JSON, key-value and bounded named grok captures,
 enrichment, attribute remap, status remap, category matches, versioned lookup,
 URL parsing, a bounded user-agent parser, arithmetic and logical routing.
 This native subset is not a claim of complete Datadog processor equivalence.

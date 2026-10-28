@@ -10,7 +10,8 @@ export async function pipelineJourney({origin,freshOwner,sql,restartWorker,withE
  const post=(path,data,who=cookie)=>fetch(origin+path,form(origin,who,data))
  const value=async(response,status=200)=>{assert.equal(response.status,status,await response.clone().text());return response.json()}
  const get=async path=>value(await fetch(origin+path,{headers:{cookie}}))
- const d={service:'synthetic-porthole-12000',environment:'production',team:'payments',processors:[{type:'json'},{type:'status',source:'level'}],metrics:[{name:'checkout.logs'},{name:'checkout.errors',field:'status',equals:'error'}],redaction:[{pattern:'private-[0-9]{4}',exceptions:['private-0000']}]}
+ const catalog=await get(api+'/catalog')
+ const d={service:'synthetic-porthole-12000',environment:'production',team:'payments',processors:[catalog.processors.find(p=>p.type==='json').example,{type:'status',source:'level'}],metrics:[{name:'checkout.logs'},{name:'checkout.errors',field:'status',equals:'error'}],redaction:[{pattern:'private-[0-9]{4}',exceptions:['private-0000']}]}
  const scope={services:[d.service],environments:[d.environment],teams:[d.team]}
  const source=await value(await post('/app/settings/credentials/mint',{name:'synthetic-porthole-12001',class:'ingest',scope:{...scope,signals:['logs'],actions:['telemetry.write']}}),201)
  const preview=async(definition=d,samples=[],revision)=>value(await post(api+'/preview',{definition,samples,revision:revision??(await get(api)).revision}),201)
@@ -35,6 +36,8 @@ export async function pipelineJourney({origin,freshOwner,sql,restartWorker,withE
  assert.equal((await fetch(origin+api,{headers:{authorization:'Bearer '+source.secret}})).status,403)
  assert.equal((await post(api+'/preview',{definition:{...d,processors:[{type:'grok',pattern:'(a+)+'}]},revision:0})).status,400)
  assert.equal((await post(api+'/preview',{definition:{...d,redaction:[{pattern:'(a+)+',exceptions:[]}]},revision:0})).status,400)
+ const grok=await preview({...d,processors:[catalog.processors.find(p=>p.type==='grok').example,{type:'status',source:'level'}]},['info Checkout order 1042'])
+ assert.equal(grok.results[0].attributes.message,'Checkout order 1042');assert.equal(grok.results[0].attributes.status,'info')
  const p=await preview(d,bodies)
  assert.equal(p.results.length,3);assert.equal(p.results[0].attributes.status,'info');assert.equal(p.results[1].attributes.status,'error');assert.equal(p.results[2].status,'error');assert.ok(p.results[2].errors.some(e=>e.code==='json_parse_failed'))
  for(const secret of planted)assert.ok(!JSON.stringify(p).includes(secret),'preview masks '+planted.indexOf(secret))
