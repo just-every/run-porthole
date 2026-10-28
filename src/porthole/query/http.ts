@@ -35,7 +35,7 @@ export async function queryResponse(request:Request,env:Bindings):Promise<Respon
    if(request.method!=='GET'||[...url.searchParams.keys()].some(key=>key!=='cursor')||url.searchParams.getAll('cursor').length>1)fail('invalid_query_export',400)
    data=await snapshotInput(env,id,actor.id);delete data.cursor
    if(url.searchParams.has('cursor'))data.cursor=url.searchParams.get('cursor')!
-  }else if(request.method==='GET'&&new RegExp(`^${uuid}$`).test(id)){if(url.search)fail('invalid_query',400);data=await snapshotInput(env,id,actor.id)}
+  }else if(request.method==='GET'&&new RegExp(`^${uuid}$`).test(id)){if(url.search)fail('invalid_query',400);data=await snapshotInput(env,id)}
   else if(page&&request.method==='GET'){if([...url.searchParams.keys()].some(key=>!queryKeys.includes(key)))fail('invalid_query',400);data=Object.fromEntries(url.searchParams)}
   else{if(request.method!=='POST'||url.search)fail('invalid_query',400);data=await input(request)}
   const intent=page?String(data.intent??'query'):path===root+'/schema'?'schema':'query'

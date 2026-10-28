@@ -1,6 +1,8 @@
 import {filter,reject,type ParsedExpression,type Parameters,type Aggregate} from './model'
+import {parseJoin} from './join'
 
 export function sql(expression:string):ParsedExpression {
+ if(/\bJOIN\b/i.test(expression))return parseJoin(expression)
  const statement=/^\s*SELECT\s+(COUNT\s*\(\s*\*\s*\)|AVG\s*\(\s*value\s*\)|PERCENTILE_DISC\s*\(\s*0\.95\s*\)\s+WITHIN\s+GROUP\s*\(\s*ORDER\s+BY\s+duration\s*\))\s+FROM\s+(logs|metrics|traces)(?:\s+WHERE\s+([\s\S]+?))?\s*$/i.exec(expression)
  if(!statement)reject('unsupported_sql_expression','Use a documented COUNT, AVG or discrete duration percentile statement with exact equality filters joined by AND.')
  const operation=statement[1].replace(/\s/g,'').toUpperCase(),signal=statement[2].toLowerCase()

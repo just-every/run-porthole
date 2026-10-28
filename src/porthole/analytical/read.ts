@@ -38,6 +38,6 @@ export async function readAnalytical(request:Request,env:Bindings,config:Configu
   results=auth.results
  }else results=await env.DB.batch(writes(context.fence))
  if(!results[0].results.length)fail('authority_changed',409)
- const records=context.exportOnly?results[2].results.map(row=>JSON.parse(String(row.value))):data.records
+ const records=context.exportOnly?results[2].results.map(row=>JSON.parse(String((row as {value:string}).value))):data.records
  return Response.json({snapshot,from,through,queryRef,records,cursor:data.cursor,archive,...(context.scanLimit===null?{}:{coverage:data.coverage}),analytical:{role:config.active_role,watermark:data.watermark,requiredWatermark:data.requiredWatermark}}, {headers:{...privateHeaders,'x-porthole-entity':queryRef,'x-porthole-actor':context.actorRef,'x-porthole-actor-revision':String(context.actorRevision)}})
 }

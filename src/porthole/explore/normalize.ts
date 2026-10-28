@@ -41,5 +41,5 @@ export function normalizeExploration(input:Record<string,unknown>):NormalizedExp
   try {compileLogSearch(parsed.logSearch,{services:[String(parameters.service??'*')],environments:[String(parameters.environment??'*')],teams:[String(parameters.team??'*')]})}
   catch(error) {if(error instanceof LogSearchError)reject('conflicting_query_filter','Native and expression scope filters must select compatible values.',error.field);throw error}
  }
- return {parameters,source:{dialect:dialect as Dialect,text:expression},...(parsed.aggregate?{aggregate:parsed.aggregate}:{}),...(parsed.logSearch?{logSearch:parsed.logSearch}:{}),...(parsed.metricQuery?{metricQuery:parsed.metricQuery}:{})}
+ return {parameters,source:{dialect:dialect as Dialect,text:expression},...(parsed.aggregate?{aggregate:parsed.aggregate}:{}),...(parsed.logSearch?{logSearch:parsed.logSearch}:{}),...(parsed.metricQuery?{metricQuery:parsed.metricQuery}:{}),...(parsed.join?{join:parsed.join}:{})}
 }

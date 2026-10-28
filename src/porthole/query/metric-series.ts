@@ -111,7 +111,7 @@ function applyArithmetic(left:Evaluated,right:Evaluated,operator:'+'|'-'|'*'|'/'
 
 /** Synchronous evaluation over a COMPLETE, bounded, already authorized snapshot.
  * Never pass a single cursor page as a complete corpus. Caller must refuse an
- * incomplete read and keep native scope/time/retention/credential fences. Input
+ * incomplete read and keep native scope, time, retention and credential fences. Input
  * includes metricReadRange(plan, range), including timeshift history. This is not
  * an authorization boundary; explicit filters on every plan.selector must also
  * be authorized by the query door before storage reads.

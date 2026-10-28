@@ -17,9 +17,10 @@ export async function runResponse(request:Request,env:Bindings):Promise<Response
   if(request.method!=='POST')fail('method_not_allowed',405)
   const data=await input(request),query=data.query as Record<string,unknown>,timeout=data.timeoutMs??60000
   if(Object.keys(data).some(key=>!['query','scanLimit','timeoutMs'].includes(key)))fail('invalid_query_run',400)
-  const normalized=normalizeExploration(query),scan=Number(data.scanLimit??100)
+  const normalized=normalizeExploration(query),scan=Number(data.scanLimit??(normalized.join?20:100))
   if(normalized.metricQuery)fail('metric_run_requires_complete_snapshot',400)
   if(!Number.isSafeInteger(scan)||scan<1||scan>200||!Number.isSafeInteger(timeout)||Number(timeout)<1||Number(timeout)>60000)fail('invalid_query_budget',400)
+  if(normalized.join&&scan>20)fail('join_candidate_limit',400)
   if(normalized.logSearch)compileLogSearch(normalized.logSearch,actor.scope)
   for(const [field,key]of [['service','services'],['environment','environments'],['team','teams']]as const){const value=normalized.parameters[field];if(value!==undefined&&!actor.scope[key].includes('*')&&!actor.scope[key].includes(String(value)))fail('scope_forbidden')}
   if(!['logs','metrics','traces','profiles'].includes(String(normalized.parameters.signal)))fail('signal_required',400)

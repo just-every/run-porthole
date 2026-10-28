@@ -18,7 +18,7 @@ export interface MetricTimeRange {from:string;through:string}
 const aggregations=new Set(['avg','sum','min','max'])
 const rates=new Set(['per_second','per_minute','per_hour','derivative','diff','monotonic_diff'])
 const maxSeconds=31*86400
-const unsupported=(hint:string):never=>reject('unsupported_datadog_metric_expression',hint)
+function unsupported(hint:string):never {return reject('unsupported_datadog_metric_expression',hint)}
 function dimension(value:string):MetricDimension {
  if(value==='env')return 'environment'
  if(['host','service','environment','team'].includes(value))return value as MetricDimension
@@ -132,7 +132,7 @@ export function metricRange(range:MetricTimeRange):{from:bigint;through:bigint} 
  return {from,through}
 }
 /** Reader must authorize every selector's explicit scope independently, then
- * read this union window under the unchanged native permission fence/snapshot.
+ * read this union window under the unchanged native permission fence and snapshot.
  * Rates deliberately have no unbounded predecessor lookback. */
 export function metricReadRange(plan:MetricQueryPlan,range:MetricTimeRange):MetricTimeRange {
  const requested=metricRange(range);let earliest=requested.from,latest=requested.through
