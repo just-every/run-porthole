@@ -4766,7 +4766,7 @@
       "executable": false
     },
     "tests/incremental-typecheck.test.mjs": {
-      "sha256": "a11d6b89e7219137540c7052683c5f4d9ba7ddf16f66d34c1f56ae34029c0a95",
+      "sha256": "5a59fd2c8e9fb73e878ac682889b4467837db4cc7c611fe617e688d1491832cd",
       "executable": false
     },
     "tests/porthole/actions.mjs": {
