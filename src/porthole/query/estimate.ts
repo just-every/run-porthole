@@ -14,7 +14,7 @@ export async function estimateQuery(request:Request,env:Bindings,normalized:Norm
   for(const selector of normalized.metricQuery.selectors)for(const[field,key]of [['service','services'],['environment','environments'],['team','teams']]as const){const value=selector.filters[field];if(value!==undefined&&!actor.scope[key].includes('*')&&!actor.scope[key].includes(value))fail('scope_forbidden');if(value!==undefined&&parameters[field]!==undefined&&parameters[field]!==value)reject('conflicting_query_filter','Every metric selector must agree with the explicit native scope.',field)}
   Object.assign(parameters,metricReadRange(normalized.metricQuery,{from:String(parameters.from??''),through:String(parameters.through??'')}))
  }
- if(normalized.join&&'signals'in actor.scope&&!(actor.scope.signals as string[]).includes('traces'))fail('credential_scope_forbidden')
+ if(normalized.join&&!actor.signals.includes('traces'))fail('credential_scope_forbidden')
  const url=new URL('/api/porthole/v1/ingest/records',request.url)
  for(const[key,value]of Object.entries(parameters))url.searchParams.set(key,String(value))
  const response=await readTelemetry(new Request(url,{headers:request.headers}),env,{estimateOnly:true,logSearch:normalized.logSearch,source:normalized.source})

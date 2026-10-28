@@ -16,7 +16,7 @@ export async function executeQuery(request:Request,env:Bindings,data:Record<stri
  if(normalized.metricQuery)return executeMetricQuery(request,env,normalized,options)
  if(normalized.join){
   const actor=await queryActor(request,env)
-  if('signals'in actor.scope&&!['logs','traces'].every(signal=>(actor.scope.signals as string[]).includes(signal)))fail('credential_scope_forbidden')
+  if(!['logs','traces'].every(signal=>actor.signals.includes(signal)))fail('credential_scope_forbidden')
   const read:JoinRead=(parameters,extra={})=>{
    const url=new URL('/api/porthole/v1/ingest/records',request.url)
    for(const[key,value]of Object.entries(parameters))url.searchParams.set(key,String(value))
