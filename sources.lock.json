@@ -4922,7 +4922,7 @@
       "executable": false
     },
     "tests/porthole/pipelines-exclusion.mjs": {
-      "sha256": "c34af73d2db213e294e0dbbc73f14f4f1d2db1bcd05ba98d9507e5e6b21b083b",
+      "sha256": "03391b6f260c52f7eae25c77d3faee32753e0c4e23103f82ade0bf206ad46cb8",
       "executable": false
     },
     "tests/porthole/pipelines-spans.mjs": {

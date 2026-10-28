@@ -8,8 +8,10 @@ export async function pipelineExclusion({post,value,preview,activate,send,d,sql,
  await preview(proposed,['{"level":"debug"}'])
  const bodies=Array.from({length:count},(_,i)=>JSON.stringify({level:i<excluded||i===count-1?'debug':'info',message:'Checkout US order '+i,...(i===count-1?{protectedError:true}:{})}))
  async function emit(base,label) {
-  for(let i=0;i<count;i+=250)await send(bodies.slice(i,i+250),label+'-'+i,base+BigInt(i))
-  for(let i=0;i<Math.ceil(count/5000)+2;i++)await value(await post(intake+'/drain',{}))
+  for(let i=0;i<count;i+=250){
+   await send(bodies.slice(i,i+250),label+'-'+i,base+BigInt(i))
+   await value(await post(intake+'/drain',{}))
+  }
  }
  const firstFrom=String(at),firstThrough=String(at+BigInt(count)+1n)
  await emit(at,'synthetic-porthole-12010')
