@@ -22,5 +22,5 @@ export function serviceChanges(records:WidgetRecord[]):ServiceChange[] {
  })
 }
 export function serviceChangeMarkup(changes:ServiceChange[]):string {
- return `<p>Observed service-change evidence. Source facts do not prove causation or authorize any action.</p><ul>${changes.map(change=>`<li><p>${escape(change.kind.replaceAll('_',' '))}: ${escape(change.summary)}</p><dl><dt>Source change</dt><dd>${escape(change.changeId)}</dd><dt>Previous version</dt><dd>${escape(change.previousVersion||'Not supplied')}</dd><dt>Observed version</dt><dd>${escape(change.version)}</dd><dt>Source time in nanoseconds</dt><dd>${escape(change.timeNs)}</dd></dl></li>`).join('')}</ul>`
+ return `<p>Observed service-change evidence. Source facts do not prove causation or authorize any action.</p><ul>${changes.map(change=>`<li><p>${escape(change.kind.replaceAll('_',' '))}: ${escape(change.summary)}</p><p>Source change: <code>${escape(change.changeId)}</code></p><p>Previous version: ${escape(change.previousVersion||'Not supplied')}</p><p>Observed version: ${escape(change.version)}</p><p>Source time in nanoseconds: <code>${escape(change.timeNs)}</code></p></li>`).join('')}</ul>`
 }

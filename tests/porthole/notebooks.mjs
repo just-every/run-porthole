@@ -206,7 +206,7 @@ export async function notebookJourney({origin,freshOwner,signIn,restartWorker,wi
   const changes=page.locator('[data-cell-id="changes"]')
   const text=await changes.innerText()
   for(const change of changeFacts)for(const expected of [change.id,change.previous,change.version,change.summary])assert.ok(text.includes(expected))
-  assert.equal(await changes.locator('dl').count(),3)
+  assert.equal(await changes.locator('ul > li').count(),3)
   await changes.getByRole('link',{name:'Open authorized query'}).click()
   const result=await page.locator('body').innerText()
   for(const change of changeFacts)assert.ok(result.includes(change.id),'source query retains the exact original change evidence')
@@ -222,6 +222,19 @@ export async function notebookJourney({origin,freshOwner,signIn,restartWorker,wi
  for(const actor of [responder,contractor])assert.deepEqual((await get(endpoint,200,actor.cookie)).results[5].changes,changeResult.changes)
  await post(endpoint+'/rerun',{revision:notebook.revision,cellId:'changes',from:ns(t+1000),through:ns(t+2000)},422)
  assert.equal((await get(endpoint)).revision,changeRevision,'empty reruns cannot silently replace the original change context')
+ const nextChange={kind:'deployment',id:'synthetic-porthole-2453',version:'release-recovered',summary:'Recovery deployment observed'}
+ await ingest('logs',[{timeUnixNano:ns(t-8990),body:{stringValue:'synthetic-porthole-change-3'},attributes:Object.entries({'change.kind':nextChange.kind,'change.id':nextChange.id,'change.version':nextChange.version,'change.summary':nextChange.summary}).map(([key,value])=>({key,value:{stringValue:value}}))}])
+ await post(endpoint+'/rerun',{revision:notebook.revision,cellId:'changes'})
+ notebook=await get(endpoint)
+ assert.equal(notebook.results[5].count,4)
+ assert.equal(notebook.results[5].changes[3].changeId,nextChange.id)
+ assert.equal(notebook.results[5].changes[3].previousVersion,'','missing source context is not invented')
+ assert.deepEqual((await get(endpoint+'?version='+changeRevision)).results[5].changes,changeResult.changes,'a later capture preserves every original change fact and time')
+ await notebookBrowser({origin,cookie,path:pagePath,name:'notebook-service-change-rerun',exercise:async page=>{
+  const changes=page.locator('[data-cell-id="changes"]')
+  assert.equal(await changes.locator('ul > li').count(),4)
+  const text=await changes.innerText();assert.ok(text.includes(nextChange.version));assert.ok(text.includes('Previous version: Not supplied'))
+ }})
  const beforeRerun=notebook.revision
  await withPinnedClock(t+61000,async()=>{
   await heartbeat();await ingest('logs',[{timeUnixNano:ns(t-500),body:{stringValue:'synthetic-porthole-old-event'}}])
@@ -383,7 +396,7 @@ export async function notebookJourney({origin,freshOwner,signIn,restartWorker,wi
  await notebookBrowser({origin,cookie,path:pagePath,name:'notebook-missing-evidence',exercise:async page=>{
   const text=await page.locator('body').innerText();assert.ok(text.includes('Count unavailable'));assert.ok(text.includes('Erased member'))
   assert.ok(!text.includes('synthetic-porthole-log-0'),'erased log data is absent from notebook results')
-  for(const change of changeFacts)assert.ok(!text.includes(change.id)&&!text.includes(change.summary),'erased service changes are unavailable')
+  for(const change of [...changeFacts,nextChange])assert.ok(!text.includes(change.id)&&!text.includes(change.summary),'erased service changes are unavailable')
  }})
  await notebookBrowser({origin,cookie,path:publicationSettings,name:'notebook-public-missing-evidence',exercise:async page=>{
   assert.equal(await page.getByLabel('Include Original log evidence',{exact:true}).isDisabled(),true)

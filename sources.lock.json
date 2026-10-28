@@ -4390,7 +4390,7 @@
       "executable": false
     },
     "src/porthole/notebooks/service-changes.ts": {
-      "sha256": "88ab74073164c5bc4c4a908243aeac760fb10158469d332f7ca09b6af47ae2f2",
+      "sha256": "2e3986e057ef94a38cd0aa0795d0c28e612e79d063b84cb9b947534326b85da2",
       "executable": false
     },
     "src/porthole/notebooks/store.ts": {
@@ -4934,7 +4934,7 @@
       "executable": false
     },
     "tests/porthole/notebooks.mjs": {
-      "sha256": "dcb46f5d302e68a408ee29b0efa57e8621d26206aa24d8ab2b87856f52922dad",
+      "sha256": "57744f901a92f4ae3397fe53c9a1033b38cadfc37c85946f189366b2ef4a19fc",
       "executable": false
     },
     "tests/porthole/polyglot/estate.mjs": {
