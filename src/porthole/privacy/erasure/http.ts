@@ -25,6 +25,7 @@ export function eraseJournaledBatches(db: D1Database): D1PreparedStatement[] {
   db.prepare(`DELETE FROM porthole_telemetry_archive WHERE batch_id IN (${erased})`),
   db.prepare(`UPDATE porthole_ingest_batches SET identity='erased:'||id,wire_base64='',records='[]',record_count=0,byte_count=0 WHERE id IN (${erased})`),
   db.prepare("UPDATE porthole_health_receipts SET status='Unknown',expires_at=0,reason='Local telemetry was erased; coverage requires new observation.'"),
+  db.prepare("DELETE FROM porthole_monitor_runs"),
   db.prepare("UPDATE porthole_monitor_state SET status='Unknown',reason='Local telemetry was erased; prior evidence is incomplete.'"),
  ]
 }

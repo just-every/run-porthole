@@ -285,6 +285,8 @@ export async function analyticalConnectionJourney() {
    await nativeLogSearchJourney({origin,cookie:nextOwner,call,backend:'analytical'})
    const candidate=(await promisify(execFile)('git',['rev-parse','HEAD'])).stdout.trim()
    console.log('PORTHOLE_ANALYTICAL_RUN '+JSON.stringify({runId:'sx-porthole-c7-recovery-20261022',head:candidate,result:'passed'}))
+   const {countMonitorBackendJourney}=await import('./monitors.mjs')
+   await countMonitorBackendJourney({origin,cookie:nextOwner,call})
    console.log('analyticalConnectionJourney passed: real independent primary/standby processes, product query/health/monitor, collector outage and direct provider-edge notice, behind refusal, explicit failover/failback, bounded 20/3 backlog, original ns and no duplicate records/notices')
   }})
  }finally{if(collector?.exitCode===null&&collector.signalCode===null){const stopped=new Promise(resolve=>collector.once('exit',resolve));collector.kill('SIGTERM');await stopped}await estate.dispose()}

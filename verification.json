@@ -101,7 +101,8 @@
       "commands": [
         "pnpm run build",
         "PORTHOLE_FOLLOW_UP_ONLY=1 pnpm run test:runtime",
-        "PORTHOLE_SLO_ONLY=1 pnpm run test:runtime"
+        "PORTHOLE_SLO_ONLY=1 pnpm run test:runtime",
+        "PORTHOLE_MONITORS_ONLY=1 pnpm run test:runtime"
       ]
     }
   ],

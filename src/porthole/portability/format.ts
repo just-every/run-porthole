@@ -31,6 +31,7 @@ export function manifestInput(value: unknown): Manifest {
  if(!object(value) || Object.keys(value).sort().join(',')!==['format','id','createdAt','rowCount','chunks','rootHash','tables','inactive'].sort().join(',') || value.format!==format || !uuid(value.id) || !integer(value.createdAt) || !integer(value.rowCount) || !integer(value.chunks) || !hex(value.rootHash) || value.inactive!==true || !object(value.tables)) return bad()
  // Older archives predate export exclusions. Their absent journal is empty;
  // a later destination journal still wins during restore.
+ if(!Object.hasOwn(value.tables,'porthole_monitor_versions'))value.tables.porthole_monitor_versions=0
  for(const table of ['porthole_metric_rules','porthole_metric_points'])if(!Object.hasOwn(value.tables,table))value.tables[table]=0
  if(!Object.hasOwn(value.tables,'porthole_slo_versions'))value.tables.porthole_slo_versions=0
  if(!Object.hasOwn(value.tables,'porthole_retention_policies'))value.tables.porthole_retention_policies=0
@@ -130,6 +131,9 @@ export async function validateRow(payload: PortableRow, state: Validation): Prom
   state.audit[String(row.stream)]={sequence:entry.sequence,hash:row.hash as string}
  } else if(item.table==='porthole_archive_health_history') {
   validateHealthHistory(row)
+ } else if(item.table==='porthole_monitor_versions') {
+  if(!uuid(row.object_id)||!integer(row.revision,1)||!str(row.name)||!integer(row.created_at))bad()
+  parseScope(json(row.scope));validateBody('monitor',json(row.body))
  } else if(item.table==='porthole_monitor_evaluations') {
   if(!uuid(row.id)||!uuid(row.object_id)||!integer(row.revision,1)||!integer(row.evaluated_at)||!/^\d{20}$/.test(String(row.window_start_ns))||!/^\d{20}$/.test(String(row.window_end_ns))||String(row.window_start_ns)>String(row.window_end_ns)||!['Healthy','Firing','Unknown'].includes(String(row.status))||row.observed_count!==null&&!integer(row.observed_count)||!str(row.reason)||row.firing_episode!==null&&!str(row.firing_episode))bad()
  } else if(item.table==='porthole_ingest_control') {

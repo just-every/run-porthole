@@ -2,6 +2,7 @@ import { fail } from '../security/authority'
 const uuid=(value:unknown):value is string=>typeof value==='string'&&/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(value)
 interface Projection {table:string;columns:string[];keys:string[]}
 export const healthHistory:Projection[]=[
+ {table:'porthole_monitor_runs',columns:['id','object_id','revision','evaluated_at','result'],keys:['id']},
  {table:'porthole_follow_up',columns:['id','source','kind','scope','owner_id','state','reason','next_action','due_at','guard_id','guard_revision','generation','revision','reminders','suppressed_until','created_at','updated_at'],keys:['id']},
  {table:'porthole_follow_up_events',columns:['id','task_id','generation','kind','actor_id','detail','occurred_at'],keys:['id']},
  {table:'porthole_analytical_configuration',columns:['singleton','source_identity','enabled','active_role','revision','changed_at','configured_by','configurer_revision','configurer_version'],keys:['singleton']},
@@ -29,7 +30,7 @@ export function validateHealthHistory(row:Record<string,unknown>):void {
  if(!nested||typeof nested!=='object'||Array.isArray(nested)||Object.keys(nested).sort().join(',')!==[...item.columns].sort().join(',')||JSON.stringify(item.keys.map(key=>nested[key]))!==row.row_key)return bad()
  for(const [key,value]of Object.entries(nested)) {
   if(value!==null&&typeof value!=='string'&&(!Number.isSafeInteger(value)||Number(value)<0))return bad()
-  if(['evidence','message'].includes(key)) {try{const parsed=JSON.parse(String(value));if(!parsed||typeof parsed!=='object'||Array.isArray(parsed))return bad()}catch{return bad()}}
+  if(['evidence','message','result'].includes(key)) {try{const parsed=JSON.parse(String(value));if(!parsed||typeof parsed!=='object'||Array.isArray(parsed))return bad()}catch{return bad()}}
  }
  if(nested.status!==undefined&&!['Healthy','Firing','Unknown'].includes(String(nested.status)))return bad()
  if(nested.phase!==undefined&&!['failure','recovery'].includes(String(nested.phase)))return bad()
