@@ -7,7 +7,7 @@ const timestamp=(edge:string,offset:number)=>`CAST(substr('00000000000000000000'
 const duration=`((${timestamp('end',-20)}-${timestamp('start',-20)})*10000000000+${timestamp('end',-10)}-${timestamp('start',-10)})`
 
 /** Include these writes in the processor's original pending->complete batch,
- * before any sampling decision. The batch/ordinal primary key makes replay inert. */
+ * before any sampling decision. The batch and ordinal primary key makes replay inert. */
 export async function redContributions(env:Bindings,batchId:string):Promise<D1PreparedStatement[]> {
  if(!await env.DB.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='porthole_red_points'").first())return []
  return [env.DB.prepare(`INSERT INTO porthole_red_points(batch_id,ordinal,team,service,environment,event_time_ns,input_stage,endpoint,error,duration_ns)

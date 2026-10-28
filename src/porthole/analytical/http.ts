@@ -1,3 +1,4 @@
+import {samplingWatermark} from './sampling'
 import type {Bindings} from '../../auth.server'
 import {AuthError} from '../../modules/operator-auth/index.mjs'
 import {authority,fail,proofFence} from '../security/authority'
@@ -20,10 +21,10 @@ export async function analyticalResponse(request:Request,env:Bindings):Promise<R
    if(!roles.includes(role)||Number(data.revision)!==config.revision||data.confirm!=='connect-analytical-workers')fail('configuration_confirmation_required',400)
    if(enabled&&roles.some(role=>!ready(env,role)))fail('analytics_binding_missing',503)
    if(!enabled&&role!==config.active_role)fail('pause_role_change_forbidden',409)
-   const required=await watermark(env)
-   if(enabled&&role!==config.active_role)await rpc<Coverage>(env,role,'/v1/coverage',{sourceIdentity:config.source_identity,requiredWatermark:required})
+   const required=await watermark(env),requiredSampling=await samplingWatermark(env)
+   if(enabled&&role!==config.active_role)await rpc<Coverage>(env,role,'/v1/coverage',{sourceIdentity:config.source_identity,requiredWatermark:required,requiredSamplingWatermark:requiredSampling})
    const proof=proofFence(actor)
-   const changed=await env.DB.prepare(`UPDATE porthole_analytical_configuration SET enabled=?,active_role=?,revision=revision+1,changed_at=?,configured_by=?,configurer_revision=?,configurer_version=? WHERE singleton=1 AND revision=? AND ${actor.fence} AND ${proof.sql} AND (SELECT COALESCE(MAX(completion_sequence),0) FROM porthole_ingest_batches WHERE state='complete')=? RETURNING revision`).bind(enabled,role,Date.now(),actor.member.operatorId,actor.member.revision,actor.session.operator.version,config.revision,...actor.args,...proof.args,required).all()
+   const changed=await env.DB.prepare(`UPDATE porthole_analytical_configuration SET enabled=?,active_role=?,revision=revision+1,changed_at=?,configured_by=?,configurer_revision=?,configurer_version=? WHERE singleton=1 AND revision=? AND ${actor.fence} AND ${proof.sql} AND (SELECT COALESCE(MAX(completion_sequence),0) FROM porthole_ingest_batches WHERE state='complete')=? AND (SELECT COALESCE(MAX(sequence),0) FROM porthole_sampling_changes)=? RETURNING revision`).bind(enabled,role,Date.now(),actor.member.operatorId,actor.member.revision,actor.session.operator.version,config.revision,...actor.args,...proof.args,required,requiredSampling).all()
    if(!changed.results.length)fail('configuration_changed',409)
    config=await configuration(env)
    if(!page)return Response.json({revision:config.revision,enabled:!!config.enabled,role:config.active_role},{headers:privateHeaders})

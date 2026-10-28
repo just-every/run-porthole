@@ -257,6 +257,8 @@ export async function analyticalConnectionJourney() {
    const archived=await (await call('/api/porthole/v1/ingest/archive?signal=logs',{headers:{cookie:nextOwner}})).json()
    const receipts=(await getDb().prepare("SELECT id,archived_at FROM porthole_telemetry_archive WHERE signal='logs'").all()).results
    assert.deepEqual(archived.records.map(row=>[row.id,row.archived_at]).sort(),receipts.map(row=>[row.id,row.archived_at]).sort());assert.ok(archived.records.every(row=>!('indexed_at'in row)))
+   const {analyticalSamplingJourney}=await import('./analytical-sampling.mjs')
+   await analyticalSamplingJourney({context,cookie:nextOwner,estate,source:signalSource,scope})
    const {analyticalArchiveSnapshot,restoreAnalyticalSnapshot}=await import('./archive.mjs')
    const saved=await analyticalArchiveSnapshot({context,cookie:nextOwner}),destination=await analyticalEstate()
    try {

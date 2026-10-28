@@ -9,23 +9,29 @@ export async function sampling(db,input){
  const control=await state(db);
  if(control.stopped)fail('analytics_stopped',503);
  if(control.source_identity!==input.sourceIdentity)fail('analytics_source_mismatch',409);
- const changes=[];let prior=null;
+ let prior=null;
  for(const change of input.changes){
   keys(change,['sequence','batchId','sourceId','ordinal','record']);
-  integer(change.sequence,1);integer(change.ordinal,0,9999);text(change.batchId,100);text(change.sourceId);
+  integer(change.sequence,1);integer(change.ordinal,0,9999);text(change.batchId,100);
+  if(change.record!==null||change.sourceId!==undefined)text(change.sourceId);
   if(prior!==null&&change.sequence!==prior+1)fail('invalid_sampling_sequence');prior=change.sequence;
-  const origin=await db.prepare(`SELECT o.*,b.source_id,b.signal FROM analytics_sampling_origins o JOIN analytics_batches b ON b.id=o.batch_id WHERE o.batch_id=? AND o.ordinal=?`).bind(change.batchId,change.ordinal).first();
-  if(!origin||origin.signal!=='traces'||origin.source_id!==change.sourceId)fail('invalid_sampling_origin',409);
+ }
+ const origins=(await db.prepare(`SELECT CAST(j.key AS INTEGER) AS position,o.*,b.source_id,b.signal,
+  EXISTS(SELECT 1 FROM analytics_records r WHERE r.id=b.id||':'||o.ordinal AND NOT EXISTS(SELECT 1 FROM analytics_sampling_records s WHERE s.record_id=r.id)) AS direct
+  FROM json_each(?) j LEFT JOIN analytics_sampling_origins o ON o.batch_id=json_extract(j.value,'$.batchId') AND o.ordinal=json_extract(j.value,'$.ordinal')
+  LEFT JOIN analytics_batches b ON b.id=o.batch_id ORDER BY CAST(j.key AS INTEGER)`)
+  .bind(canonical(input.changes.map(({batchId,ordinal})=>({batchId,ordinal})))).all()).results;
+ const changes=input.changes.map((change,index)=>{
+  const origin=origins[index];
+  if(!origin||origin.batch_id===null||origin.signal!=='traces'||change.sourceId!==undefined&&origin.source_id!==change.sourceId)fail('invalid_sampling_origin',409);
   const value=change.record===null?null:record(change.record,{id:change.batchId},change.ordinal);
   if(value){
    if(value.payload.inputStage!=='pre-sampling'||value.payload.sampling?.policy!=='destination-tail/v1')fail('invalid_sampling_provenance');
    for(const [key,column]of [['team','team'],['service','service'],['environment','environment'],['eventTimeNs','event_time_ns'],['traceId','trace_id'],['spanId','span_id']])if(value[key]!==origin[column])fail('invalid_sampling_origin',409);
   }
-  const id=`${change.batchId}:${change.ordinal}`;
-  const direct=await db.prepare('SELECT 1 AS present FROM analytics_records r WHERE r.id=? AND NOT EXISTS(SELECT 1 FROM analytics_sampling_records s WHERE s.record_id=r.id)').bind(id).first();
-  if(direct)fail('analytics_identity_conflict',409);
-  changes.push({...change,id,record:value});
- }
+  if(origin.direct)fail('analytics_identity_conflict',409);
+  return {...change,id:`${change.batchId}:${change.ordinal}`,sourceId:origin.source_id,record:value};
+ });
  const pending=changes.filter(change=>change.sequence>control.sampling_watermark);
  if(pending.length&&pending[0].sequence!==control.sampling_watermark+1)fail('invalid_sampling_sequence',409);
  const statements=[],guard='(SELECT sampling_watermark FROM analytics_control WHERE singleton=1)=? AND (SELECT source_identity FROM analytics_control WHERE singleton=1)=? AND (SELECT stopped FROM analytics_control WHERE singleton=1)=0';

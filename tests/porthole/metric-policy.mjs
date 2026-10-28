@@ -29,5 +29,6 @@ export async function metricPolicyJourney({origin,post,base,source,call,restartW
  assert.equal((await post(root+'/query',selection)).groups[0].sum,30.75,'changed predicates require a new exact preview approval')
  await post(root+'/preview',{definition:{...definition,value:'authorization'}},422)
  await post(root+'/preview',{definition:{...definition,predicate:{field:'email',op:'exists'}}},422)
+ await post(root+'/preview',{definition:{...definition,dimensions:[{key:'ssn',values:['synthetic-porthole-private']}]}},422)
  console.log('metricPolicyJourney passed: typed boolean predicates, decimal numeric custom attributes and dimensions, exact bound USD preview, scoped programmatic export, duplicate restart and credential revocation')
 }

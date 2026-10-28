@@ -3,7 +3,7 @@ import { object } from '../../ingest/model'
 
 export type Predicate = {all:Predicate[]}|{any:Predicate[]}|{not:Predicate}|{field:string;op:'eq'|'ne'|'gt'|'gte'|'lt'|'lte'|'exists';value?:string|number|boolean}
 export function field(value:unknown):string {
- if(typeof value!=='string'||!/^[a-zA-Z][a-zA-Z0-9_.-]{0,79}$/.test(value)||/auth|token|secret|password|cookie|credential|session|email|phone|address|user.?id|customer.?id/i.test(value))fail('field_refused',422)
+ if(typeof value!=='string'||!/^[a-zA-Z][a-zA-Z0-9_.-]{0,79}$/.test(value)||/auth|token|secret|password|cookie|credential|session|email|phone|address|user.?id|customer.?id|ssn|social.?security|card|credit|cvv|birth|iban|account|first.?name|last.?name/i.test(value))fail('field_refused',422)
  return value
 }
 export function predicate(value:unknown,depth=0,budget={left:32}):Predicate {

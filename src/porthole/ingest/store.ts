@@ -55,7 +55,7 @@ export async function acceptEnvelope(request: Request, env: Bindings, envelope: 
     const exists = `EXISTS(SELECT 1 FROM porthole_ingest_batches WHERE source_id=(${source}) AND signal=? AND identity=?)`
     const same = `${exists.slice(0,-1)} AND digest=?)`
     const duplicateArgs = [hash,envelope.signal,envelope.identity,envelope.digest]
-    const pressure = `(SELECT COALESCE(SUM(byte_count),0) FROM porthole_ingest_batches WHERE state='pending'${samplingAvailable?' OR sampling_pending=1':''})+?>(SELECT max_pending_bytes FROM porthole_ingest_control WHERE singleton=1)`
+    const pressure = `(SELECT COALESCE(SUM(byte_count),0) FROM porthole_ingest_batches WHERE state='pending'${samplingAvailable?" OR sampling_pending=1 OR (sampling_recoverable=1 AND EXISTS(SELECT 1 FROM json_each(records) raw WHERE json_extract(raw.value,'$.payload.inputStage')='pre-sampling'))":''})+?>(SELECT max_pending_bytes FROM porthole_ingest_control WHERE singleton=1)`
     return [env.DB.prepare(`INSERT INTO porthole_ingest_batches(id,sequence,source_id,signal,identity,digest,protocol,accepted_at,byte_count,record_count,wire_base64,records)
      SELECT ?,(SELECT COALESCE(MAX(sequence),0)+1 FROM porthole_ingest_batches),c.id,?,?,?,?,?,?,?,?,? FROM porthole_credentials c WHERE c.secret_hash=? AND ${fence.sql}
      AND ${journalAvailable?'NOT EXISTS(SELECT 1 FROM porthole_erased_batches WHERE content_digest=?)':"NOT EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name='porthole_erased_batches')"} AND NOT (${pressure}) ON CONFLICT(source_id,signal,identity) DO NOTHING`)

@@ -1,4 +1,4 @@
--- Reduced full-input RED custody. No span/trace IDs, attributes or exemplars.
+-- Reduced full-input RED custody. No span or trace IDs, attributes or exemplars.
 CREATE TABLE porthole_red_points (
  batch_id TEXT NOT NULL,ordinal INTEGER NOT NULL,
  team TEXT NOT NULL,service TEXT NOT NULL,environment TEXT NOT NULL,

@@ -2,7 +2,7 @@ import {agentStatsRecords,agentStatsProtocol} from '../metrics/agent-stats/norma
 import type { Bindings } from '../../auth.server'
 import { AuthError } from '../../modules/operator-auth/index.mjs'
 import { CredentialLimit, verifyCredential } from '../credentials/verify'
-import { privateHeaders } from '../document'
+import { privateHeaders,operationDocument,escape } from '../document'
 import { allScope, authority, emptyScope, fail, sameOrigin } from '../security/authority'
 import { base64, canonical, IntakeError, invalid, object, sha256, type Signal, type TelemetryRecord } from './model'
 import { otlpRecords } from './normalize'
@@ -46,7 +46,7 @@ export async function ingestResponse(request: Request,env: Bindings):Promise<Res
    }
    if(path==='/app/ingest'||path===root+'/status'){
     if(request.method!=='GET')fail('method_not_allowed',405)
-    if(path==='/app/ingest')return statusPage(request,env)
+    if(path==='/app/ingest')return await statusPage(request,env)
     return json(await ingestStatus(env,await authority(request,env,{manage:true})))
    }
    if(request.method!=='POST')fail('method_not_allowed',405)
@@ -99,6 +99,9 @@ export async function ingestResponse(request: Request,env: Bindings):Promise<Res
   const headers={...privateHeaders,'x-porthole-batch':receipt.batchId,'x-porthole-accepted':String(receipt.accepted),'x-porthole-duplicate':String(receipt.duplicate)}
   if(path.startsWith('/v1/')||path==='/api/porthole/v1/ingest/pre-sampling/traces')return type==='application/x-protobuf'?new Response(new Uint8Array(),{headers:{...headers,'content-type':'application/x-protobuf'}}):json({},200,headers)
   return new Response(null,{status:204,headers})
- }catch(error){return failure(request,error)}
+ }catch(error){
+  if(path==='/app/ingest'){const known=error instanceof AuthError||error instanceof IntakeError;return operationDocument('Telemetry delivery unavailable',`<p role="alert">${escape(known?error.code.replaceAll('_',' '):'Delivery storage is unavailable.')}</p>`,known?error.status:503)}
+  return failure(request,error)
+ }
 }
 export { drainIngest } from './processor'
