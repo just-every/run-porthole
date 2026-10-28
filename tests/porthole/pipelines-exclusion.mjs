@@ -22,9 +22,13 @@ export async function pipelineExclusion({post,value,preview,activate,send,d,sql,
  await emit(second,'synthetic-porthole-12011')
  stats=await value(await post(api+'/accounting',{definition:d,from,through}))
  assert.equal(stats.excluded.records,excluded);assert.equal(stats.retained.records,retained)
- const selected=await sql(`SELECT id,payload FROM porthole_telemetry_records WHERE service=${literal(d.service)} AND event_time_ns>=${literal(from.padStart(20,'0'))} AND event_time_ns<${literal(through.padStart(20,'0'))}`)
- assert.equal(selected.length,retained);assert.ok(selected.some(r=>JSON.parse(r.payload).pipeline.protected&&JSON.parse(r.payload).record.severityNumber===17),'protected errors survive exclusion')
- const expectedBytes=selected.reduce((n,row)=>n+Buffer.byteLength(row.payload),0)
+ const selected=[];let cursor,snapshot
+ do {
+  const page=await value(await post('/api/porthole/v1/query',{signal:'logs',service:d.service,environment:d.environment,team:d.team,from,through,limit:200,...(cursor?{cursor,snapshot}:{})}))
+  selected.push(...page.records);cursor=page.cursor;snapshot=page.snapshot
+ }while(cursor)
+ assert.equal(selected.length,retained);assert.ok(selected.some(r=>r.payload.pipeline.protected&&r.payload.record.severityNumber===17),'protected errors survive exclusion')
+ const expectedBytes=selected.reduce((n,row)=>n+Buffer.byteLength(JSON.stringify(row.payload)),0)
  assert.equal(stats.retained.indexedBytes,expectedBytes);assert.equal(stats.retained.archiveBytes,expectedBytes);assert.equal(stats.retained.egressBytes,expectedBytes)
  const predicted=expectedBytes/(1024**3)*(stats.rateModel.indexed+stats.rateModel.archive+stats.rateModel.egress)
  assert.ok(Math.abs(stats.retained.usd-predicted)<=Math.max(predicted*0.01,Number.EPSILON),'projection reconciles within one percent')
