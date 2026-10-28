@@ -29,12 +29,14 @@ export function linkResolver(root: string, docs: Doc[], custody: Custody, reposi
 }
 
 /** Every link to an article, or to a heading on one, names a page and heading the docs have. */
-export function checkDocLinks(docs: Doc[], bodies: Map<string, Body>): void {
+export function checkDocLinks(docs: Doc[], bodies: Map<string, Body>, root: string): void {
   const problems: string[] = []
   for (const doc of docs) for (const href of bodies.get(doc.path)!.links) {
     if (!href.startsWith('#') && !href.startsWith('/docs/')) continue
     const hash = href.indexOf('#'), path = hash === 0 ? doc.path : hash < 0 ? href : href.slice(0, hash)
-    const anchor = hash < 0 ? '' : decodeURIComponent(href.slice(hash + 1)), target = bodies.get(path)
+    const anchor = hash < 0 ? '' : decodeURIComponent(href.slice(hash + 1)), target = bodies.get(path) ?? bodies.get(docs.find(doc => doc.alias === path)?.path ?? '')
+    if (!anchor && path === '/docs/v1') continue
+    if (!anchor && path.startsWith('/docs/examples/') && !path.includes('..') && existsSync(join(root, 'public', path))) continue
     if (!target || (anchor && !target.ids.has(anchor))) problems.push(`${doc.file}: ${href}`)
   }
   if (problems.length) throw new Error(`Docs links that lead nowhere:\n${problems.join('\n')}`)

@@ -5,7 +5,8 @@
       "browser": false,
       "hosted": false,
       "commands": [
-        "pnpm run check --profile first-party"
+        "pnpm run check --profile first-party",
+        "node scripts/porthole/public-schema.mjs --check"
       ]
     },
     {
@@ -82,6 +83,7 @@
       "commands": [
         "pnpm run build",
         "PORTHOLE_DASHBOARD_ONLY=1 pnpm run test:runtime",
+        "pnpm exec rer build --site",
         "PORTHOLE_API_ONLY=1 pnpm run test:runtime"
       ]
     },

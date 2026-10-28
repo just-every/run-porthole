@@ -185,7 +185,10 @@ try {
     return await run({origin,cookie:destinationCookie,persist,...destinationHelpers,restartWorker})
    } finally {await restartWorker(()=>{persist=savedStore;ownerEmail=savedOwner})}
   }
-  if(process.env.PORTHOLE_METRIC_RULES_ONLY==='1') {
+  if(process.env.PORTHOLE_PUBLIC_DOCS_ONLY==='1') {
+   const {publicDocsJourney}=await import('./porthole/public-docs.mjs')
+   await publicDocsJourney({origin,cookie,...helpers})
+  } else if(process.env.PORTHOLE_METRIC_RULES_ONLY==='1') {
    const {spanMetricJourney}=await import('./porthole/ingest.mjs')
    await spanMetricJourney({origin,restartWorker,withEmptyDestination,...helpers})
   } else if(process.env.PORTHOLE_SPLUNK_COLLECTOR_ONLY==='1') {
@@ -207,6 +210,8 @@ try {
    const {dashboardJourney}=await import('./porthole/dashboards.mjs')
    await dashboardJourney({origin,cookie,restartWorker,withEmptyDestination,...helpers})
   } else if(process.env.PORTHOLE_API_ONLY==='1') {
+   const {publicDocsJourney}=await import('./porthole/public-docs.mjs')
+   await publicDocsJourney({origin,cookie,...helpers})
    const {apiJourney}=await import('./porthole/api.mjs')
    await apiJourney({origin,cookie,restartWorker,...helpers})
    const {dashboardApiJourney}=await import('./porthole/dashboard-api.mjs')

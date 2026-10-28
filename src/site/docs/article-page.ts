@@ -27,6 +27,7 @@ export function articlePage(doc: Doc, body: Body, docs: Doc[], frame: Frame, rep
   const main = `<div class="docs-layout frame"><aside class="docs-side"><nav class="docs-nav" aria-label="Documentation">${nav}</nav></aside>`
     + `<main id="docs-main" class="docs-main"><details class="docs-menu"><summary>All docs</summary><nav class="docs-nav" aria-label="Documentation menu">${nav}</nav></details>`
     + `<article><header class="docs-title"><p class="eyebrow"><a href="/docs">Docs</a>${NB}·${NB}${escape(doc.group)}</p><h1>${prose(doc.title)}</h1>`
+    + `${doc.version ? `<nav class="docs-version" aria-label="Documentation version"><strong>API v1</strong><a href="/docs/v1">All v1 guides</a><a href="${doc.alias}">Current (v1)</a></nav>` : ''}`
     + `${doc.summary ? `<p class="lead">${prose(doc.summary)}</p>` : ''}<p class="docs-source">Source: <a href="${escape(source)}"><code>${pathHtml(doc.file)}</code></a></p></header>`
     + `${contents ? `<details class="docs-contents-menu"><summary>On this page</summary><nav aria-label="On this page">${contents}</nav></details>` : ''}`
     + `<div class="docs-prose">${body.html}</div><nav class="docs-pager" aria-label="Previous and next">${pager}</nav></article></main>`
