@@ -1,12 +1,13 @@
 import assert from 'node:assert/strict'
 import {createServer} from 'node:http'
 import {readFile,readdir,mkdir} from 'node:fs/promises'
-import {join,resolve} from 'node:path'
+import {join,resolve,relative} from 'node:path'
 import {servedFile} from '@runeditrun/rer/internal/cli/site-check.mjs'
 
 /** Serve the real built assets using the static host's path resolution. */
 export async function publicSite() {
- const root=resolve('dist/site'),files=new Set(await readdir(root,{recursive:true}))
+ const root=resolve('dist/site'),entries=await readdir(root,{recursive:true,withFileTypes:true})
+ const files=new Set(entries.filter(entry=>entry.isFile()).map(entry=>join(relative(root,entry.parentPath),entry.name)))
  const types={'.html':'text/html','.json':'application/json','.css':'text/css','.js':'application/javascript','.svg':'image/svg+xml','.woff2':'font/woff2'}
  const server=createServer(async(request,response)=>{
   try {

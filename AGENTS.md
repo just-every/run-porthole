@@ -176,3 +176,20 @@ Native-session/runtime evidence: https://github.com/runeditrun/base/tree/fa38858
 ## Porthole start
 
 Read root CONTRACT.md and ACCEPTANCE.md before building. Every product clause is missing; this tree is the technical foundation only. Product identity is just-every/porthole; public development is just-every/run-porthole. Research and evidence belong only in private-porthole. Keep the Base default theme until the separate style process. Pin published rer exactly; do not add a local CLI, mocks, fake telemetry or product claims. Preserve ct’s contract wording; only ct changes its clauses. Source authoring uses edition.json and sources.lock.json. Run touched foundation tests and typecheck, with the complete Verify wall in CI.
+
+
+## Lander-Regenerate
+
+This seed still uses the legacy clause shape. Preserve its acceptance text and
+regenerate only the touched clause journeys, all summary counts and the product
+status view before committing. Pass each touched clause ID explicitly:
+
+```sh
+node scripts/porthole/contract-docs.mjs write PORT-075
+node scripts/porthole/contract-docs.mjs check PORT-075
+```
+
+After staging every changed path, regenerate and check the edition source lock
+with `pnpm run source:lock` and `pnpm run source:check`. The public API artifact
+is generated with `node scripts/porthole/public-schema.mjs`; add `--check` to
+verify it without writing.
