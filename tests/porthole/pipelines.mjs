@@ -79,6 +79,21 @@ export async function pipelineJourney({origin,freshOwner,sql,restartWorker,withE
  await pipelineCustody({origin,cookie,sql,restartWorker,withEmptyDestination,planted,source,definition:d,from:query.from,through:query.through,post,value})
  const {pipelineExclusion}=await import('./pipelines-exclusion.mjs')
  await pipelineExclusion({post,value,get,preview,activate,send,d,sql,at:at+1000000n,count:process.env.PORTHOLE_PIPELINE_SCALE==='1'?10000:10})
+ // Existing exact-subject erasure also removes counted projections; a raw
+ // retry after restart must not recreate either the payload or its count.
+ const identifier='synthetic-porthole-12060',eraseId='synthetic-porthole-12061'
+ const eraseInput=await send([JSON.stringify({message:identifier,level:'info'})],eraseId,at+2000000n)
+ await value(await post(intake+'/drain',{}))
+ const metricQuery={definition:d,from:String(at-1n),through:String(at+3000000n)}
+ const countLogs=async()=>{const result=await value(await post(api+'/metrics',metricQuery));return result.groups.filter(g=>g.name==='checkout.logs').reduce((sum,g)=>sum+g.count,0)}
+ const countedBefore=await countLogs(),erasure='/api/porthole/v1/subject-erasure'
+ const erasurePreview=await value(await post(erasure,{identifier}))
+ assert.equal(erasurePreview.records,1);assert.equal(erasurePreview.canApply,true)
+ const erased=await value(await post(erasure+'/apply',{identifier,digest:erasurePreview.digest,confirm:'erase-exact-batches'}))
+ assert.equal(erased.erasedRecords,1);assert.equal(await countLogs(),countedBefore-1,'erased counted log cannot survive in derived totals')
+ await restartWorker();cookie=await freshOwner()
+ assert.equal((await fetch(origin+'/v1/logs',{method:'POST',headers:{authorization:'Bearer '+source.secret,'content-type':'application/json','x-porthole-batch-id':eraseId},body:eraseInput.wire})).status,409,'original capture cannot resurrect an erased person after restart')
+ assert.equal(await countLogs(),countedBefore-1)
  await value(await post('/app/settings/credentials/revoke',{id:source.credential.id,revision:source.credential.revision}))
  const denied=await fetch(origin+'/v1/logs',{method:'POST',headers:{authorization:'Bearer '+source.secret,'content-type':'application/json'},body:'{}'})
  assert.equal(denied.status,401,'revoked source cannot resurrect accepted data')
