@@ -42,3 +42,5 @@ interval and never counts disabled time as a sustained breach. Subject erasure
 invalidates count history only for monitor revisions covering the erased signal
 and scope; unrelated monitor history remains intact. Native installation exports
 retain detailed runs as quarantined history, with no restored evaluation authority.
+Archived run custody remains immutable and inactive when a later erasure journal
+removes the original telemetry. Those retained facts never feed live evaluation.

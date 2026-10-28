@@ -1,4 +1,5 @@
-// Invalidate only monitor history derived from an erased signal and scope.
+// Invalidate live monitor history derived from an erased signal and scope.
+// Archive custody remains immutable and inactive; it never feeds live evaluation.
 // The scoped loss events survive removal of the original envelope bytes.
 export function eraseMonitorHistory(db:D1Database):D1PreparedStatement[] {
  const affected=(objectId:string,revision:string)=>`EXISTS(
@@ -10,6 +11,5 @@ export function eraseMonitorHistory(db:D1Database):D1PreparedStatement[] {
  return [
   db.prepare(`UPDATE porthole_monitor_state AS r SET status='Unknown',last_known_count=NULL,last_known_at=NULL,reason='Local telemetry was erased; prior evidence is incomplete.' WHERE ${affected('r.object_id','r.revision')}`),
   db.prepare(`DELETE FROM porthole_monitor_runs AS r WHERE ${affected('r.object_id','r.revision')}`),
-  db.prepare(`DELETE FROM porthole_archive_health_history AS h WHERE h.table_name='porthole_monitor_runs' AND ${affected("json_extract(h.row,'$.object_id')","json_extract(h.row,'$.revision')")}`),
  ]
 }

@@ -76,12 +76,17 @@ export async function notebookArchiveJourney({origin,freshOwner,withEmptyDestina
 export async function notebookJournalRestoreJourney({origin,freshOwner,withEmptyDestination,source,publicationId,notebookId}) {
  const cookie=await freshOwner(),journal=await value(await get(origin,cookie,'/api/porthole/v1/subject-erasure/journal'))
  assert.ok(journal.records.length>0)
+ const monitorHistory=source.rows.filter(row=>row.table==='porthole_archive_health_history'&&row.row.table_name==='porthole_monitor_runs').map(row=>({row:row.row.row,state:row.row.state})).sort((a,b)=>a.row.localeCompare(b.row))
+ assert.ok(monitorHistory.length>0,'the pre-erasure archive contains actual detailed monitor runs')
  await withEmptyDestination(async destination=>{
   const fresh=await destination.freshOwner()
   await value(await post(destination.origin,fresh,'/api/porthole/v1/subject-erasure/journal',{...journal,confirm:'apply-erasure-journal'}))
   const start=await value(await post(destination.origin,fresh,api+'/restores',{manifest:source.manifest}),201)
   for(const chunk of source.chunks)await value(await post(destination.origin,fresh,`${api}/restores/${start.id}/chunks`,{chunk}))
   await value(await post(destination.origin,fresh,`${api}/restores/${start.id}/commit`,{confirm:source.manifest.rootHash}))
+  const retained=await destination.sql("SELECT row,state FROM porthole_archive_health_history WHERE table_name='porthole_monitor_runs'")
+  assert.deepEqual(retained.sort((a,b)=>a.row.localeCompare(b.row)),monitorHistory,'later erasure preserves immutable inactive monitor custody without aborting restore')
+  assert.equal((await destination.sql('SELECT COUNT(*) AS n FROM porthole_monitor_runs'))[0].n,0,'retained archive history never becomes live evaluation state')
   assert.equal((await destination.sql('SELECT COUNT(*) AS n FROM porthole_notebook_publications'))[0].n,0,'older archive projections are purged against the destination journal before restore commits')
   assert.equal((await destination.sql('SELECT COUNT(*) AS n FROM porthole_telemetry_records WHERE batch_id IN (SELECT id FROM porthole_erased_batches)'))[0].n,0)
   assert.equal((await destination.sql("SELECT COUNT(*) AS n FROM porthole_ingest_batches WHERE id IN (SELECT id FROM porthole_erased_batches) AND wire_base64!=''"))[0].n,0)
