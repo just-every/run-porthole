@@ -239,7 +239,7 @@ try {
    const beforeUpgrade={}
    for(const table of ['porthole_ingest_batches','porthole_telemetry_records','porthole_telemetry_archive'])beforeUpgrade[table]=await sql(`SELECT * FROM ${table} ORDER BY id`)
    await restartWorker(()=>migrate('dist/server/wrangler.json'))
-   for(const [table,rows]of Object.entries(beforeUpgrade))assert.deepEqual(await sql(`SELECT * FROM ${table} ORDER BY id`),rows,'additive profile migration preserves existing '+table)
+   for(const [table,rows]of Object.entries(beforeUpgrade))assert.deepEqual(await sql(`SELECT * FROM ${table} ORDER BY id`),rows.map(row=>table==='porthole_ingest_batches'?{...row,sampling_pending:0,sampling_recoverable:1}:row),'additive migrations preserve existing '+table+' with inactive sampling for direct intake')
    assert.deepEqual(await sql('PRAGMA foreign_key_check'),[])
    console.log('Populated three-signal D1 upgrade passed: original envelopes, retained/archive rows, sequence watermarks and foreign keys preserved')
    const protocol=await otlpProtocolJourney({origin,cookie,persist,restartWorker,withEmptyDestination,...helpers})

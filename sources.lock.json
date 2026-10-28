@@ -294,7 +294,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "638835c337405377fe293d71ad37cea6ddfcb256a219c4196b28bea19229de11",
+      "sha256": "0f5246c1a9bd1cda4409af3be037afbd2401a6c07aa7d9f9ab444b80b247e550",
       "executable": false
     },
     "AGENTS.md": {
@@ -342,7 +342,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "add3d1c3c8669c7b1184a0f61a0aee06376c1bb09b53c595a6cfcc160341374a",
+      "sha256": "7b275cb7451ef249c4ae779f0566353416d1b9138c8f34dd47a268a23c2a6f7b",
       "executable": false
     },
     "DEMO.md": {
@@ -4261,6 +4261,10 @@
       "sha256": "008f812a48f16d543bbe93eac9aa3be186939ba1302779e07396812711253943",
       "executable": false
     },
+    "tests/porthole/analytical-sampling.mjs": {
+      "sha256": "646759ffcffaefa7e6b70f8cd14c3d41125b945b46dc1b982eb6b5b627705e4c",
+      "executable": false
+    },
     "tests/porthole/analytics.mjs": {
       "sha256": "6f476b67296fbae5a96c8d60976853bb89cf5498b5dbfc9a2a966f456a092697",
       "executable": false
@@ -4442,7 +4446,7 @@
       "executable": false
     },
     "tests/runtime.mjs": {
-      "sha256": "5f41d254349950f31b8189a6da3c5c9df8e43ee35c64d187c63de005624c59b5",
+      "sha256": "72a771f3d5680f08b41e2efe30e7b0ac1393ec329bd9dc4e17f90a9c9190d836",
       "executable": false
     },
     "tests/typecheck-checks.mjs": {
