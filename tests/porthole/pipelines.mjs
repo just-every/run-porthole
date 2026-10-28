@@ -40,6 +40,7 @@ export async function pipelineJourney({origin,freshOwner,sql,restartWorker,withE
  assert.equal(grok.results[0].attributes.message,'Checkout order 1042');assert.equal(grok.results[0].attributes.status,'info')
  const multiline=JSON.stringify({level:'info',message:'Checkout unchanged'},null,2)
  assert.equal((await preview(d,[multiline])).results[0].body.stringValue,multiline,'harmless multiline JSON keeps its source formatting')
+ await pipelineBrowser({origin,cookie,definition:d,planted,empty:true})
  const p=await preview(d,bodies)
  assert.equal(p.results.length,3);assert.equal(p.results[0].attributes.status,'info');assert.equal(p.results[1].attributes.status,'error');assert.equal(p.results[2].status,'error');assert.ok(p.results[2].errors.some(e=>e.code==='json_parse_failed'))
  for(const secret of planted)assert.ok(!JSON.stringify(p).includes(secret),'preview masks '+planted.indexOf(secret))
