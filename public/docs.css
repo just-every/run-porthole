@@ -110,7 +110,7 @@ body.docs { margin: 0; background: #fff; color: var(--ink); font: 400 17px/1.6 v
 .docs-prose blockquote { padding: 14px 18px; border: 1px solid var(--helio); border-radius: 10px; background: var(--helio-pale); }
 .docs-prose blockquote > :last-child { margin-bottom: 0; }
 .docs-prose hr { margin-block: 32px; border: 0; border-top: 1px solid var(--line); }
-.docs-prose :not(pre) > code { padding: .06em .32em; border: 1px solid var(--line); border-radius: 5px; background: #f6f5f8; color: var(--ink); font-size: .86em; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+.docs-prose :not(pre) > code { padding: .06em .32em; border: 1px solid var(--line); border-radius: 5px; background: #f6f5f8; color: var(--ink); font-size: max(13px, .86em); -webkit-box-decoration-break: clone; box-decoration-break: clone; }
 .docs-word { white-space: nowrap; }
 
 /* Code: the homepage's terminal ink with the Run page's Copy button. */

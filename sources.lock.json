@@ -810,7 +810,7 @@
       "executable": false
     },
     "public/docs.css": {
-      "sha256": "c1e5752f391feda5c0ab095ee3676bc43d390b191a013a32500dd6d854477dc4",
+      "sha256": "0b6af1f7658a3b4c95d2a223910313fb9675416e1ac04a0ac650486e891fa963",
       "executable": false
     },
     "public/docs/examples/otlp-logs-v1.json": {
