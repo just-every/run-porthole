@@ -104,6 +104,7 @@ jobs:
       - name: Run this shard
         env:
           SHARD: ${{ matrix.name }}
+          GH_TOKEN: ${{ matrix.name == 'ingest' && github.token || '' }}
         run: node scripts/verify-ci.mjs "$SHARD"
 
   verify:
