@@ -69,7 +69,7 @@ export function readDocs(root: string, custody: Custody): Doc[] {
       file, markdown,
       path: `/docs/${product ? 'v1/' : ''}${slug}`,
       version: product ? 'v1' : null,
-      alias: product ? `/docs/${slug}` : null,
+      alias: product ? `/docs/${Object.values(guides).some(guide => guide.slug === slug) ? 'product-' : ''}${slug}` : null,
       title: guide?.title ?? heading(markdown) ?? file,
       summary: guide?.summary ?? null,
       group: product ? 'Product guides' : guide?.group ?? 'Technical reference',
@@ -80,8 +80,10 @@ export function readDocs(root: string, custody: Custody): Doc[] {
   docs.sort((a, b) => groups.indexOf(a.group) - groups.indexOf(b.group) || rank(a) - rank(b) || (a.file < b.file ? -1 : a.file > b.file ? 1 : 0))
   const seen = new Set<string>()
   for (const doc of docs) {
-    if (seen.has(doc.path)) throw new Error(`Two documents publish at ${doc.path}; rename one of them.`)
-    seen.add(doc.path)
+    for (const path of [doc.path, ...(doc.alias ? [doc.alias] : [])]) {
+      if (seen.has(path)) throw new Error(`Two documents publish at ${path}; rename one of them.`)
+      seen.add(path)
+    }
   }
   return docs
 }

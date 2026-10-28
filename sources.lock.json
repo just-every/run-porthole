@@ -4554,7 +4554,7 @@
       "executable": false
     },
     "src/site/docs/catalog.ts": {
-      "sha256": "ccb54802f4e23c441cc280454e9f4d461c9e516c60f9e64bec47ca4c75cc20fb",
+      "sha256": "89c0ee37244880b31a8cc18f6e78c483289f2fc1dbd356350b6fb1ac5726eb4c",
       "executable": false
     },
     "src/site/docs/custody.ts": {
