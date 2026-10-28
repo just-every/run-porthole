@@ -17,7 +17,7 @@ export function scopeWhere(scope: Scope, alias = 'r') {
  return { sql:parts.join(' AND '),args }
 }
 const json = (value:unknown,status=200,headers:Record<string,string>={}) => Response.json(value,{status,headers:{...privateHeaders,...headers}})
-export async function readTelemetry(request: Request, env: Bindings, options: {archive?:boolean;exportOnly?:boolean;recordSnapshot?:boolean;logSearch?:LogSearchPlan;source?:{dialect:string;text:string}} = {}): Promise<Response> {
+export async function readTelemetry(request: Request, env: Bindings, options: {archive?:boolean;exportOnly?:boolean;estimateOnly?:boolean;recordSnapshot?:boolean;logSearch?:LogSearchPlan;source?:{dialect:string;text:string}} = {}): Promise<Response> {
  try {
   const url = new URL(request.url), params = url.searchParams, archive = !!options.archive
   if ([...params.keys()].some(key => !['signal','service','environment','team','from','through','cursor','limit','snapshot','trace','metric','scanLimit'].includes(key))) fail('invalid_query',400)
@@ -63,7 +63,7 @@ export async function readTelemetry(request: Request, env: Bindings, options: {a
    if(signal!=='metrics'||!metric.trim().length||metric.length>120||/[\u0000-\u001f\u007f-\u009f]/u.test(metric)||params.getAll('metric').length!==1)fail('invalid_metric_name',400)
    clauses.push("json_extract(r.payload,'$.metric.name')=?");args.push(metric)
   }
-  if(logSearch&&scanLimit===null){clauses.push(logSearch.sql);args.push(...logSearch.args)}
+  if(logSearch&&scanLimit===null&&!options.estimateOnly){clauses.push(logSearch.sql);args.push(...logSearch.args)}
   if(options.exportOnly)clauses.push('NOT EXISTS(SELECT 1 FROM porthole_export_exclusions e WHERE e.record_id=r.id)')
   clauses.push('r.event_time_ns>=?','r.event_time_ns<=?');args.push(from,through)
   const snapshot = params.has('snapshot') ? Number(params.get('snapshot')) : (await env.DB.prepare("SELECT COALESCE(MAX(completion_sequence),0) AS snapshot FROM porthole_ingest_batches WHERE state='complete'").first<{snapshot:number}>())!.snapshot
@@ -81,11 +81,21 @@ export async function readTelemetry(request: Request, env: Bindings, options: {a
   const select=`SELECT r.* FROM ${table} r JOIN porthole_ingest_batches b ON b.id=r.batch_id WHERE ${clauses.join(' AND ')} AND `
   const queryRef=crypto.randomUUID(),queryScope=JSON.stringify({...Object.fromEntries([...params].filter(([key])=>['service','environment','team','cursor','limit','trace','metric','scanLimit'].includes(key))),...(options.source?{dialect:options.source.dialect,expression:options.source.text}:{})})
   const analytical=await analyticalConfiguration(env)
-  if(analyticalSelected(env,analytical))return await readAnalytical(request,env,analytical,{scope,actorRef,actorRevision,fence,snapshot,queryRef,queryScope,from,through,signal,limit,archive,logSearch:options.logSearch,scanLimit,exportOnly:options.exportOnly,recordSnapshot:options.recordSnapshot})
+  if(analyticalSelected(env,analytical))return await readAnalytical(request,env,analytical,{scope,actorRef,actorRevision,fence,snapshot,queryRef,queryScope,from,through,signal,limit,archive,logSearch:options.logSearch,scanLimit,exportOnly:options.exportOnly,recordSnapshot:options.recordSnapshot,estimateOnly:options.estimateOnly})
   const statement=(live:{sql:string;args:unknown[]})=>scanLimit===null
    ?env.DB.prepare(`${select}${live.sql} ORDER BY r.event_time_ns,r.id LIMIT ?`).bind(...args,...live.args,limit+1)
    :env.DB.prepare(`WITH candidates AS MATERIALIZED (${select}${live.sql} ORDER BY r.event_time_ns,r.id LIMIT ?) SELECT r.*,CASE WHEN ${logSearch?.sql??'1'} THEN 1 ELSE 0 END AS query_match FROM candidates r ORDER BY r.event_time_ns,r.id`).bind(...args,...live.args,scanLimit,...(logSearch?.args??[]))
   const snapshotInsert=(live:{sql:string;args:unknown[]})=>options.recordSnapshot===false?env.DB.prepare('SELECT 1'):env.DB.prepare(`INSERT INTO porthole_query_snapshots SELECT ?,?,?,?,?,?,?,? WHERE ${live.sql}`).bind(queryRef,actorRef,queryScope,signal,from,through,snapshot,Date.now(),...live.args)
+  if(options.estimateOnly){
+   const estimate=(live:{sql:string;args:unknown[]})=>env.DB.prepare(`SELECT COUNT(*) AS candidateRecords,COALESCE(SUM(length(CAST(payload AS BLOB))),0) AS payloadBytes FROM (${select}${live.sql} ORDER BY r.event_time_ns,r.id LIMIT 10001)`).bind(...args,...live.args)
+   let result:D1Result[]
+   if(request.headers.has('authorization')){
+    const measured=await estimate({sql:'1',args:[]}).first<{payloadBytes:number}>()
+    const auth=await verifyCredential(request,env,{action:'telemetry.read',scope:emptyScope,dataScope:allScope,scannedBytes:measured!.payloadBytes,writes(live,latest){if(JSON.stringify(scope)!==JSON.stringify(latest))fail('authority_changed',409);return [estimate(live),snapshotInsert(live)]}});result=auth.results
+   }else result=await env.DB.batch([estimate(fence),snapshotInsert(fence)])
+   const measured=result[0].results[0]as {candidateRecords:number;payloadBytes:number}
+   return json({snapshot,from,through,queryRef,records:[],cursor:null,estimate:{...measured,exact:measured.candidateRecords<=10000,basis:'authorized-candidates-before-log-predicate',measurementCap:10001},coverage:{state:'estimate',complete:false}},200,{'x-porthole-entity':queryRef,'x-porthole-actor':actorRef,'x-porthole-actor-revision':String(actorRevision)})
+  }
   let rows: Record<string,unknown>[]
   if (request.headers.has('authorization')) {
    const estimate=(await statement({sql:'1',args:[]}).all<Record<string,unknown>>()).results

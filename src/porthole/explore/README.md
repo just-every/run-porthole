@@ -206,3 +206,12 @@ retained traces are explicitly Unknown, with retained-only coverage; they prove
 neither healthy operation nor complete sampling. Other joins, databases and
 host commands remain unsupported. Full cross-signal source equivalence remains
 unproved, as do the PORT-086 authorized NRQL and LogQL source catalogs.
+
+`POST /api/porthole/v1/query/estimate` takes the same supported query and returns
+its native plan plus candidate-record and payload-byte measurements inside the
+current authority, range and snapshot, before its log predicate. Explore's
+Estimate scan control uses this door. Measurements examine at most 10,001
+candidates; an exceeded 10,000-record floor is explicitly inexact, a lower bound,
+and never a complete query result. A join estimate describes its bounded left
+candidates and right-side caps, rather than pretending to know the unexecuted
+pair count. There is no invented provider price or optimizer cost.

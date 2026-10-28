@@ -7,13 +7,16 @@ import {aggregateRows} from './aggregate'
 import {executeMetricQuery} from './metric-execute'
 import {executeJoinQuery,type JoinRead} from './join'
 import {queryActor} from './access'
+import {estimateQuery} from './estimate'
 export const queryKeys=['dialect','expression','signal','service','environment','team','from','through','cursor','limit','snapshot','trace','metric','scanLimit']
-export async function executeQuery(request:Request,env:Bindings,data:Record<string,unknown>,options:{exportOnly?:boolean}={}) {
+export async function executeQuery(request:Request,env:Bindings,data:Record<string,unknown>,options:{exportOnly?:boolean;estimateOnly?:boolean}={}) {
  const started=performance.now()
  const normalized=normalizeExploration(data),url=new URL('/api/porthole/v1/ingest/records',request.url)
+ if(options.estimateOnly)return estimateQuery(request,env,normalized)
  if(normalized.metricQuery)return executeMetricQuery(request,env,normalized,options)
  if(normalized.join){
   const actor=await queryActor(request,env)
+  if('signals'in actor.scope&&!['logs','traces'].every(signal=>(actor.scope.signals as string[]).includes(signal)))fail('credential_scope_forbidden')
   const read:JoinRead=(parameters,extra={})=>{
    const url=new URL('/api/porthole/v1/ingest/records',request.url)
    for(const[key,value]of Object.entries(parameters))url.searchParams.set(key,String(value))

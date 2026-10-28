@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 /** Retained log and trace correlation uses only actual public intake records. */
-export async function queryJoinJourney({origin,cookie,call,backend}){
+export async function queryJoinJourney({origin,cookie,call,backend,pauseNextQuery}){
  const post=(path,body,headers={cookie})=>call(path,{method:'POST',headers:{origin,'content-type':'application/json',...headers},body:JSON.stringify(body)})
  const value=async(response,status=200)=>{assert.equal(response.status,status,await response.clone().text());return response.json()}
  const scope={services:['checkout','billing'],environments:['query-join'],teams:['commerce','payments'],signals:['logs','traces'],actions:['telemetry.write']}
@@ -20,6 +20,16 @@ export async function queryJoinJourney({origin,cookie,call,backend}){
  const bounded=await value(await post('/api/porthole/v1/query',{...query,from:String(time+1n)},headers));assert.equal(bounded.records.length,0,'the right side cannot cross the original time boundary to invent a pair')
  const run=await value(await post('/api/porthole/v1/query/runs',{query,scanLimit:1},headers),201),root='/api/porthole/v1/query/runs/'+run.id
  const stopped=await value(await post(root+'/cancel',{revision:run.revision},headers));assert.equal(stopped.state,'canceled');assert.deepEqual((await value(await post(root+'/advance',{revision:stopped.revision},headers))).records,[])
+ if(pauseNextQuery){
+  const active=await value(await post('/api/porthole/v1/query/runs',{query,scanLimit:1},headers),201),path='/api/porthole/v1/query/runs/'+active.id,gate=pauseNextQuery()
+  const advancing=post(path+'/advance',{revision:active.revision},headers)
+  try{
+   await Promise.race([gate.entered,new Promise((_,reject)=>{const timer=setTimeout(()=>reject(Error('join did not reach actual analytical trace read')),10000);timer.unref()})])
+   const cancel=await value(await post(path+'/cancel',{revision:active.revision},headers));assert.equal(cancel.state,'canceled')
+  }finally{gate.release()}
+  const late=await advancing;assert.equal(late.status,409,'canceling an executing join prevents its actual late provider result from escaping');assert.equal((await late.json()).error,'query_run_changed')
+  const final=await value(await call(path,{headers}));assert.equal(final.state,'canceled');assert.equal(final.coverage.matchedRecords,0)
+ }
  for(const expression of [query.expression+" OR team='payments'",query.expression+'; DELETE FROM logs',"SELECT * FROM logs JOIN traces ON logs.trace_id = traces.trace_id WHERE team='payments'"]){const response=await post('/api/porthole/v1/query',{...query,expression},headers);assert.ok([400,403].includes(response.status))}
  const exportResponse=await call(first.replay+'/export',{headers});assert.equal(exportResponse.status,200);const exported=(await exportResponse.text()).trim().split('\n').map(JSON.parse);assert.equal(exported[1].record.right.id,traceBatch+':0')
  const logOnly=await value(await post('/app/settings/credentials/mint',{name:'Correlation log-only reader',class:'read',scope:{services:['checkout'],environments:['query-join'],teams:['commerce'],signals:['logs'],actions:['telemetry.read']}}),201)

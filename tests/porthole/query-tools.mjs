@@ -4,6 +4,9 @@ export async function queryToolsJourney({origin,cookie,call,base,snapshot,header
  const post=(path,body,auth=headers)=>call(path,{method:'POST',headers:{origin,'content-type':'application/json',...auth},body:JSON.stringify(body)})
  const value=async(response,status=200)=>{assert.equal(response.status,status,await response.clone().text());return response.json()}
  const query={...base,snapshot,limit:2,scanLimit:2}
+ const estimate=await value(await post('/api/porthole/v1/query/estimate',{...base,snapshot}))
+ assert.equal(estimate.estimate.candidateRecords,9);assert.equal(estimate.estimate.exact,true);assert.ok(estimate.estimate.payloadBytes>0);assert.equal(estimate.coverage.complete,false);assert.deepEqual(estimate.records,[])
+ assert.equal((await post('/api/porthole/v1/query/estimate',{...base,expression:'service:billing'})).status,403)
  let cursor,rows=[],emptyPartial=false,scanned=0,first
  do{
   const page=await value(await post('/api/porthole/v1/query',{...query,...(cursor?{cursor}:{})}))

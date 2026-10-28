@@ -91,7 +91,7 @@ export async function observabilityAgentJourney({origin,cookie,freshOwner}) {
 }
 
 /** One corpus journey runs through the product with each real query backend. */
-export async function nativeLogSearchJourney({origin,cookie,call=(path,options)=>fetch(origin+path,options),backend='local',screens=true}) {
+export async function nativeLogSearchJourney({origin,cookie,call=(path,options)=>fetch(origin+path,options),backend='local',screens=true,pauseNextQuery}) {
  const {logSearchPacket,logSearchCases,logSearchExpression}=await import('./log-search-corpus.mjs')
  const post=(path,body,headers={cookie})=>call(path,{method:'POST',headers:{origin,'content-type':'application/json',...headers},body:JSON.stringify(body)})
  const value=async(response,status=200)=>{assert.equal(response.status,status,await response.clone().text());return response.json()}
@@ -144,7 +144,7 @@ export async function nativeLogSearchJourney({origin,cookie,call=(path,options)=
  const {metricQueryJourney}=await import('./metric-query.mjs')
  const metric=await metricQueryJourney({origin,cookie,call,backend})
  const {queryJoinJourney}=await import('./query-join.mjs')
- const joinQuery=await queryJoinJourney({origin,cookie,call,backend})
+ const joinQuery=await queryJoinJourney({origin,cookie,call,backend,pauseNextQuery})
  if(screens)await logSearchBrowser({origin,cookie,base,snapshot,expected:expectedIds([0,5,6]),expression:logSearchExpression,call,backend,metric,joinQuery})
  await value(await post('/app/settings/credentials/revoke',{id:reader.credential.id}))
  assert.equal((await query({expression:logSearchExpression,snapshot})).status,401)
@@ -187,6 +187,7 @@ async function logSearchBrowser({origin,cookie,base,snapshot,expected,expression
   await capture('last-page')
   await page.goto(origin+'/app/explore/history');await page.getByRole('heading',{name:'Query history',exact:true}).waitFor();assert.ok(await page.getByRole('link',{name:/logs ·/}).count());await capture('history')
   const fillEditor=async(environment=base.environment)=>{await page.goto(origin+'/app/explore');await page.getByLabel('Service',{exact:true}).fill('checkout');await page.getByLabel('Environment',{exact:true}).fill(environment);await page.getByLabel('Team',{exact:true}).fill(base.team);await page.getByText('Text query',{exact:true}).click()}
+  await fillEditor();await page.getByLabel('Dialect',{exact:true}).selectOption('lucene');await page.getByLabel('Expression',{exact:true}).fill(expression);await page.getByText('Query tools',{exact:true}).click();await page.getByRole('button',{name:'Estimate scan',exact:true}).click();await page.getByRole('heading',{name:'Query estimate',exact:true}).waitFor();const estimated=JSON.parse(await page.locator('pre').innerText());assert.equal(estimated.estimate.candidateRecords,10);assert.equal(estimated.coverage.complete,false);await capture('estimate')
   await fillEditor();await page.getByLabel('Dialect',{exact:true}).selectOption('lucene');await page.getByLabel('Expression',{exact:true}).fill('service:checkout');await page.getByText('Query tools',{exact:true}).click();await page.getByLabel('Candidates per page',{exact:true}).fill('200');await page.getByRole('button',{name:'Discover attributes',exact:true}).click();await page.getByRole('heading',{name:'Observed attributes',exact:true}).waitFor();assert.ok(JSON.parse(await page.locator('pre').innerText()).attributes.some(row=>row.path==='http.status_code'&&row.types.includes('string')));await capture('schema')
   await fillEditor();await page.getByLabel('Dialect',{exact:true}).selectOption('lucene');await page.getByLabel('Expression',{exact:true}).fill(expression);await page.getByText('Query tools',{exact:true}).click();await page.getByLabel('Candidates per page',{exact:true}).fill('2');await page.getByRole('button',{name:'Prepare bounded run',exact:true}).click();await page.getByRole('heading',{name:'Bounded query run',exact:true}).waitFor();assert.equal(JSON.parse(await page.locator('pre').innerText()).state,'ready');await capture('run-ready')
   await page.getByRole('button',{name:'Read next candidate page',exact:true}).click();assert.equal(JSON.parse(await page.locator('pre').innerText()).state,'partial');await capture('run-partial');await page.getByRole('button',{name:'Cancel query',exact:true}).click();assert.equal(JSON.parse(await page.locator('pre').innerText()).state,'canceled');await capture('run-canceled')

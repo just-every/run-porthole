@@ -99,10 +99,16 @@ export async function analyticalEstate() {
  const execute=promisify(execFile),root=process.cwd(),scratch=await mkdtemp(join(tmpdir(),'porthole-connection-')),servers=[]
  const wrangler=join(root,'node_modules/wrangler/bin/wrangler.js'),env={...process.env,CI:'1',WRANGLER_SEND_METRICS:'false'}
  const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms))
+ let heldQuery=null
+ const pauseNextQuery=()=>{
+  assert.equal(heldQuery,null);let entered,release
+  const gate={entered:new Promise(resolve=>entered=resolve),released:new Promise(resolve=>release=resolve),arrive:()=>entered(),release:()=>{release();if(heldQuery===gate)heldQuery=null}}
+  heldQuery=gate;return gate
+ }
  async function port(){const server=createServer();await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));const value=server.address().port;await new Promise(resolve=>server.close(resolve));return value}
  async function start(server){server.output='';server.child=spawn(process.execPath,[wrangler,'dev','--local','--config',server.config,'--persist-to',server.persist,'--port',String(server.port),'--inspector-port','0','--ip','127.0.0.1','--var',`ANALYTICS_TOKEN:${server.token}`],{cwd:scratch,env,stdio:['ignore','pipe','pipe']});const record=chunk=>server.output=(server.output+chunk).slice(-5000);server.child.stdout.on('data',record);server.child.stderr.on('data',record);for(let i=0;i<120;i++){if(server.child.exitCode!==null)throw Error('analytical_process_exited');try{if((await fetch(server.origin+'/health')).ok)return}catch{}await pause(250)}throw Error('analytical_process_not_ready')}
  async function stop(server){if(server.child?.exitCode===null){const exited=new Promise(resolve=>server.child.once('exit',resolve));server.child.kill('SIGTERM');await exited}}
- async function dispose(){for(const server of servers)await stop(server);await rm(scratch,{recursive:true,force:true})}
+ async function dispose(){heldQuery?.release();for(const server of servers)await stop(server);await rm(scratch,{recursive:true,force:true})}
  try{
   await cp(join(root,'workers/analytics'),join(scratch,'workers/analytics'),{recursive:true,filter:path=>!path.includes('/.staged')&&!path.includes('/.state')})
   for(const product of await stageAnalytics(scratch)){
@@ -110,9 +116,16 @@ export async function analyticalEstate() {
    await execute(process.execPath,[wrangler,'d1','migrations','apply','DB','--local','--config',server.config,'--persist-to',server.persist],{cwd:scratch,env});await start(server)
   }
   const find=role=>servers.find(server=>server.role===role)
-  const services=Object.fromEntries(servers.map(server=>['ANALYTICS_'+server.role.toUpperCase(),async request=>{const response=await fetch(server.origin+new URL(request.url).pathname,{method:request.method,headers:request.headers,...(request.method==='POST'?{body:Buffer.from(await request.arrayBuffer())}:{}),redirect:'manual',signal:request.signal});if(!response.ok)console.log('Analytical process '+server.role+' '+new URL(request.url).pathname+' HTTP '+response.status+' '+String((await response.clone().json()).error));return response}]))
+  const services=Object.fromEntries(servers.map(server=>['ANALYTICS_'+server.role.toUpperCase(),async request=>{
+   const path=new URL(request.url).pathname,body=request.method==='POST'?Buffer.from(await request.arrayBuffer()):undefined
+   const response=await fetch(server.origin+path,{method:request.method,headers:request.headers,...(body?{body}:{}),redirect:'manual',signal:request.signal})
+   // This network edge delays an actual Worker response after its real read.
+   // It never substitutes telemetry, storage, authority or query evaluation.
+   if(heldQuery&&path==='/v1/query'&&JSON.parse(body).signal==='traces'){const gate=heldQuery;heldQuery=null;gate.arrive();await gate.released}
+   if(!response.ok)console.log('Analytical process '+server.role+' '+path+' HTTP '+response.status+' '+String((await response.clone().json()).error));return response
+  }]))
   const bindings=Object.fromEntries(servers.map(server=>['ANALYTICS_'+server.role.toUpperCase()+'_TOKEN',server.token]))
-  return {bindings,services,stop:role=>stop(find(role)),start:role=>start(find(role)),dispose,origin:role=>find(role).origin}
+  return {bindings,services,pauseNextQuery,stop:role=>stop(find(role)),start:role=>start(find(role)),dispose,origin:role=>find(role).origin}
  }catch(error){await dispose();throw error}
 }
 
@@ -282,7 +295,7 @@ export async function analyticalConnectionJourney() {
     }})
    } finally {await destination.dispose()}
    const {nativeLogSearchJourney}=await import('./explore.mjs')
-   await nativeLogSearchJourney({origin,cookie:nextOwner,call,backend:'analytical'})
+   await nativeLogSearchJourney({origin,cookie:nextOwner,call,backend:'analytical',pauseNextQuery:estate.pauseNextQuery})
    const candidate=(await promisify(execFile)('git',['rev-parse','HEAD'])).stdout.trim()
    console.log('PORTHOLE_ANALYTICAL_RUN '+JSON.stringify({runId:'sx-porthole-c7-recovery-20261022',head:candidate,result:'passed'}))
    console.log('analyticalConnectionJourney passed: real independent primary/standby processes, product query/health/monitor, collector outage and direct provider-edge notice, behind refusal, explicit failover/failback, bounded 20/3 backlog, original ns and no duplicate records/notices')

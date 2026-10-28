@@ -21,6 +21,7 @@ export async function runResponse(request:Request,env:Bindings):Promise<Response
   if(normalized.metricQuery)fail('metric_run_requires_complete_snapshot',400)
   if(!Number.isSafeInteger(scan)||scan<1||scan>200||!Number.isSafeInteger(timeout)||Number(timeout)<1||Number(timeout)>60000)fail('invalid_query_budget',400)
   if(normalized.join&&scan>20)fail('join_candidate_limit',400)
+  if(normalized.join&&'signals'in actor.scope&&!['logs','traces'].every(signal=>(actor.scope.signals as string[]).includes(signal)))fail('credential_scope_forbidden')
   if(normalized.logSearch)compileLogSearch(normalized.logSearch,actor.scope)
   for(const [field,key]of [['service','services'],['environment','environments'],['team','teams']]as const){const value=normalized.parameters[field];if(value!==undefined&&!actor.scope[key].includes('*')&&!actor.scope[key].includes(String(value)))fail('scope_forbidden')}
   if(!['logs','metrics','traces','profiles'].includes(String(normalized.parameters.signal)))fail('signal_required',400)

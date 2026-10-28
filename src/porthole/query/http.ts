@@ -13,7 +13,7 @@ import {editor,results,runPage} from './page'
 const root='/api/porthole/v1/query',uuid='[a-f0-9-]{36}'
 export async function queryResponse(request:Request,env:Bindings):Promise<Response|null>{
  const url=new URL(request.url),page=url.pathname.startsWith('/app/explore'),path=page?url.pathname.replace('/app/explore',root):url.pathname
- if(path!==root&&!new RegExp(`^${root}/(?:history|schema|runs(?:/${uuid}(?:/(?:advance|cancel))?)?|${uuid}(?:/export)?)$`).test(path))return null
+ if(path!==root&&!new RegExp(`^${root}/(?:history|schema|estimate|runs(?:/${uuid}(?:/(?:advance|cancel))?)?|${uuid}(?:/export)?)$`).test(path))return null
  try{
   if(page&&request.headers.has('authorization'))fail('native_session_required')
   const actor=await queryActor(request,env)
@@ -38,7 +38,7 @@ export async function queryResponse(request:Request,env:Bindings):Promise<Respon
   }else if(request.method==='GET'&&new RegExp(`^${uuid}$`).test(id)){if(url.search)fail('invalid_query',400);data=await snapshotInput(env,id)}
   else if(page&&request.method==='GET'){if([...url.searchParams.keys()].some(key=>!queryKeys.includes(key)))fail('invalid_query',400);data=Object.fromEntries(url.searchParams)}
   else{if(request.method!=='POST'||url.search)fail('invalid_query',400);data=await input(request)}
-  const intent=page?String(data.intent??'query'):path===root+'/schema'?'schema':'query'
+  const intent=page?String(data.intent??'query'):path===root+'/schema'?'schema':path===root+'/estimate'?'estimate':'query'
   if(page)delete data.intent
   const timeoutMs=page?data.timeoutMs:undefined;if(page)delete data.timeoutMs
   if(intent==='prepare'){
@@ -47,11 +47,12 @@ export async function queryResponse(request:Request,env:Bindings):Promise<Respon
    const response=await runResponse(new Request(new URL(runRoot,request.url),{method:'POST',headers,body:JSON.stringify({query:data,...(scanLimit?{scanLimit:Number(scanLimit)}:{}),...(timeoutMs?{timeoutMs:Number(timeoutMs)}:{})})}),env)
    return response.ok?runPage(await response.json()as Record<string,unknown>):response
   }
-  if(!['query','schema'].includes(intent))fail('invalid_query',400)
+  if(!['query','schema','estimate'].includes(intent))fail('invalid_query',400)
   if(intent==='schema')data={...data,limit:200,scanLimit:data.scanLimit||200}
-  const response=await executeQuery(request,env,data,{exportOnly:exported})
+  const response=await executeQuery(request,env,data,{exportOnly:exported,estimateOnly:intent==='estimate'})
   if(!response.ok){if(!page)return response;const error=await response.json()as {error:string;hint?:string};return document('Query unavailable',`<p role="alert">${escape(error.error)}${error.hint?': '+escape(error.hint):''}</p><p><a href="/app/explore">Return to Explore</a></p>`,response.status)}
   const result=await response.json()as Record<string,unknown>
+  if(intent==='estimate')return page?document('Query estimate',`<p><a href="/app/explore">Return to Explore</a></p><p>Authorized candidate work before evaluating predicates. A capped measurement is a lower bound and does not claim complete results.</p><pre>${escape(JSON.stringify(result,null,2))}</pre>`):Response.json(result,{headers:response.headers})
   if(exported){
    const next=result.cursor?root+'/'+id+'/export?'+new URLSearchParams({cursor:String(result.cursor)}):null
    const metadata={type:'query',source:result.source,parameters:result.parameters,plan:result.plan,snapshot:result.snapshot,metricResult:result.metricResult,coverage:result.coverage??{state:next?'partial':'complete'},next}

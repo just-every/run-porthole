@@ -15,7 +15,7 @@ export async function query(db, input) {
  signal(input.signal); object(input.scope); keys(input.scope, ['teams', 'services', 'environments']);
  const from = nano(input.from), through = nano(input.through);
  if (from > through) fail('invalid_query_range');
- if (input.mode !== undefined && !['records', 'count'].includes(input.mode)) fail('invalid_query_mode');
+ if (input.mode !== undefined && !['records', 'count','estimate'].includes(input.mode)) fail('invalid_query_mode');
  if (input.archive !== undefined && typeof input.archive !== 'boolean') fail('invalid_archive');
  const limit = input.limit ?? 100; integer(limit, 1, input.trace ? 2000 : limits.page);
  const scanLimit=input.scanLimit??null;
@@ -52,10 +52,15 @@ export async function query(db, input) {
  if (input.logSearch !== undefined) {
   if (input.signal !== 'logs') fail('invalid_log_search_signal');
   logSearch = compileLogSearch(input.logSearch, input.scope);
-  if(scanLimit===null){clauses.push(logSearch.sql);args.push(...logSearch.args)}
+  if(scanLimit===null&&input.mode!=='estimate'){clauses.push(logSearch.sql);args.push(...logSearch.args)}
  }
  const covered = await coverage(db, input);
  const selection = `FROM analytics_records r JOIN analytics_batches b ON b.id=r.batch_id WHERE ${clauses.join(' AND ')}`;
+ if(input.mode==='estimate'){
+  const estimate=await db.prepare(`SELECT COUNT(*) AS candidateRecords,COALESCE(SUM(length(CAST(payload AS BLOB))),0) AS payloadBytes FROM (SELECT r.payload ${selection} ORDER BY r.event_time_ns,r.id LIMIT 10001)`).bind(...args).first();
+  await coverage(db,input);
+  return {...covered,snapshot,from,through,records:[],cursor:null,estimate:{...estimate,exact:estimate.candidateRecords<=10000,basis:'authorized-candidates-before-log-predicate',measurementCap:10001},coverage:{state:'estimate',complete:false}};
+ }
  if(scanLimit!==null){
   const result=await db.prepare(`WITH candidates AS MATERIALIZED (SELECT r.* ${selection} ORDER BY r.event_time_ns,r.id LIMIT ?) SELECT r.*,CASE WHEN ${logSearch?.sql??'1'} THEN 1 ELSE 0 END AS query_match FROM candidates r ORDER BY r.event_time_ns,r.id`).bind(...args,scanLimit,...(logSearch?.args??[])).all();
   const candidates=result.results,last=candidates.at(-1),next=candidates.length===scanLimit&&last?btoa(JSON.stringify([last.event_time_ns,last.id])).replaceAll('+','-').replaceAll('/','_').replaceAll('=',''):null;
