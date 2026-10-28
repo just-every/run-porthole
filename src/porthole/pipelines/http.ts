@@ -48,7 +48,7 @@ export async function pipelineResponse(request:Request,env:Bindings):Promise<Res
    const expiresAt=Date.now()+300000
    const inserted=await env.DB.prepare(`INSERT INTO porthole_pipeline_previews(id,operator_id,session_id,definition,expected_revision,digest,expires_at) SELECT ?,?,?,?,?,?,? WHERE ${actor.fence} AND COALESCE((SELECT MAX(revision) FROM porthole_pipeline_versions),0)=?`).bind(id,actor.member.operatorId,actor.session.id,canonical(d),expectedRevision,digest,expiresAt,...actor.args,expectedRevision).run()
    if(!inserted.meta.changes)fail('pipeline_revision_changed',409)
-   const preview={id,digest,definition:d,results,expectedRevision,expiresAt,impact:{samples:results.length,excluded:results.filter(r=>(r as Record<string,unknown>).excluded).length,appliesTo:'newly accepted matching logs only',deletesExisting:false}}
+   const preview={id,digest,definition:d,results,expectedRevision,expiresAt,impact:{samples:results.length,excluded:results.filter(r=>(r as Record<string,unknown>).excluded).length,appliesTo:'newly accepted matching logs',masking:'newly accepted matching logs and spans',deletesExisting:false}}
    return html?page({...view,preview}):json(preview,201)
   }
   if(activation) {
