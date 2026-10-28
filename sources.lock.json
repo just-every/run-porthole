@@ -4398,7 +4398,7 @@
       "executable": false
     },
     "src/porthole/portability/format.ts": {
-      "sha256": "a6bb645f959d2662a040e0397d2ad398f98d5ee01213d808beace28badaae589",
+      "sha256": "a24974c63b787499249115f1e814f346b76503075ed6b81e0b9c0b2cb5bf38b3",
       "executable": false
     },
     "src/porthole/portability/health-history.ts": {
@@ -4414,7 +4414,7 @@
       "executable": false
     },
     "src/porthole/portability/relations.ts": {
-      "sha256": "4f99480a81a0d037bdf5138304d898abb23ee9649827d6b65018ebaaec675460",
+      "sha256": "2ef205f39da6cb4539d9b8b5ba09b65490ac7781ec43a52d9726f7a1d3c6822d",
       "executable": false
     },
     "src/porthole/portability/restore.ts": {
