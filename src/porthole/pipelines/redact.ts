@@ -95,7 +95,7 @@ export function sanitize<T>(input: T, rules: RedactionRule[] = []): T {
    const clean = string(key, custom)
    let unique = clean, collision = 1
    while (Object.hasOwn(result, unique)) unique = `${clean}_${collision++}`
-   result[unique] = secretKey.test(key) ? mask : visit(child, depth + 1)
+   result[unique] = key === 'value' && typeof (value as Record<string,unknown>).key === 'string' && secretKey.test(String((value as Record<string,unknown>).key)) ? {stringValue:mask} : secretKey.test(key) ? mask : visit(child, depth + 1)
   }
   return result
  }

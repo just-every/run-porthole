@@ -140,13 +140,13 @@ export async function validateRow(payload: PortableRow, state: Validation): Prom
  } else if(item.table==='porthole_ingest_batches') {
   required('id','source_id','identity','protocol'); if(!str(row.wire_base64))bad();try{atob(String(row.wire_base64))}catch{return bad()}; if(!['traces','metrics','logs','profiles'].includes(String(row.signal))||!hex(row.digest)||!integer(row.accepted_at)||!integer(row.byte_count)||!integer(row.record_count)||!integer(row.sequence,1)||row.completion_sequence!==null&&!integer(row.completion_sequence,1)||!['pending','complete'].includes(String(row.state))||row.completed_at!==null&&!integer(row.completed_at))bad()
   const records=json(row.records);if(!Array.isArray(records)||records.length!==row.record_count)bad()
-  if(String(row.protocol).endsWith(';stored=porthole.sanitized-log-envelope.v1')) {
-   if(row.signal!=='logs')bad()
+  if(/;stored=porthole\.sanitized-(?:log|trace)-envelope\.v1$/.test(String(row.protocol))) {
+   if(!['logs','traces'].includes(String(row.signal)))bad()
    // This envelope holds sanitized custody bytes. Its digest deliberately
    // identifies the original source wire and must not be recomputed here.
    try {
     const stored=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(Uint8Array.from(atob(String(row.wire_base64)),c=>c.charCodeAt(0))))
-    if(!object(stored)||Object.keys(stored).sort().join(',')!=='format,records'||stored.format!=='porthole.sanitized-log-envelope.v1'||canonicalTelemetry(stored.records)!==canonicalTelemetry(records))bad()
+    if(!object(stored)||Object.keys(stored).sort().join(',')!=='format,records'||stored.format!==(row.signal==='logs'?'porthole.sanitized-log-envelope.v1':'porthole.sanitized-trace-envelope.v1')||canonicalTelemetry(stored.records)!==canonicalTelemetry(records))bad()
    }catch{return bad()}
   }
   if(row.state==='pending'&&(row.completed_at!==null||row.completion_sequence!==null)||row.state==='complete'&&(!integer(row.completed_at)||!integer(row.completion_sequence,1)))bad()

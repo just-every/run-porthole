@@ -390,7 +390,7 @@
       "executable": false
     },
     "docs/log-pipelines.md": {
-      "sha256": "e03ef0f618bcc739a4a9778d12ddac0c861e6fcf5c09875cbca08425ffdfff58",
+      "sha256": "97bf774c2c1fba4a26fa7e69b2b26647cd992a32d6afd886426ec9c7b0799c07",
       "executable": false
     },
     "docs/LOOK.md": {
@@ -4134,7 +4134,7 @@
       "executable": false
     },
     "src/porthole/ingest/store.ts": {
-      "sha256": "3cc2e31294965085fca07c9c11d056c9e4fcea0bab76b2e364eabbb94ec1e156",
+      "sha256": "826f8767b90e4263c91037a19aa2f1debc4e60334071edd232a7fb90f4de3944",
       "executable": false
     },
     "src/porthole/ingest/vendor.ts": {
@@ -4374,7 +4374,7 @@
       "executable": false
     },
     "src/porthole/pipelines/intake.ts": {
-      "sha256": "aa8cf7ce2392fe2b53f296bdcd2f0d4080a181b3cd2176ab77825fd4f3165db8",
+      "sha256": "aec7a603d144b5ae15939dc8d116e7ad4c3a6979666d44c6ed911d060765090e",
       "executable": false
     },
     "src/porthole/pipelines/model.ts": {
@@ -4386,7 +4386,7 @@
       "executable": false
     },
     "src/porthole/pipelines/redact.ts": {
-      "sha256": "0dc7b63b0abc25c2e0b5e5c7d9250283896dc6f41b035f171aa36cac098f603e",
+      "sha256": "199c8e268633b4d06bdc64fd7a1b239784216e2d9adb40584fe3d2431da628b7",
       "executable": false
     },
     "src/porthole/portability/catalog.ts": {
@@ -4394,7 +4394,7 @@
       "executable": false
     },
     "src/porthole/portability/format.ts": {
-      "sha256": "47c33fcfb689db403488929410e9f3357a02dbcf6678e02a65d9653409a6e01c",
+      "sha256": "9e4635b17045630dc9d27bd483f7e1fa3487b9d4dad5577c9e4692e05ece0b12",
       "executable": false
     },
     "src/porthole/portability/health-history.ts": {
@@ -4921,8 +4921,12 @@
       "sha256": "c34af73d2db213e294e0dbbc73f14f4f1d2db1bcd05ba98d9507e5e6b21b083b",
       "executable": false
     },
+    "tests/porthole/pipelines-spans.mjs": {
+      "sha256": "2c0d162e6e33a96d2fd1dc1fa34ee22d01151a0c1b5b60d489b24115ec7e4d72",
+      "executable": false
+    },
     "tests/porthole/pipelines.mjs": {
-      "sha256": "fd595a389ca7b9fd289ced6d37256f475860d023b451c037172c2c82a6473568",
+      "sha256": "c0e07c54d35848f622dd0cd2cd38b2681e7701da2c46c694fbdbd427c99cfb04",
       "executable": false
     },
     "tests/porthole/polyglot/estate.mjs": {
@@ -4974,7 +4978,7 @@
       "executable": false
     },
     "tests/porthole/stock-ingest.mjs": {
-      "sha256": "20be235fccd11e7bed5312ae7b15d84bad47048dd0beb611733749bf79e4778e",
+      "sha256": "dfe038040159d53ee885a1a8779a14bf3f9ab855f0cb1795205860395aa79e3a",
       "executable": false
     },
     "tests/porthole/terraform.mjs": {

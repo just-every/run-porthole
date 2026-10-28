@@ -30,7 +30,7 @@ This native subset is not a claim of complete Datadog processor equivalence.
 Processor errors retain sanitized input and diagnostic codes. Errors, critical
 statuses, severe source logs and malformed records are protected from exclusion.
 
-Mandatory US SSN, card and phone masks apply before the durable envelope write,
+Mandatory US SSN, card and phone masks apply to newly accepted logs and spans before the durable envelope write,
 including failed parsing. Other conservative key, token, address and network
 identifier masks also apply. Custom `redaction` rules accept exact-width
 literals, character classes and bounded exact repetitions. Groups, alternatives
@@ -38,7 +38,7 @@ and variable repetitions refuse. Exact custom exceptions cannot override the
 mandatory masks. Credentials are never checked with an external service.
 
 The original source-wire digest continues to identify retry and erasure. Stored
-log wire is a labeled sanitized JSON envelope; it is not the original transport
+log and trace wire is a labeled sanitized JSON envelope; it is not the original transport
 capture. Pipeline revisions are fixed at acceptance, so a pending queue and a
 later retry cannot apply a newer parser to an accepted record.
 

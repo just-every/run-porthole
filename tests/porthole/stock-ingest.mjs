@@ -55,7 +55,7 @@ async function forwardingProxy(origin) {
   close:async()=>{await new Promise((resolve,reject)=>{server.close(error=>error?reject(error):resolve());server.closeAllConnections()});captures.clear()},
  }
 }
-const sourceProtocol=protocol=>protocol.replace(/;stored=porthole\.sanitized-log-envelope\.v1$/,'')
+const sourceProtocol=protocol=>protocol.replace(/;stored=porthole\.sanitized-(?:log|trace)-envelope\.v1$/,'')
 function config({origin,otlpPort,lokiPort}) {
  return `logging {
  level = "info"

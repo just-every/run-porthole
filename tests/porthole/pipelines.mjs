@@ -68,6 +68,8 @@ export async function pipelineJourney({origin,freshOwner,sql,restartWorker,withE
  assert.equal((await post(api+'/preview',{definition:d,revision:1})).status,409)
  assert.equal((await sql('SELECT COUNT(*) AS n FROM porthole_telemetry_records'))[0].n,before,'invalid stale changes delete nothing')
  await pipelineBrowser({origin,cookie,definition:d,planted})
+ const {pipelineSpanPrivacy}=await import('./pipelines-spans.mjs')
+ await pipelineSpanPrivacy({origin,cookie,sql,definition:d,post,value,planted,at})
  await pipelineCustody({origin,cookie,sql,restartWorker,withEmptyDestination,planted,source,definition:d,from:query.from,through:query.through,post,value})
  const {pipelineExclusion}=await import('./pipelines-exclusion.mjs')
  await pipelineExclusion({post,value,get,preview,activate,send,d,sql,at:at+1000000n,count:process.env.PORTHOLE_PIPELINE_SCALE==='1'?10000:10})

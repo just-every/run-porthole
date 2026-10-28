@@ -1,4 +1,4 @@
-import { current, processed, storedLogWire } from '../pipelines/intake'
+import { current, processed, storedFormat, storedLogWire } from '../pipelines/intake'
 import { sanitize } from '../pipelines/redact'
 import { sha256 } from './model'
 import type { Bindings } from '../../auth.server'
@@ -31,8 +31,8 @@ function check(scope: CredentialScope, signal: string, records: TelemetryRecord[
 export async function acceptEnvelope(request: Request, env: Bindings, envelope: Envelope) {
  const hash = await secretHash((request.headers.get('authorization') ?? '').slice(7)), now = Date.now()
  const originalWireBytes=envelope.wire.length
- const pipeline=envelope.signal==='logs'?await current(env):null
- if(envelope.signal==='logs'&&sanitize(envelope.identity)!==envelope.identity)envelope.identity='masked-'+await sha256(new TextEncoder().encode(envelope.identity))
+ const pipeline=['logs','traces'].includes(envelope.signal)?await current(env):null
+ if(['logs','traces'].includes(envelope.signal)&&sanitize(envelope.identity)!==envelope.identity)envelope.identity='masked-'+await sha256(new TextEncoder().encode(envelope.identity))
  let encodedWire=base64(envelope.wire)
  // Older three-signal installations can intake during their schema upgrade.
  // They cannot have an erasure journal before its additive migration exists.
@@ -43,9 +43,9 @@ export async function acceptEnvelope(request: Request, env: Bindings, envelope: 
    writes(fence,scope) {
     check(scope,envelope.signal,envelope.records); granted = scope
     if(pipeline){
-     envelope.records=envelope.records.map(record=>processed(record,pipeline.definition,pipeline.revision))
-     encodedWire=base64(storedLogWire(envelope.records))
-     envelope.protocol+=';stored=porthole.sanitized-log-envelope.v1'
+     envelope.records=envelope.records.map(record=>processed(record,pipeline.definition,pipeline.revision,envelope.signal==='logs'))
+     encodedWire=base64(storedLogWire(envelope.records,envelope.signal))
+     envelope.protocol+=';stored='+storedFormat(envelope.signal)
     }
     // Resource metadata can be repeated by thousands of records even when
     // the compressed request is small. Bound the durable representation before
