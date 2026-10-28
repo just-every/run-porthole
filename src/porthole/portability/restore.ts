@@ -31,6 +31,7 @@ function rowKey(table:string,row:Record<string,unknown>):string {
  if(table==='porthole_migration_erasure_fences')return String(row.receipt_id)
  if(table==='porthole_migration_custody')return JSON.stringify([row.stream,row.source_table,row.source_key])
  if(table==='porthole_migration_records')return JSON.stringify([row.kind,row.id])
+ if(table==='porthole_monitor_versions')return JSON.stringify([row.object_id,row.revision])
  if(table==='porthole_metric_points')return JSON.stringify([row.rule_id,row.revision,row.batch_id,row.ordinal])
  if(['porthole_metric_rules','porthole_slo_versions','porthole_dashboard_versions','porthole_notebook_versions'].includes(table))return JSON.stringify([row.id,row.revision])
  if(table==='porthole_archive_health_history')return JSON.stringify([row.stream,row.table_name,row.row_key])

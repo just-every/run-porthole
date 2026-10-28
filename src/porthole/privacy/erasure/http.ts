@@ -4,6 +4,7 @@ import { authority, fail, proofFence } from '../../security/authority'
 import { input } from '../../security/input'
 import { digest } from '../../audit/store'
 import { privateHeaders } from '../../document'
+import { eraseMonitorHistory } from '../../monitors/erasure'
 
 const root = '/api/porthole/v1/subject-erasure'
 const json = (value: unknown, status = 200) => Response.json(value,{status,headers:privateHeaders})
@@ -26,6 +27,7 @@ export function eraseJournaledBatches(db: D1Database): D1PreparedStatement[] {
   db.prepare(`DELETE FROM porthole_telemetry_archive WHERE batch_id IN (${erased})`),
   db.prepare(`UPDATE porthole_ingest_batches SET identity='erased:'||id,wire_base64='',records='[]',record_count=0,byte_count=0 WHERE id IN (${erased})`),
   db.prepare("UPDATE porthole_health_receipts SET status='Unknown',expires_at=0,reason='Local telemetry was erased; coverage requires new observation.'"),
+  ...eraseMonitorHistory(db),
   db.prepare("UPDATE porthole_monitor_state SET status='Unknown',reason='Local telemetry was erased; prior evidence is incomplete.'"),
  ]
 }

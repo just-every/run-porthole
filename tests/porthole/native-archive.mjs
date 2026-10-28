@@ -15,7 +15,8 @@ async function clone(name) {
  const directory=join(scratch,name)
  await execute('git',['clone','--quiet','--local','--no-hardlinks',root,directory])
  await execute('git',['-C',directory,'config','user.name','Run Edit Run fleet'])
- await execute('git',['-C',directory,'config','user.email','fixture@example.invalid'])
+ const identity=(await execute('git',['config','--global','user.email'])).stdout.trim()
+ await execute('git',['-C',directory,'config','user.email',identity])
  await symlink(join(root,'node_modules'),join(directory,'node_modules'),'dir')
  return directory
 }
@@ -34,6 +35,8 @@ try {
  // Source-state fixture, not minting evidence: the separate HTTP credential
  // journey proves minting. This command qualifies native archive exclusion.
  await sql(source,`INSERT INTO porthole_credentials(id,name,class,custodian_id,secret_hash,prefix,last_four,scope,created_at,expires_at,requests_per_minute,accepted_bytes_per_minute,scanned_bytes_per_day,usd_micros_per_day) VALUES('${credentialId}','synthetic-porthole-601','read','${owner.id}','${hash}','${secret.slice(0,7)}','${secret.slice(-4)}','${scope}',${now},${now+3600000},600,1048576,1048576,1000000); INSERT INTO porthole_objects VALUES('${objectId}','monitor','synthetic-porthole-602','{"services":["checkout"],"environments":["production"],"teams":["commerce"]}','{"signal":"logs","operator":"above","threshold":2,"windowSeconds":60}',1,'active',${now},${now});`)
+ const runId=randomUUID(),evaluation={monitorId:objectId,revision:1,evaluatedAt:now,status:'Firing',observedCount:3,lastKnownCount:3,lastKnownAt:now,firingEpisode:randomUUID(),reason:'synthetic-porthole-2391',groups:[{key:'[]',labels:{},status:'Firing',lastMeasuredStatus:'Firing',count:3,lastKnownCount:3,pendingSince:null,firingEpisode:null,completeness:'measured',windows:[{windowSeconds:60,count:3,completeness:'measured'}],reason:'synthetic-porthole-2391'}],snapshot:1}
+ await sql(source,`INSERT INTO porthole_monitor_runs VALUES('${runId}','${objectId}',1,${now},'${JSON.stringify(evaluation)}')`)
  const taskId=randomUUID(),taskEvent=randomUUID()
  await sql(source,`INSERT INTO porthole_follow_up(id,source,kind,scope,owner_id,state,reason,next_action,due_at,reminders,created_at,updated_at) VALUES('${taskId}','synthetic-porthole-1600','telemetry','{"services":["checkout"],"environments":["production"],"teams":["commerce"]}','${owner.id}','blocked','synthetic-porthole-1601','synthetic-porthole-1602',${now},1,${now},${now}); INSERT INTO porthole_follow_up_events VALUES('${taskEvent}','${taskId}',1,'review','${owner.id}','synthetic-porthole-1603',${now});`)
  const exportId=randomUUID()
@@ -50,6 +53,13 @@ try {
  await command(destination,['import','--input',file,'--yes'])
  console.log('nativeArchiveJourney: destination import passed')
  assert.equal((await sql(destination,'SELECT COUNT(*) AS n FROM porthole_credentials'))[0].n,0)
+ assert.equal((await sql(destination,'SELECT COUNT(*) AS n FROM porthole_monitor_runs'))[0].n,0,'native restore never activates evaluation state')
+ const history=(await sql(destination,`SELECT row,state FROM porthole_archive_health_history WHERE table_name='porthole_monitor_runs' AND json_extract(row,'$.id')='${runId}'`))
+ assert.equal(history.length,1,'native export retains every detailed monitor run in inactive custody')
+ assert.equal(history[0].state,'quarantined')
+ const retained=JSON.parse(history[0].row)
+ assert.equal(retained.object_id,objectId);assert.equal(retained.revision,1);assert.equal(retained.evaluated_at,now)
+ assert.deepEqual(JSON.parse(retained.result),evaluation,'native restore retains complete group, window and transition detail')
  for(const table of ['porthole_follow_up','porthole_follow_up_events'])assert.equal((await sql(destination,`SELECT COUNT(*) AS n FROM ${table}`))[0].n,0,'native restore never revives follow-up assignments or reminders')
  for(const [table,id]of [['porthole_follow_up',taskId],['porthole_follow_up_events',taskEvent]]){const retained=await sql(destination,`SELECT row,state FROM porthole_archive_health_history WHERE table_name='${table}' AND json_extract(row,'$.id')='${id}'`);assert.ok(retained.length);assert.ok(retained.every(row=>row.state==='quarantined'))}
  assert.equal((await sql(destination,'SELECT COUNT(*) AS n FROM porthole_signal_exports'))[0].n,0,'signal export approvals never revive at the destination')

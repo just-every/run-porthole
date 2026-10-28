@@ -11,11 +11,11 @@ function cursor(value) {
  } catch { fail('invalid_query_cursor'); }
 }
 export async function query(db, input) {
- keys(input, ['sourceIdentity', 'requiredWatermark', 'signal', 'from', 'through', 'scope', 'team', 'service', 'environment', 'limit', 'cursor', 'snapshot', 'archive', 'mode', 'trace', 'metric', 'uncertain', 'logSearch']);
+ keys(input, ['sourceIdentity', 'requiredWatermark', 'signal', 'from', 'through', 'scope', 'team', 'service', 'environment', 'limit', 'cursor', 'snapshot', 'archive', 'mode', 'trace', 'metric', 'uncertain', 'logSearch', 'groupBy']);
  signal(input.signal); object(input.scope); keys(input.scope, ['teams', 'services', 'environments']);
  const from = nano(input.from), through = nano(input.through);
  if (from > through) fail('invalid_query_range');
- if (input.mode !== undefined && !['records', 'count'].includes(input.mode)) fail('invalid_query_mode');
+ if (input.mode !== undefined && !['records', 'count', 'groups'].includes(input.mode)) fail('invalid_query_mode');
  if (input.archive !== undefined && typeof input.archive !== 'boolean') fail('invalid_archive');
  const limit = input.limit ?? 100; integer(limit, 1, input.trace ? 2000 : limits.page);
  const time=input.uncertain?"printf('%020d',CAST(json_extract(r.payload,'$.delivery.receivedTimeUnixNano') AS INTEGER))":'r.event_time_ns';
@@ -53,6 +53,13 @@ export async function query(db, input) {
  }
  const covered = await coverage(db, input);
  const selection = `FROM analytics_records r JOIN analytics_batches b ON b.id=r.batch_id WHERE ${clauses.join(' AND ')}`;
+ if (input.mode === 'groups') {
+  if (!Array.isArray(input.groupBy) || input.groupBy.length > 3 || input.groupBy.some(key => !['service', 'environment', 'team'].includes(key)) || new Set(input.groupBy).size !== input.groupBy.length || input.cursor !== undefined) fail('invalid_query_group');
+  const columns = input.groupBy.map(key => 'r.' + key);
+  const rows = (await db.prepare(`SELECT ${columns.length ? columns.join(',') + ',' : ''}COUNT(*) AS count ${selection}${columns.length ? ' GROUP BY ' + columns.join(',') : ''} LIMIT 101`).bind(...args).all()).results;
+  await coverage(db, input);
+  return { ...covered, snapshot, from, through, groups: rows.slice(0, 100), complete: rows.length <= 100 };
+ }
  if (input.mode === 'count') {
   const row = await db.prepare(`SELECT COUNT(*) AS count ${selection}`).bind(...args).first();
   await coverage(db, input);

@@ -7,7 +7,7 @@ export type Role=typeof roles[number]
 export interface Configuration {source_identity:string;enabled:number;active_role:Role;revision:number;changed_at:number;configured_by:string|null;configurer_revision:number;configurer_version:number;live:number}
 export interface Coverage {requiredWatermark?:number;sourceIdentity:string|null;watermark:number;highestSequence:number;lastAcceptedAt:number|null;lastQueryableAt:number|null;recordCount:number;batchCount:number;stopped?:boolean}
 export interface AnalyticalRecord {id:string;batch_id:string;source_id:string;signal:string;team:string;service:string;environment:string;event_time_ns:string;trace_id:string|null;span_id:string|null;payload:Record<string,unknown>;indexed_at:number;late:number;out_of_order:number}
-export interface Query extends Record<string,unknown> {signal:string;from:string;through:string;scope:Scope;snapshot?:number;limit?:number;mode?:'records'|'count';trace?:string;uncertain?:boolean}
+export interface Query extends Record<string,unknown> {signal:string;from:string;through:string;scope:Scope;snapshot?:number;limit?:number;mode?:'records'|'count'|'groups';trace?:string;uncertain?:boolean}
 export async function configuration(env:Bindings):Promise<Configuration> {
  const row=await env.DB.prepare(`SELECT c.*,EXISTS(SELECT 1 FROM porthole_members m JOIN oa_operators o ON o.id=m.operator_id WHERE m.operator_id=c.configured_by AND m.role='owner' AND o.role='owner' AND o.status='active' AND m.revision=c.configurer_revision AND o.version=c.configurer_version) AS live FROM porthole_analytical_configuration c WHERE singleton=1`).first<Configuration>()
  if(!row)fail('analytics_configuration_unavailable',503)
@@ -47,7 +47,7 @@ export async function coverage(env:Bindings,config:Configuration,role=config.act
 export async function query(env:Bindings,config:Configuration,input:Query) {
  requireEnabled(config)
  const required=await watermark(env)
- return rpc<Coverage&{records:AnalyticalRecord[];count:number;cursor:string|null;snapshot:number}>(env,config.active_role,'/v1/query',{sourceIdentity:config.source_identity,requiredWatermark:required,...input})
+ return rpc<Coverage&{records:AnalyticalRecord[];count:number;groups:({count:number}&Partial<Record<'service'|'environment'|'team',string>>)[];complete:boolean;cursor:string|null;snapshot:number}>(env,config.active_role,'/v1/query',{sourceIdentity:config.source_identity,requiredWatermark:required,...input})
 }
 export async function reconcile(env:Bindings) {
  const config=await configuration(env)
