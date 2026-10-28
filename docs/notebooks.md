@@ -38,8 +38,8 @@ notebook mutation doors. Ordinary native telemetry reads remain separately
 authorized. Broader sharing restoration and derived retention qualification
 remain open; this feature adds no deletion, expiry or outbound authority.
 
-Reviewed sanitized external publication, service-change links, broader alert
-integration and imported source-notebook continuity are not implemented. The
+Service-change links, broader alert integration and imported source-notebook
+continuity are not implemented. The
 ten authorized Datadog source notebooks and durable referenced trace evidence
 are still required by PORT-039, PORT-048 and PORT-090. No source-retirement or
 full notebook-continuity claim follows from the native notebook journey.
@@ -53,3 +53,30 @@ selects retained context. Every mutation includes the current `revision`.
 The `cells`, `reorder`, `rerun` and `comment` actions save new revisions;
 `share` and `unshare` manage private grants. Bearer telemetry credentials
 are refused on all notebook doors.
+
+## Reviewed external snapshots
+
+From **Sharing Settings**, open **Reviewed external publication Settings**.
+A current native owner with fresh identity proof can select numeric query and
+chart cells, write a new public title and sanitized summary, and supply public
+labels and the exact source units. The preview preserves cell order and original
+absolute bounds. It excludes notebook text, comments, mentions, authors, query
+expressions, record payloads and private object links. Inspect the complete
+public presentation and fields, then explicitly approve that exact review digest,
+source revision, audience and expiry. Preview alone publishes nothing.
+
+The separate public address serves only the frozen reviewed projection. It
+never grants access to the private notebook or performs a live telemetry query.
+It expires at the reviewed UTC instant. An owner can revoke it immediately;
+a source revision change, owner authority change or missing source input also
+makes the address unavailable. Responses prohibit caching and indexing.
+An owner-entered public summary is a deliberate disclosure: review it for private
+production information before approval. There is no automatic publication.
+
+Publication context travels in a product archive as inactive history. Restoring
+it cannot reopen the public address, reinstate private shares, reuse an old
+session or replay an old mention. Existing local subject-erasure journals purge
+these newly introduced frozen projections when their referenced batches are
+erased, including when a later journal is applied during restore. External
+copies already downloaded by a reader cannot be recalled. This adds no external
+deletion, automatic telemetry expiry, mention delivery or delegated authority.

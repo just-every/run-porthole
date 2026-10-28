@@ -8,10 +8,13 @@ import {capture,resolveCell} from './query'
 import {canRead,current,save,versions} from './store'
 import {cellScope,label,notebookBody,type Cell,type NotebookRow} from './model'
 import {notebookPage,notebookList,settingsPage,unavailablePage} from './page'
+import {notebookPublicationResponse} from './publication-http'
 
 const api='/api/porthole/v1/notebooks',app='/app/notebooks',settings='/app/settings/notebooks'
 const json=(value:unknown,status=200)=>Response.json(value,{status,headers:privateHeaders})
 export async function notebookResponse(request:Request,env:Bindings):Promise<Response|null> {
+ const publication=await notebookPublicationResponse(request,env)
+ if(publication)return publication
  const url=new URL(request.url),page=url.pathname.startsWith(app)||url.pathname.startsWith(settings)
  const match=url.pathname.match(/^\/(?:api\/porthole\/v1\/notebooks|app\/notebooks|app\/settings\/notebooks)(?:\/([a-f0-9-]{36})(?:\/(cells|reorder|rerun|comment|share|unshare))?)?$/)
  if(!match&&!([api,app,settings,api+'/evaluations'].includes(url.pathname)))return null

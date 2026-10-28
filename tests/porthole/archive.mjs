@@ -19,13 +19,15 @@ async function savedExport(origin,cookie,start){
  return {job,chunks,manifest,rows:chunks.flatMap(chunk=>chunk.rows)}
 }
 /** Notebook context is portable history, never a copied sharing capability. */
-export async function notebookArchiveJourney({origin,freshOwner,withEmptyDestination,notebookId,initialRevision}) {
+export async function notebookArchiveJourney({origin,freshOwner,withEmptyDestination,notebookId,initialRevision,publicationId}) {
  const cookie=await freshOwner(),root='/api/porthole/v1/notebooks/'+notebookId
  const before=await value(await get(origin,cookie,root))
  const source=await savedExport(origin,cookie,await post(origin,cookie,api+'/exports',{}))
  const notebookRows=source.rows.filter(row=>['porthole_notebooks','porthole_notebook_versions'].includes(row.table))
  assert.ok(notebookRows.length>4,'archive preserves the actual revision history')
  assert.ok(!source.rows.some(row=>row.table==='porthole_notebook_shares'),'live grants never enter the archive')
+ const publications=source.rows.filter(row=>row.table==='porthole_notebook_publications')
+ assert.ok(publications.some(p=>p.row.id===publicationId&&p.row.state==='published'),'archive contains the exact reviewed publication as inert context')
  assert.ok(!JSON.stringify(notebookRows).includes('synthetic-porthole-log-0'),'notebook context has references, never detached telemetry')
  const {notebookBrowser}=await import('./notebooks.mjs')
  await withEmptyDestination(async destination=>{
@@ -42,6 +44,12 @@ export async function notebookArchiveJourney({origin,freshOwner,withEmptyDestina
   assert.equal(historical.revision,initialRevision)
   assert.ok(historical.results.filter(Boolean).every(result=>result.state==='unavailable'))
   assert.equal((await destination.sql('SELECT COUNT(*) AS n FROM porthole_notebook_shares'))[0].n,0)
+  assert.equal((await destination.sql("SELECT COUNT(*) AS n FROM porthole_notebook_publications WHERE state!='quarantined'"))[0].n,0,'no published, draft or revoked authority is restored')
+  for(const publication of publications) {
+   const unavailable=await fetch(destination.origin+'/shared/notebooks/'+publication.row.id)
+   assert.equal(unavailable.status,404);assert.ok(!(await unavailable.text()).includes('205 records'))
+  }
+  await value(await post(destination.origin,destCookie,root+'/publications/'+publicationId+'/approve',{}),409)
   assert.equal((await destination.sql('SELECT COUNT(*) AS n FROM porthole_health_notices'))[0].n,0,'mentions and notices do not enter a restored outbox')
   assert.equal((await get(destination.origin,cookie,root)).status,401,'old native sessions never become restored authority')
   await value(await post(destination.origin,destCookie,root+'/share',{revision:restored.revision,kind:'team',target:'synthetic-porthole-2402'}),409)
@@ -49,6 +57,7 @@ export async function notebookArchiveJourney({origin,freshOwner,withEmptyDestina
   await destination.restartWorker()
   const fresh=await destination.freshOwner()
   restored=await value(await get(destination.origin,fresh,root))
+  assert.equal((await fetch(destination.origin+'/shared/notebooks/'+publicationId)).status,404,'restart cannot reactivate restored publication authority')
   assert.deepEqual(restored.body,before.body)
   assert.deepEqual(restored.body.comments[0].mentions,before.body.comments[0].mentions)
   await notebookBrowser({origin:destination.origin,cookie:fresh,path:'/app/notebooks/'+notebookId,name:'notebook-restored-private',exercise:async page=>{
