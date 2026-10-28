@@ -6,7 +6,8 @@
       "hosted": false,
       "commands": [
         "pnpm run check --profile first-party",
-        "node scripts/porthole/public-schema.mjs --check"
+        "node scripts/porthole/public-schema.mjs --check",
+        "node scripts/porthole/contract-docs.mjs check PORT-075"
       ]
     },
     {

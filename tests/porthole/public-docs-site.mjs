@@ -57,11 +57,11 @@ export async function browsePublicDocs(site,privateValues) {
    await readable(mobile,path)
    const menu=mobile.locator('.docs-menu')
    if(await menu.count()) {
-    await menu.locator('summary').click()
+    await menu.locator(':scope > summary').click()
     const current=menu.locator('[aria-current="page"]')
     await current.scrollIntoViewIfNeeded()
     assert.equal(await current.getAttribute('href'),path)
-    await menu.locator('summary').click()
+    await menu.locator(':scope > summary').click()
    }
    await capture(mobile,path,390)
   }
