@@ -1,3 +1,4 @@
+import {notebookRow} from '../notebooks/model'
 import {normalizeExploration} from '../explore/normalize'
 import { definition as metricDefinition } from '../metrics/span-rules/model'
 import { definitionInput } from '../slos/model'
@@ -32,6 +33,7 @@ export function manifestInput(value: unknown): Manifest {
  // Older archives predate export exclusions. Their absent journal is empty;
  // a later destination journal still wins during restore.
  if(!Object.hasOwn(value.tables,'porthole_monitor_versions'))value.tables.porthole_monitor_versions=0
+ for(const table of ['porthole_notebooks','porthole_notebook_versions'])if(!Object.hasOwn(value.tables,table))value.tables[table]=0
  for(const table of ['porthole_metric_rules','porthole_metric_points'])if(!Object.hasOwn(value.tables,table))value.tables[table]=0
  if(!Object.hasOwn(value.tables,'porthole_slo_versions'))value.tables.porthole_slo_versions=0
  if(!Object.hasOwn(value.tables,'porthole_retention_policies'))value.tables.porthole_retention_policies=0
@@ -63,7 +65,9 @@ export async function validateRow(payload: PortableRow, state: Validation): Prom
  if(Object.keys(row).sort().join(',')!==[...item.columns].sort().join(',')) bad()
  for(const [key,value] of Object.entries(row)) if(value!==null && typeof value!=='string' && !(item.table==='porthole_metric_points'&&key==='value'?Number.isSafeInteger(value):integer(value))) bad()
  const required=(...keys:string[])=>{for(const key of keys)if(!str(row[key]) || !(row[key] as string).length)bad()}
- if(item.table==='porthole_metric_rules') {
+ if(['porthole_notebooks','porthole_notebook_versions'].includes(item.table)) {
+  notebookRow(row)
+ } else if(item.table==='porthole_metric_rules') {
   if(!uuid(row.id)||!integer(row.revision,1)||!integer(row.from_sequence,1)||!integer(row.created_at)||!uuid(row.owner_id)||!['active','quarantined'].includes(String(row.state)))bad()
   metricDefinition(json(row.definition))
  } else if(item.table==='porthole_metric_points') {

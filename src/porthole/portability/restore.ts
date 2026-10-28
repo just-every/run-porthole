@@ -33,7 +33,7 @@ function rowKey(table:string,row:Record<string,unknown>):string {
  if(table==='porthole_migration_records')return JSON.stringify([row.kind,row.id])
  if(table==='porthole_monitor_versions')return JSON.stringify([row.object_id,row.revision])
  if(table==='porthole_metric_points')return JSON.stringify([row.rule_id,row.revision,row.batch_id,row.ordinal])
- if(['porthole_metric_rules','porthole_slo_versions','porthole_dashboard_versions'].includes(table))return JSON.stringify([row.id,row.revision])
+ if(['porthole_metric_rules','porthole_slo_versions','porthole_dashboard_versions','porthole_notebook_versions'].includes(table))return JSON.stringify([row.id,row.revision])
  if(table==='porthole_archive_health_history')return JSON.stringify([row.stream,row.table_name,row.row_key])
  if(table==='porthole_archive_audit')return JSON.stringify([row.stream,row.sequence])
  return String(row.record_id??row.id??row.object_id??row.actor_ref??row.singleton)
@@ -96,7 +96,7 @@ export async function commitRestore(db:D1Database,actor:Authority,job:Job,confir
   if(item.table==='porthole_ingest_control') {
    statements.push(db.prepare(`UPDATE porthole_ingest_control SET paused=1,max_pending_bytes=COALESCE((SELECT json_extract(payload,'$.row.max_pending_bytes') FROM porthole_archive_rows WHERE job_id=? AND table_name='porthole_ingest_control'),max_pending_bytes),revision=revision+1,changed_at=?`).bind(job.id,Date.now()));continue
   }
-  const expressions=item.columns.map(column=>item.table==='porthole_retention_policies'&&column==='active'?'0':['porthole_metric_rules','porthole_slo_versions','porthole_objects','porthole_bucket_history','porthole_dashboards','porthole_dashboard_publications'].includes(item.table)&&column==='state'?"'quarantined'":`json_extract(payload,'$.row.${column}')`)
+  const expressions=item.columns.map(column=>item.table==='porthole_retention_policies'&&column==='active'?'0':['porthole_notebooks','porthole_metric_rules','porthole_slo_versions','porthole_objects','porthole_bucket_history','porthole_dashboards','porthole_dashboard_publications'].includes(item.table)&&column==='state'?"'quarantined'":`json_extract(payload,'$.row.${column}')`)
   statements.push(db.prepare(`INSERT INTO ${item.table}(${item.columns.join(',')}) SELECT ${expressions.join(',')} FROM porthole_archive_rows WHERE job_id=? AND table_name=? ORDER BY ordinal`).bind(job.id,item.table))
  }
  statements.push(db.prepare(`INSERT INTO porthole_archive_quarantine(object_id,source_state,archive_id,restored_at) SELECT json_extract(payload,'$.row.id'),json_extract(payload,'$.row.state'),?,? FROM porthole_archive_rows WHERE job_id=? AND table_name='porthole_objects' AND NOT EXISTS(SELECT 1 FROM porthole_archive_quarantine q WHERE q.object_id=json_extract(payload,'$.row.id'))`).bind(manifest.id,Date.now(),job.id))

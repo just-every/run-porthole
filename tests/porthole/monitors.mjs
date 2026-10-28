@@ -79,7 +79,8 @@ export async function deterministicMonitorJourney({origin,freshOwner,signIn,rest
  const credential=await post('/app/settings/credentials/mint',{name:'synthetic-porthole-2308',class:'ingest',scope:{...scope,signals:['logs','traces'],actions:['telemetry.write']}},201)
  await post(objects,{kind:'monitor',name:'synthetic-porthole-2309',scope,body:{...body,windows:[0,120]}},400)
  const source=intake({call:http.call,post},credential),t=Date.now()
- let monitor,pendingAt,episode
+ await pendingReset(http,withPinnedClock,t-120000)
+ let monitor,pendingAt,episode,traceHistory
  await withPinnedClock(t,async()=>{
   await seedCounts(source,t);monitor=await create(post)
   const first=await evaluate(monitor)
@@ -138,6 +139,7 @@ export async function deterministicMonitorJourney({origin,freshOwner,signIn,rest
   const traceMonitor=await create(post,{name:'synthetic-porthole-2342',selection:{...scope,services:[scope.services[0]]},definition:{signal:'traces',operator:'above',threshold:1,windowSeconds:60}})
   const trace=await evaluate(traceMonitor)
   assert.equal(trace.status,'Firing');assert.equal(trace.observedCount,2)
+  traceHistory={monitor:traceMonitor,history:(await read(traceMonitor.id)).details[traceMonitor.id].history}
   const retained=await create(post,{name:'synthetic-porthole-2382',selection:{...scope,services:[scope.services[0]]},definition:{signal:'traces',operator:'above',threshold:1,windowSeconds:300,noDataPolicy:'keep-last'}})
   const known=await evaluate(retained);assert.equal(known.status,'Firing')
  })
@@ -195,12 +197,55 @@ export async function deterministicMonitorJourney({origin,freshOwner,signIn,rest
  await refresh()
  const preview=await post('/api/porthole/v1/subject-erasure',{identifier:'synthetic-porthole-2305'})
  assert.ok(preview.records>0);assert.equal(preview.canApply,true)
+ const beforeErasure=(await read(monitor.id)).details[monitor.id].history
+ await post('/api/porthole/v1/subject-erasure/apply',{identifier:'synthetic-porthole-2305',digest:'synthetic-porthole-2395',confirm:'erase-exact-batches'},409)
+ assert.deepEqual((await read(monitor.id)).details[monitor.id].history,beforeErasure,'unapproved erasure changes no monitor history')
  await post('/api/porthole/v1/subject-erasure/apply',{identifier:'synthetic-porthole-2305',digest:preview.digest,confirm:'erase-exact-batches'})
  const erased=await read(monitor.id)
  assert.deepEqual(erased.details[monitor.id].history,[],'erased derived evaluations are no longer exposed')
  assert.equal(erased.details[monitor.id].count,null)
+ assert.deepEqual((await read(traceHistory.monitor.id)).details[traceHistory.monitor.id].history,traceHistory.history,'erasing logs preserves unrelated trace-monitor history')
+ await restartWorker();await refresh()
+ assert.deepEqual((await read(traceHistory.monitor.id)).details[traceHistory.monitor.id].history,traceHistory.history,'unrelated trace history survives restart after erasure')
  await source.replay()
  console.log('Deterministic monitor journey passed: grouped windows, durable pending, hysteresis, measured zero, absent coverage, traces, source and member revocation, stale revisions, responsive forms, inactive restore ('+backend+').')
+}
+
+async function pendingReset(http,withPinnedClock,t) {
+ let monitor,source
+ const selection={...scope,services:['synthetic-porthole-2393']}
+ const evaluate=()=>http.post(root+'/evaluate',{id:monitor.id,revision:monitor.revision})
+ await withPinnedClock(t+1000,async()=>{
+  const credential=await http.post('/app/settings/credentials/mint',{name:'synthetic-porthole-2394',class:'ingest',scope:{...selection,signals:['logs'],actions:['telemetry.write']}},201)
+  source=intake(http,credential,selection)
+  await source.heartbeat();await source.logs(selection.services[0],[t,t,t,t])
+  monitor=await create(http.post,{selection,name:'synthetic-porthole-2390',definition:{...body,windows:[300],windowSeconds:300}})
+  assert.equal((await evaluate()).status,'Pending')
+ })
+ await withPinnedClock(t+29000,async()=>{
+  await http.post(root+'/state',{id:monitor.id,revision:monitor.revision,state:'inactive',confirm:'inactive'})
+  await http.post(root+'/evaluate',{id:monitor.id,revision:monitor.revision},409)
+ })
+ await withPinnedClock(t+60000,async()=>{
+  await source.heartbeat()
+  await http.post(root+'/state',{id:monitor.id,revision:monitor.revision,state:'active',confirm:'active'})
+  const resumed=await evaluate()
+  assert.equal(resumed.status,'Pending','disabled time never satisfies the pending duration')
+  assert.equal(resumed.groups.find(row=>row.status==='Pending').pendingSince,t+60000)
+ })
+ await withPinnedClock(t+61000,async()=>{
+  await source.heartbeat()
+  // A repeated enable request is harmless and cannot recover the old interval.
+  await http.post(root+'/state',{id:monitor.id,revision:monitor.revision,state:'active',confirm:'active'})
+  assert.equal((await evaluate()).status,'Pending','one enabled second is not a sustained breach')
+ })
+ await withPinnedClock(t+90000,async()=>{
+  await source.heartbeat()
+  assert.equal((await evaluate()).status,'Firing','a fresh full pending interval can fire')
+  await http.post(root+'/state',{id:monitor.id,revision:monitor.revision,state:'inactive',confirm:'inactive'})
+  await http.post(objects+'/activate',{id:monitor.id,revision:monitor.revision,confirm:'activate'})
+  assert.equal((await evaluate()).status,'Pending','the operations activation door also resets paused state')
+ })
 }
 
 async function monitorScreens({origin,cookie,call,monitor,definition}) {

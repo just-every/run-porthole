@@ -12,6 +12,13 @@ const json = (value: unknown, status = 200) => Response.json(value,{status,heade
 const mixed = `SELECT 1 FROM porthole_ingest_batches b,json_each(b.records) r WHERE b.id IN (SELECT value FROM json_each(?)) AND NOT EXISTS(SELECT 1 FROM json_tree(r.value) j WHERE j.type='text' AND j.atom=?) LIMIT 1`
 const matched = `SELECT b.id,b.digest,b.record_count,b.byte_count FROM porthole_ingest_batches b WHERE EXISTS(SELECT 1 FROM json_tree(b.records) j WHERE j.type='text' AND j.atom=?) ORDER BY b.id`
 const erased = 'SELECT id FROM porthole_ingest_batches WHERE id IN (SELECT id FROM porthole_erased_batches) OR digest IN (SELECT content_digest FROM porthole_erased_batches)'
+// A derived monitor decision depends only on its revision's signal and scope.
+// Match before redacting the journaled envelopes; unrelated history survives.
+function affectedMonitor(objectId:string,revision:string):string {
+ const dimensions=[['services','service'],['environments','environment'],['teams','team']]
+ const scope=dimensions.map(([grant,field])=>`EXISTS(SELECT 1 FROM json_each(v.scope,'$.${grant}') s WHERE s.value='*' OR s.value=json_extract(r.value,'$.${field}'))`).join(' AND ')
+ return `EXISTS(SELECT 1 FROM porthole_monitor_versions v,porthole_ingest_batches b,json_each(b.records) r WHERE v.object_id=${objectId} AND v.revision=${revision} AND b.id IN (${erased}) AND b.signal=json_extract(v.body,'$.signal') AND ${scope})`
+}
 export function eraseJournaledBatches(db: D1Database): D1PreparedStatement[] {
  return [
   // Preserve a scoped missing-evidence window after removing the original
@@ -21,12 +28,13 @@ export function eraseJournaledBatches(db: D1Database): D1PreparedStatement[] {
    FROM porthole_ingest_batches b,json_each(b.records) j WHERE b.id IN (${erased})
    AND NOT EXISTS(SELECT 1 FROM porthole_ingest_events e WHERE e.batch_ref=b.id AND e.reason='owner_erasure' AND e.team=json_extract(j.value,'$.team') AND e.service=json_extract(j.value,'$.service') AND e.environment=json_extract(j.value,'$.environment'))
    GROUP BY b.id,json_extract(j.value,'$.team'),json_extract(j.value,'$.service'),json_extract(j.value,'$.environment')`),
+  db.prepare(`DELETE FROM porthole_monitor_runs WHERE ${affectedMonitor('porthole_monitor_runs.object_id','porthole_monitor_runs.revision')}`),
+  db.prepare(`UPDATE porthole_monitor_state SET status='Unknown',reason='Local telemetry was erased; prior evidence is incomplete.' WHERE ${affectedMonitor('porthole_monitor_state.object_id','porthole_monitor_state.revision')}`),
+  db.prepare(`DELETE FROM porthole_archive_health_history WHERE table_name IN ('porthole_monitor_runs','porthole_monitor_state') AND ${affectedMonitor("json_extract(porthole_archive_health_history.row,'$.object_id')","json_extract(porthole_archive_health_history.row,'$.revision')")}`),
   db.prepare(`DELETE FROM porthole_telemetry_records WHERE batch_id IN (${erased})`),
   db.prepare(`DELETE FROM porthole_telemetry_archive WHERE batch_id IN (${erased})`),
   db.prepare(`UPDATE porthole_ingest_batches SET identity='erased:'||id,wire_base64='',records='[]',record_count=0,byte_count=0 WHERE id IN (${erased})`),
   db.prepare("UPDATE porthole_health_receipts SET status='Unknown',expires_at=0,reason='Local telemetry was erased; coverage requires new observation.'"),
-  db.prepare("DELETE FROM porthole_monitor_runs"),
-  db.prepare("UPDATE porthole_monitor_state SET status='Unknown',reason='Local telemetry was erased; prior evidence is incomplete.'"),
  ]
 }
 export async function subjectErasureResponse(request: Request, env: Bindings): Promise<Response|null> {

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import {execFile} from 'node:child_process'
+import {execFile,execFileSync} from 'node:child_process'
 import {promisify} from 'node:util'
 import {mkdtemp,symlink,rm,readFile} from 'node:fs/promises'
 import {tmpdir} from 'node:os'
@@ -15,7 +15,10 @@ async function clone(name) {
  const directory=join(scratch,name)
  await execute('git',['clone','--quiet','--local','--no-hardlinks',root,directory])
  await execute('git',['-C',directory,'config','user.name','Run Edit Run fleet'])
- await execute('git',['-C',directory,'config','user.email','fixture@example.invalid'])
+ await execute('git',['-C',directory,'config','user.email','fleet@runeditrun.com'])
+ // Exercise the candidate working tree too when invoked before its commit.
+ const patch=await execute('git',['diff','--binary','HEAD'],{cwd:root,maxBuffer:16*1024*1024})
+ if(patch.stdout)execFileSync('git',['apply','--binary'],{cwd:directory,input:patch.stdout})
  await symlink(join(root,'node_modules'),join(directory,'node_modules'),'dir')
  return directory
 }
@@ -36,6 +39,9 @@ try {
  await sql(source,`INSERT INTO porthole_credentials(id,name,class,custodian_id,secret_hash,prefix,last_four,scope,created_at,expires_at,requests_per_minute,accepted_bytes_per_minute,scanned_bytes_per_day,usd_micros_per_day) VALUES('${credentialId}','synthetic-porthole-601','read','${owner.id}','${hash}','${secret.slice(0,7)}','${secret.slice(-4)}','${scope}',${now},${now+3600000},600,1048576,1048576,1000000); INSERT INTO porthole_objects VALUES('${objectId}','monitor','synthetic-porthole-602','{"services":["checkout"],"environments":["production"],"teams":["commerce"]}','{"signal":"logs","operator":"above","threshold":2,"windowSeconds":60}',1,'active',${now},${now});`)
  const taskId=randomUUID(),taskEvent=randomUUID()
  await sql(source,`INSERT INTO porthole_follow_up(id,source,kind,scope,owner_id,state,reason,next_action,due_at,reminders,created_at,updated_at) VALUES('${taskId}','synthetic-porthole-1600','telemetry','{"services":["checkout"],"environments":["production"],"teams":["commerce"]}','${owner.id}','blocked','synthetic-porthole-1601','synthetic-porthole-1602',${now},1,${now},${now}); INSERT INTO porthole_follow_up_events VALUES('${taskEvent}','${taskId}',1,'review','${owner.id}','synthetic-porthole-1603',${now});`)
+ const runId=randomUUID()
+ const result={monitorId:objectId,revision:1,evaluatedAt:now,status:'Firing',observedCount:4,lastKnownCount:4,lastKnownAt:now,firingEpisode:randomUUID(),reason:'synthetic-porthole-2391',snapshot:1,groups:[{key:'[]',labels:{},status:'Firing',lastMeasuredStatus:'Firing',count:4,lastKnownCount:4,pendingSince:now-30000,firingEpisode:null,completeness:'measured',windows:[{windowSeconds:60,count:4,completeness:'measured'}],reason:'synthetic-porthole-2392'}]}
+ await sql(source,`INSERT INTO porthole_monitor_runs VALUES('${runId}','${objectId}',1,${now},'${JSON.stringify(result)}')`)
  const exportId=randomUUID()
  await sql(source,`INSERT INTO porthole_signal_exports(id,owner_ref,owner_revision,created_at,state,selection,snapshot,estimate,credential_ref) VALUES('${exportId}','${owner.id}',1,${now},'approved','{}',0,'{}','${credentialId}')`)
  await sql(source,`UPDATE porthole_baggage_policy SET enabled=1,allowed_keys='["region"]',attribute_keys='[]',revision=2,changed_at=${now} WHERE singleton=1`)
@@ -50,6 +56,11 @@ try {
  await command(destination,['import','--input',file,'--yes'])
  console.log('nativeArchiveJourney: destination import passed')
  assert.equal((await sql(destination,'SELECT COUNT(*) AS n FROM porthole_credentials'))[0].n,0)
+ assert.equal((await sql(destination,'SELECT COUNT(*) AS n FROM porthole_monitor_runs'))[0].n,0,'native restore never revives active monitor evaluations')
+ const retainedRuns=await sql(destination,`SELECT row,state FROM porthole_archive_health_history WHERE table_name='porthole_monitor_runs' AND json_extract(row,'$.id')='${runId}'`)
+ assert.equal(retainedRuns.length,1,'native export retains detailed group and window history')
+ assert.equal(retainedRuns[0].state,'quarantined')
+ assert.deepEqual(JSON.parse(JSON.parse(retainedRuns[0].row).result),result,'native restore preserves the exact monitor decision as inert custody')
  for(const table of ['porthole_follow_up','porthole_follow_up_events'])assert.equal((await sql(destination,`SELECT COUNT(*) AS n FROM ${table}`))[0].n,0,'native restore never revives follow-up assignments or reminders')
  for(const [table,id]of [['porthole_follow_up',taskId],['porthole_follow_up_events',taskEvent]]){const retained=await sql(destination,`SELECT row,state FROM porthole_archive_health_history WHERE table_name='${table}' AND json_extract(row,'$.id')='${id}'`);assert.ok(retained.length);assert.ok(retained.every(row=>row.state==='quarantined'))}
  assert.equal((await sql(destination,'SELECT COUNT(*) AS n FROM porthole_signal_exports'))[0].n,0,'signal export approvals never revive at the destination')
@@ -64,6 +75,13 @@ try {
  assert.equal((await sql(destination,'SELECT paused FROM porthole_ingest_control'))[0].paused,1)
  assert.deepEqual((await sql(destination,'SELECT enabled,allowed_keys FROM porthole_baggage_policy'))[0],{enabled:0,allowed_keys:'["region"]'},'native restore retains policy lists without forwarding authority')
  assert.equal((await sql(destination,"SELECT COUNT(*) AS n FROM porthole_audit_entries WHERE json_extract(entry,'$.action')='installation.import.complete'"))[0].n,1,'native restore fact is captured in its durable job transaction')
+ const secondFile=join(destination,'exports','installation.rer')
+ await command(destination,['export','--output',secondFile])
+ const secondDestination=await clone('second-destination')
+ await command(secondDestination,['import','--input',secondFile,'--yes'])
+ const twiceRetained=await sql(secondDestination,`SELECT row,state FROM porthole_archive_health_history WHERE table_name='porthole_monitor_runs' AND json_extract(row,'$.id')='${runId}'`)
+ assert.deepEqual(twiceRetained,retainedRuns,'monitor history survives native re-export without becoming live')
+ assert.equal((await sql(secondDestination,'SELECT COUNT(*) AS n FROM porthole_monitor_runs'))[0].n,0)
  const before=(await sql(destination,'SELECT COUNT(*) AS n FROM porthole_objects'))[0].n
  await assert.rejects(()=>command(destination,['import','--input',file,'--yes']),/refus|empty|occupied|failed/i)
  assert.equal((await sql(destination,'SELECT COUNT(*) AS n FROM porthole_objects'))[0].n,before)

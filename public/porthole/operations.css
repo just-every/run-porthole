@@ -16,3 +16,7 @@
 .rer-themed .porthole-observation-table { width: 100%; border-collapse: collapse; font-size: 16px; margin: 12px 0 20px; }
 .rer-themed .porthole-observation-table th, .rer-themed .porthole-observation-table td { padding: 6px; text-align: left; vertical-align: top; }
 .rer-themed .porthole-observation-table th, .rer-themed .porthole-observation-table td:nth-child(n+2) { white-space: nowrap; }
+
+.rer-themed .porthole-notebook-cells { padding-left: 24px; }
+.rer-themed .porthole-notebook-cells article { min-width: 0; margin: 24px 0; overflow-wrap: anywhere; }
+.rer-themed .porthole-notebook-cells svg { max-width: 600px; }
