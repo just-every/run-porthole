@@ -1,4 +1,4 @@
-import {syncRoleErasure} from './erasure'
+import {syncRoleErasure,syncErasure} from './erasure'
 import {AuthError} from '../../modules/operator-auth/index.mjs'
 import type {Bindings} from '../../auth.server'
 import type {Scope} from '../security/authority'
@@ -55,7 +55,7 @@ export async function query(env:Bindings,config:Configuration,input:Query) {
 export async function reconcile(env:Bindings) {
  const config=await configuration(env)
  if(!selected(env,config))return {enabled:false,complete:true,roles:[]}
- if(!config.enabled||!config.live)return {enabled:false,complete:false,roles:[]}
+ if(!config.enabled||!config.live)return {enabled:false,complete:false,roles:[],erasure:await syncErasure(env)}
  const outcomes=[]
  for(const role of roles){let stage='health';try{
   const state=await rpc<Coverage>(env,role,'/v1/health')

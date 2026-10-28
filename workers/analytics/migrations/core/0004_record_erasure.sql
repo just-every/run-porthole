@@ -16,5 +16,7 @@ CREATE TRIGGER analytics_immutable_batch BEFORE INSERT ON analytics_batches
 WHEN EXISTS(SELECT 1 FROM analytics_batches b WHERE b.id=NEW.id AND (
  b.completion_sequence IS NOT NEW.completion_sequence OR b.source_id IS NOT NEW.source_id
  OR b.signal IS NOT NEW.signal OR b.digest IS NOT NEW.digest
- OR b.accepted_at IS NOT NEW.accepted_at OR b.completed_at IS NOT NEW.completed_at))
+ OR b.accepted_at IS NOT NEW.accepted_at OR b.completed_at IS NOT NEW.completed_at
+ OR (b.content_digest IS NOT NEW.content_digest AND NOT EXISTS(
+  SELECT 1 FROM analytics_erased_batches e WHERE e.id=b.id OR e.content_digest=b.digest))))
 BEGIN SELECT RAISE(ABORT,'analytics_identity_conflict'); END;

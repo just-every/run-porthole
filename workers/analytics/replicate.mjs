@@ -18,8 +18,14 @@ function survivingIdentity(db, batch) {
  const packet = canonical(batch.records);
  const incomingErased = erasedRecord('b.id','b.digest',"json_extract(j.value,'$.ordinal')");
  const storedErased = erasedRecord('b.id','b.digest','r.ordinal');
- const fields = {id:'id',ordinal:'ordinal',team:'team',service:'service',environment:'environment',event_time_ns:'eventTimeNs',trace_id:'traceId',span_id:'spanId',payload:'payload',indexed_at:'indexedAt',archived_at:'archivedAt',late:'late',out_of_order:'outOfOrder'};
- const equal = Object.entries(fields).map(([column,key])=>`r.${column} IS json_extract(j.value,'$.${key}')`).join(' AND ');
+ const fields = {id:'id',ordinal:'ordinal',team:'team',service:'service',environment:'environment',event_time_ns:'eventTimeNs',trace_id:'traceId',span_id:'spanId',indexed_at:'indexedAt',archived_at:'archivedAt',late:'late',out_of_order:'outOfOrder'};
+ // Object member order is not content identity; array positions and JSON value
+ // types are. Compare complete paths in both directions, including containers.
+ const storedPayload = 'SELECT fullkey,type,atom FROM json_tree(r.payload)';
+ const incomingPayload = "SELECT fullkey,type,atom FROM json_tree(json_extract(j.value,'$.payload'))";
+ const equal = [...Object.entries(fields).map(([column,key])=>`r.${column} IS json_extract(j.value,'$.${key}')`),
+  `NOT EXISTS(${storedPayload} EXCEPT ${incomingPayload})`,
+  `NOT EXISTS(${incomingPayload} EXCEPT ${storedPayload})`].join(' AND ');
  return guard(db,`NOT EXISTS(SELECT 1 FROM analytics_batches b WHERE b.id=? AND (
   EXISTS(SELECT 1 FROM json_each(?) j WHERE NOT ${incomingErased}
    AND NOT EXISTS(SELECT 1 FROM analytics_records r WHERE r.batch_id=b.id AND ${equal}))
