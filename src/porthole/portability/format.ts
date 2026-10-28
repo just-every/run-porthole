@@ -57,7 +57,7 @@ function json(value: unknown): unknown {
 export async function validateRow(payload: PortableRow, state: Validation): Promise<void> {
  if(!object(payload) || Object.keys(payload).sort().join(',')!=='row,table' || !str(payload.table) || !object(payload.row)) bad()
  const item=byTable.get(payload.table); if(!item) return bad()
- const row=payload.row
+ const row={...payload.row}
  if(item.table==='porthole_erased_batches'&&!Object.hasOwn(row,'ordinals'))row.ordinals=null
  if(Object.keys(row).sort().join(',')!==[...item.columns].sort().join(',')) bad()
  for(const [key,value] of Object.entries(row)) if(value!==null && typeof value!=='string' && !(item.table==='porthole_metric_points'&&key==='value'?Number.isSafeInteger(value):integer(value))) bad()
