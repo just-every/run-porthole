@@ -38,6 +38,8 @@ export async function pipelineJourney({origin,freshOwner,sql,restartWorker,withE
  assert.equal((await post(api+'/preview',{definition:{...d,redaction:[{pattern:'(a+)+',exceptions:[]}]},revision:0})).status,400)
  const grok=await preview({...d,processors:[catalog.processors.find(p=>p.type==='grok').example,{type:'status',source:'level'}]},['info Checkout order 1042'])
  assert.equal(grok.results[0].attributes.message,'Checkout order 1042');assert.equal(grok.results[0].attributes.status,'info')
+ const multiline=JSON.stringify({level:'info',message:'Checkout unchanged'},null,2)
+ assert.equal((await preview(d,[multiline])).results[0].body.stringValue,multiline,'harmless multiline JSON keeps its source formatting')
  const p=await preview(d,bodies)
  assert.equal(p.results.length,3);assert.equal(p.results[0].attributes.status,'info');assert.equal(p.results[1].attributes.status,'error');assert.equal(p.results[2].status,'error');assert.ok(p.results[2].errors.some(e=>e.code==='json_parse_failed'))
  for(const secret of planted)assert.ok(!JSON.stringify(p).includes(secret),'preview masks '+planted.indexOf(secret))

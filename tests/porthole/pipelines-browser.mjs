@@ -11,7 +11,8 @@ export async function pipelineBrowser({origin,cookie,definition,planted}) {
    await context.addCookies(cookie.split('; ').map(pair=>({name:pair.slice(0,pair.indexOf('=')),value:pair.slice(pair.indexOf('=')+1),url:origin})))
    const page=await context.newPage()
    const snap=async state=>{assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'pipeline reflows');if(directory){await mkdir(directory,{recursive:true});await page.screenshot({path:join(directory,`pipelines-${state}-${width}.png`),fullPage:true})}}
-   await page.goto(origin+'/app/settings/pipelines');await page.getByRole('heading',{name:'Log pipelines',exact:true}).waitFor();await snap('active')
+   await page.goto(origin+'/app/settings/members');await page.getByRole('heading',{level:1}).waitFor();await snap('settings-entry')
+   await page.getByRole('link',{name:'Log pipelines',exact:true}).click();await page.getByRole('heading',{name:'Log pipelines',exact:true}).waitFor();await snap('active')
    await page.getByLabel('Pipeline definition (JSON)').fill(JSON.stringify(definition))
    await page.getByLabel('Sample log bodies (JSON array of strings)').first().fill(JSON.stringify([JSON.stringify({message:'Checkout completed '+planted[0],level:'info'}),'{ malformed }']))
    await page.getByRole('button',{name:'Preview pipeline',exact:true}).click();await page.getByRole('heading',{name:'Review preview',exact:true}).waitFor()
@@ -24,6 +25,7 @@ export async function pipelineBrowser({origin,cookie,definition,planted}) {
    await page.getByLabel('Pipeline definition (JSON)').fill('{')
    await page.getByRole('button',{name:'Preview pipeline',exact:true}).click();await page.getByRole('alert').waitFor();await snap('invalid')
    await context.clearCookies();const denied=await page.goto(origin+'/app/settings/pipelines');assert.equal(denied.status(),401);await snap('signed-out')
+   assert.equal((await page.goto(origin+'/app/settings/members')).status(),401);await page.getByRole('alert').waitFor();await snap('settings-entry-denied')
    await context.close()
   }
  }finally{await browser.close()}

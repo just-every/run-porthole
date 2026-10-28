@@ -78,7 +78,7 @@ export function sanitize<T>(input: T, rules: RedactionRule[] = []): T {
    // JSON log bodies stay parseable while sensitive object keys and nested
    // values receive the same masks as structured OTLP attributes.
    if (/^\s*[\[{]/.test(value) && value.length <= 262144) {
-    try { return JSON.stringify(visit(JSON.parse(value), depth + 1)) } catch { /* malformed text is masked below */ }
+    try { const decoded = JSON.parse(value), masked = visit(decoded, depth + 1); return JSON.stringify(decoded) === JSON.stringify(masked) ? value : JSON.stringify(masked) } catch { /* malformed text is masked below */ }
    }
    return string(value, custom)
   }
