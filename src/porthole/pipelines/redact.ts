@@ -57,7 +57,7 @@ function string(value: string, custom: { regex:RegExp; exceptions:string[] }[]):
   .replace(/\b(?:sk|pk|rk)[-_](?:(?:live|test|proj)[-_])?[A-Za-z0-9_-]{8,256}\b/g, mask)
   .replace(/\b(?:AKIA|ASIA)[A-Z0-9]{16}\b/g, mask)
   .replace(/\b(?:gh[pousr]_[A-Za-z0-9_]{12,255}|github_pat_[A-Za-z0-9_]{12,255}|xox[baprs]-[A-Za-z0-9-]{8,255}|AIza[A-Za-z0-9_-]{20,100})\b/g, mask)
-  .replace(/\b(?:api[-_]?key|access[-_]?token|client[-_]?secret|password|secret|token)\s*[=:]\s*["']?[^\s,"';}]{1,2048}/gi, mask)
+  .replace(/(\b(?:authorization|api[-_]?key|access[-_]?token|client[-_]?secret|password|secret|token)["']?\s*[=:]\s*["']?)[^\s,"';}]{1,2048}/gi, (_all, prefix: string) => prefix + mask)
   .replace(/[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]{1,64}@[A-Za-z0-9-]{1,63}(?:\.[A-Za-z0-9-]{1,63}){1,8}/g, mask)
   .replace(/(^|[^0-9])\d{3}[- ]\d{2}[- ]\d{4}(?![0-9])/g, (_all, prefix: string) => prefix + mask)
   .replace(/(^|[^0-9])(?:[0-9][ -]?){12,18}[0-9](?![0-9])/g, (_all, prefix: string) => prefix + mask)
@@ -74,7 +74,14 @@ export function sanitize<T>(input: T, rules: RedactionRule[] = []): T {
  let nodes = 0
  function visit(value: unknown, depth: number): unknown {
   if (++nodes > 100000 || depth > 64) return mask
-  if (typeof value === 'string') return string(value, custom)
+  if (typeof value === 'string') {
+   // JSON log bodies stay parseable while sensitive object keys and nested
+   // values receive the same masks as structured OTLP attributes.
+   if (/^\s*[\[{]/.test(value) && value.length <= 262144) {
+    try { return JSON.stringify(visit(JSON.parse(value), depth + 1)) } catch { /* malformed text is masked below */ }
+   }
+   return string(value, custom)
+  }
   if (typeof value === 'number' && Number.isInteger(value) && value >= 1000000000 && value <= 9999999999999999999) return string(String(value), custom) === String(value) ? value : mask
   if (!value || typeof value !== 'object') return value
   if (seen.has(value)) return seen.get(value)

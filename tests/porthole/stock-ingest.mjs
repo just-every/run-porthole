@@ -2,6 +2,8 @@ import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
 import { once } from 'node:events'
 import { mkdtemp,writeFile,rm } from 'node:fs/promises'
+import { createServer as createHttpServer,request as httpRequest } from 'node:http'
+import { request as httpsRequest } from 'node:https'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { createServer } from 'node:net'
@@ -16,6 +18,44 @@ import { literal } from './fixture.mjs'
  * No dependencies are fetched and no binary is installed by this journey. */
 const port=async()=>{const server=createServer();server.listen(0,'127.0.0.1');await once(server,'listening');const value=server.address().port;await new Promise((resolve,reject)=>server.close(error=>error?reject(error):resolve()));return value}
 async function until(check,message,timeout=45000){const end=Date.now()+timeout;while(Date.now()<end){if(await check())return;await delay(100)}assert.fail(message)}
+// A real network-edge forwarder retains stock exporter requests only in memory.
+// Match captures to the Worker's public receipt, never to its stored log envelope.
+async function forwardingProxy(origin) {
+ const upstream=new URL(origin),captures=new Map(),failures=[]
+ const transport=upstream.protocol==='https:'?httpsRequest:httpRequest
+ const server=createHttpServer((incoming,outgoing)=>{
+  ;(async()=>{
+   const chunks=[]
+   for await(const chunk of incoming)chunks.push(chunk)
+   const capture={path:incoming.url,method:incoming.method,headers:[...incoming.rawHeaders],wire:Buffer.concat(chunks)}
+   const headers=[...capture.headers]
+   for(let i=0;i<headers.length;i+=2)if(headers[i].toLowerCase()==='host')headers[i+1]=upstream.host
+   const forwarded=transport(upstream,{method:capture.method,path:capture.path,headers,agent:false},response=>{
+    const batchId=response.headers['x-porthole-batch']
+    if(response.statusCode>=200&&response.statusCode<300&&typeof batchId==='string'&&!captures.has(batchId))captures.set(batchId,capture)
+    outgoing.writeHead(response.statusCode,response.rawHeaders)
+    response.on('error',()=>outgoing.destroy())
+    response.pipe(outgoing)
+   })
+   forwarded.on('error',error=>{failures.push(error.code??'forwarding_failed');outgoing.destroy()})
+   incoming.on('aborted',()=>forwarded.destroy())
+   forwarded.end(capture.wire)
+  })().catch(error=>{failures.push(error.code??'capture_failed');outgoing.destroy()})
+ })
+ server.listen(0,'127.0.0.1');await once(server,'listening')
+ const address=`http://127.0.0.1:${server.address().port}`
+ return {origin:address,captures,failures,
+  replay:capture=>new Promise((resolve,reject)=>{
+   const request=httpRequest(address,{method:capture.method,path:capture.path,headers:capture.headers,agent:false},response=>{
+    response.resume();response.on('error',reject)
+    response.on('end',()=>resolve({status:response.statusCode,headers:response.headers}))
+   })
+   request.on('error',reject);request.end(capture.wire)
+  }),
+  close:async()=>{await new Promise((resolve,reject)=>{server.close(error=>error?reject(error):resolve());server.closeAllConnections()});captures.clear()},
+ }
+}
+const sourceProtocol=protocol=>protocol.replace(/;stored=porthole\.sanitized-log-envelope\.v1$/,'')
 function config({origin,otlpPort,lokiPort}) {
  return `logging {
  level = "info"
@@ -84,11 +124,12 @@ export async function stockIngestJourney({origin,cookie,sql,restartWorker,freshO
  const source=await minted.json()
  assert.equal((await post('/api/porthole/v1/ingest/control',{paused:true,maxPendingBytes:33554432})).status,200)
  const scratch=await mkdtemp(join(tmpdir(),'synthetic-porthole-250-'))
- let child,logs=''
+ let child,proxy,logs=''
  try {
   const [httpPort,otlpPort,lokiPort]=await Promise.all([port(),port(),port()])
+  proxy=await forwardingProxy(origin)
   const path=join(scratch,'synthetic-porthole-250.alloy')
-  await writeFile(path,config({origin,otlpPort,lokiPort}),{mode:0o600})
+  await writeFile(path,config({origin:proxy.origin,otlpPort,lokiPort}),{mode:0o600})
   child=spawn(alloyBinary,['run','--server.http.listen-addr=127.0.0.1:'+httpPort,'--storage.path='+join(scratch,'state'),path],{env:{...process.env,GOMAXPROCS:'2',PORTHOLE_STOCK_TOKEN:source.secret},stdio:['ignore','pipe','pipe']})
   let launchError
   child.on('error',error=>{launchError=error})
@@ -130,20 +171,22 @@ export async function stockIngestJourney({origin,cookie,sql,restartWorker,freshO
    throw Error('Stock collector did not reconcile: '+JSON.stringify(batches.map(row=>({protocol:row.protocol,signal:row.signal,count:row.record_count})))+'\n'+counters.join('\n')+'\n'+diagnostic)
   }
   let batches=await sourceBatches()
-  assert.equal(batches.filter(row=>row.protocol==='otlp.http/v1.9.0').reduce((n,row)=>n+row.record_count,0),4)
-  assert.equal(batches.filter(row=>row.protocol==='prometheus.WriteRequest/v1').reduce((n,row)=>n+row.record_count,0),1)
-  assert.equal(batches.filter(row=>row.protocol==='loki.PushRequest/v3.5').reduce((n,row)=>n+row.record_count,0),2)
+  assert.equal(batches.filter(row=>sourceProtocol(row.protocol)==='otlp.http/v1.9.0').reduce((n,row)=>n+row.record_count,0),4)
+  assert.equal(batches.filter(row=>sourceProtocol(row.protocol)==='prometheus.WriteRequest/v1').reduce((n,row)=>n+row.record_count,0),1)
+  assert.equal(batches.filter(row=>sourceProtocol(row.protocol)==='loki.PushRequest/v3.5').reduce((n,row)=>n+row.record_count,0),2)
   assert.ok(batches.every(row=>row.state==='pending'),'durable ack precedes asynchronous indexing')
+  assert.equal(proxy.failures.length,0,'stock source requests reach the real Worker')
+  for(const batch of batches)assert.ok(proxy.captures.has(batch.id),'every durable batch has an actual stock-wire capture')
   await restartWorker()
   batches=await sourceBatches()
   for(const batch of batches){
-   const wire=Buffer.from(batch.wire_base64,'base64'),otlp=batch.protocol.startsWith('otlp'),remote=batch.protocol.startsWith('prometheus')
-   const path=otlp?'/v1/'+batch.signal:remote?'/api/v1/write':'/loki/api/v1/push'
-   const headers={authorization:`Bearer ${source.secret}`,'content-type':'application/x-protobuf',...(otlp&&wire[0]===31&&wire[1]===139?{'content-encoding':'gzip'}:{}),...(remote?{'content-encoding':'snappy','x-prometheus-remote-write-version':'0.1.0'}:{}),...(!otlp&&!remote?{'x-scope-orgid':ingestScope.teams[0]}:{})}
-   const response=await fetch(origin+path,{method:'POST',headers,body:wire})
-   assert.equal(response.status,otlp?200:204,'stock wire retry')
-   assert.equal(response.headers.get('x-porthole-duplicate'),'true')
+   const capture=proxy.captures.get(batch.id)
+   assert.ok(capture,'restart retains the actual stock-wire capture in test memory')
+   const response=await proxy.replay(capture)
+   assert.equal(response.status,sourceProtocol(batch.protocol).startsWith('otlp')?200:204,'stock wire retry')
+   assert.equal(response.headers['x-porthole-duplicate'],'true')
   }
+  assert.equal(proxy.failures.length,0,'stock-wire retries reach the restarted Worker')
   assert.equal((await sourceBatches()).reduce((n,row)=>n+row.record_count,0),7)
   assert.equal((await post('/api/porthole/v1/ingest/control',{paused:false})).status,200)
   assert.equal((await post('/api/porthole/v1/ingest/drain',{})).status,200)
@@ -164,6 +207,7 @@ export async function stockIngestJourney({origin,cookie,sql,restartWorker,freshO
    const stopped=await Promise.race([exited.then(()=>true),delay(10000).then(()=>false)])
    if(!stopped){child.kill('SIGKILL');await exited}
   }
+  if(proxy)await proxy.close()
   await rm(scratch,{recursive:true,force:true})
  }
 }

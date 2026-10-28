@@ -40,7 +40,7 @@ export function page(state: State, status = 200): Promise<Response> {
  <h3>Sample transformations</h3>
  ${preview.results.length ? `<ol>${preview.results.map(result => `<li><pre>${json(result)}</pre></li>`).join('')}</ol>` : '<p>No sample results returned.</p>'}
  ${preview.expectedRevision === state.revision ? `<form method="post" action="/app/settings/pipelines/activate">${hidden('previewId', preview.id)}${hidden('digest', preview.digest)}
- <label><input type="checkbox" name="confirm" value="activate-pipeline" required>I approve this exact pipeline, including any exclusion or deletion rules shown above.</label>
+ <label><input type="checkbox" name="confirm" value="activate-pipeline" required>I approve this exact pipeline, including any exclusion rules shown above.</label>
  <button type="submit">Activate reviewed pipeline</button></form>` : '<p role="alert">The active revision changed. Preview again before activating.</p>'}
  </section>` : ''}
  <section aria-labelledby="pipeline-edit"><h2 id="pipeline-edit">${preview ? 'Revise and preview again' : 'Configure pipeline'}</h2>

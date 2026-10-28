@@ -10,7 +10,6 @@ export interface TableSpec { table: string; columns: string[]; query: string; or
 const spec = (table: string, columns: string[], order: string): TableSpec => ({ table, columns, order, query: `SELECT ${columns.join(',')} FROM ${table}` })
 export const catalog: TableSpec[] = [
  spec('porthole_pipeline_versions',['revision','definition','created_at','owner_id','state'],'revision'),
- spec('porthole_log_metric_points',['batch_id','ordinal','revision','name','team','service','environment','event_time_ns'],'batch_id,ordinal,name'),
  spec('porthole_metric_rules',['id','revision','definition','from_sequence','created_at','owner_id','state'],'id,revision'),
  spec('porthole_metric_points',['rule_id','revision','batch_id','ordinal','dimensions','value','valid','event_time_ns','trace_id','span_id'],'rule_id,revision,batch_id,ordinal'),
  spec('porthole_migration_erasure_fences',journalColumns,'receipt_id'),
@@ -37,6 +36,7 @@ export const catalog: TableSpec[] = [
  spec('porthole_ingest_batches',['id','sequence','source_id','signal','identity','digest','protocol','accepted_at','byte_count','record_count','wire_base64','records','state','completed_at','completion_sequence'],'sequence'),
  spec('porthole_telemetry_records',['id','batch_id','ordinal','source_id','signal','team','service','environment','event_time_ns','trace_id','span_id','payload','indexed_at','late','out_of_order'],'batch_id,ordinal'),
  spec('porthole_telemetry_archive',['id','batch_id','ordinal','source_id','signal','team','service','environment','event_time_ns','trace_id','span_id','payload','archived_at'],'batch_id,ordinal'),
+ spec('porthole_log_metric_points',['batch_id','ordinal','revision','name','team','service','environment','event_time_ns'],'batch_id,ordinal,name'),
  spec('porthole_ingest_events',['id','source_id','signal','team','service','environment','occurred_at','kind','reason','record_count','batch_ref','range_start_ns','range_end_ns'],'id'),
 ]
 export const byTable = new Map(catalog.map(value => [value.table,value]))
