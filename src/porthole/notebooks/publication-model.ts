@@ -3,7 +3,7 @@ import {publicText} from '../publication/model'
 import {uuid} from '../portability/format-id'
 import {integer,object} from './model'
 
-export interface PublicCell {id:string;kind:'query'|'chart';label:string;unit:string;from:string;through:string;count:number;value:number;points:{timeNs:string;value:number}[]}
+export interface PublicCell {id:string;kind:'query'|'chart';label:string;unit:string;from:string;through:string;count:number;value:number|null;points:{timeNs:string;value:number}[]}
 export interface PublicNotebook {version:1;title:string;summary:string;cells:PublicCell[]}
 export interface NotebookPublication {
  id:string;notebook_id:string;source_revision:number;owner_ref:string;owner_revision:number;operator_version:number;
@@ -20,7 +20,7 @@ export function publicNotebook(value:unknown):PublicNotebook {
  const ids=new Set<string>()
  for(const raw of v.cells) {
   const c=object(raw)
-  if(!exact(c,['id','kind','label','unit','from','through','count','value','points'])||!uuid(c.id)||ids.has(c.id)||!['query','chart'].includes(String(c.kind))||!publicText(c.label)||!publicUnit(c.unit)||!bound(c.from)||!bound(c.through)||c.from>c.through||!integer(c.count)||c.count>2000||typeof c.value!=='number'||!Number.isFinite(c.value)||!Array.isArray(c.points)||c.points.length>2000)fail('invalid_public_notebook',400)
+  if(!exact(c,['id','kind','label','unit','from','through','count','value','points'])||!uuid(c.id)||ids.has(c.id)||!['query','chart'].includes(String(c.kind))||!publicText(c.label)||!publicUnit(c.unit)||!bound(c.from)||!bound(c.through)||c.from>c.through||!integer(c.count)||c.count>2000||c.value!==null&&(typeof c.value!=='number'||!Number.isFinite(c.value))||!Array.isArray(c.points)||c.points.length>2000)fail('invalid_public_notebook',400)
   for(const rawPoint of c.points) {
    const p=object(rawPoint)
    if(!exact(p,['timeNs','value'])||!bound(p.timeNs)||p.timeNs<c.from||p.timeNs>c.through||typeof p.value!=='number'||!Number.isFinite(p.value))fail('invalid_public_notebook',400)

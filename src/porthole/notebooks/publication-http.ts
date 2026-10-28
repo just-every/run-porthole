@@ -8,6 +8,8 @@ import {themeFrame} from '../../base/theme-frame'
 import {fontHead} from '../../base/font-head'
 import branding from '../../branding.json'
 import {current} from './store'
+import {notebookBody} from './model'
+import {resolveCell,type QueryResult} from './query'
 import {publicNotebook,type NotebookPublication} from './publication-model'
 import {liveNotebookPublication,previewNotebook,publicationFor,approveNotebook,revokeNotebook} from './publication-store'
 import {publicationRoot,publicationSettings,notebookPublicationReview,publicNotebookFields} from './publication-page'
@@ -16,7 +18,7 @@ import {unavailablePage} from './page'
 export async function notebookPublicationResponse(request:Request,env:Bindings):Promise<Response|null> {
  const url=new URL(request.url),publicMatch=url.pathname.match(/^\/shared\/notebooks\/([a-f0-9-]{36})$/),match=url.pathname.match(/^\/(api\/porthole\/v1|app\/settings)\/notebooks\/([a-f0-9-]{36})\/publications(?:\/([a-f0-9-]{36})(?:\/(approve|revoke))?)?$/)
  if(!publicMatch&&!match)return null
- const page=match?.[1]==='app/settings',json=(v:unknown,status=200)=>Response.json(v,{status,headers:privateHeaders})
+ const page=!!match&&url.pathname.startsWith('/app/settings/'),json=(v:unknown,status=200)=>Response.json(v,{status,headers:privateHeaders})
  try {
   if(url.search)fail('invalid_notebook_publication_query',400)
   if(publicMatch) {
@@ -36,7 +38,11 @@ export async function notebookPublicationResponse(request:Request,env:Bindings):
    if(action)fail('method_not_allowed',405)
    if(id) {const row=await publicationFor(env,actor,notebookId,id);return page?notebookPublicationReview(row):json(row)}
    const history=(await env.DB.prepare(`SELECT * FROM porthole_notebook_publications WHERE notebook_id=? AND ${actor.fence} ORDER BY created_at DESC,id`).bind(notebookId,...actor.args).all<NotebookPublication>()).results
-   return page?publicationSettings(source,history):json({publications:history})
+   if(!page)return json({publications:history})
+   const results:Record<string,QueryResult>={}
+   for(const cell of notebookBody(JSON.parse(source.body)).cells)if(cell.kind!=='text')results[cell.id]=await resolveCell(request,env,cell,source.state==='quarantined')
+   await current(env,await authority(request,env),notebookId)
+   return publicationSettings(source,history,results)
   }
   const data=await input(request)
   if(source.state!=='active')fail('notebook_restore_inactive',409)

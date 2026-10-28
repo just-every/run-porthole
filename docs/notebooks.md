@@ -58,8 +58,8 @@ are refused on all notebook doors.
 
 From **Sharing Settings**, open **Reviewed external publication Settings**.
 A current native owner with fresh identity proof can select numeric query and
-chart cells, write a new public title and sanitized summary, and supply public
-labels and the exact source units. The preview preserves cell order and original
+chart cells, write a new public title and sanitized summary, and choose public
+labels while retaining the exact source units. The preview preserves cell order and original
 absolute bounds. It excludes notebook text, comments, mentions, authors, query
 expressions, record payloads and private object links. Inspect the complete
 public presentation and fields, then explicitly approve that exact review digest,
@@ -80,3 +80,14 @@ these newly introduced frozen projections when their referenced batches are
 erased, including when a later journal is applied during restore. External
 copies already downloaded by a reader cannot be recalled. This adds no external
 deletion, automatic telemetry expiry, mention delivery or delegated authority.
+
+The native notebook resource also offers
+`/api/porthole/v1/notebooks/<id>/publications`. A GET lists private publication
+history; a POST previews selected `cells` with a `cellId`, public `label` and
+exact source `unit`, plus the current notebook `revision`, public `title`,
+`summary` and `expiresAt`. Nothing is public until the returned publication's
+`approve` action receives its exact `digest`, source `revision`, `expiresAt`,
+`audience` of `anyone-with-address` and `confirm` of
+`reviewed-sanitized-notebook`. Its `revoke` action closes the address without a
+new disclosure approval. Native owner sessions are required for these actions;
+telemetry credentials never confer publication authority.
