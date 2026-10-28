@@ -333,8 +333,8 @@ Judged from the code and tests at commit `a0f1cc9f100630f413461e13ba6e47bc6d6362
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 1 | 0 | 0 | 1 |
-| Target and push further | 8 | 13 | 74 | 95 |
-| All | 9 | 13 | 74 | 96 |
+| Target and push further | 8 | 14 | 73 | 95 |
+| All | 9 | 14 | 73 | 96 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -418,7 +418,7 @@ Judged from the code and tests at commit `a0f1cc9f100630f413461e13ba6e47bc6d6362
 | `PORT-072` | Automatic incident burst capacity | target | missing |  | No implementation for automatic incident burst capacity; the complete public-door journey above remains required. |
 | `PORT-073` | Full hot retention at sustained ingest | target | missing |  | No implementation for full hot retention at sustained ingest; the complete public-door journey above remains required. |
 | `PORT-074` | Backend operation burden and support | target | missing |  | No implementation for backend operation burden and support; the complete public-door journey above remains required. |
-| `PORT-075` | Public documentation and guided first service | target | missing |  | No implementation for public documentation and guided first service; the complete public-door journey above remains required. |
+| `PORT-075` | Public documentation and guided first service | target | partial | `tests/porthole/public-docs.mjs` publicDocsJourney: signed-out built product guides, current and v1 navigation, public schema with resolving references, unchanged live schema authorization, executed rendered OTLP, query and CLI commands with exact stored record identity, duplicate receipt, actionable permission failures and revoked replay refusals. `tests/porthole/public-docs-site.mjs` browsePublicDocs: every published product guide, local schema, example and error link, readable navigation at 1440 and 390, and exclusion of installation credentials and session data. | The public subset documents implemented intake, bounded queries and configuration only. The unassisted new-engineer 30-minute first-service trial still needs a clean authorized real host estate and an independent engineer. Complete first-run onboarding, stock collector installation, real correlated service evidence, test-approved default detection and owner routing, every supported OS and container guide with denied permission and interrupted then resumed setup, and the complete language, integration, widget, function, CLI, Terraform, MCP, security, privacy, retention, upgrade, restore and support documentation remain required. Existing local API examples and browser proof do not qualify those real installation journeys or waive any original requirement. |
 | `PORT-076` | Defined anomaly forecast and outlier quality | target | missing |  | No implementation for defined anomaly forecast and outlier quality; the complete public-door journey above remains required. |
 | `PORT-077` | Executable approved repair targets | push-further | missing |  | No implementation for executable approved repair targets; the complete public-door journey above remains required. |
 | `PORT-078` | Custom span-derived metrics before sampling | target | partial | `tests/porthole/ingest.mjs` spanMetricJourney: native preview and single-use approval; exact counters, integer sums and nearest-rank distributions; explicit dimensions and scoped exemplars; durable batch retry and restart; forbidden and high-cardinality refusal; incomplete upstream labels. `docs/span-metrics.md` records the bounded API and qualification commands. | Complete before-decision computation, cost estimation, arbitrary permitted predicates and numeric attributes, programmatic export and monitor integration, complete custody and authority qualification remain open. Conservative owner-only fresh-proof and exact-preview policy adopted; CT approval pending. No DONE claim. |

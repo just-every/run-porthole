@@ -4,7 +4,7 @@
 
 These are contract statuses, not a claim that a partial or missing capability is complete. Read the [product contract](/docs/contract) for requirements, named journeys and remaining work.
 
-9 done, 13 partial, 74 missing; 96 total.
+9 done, 14 partial, 73 missing; 96 total.
 
 | Clause | Capability | Status |
 | --- | --- | --- |
@@ -88,7 +88,7 @@ These are contract statuses, not a claim that a partial or missing capability is
 | PORT-072 | Automatic incident burst capacity | missing |
 | PORT-073 | Full hot retention at sustained ingest | missing |
 | PORT-074 | Backend operation burden and support | missing |
-| PORT-075 | Public documentation and guided first service | missing |
+| PORT-075 | Public documentation and guided first service | partial |
 | PORT-076 | Defined anomaly forecast and outlier quality | missing |
 | PORT-077 | Executable approved repair targets | missing |
 | PORT-078 | Custom span-derived metrics before sampling | partial |
@@ -104,4 +104,3 @@ These are contract statuses, not a claim that a partial or missing capability is
 | PORT-088 | Read existing Datadog log archives | missing |
 | PORT-089 | Backfill useful metric history | missing |
 | PORT-090 | Keep investigation traces beyond hot retention | missing |
-

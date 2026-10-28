@@ -27,7 +27,7 @@ acceptance=acceptance.replace(/\d+ are \*\*done\*\*, \d+ are \*\*partial\*\* and
 const claims=['<!-- Generated from CONTRACT.md by scripts/porthole/contract-docs.mjs. -->','# Porthole product status',
  'These are contract statuses, not a claim that a partial or missing capability is complete. Read the [product contract](/docs/contract) for requirements, named journeys and remaining work.',
  `${parsed.counts.done} done, ${parsed.counts.partial} partial, ${parsed.counts.missing} missing; ${parsed.counts.total} total.`,
- ['| Clause | Capability | Status |','| --- | --- | --- |',...parsed.clauses.map(clause=>`| ${clause.id} | ${clause.title} | ${clause.status} |`)].join('\n'),''].join('\n\n')
+ ['| Clause | Capability | Status |','| --- | --- | --- |',...parsed.clauses.map(clause=>`| ${clause.id} | ${clause.title} | ${clause.status} |`)].join('\n')].join('\n\n')+'\n'
 for(const [file,text] of [['CONTRACT.md',contract],['ACCEPTANCE.md',acceptance],['docs/CLAIMS.md',claims]]) {
  let current
  try {current=await readFile(file,'utf8')} catch(error){if(error.code!=='ENOENT')throw error}

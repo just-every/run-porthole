@@ -298,7 +298,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "bffd379e8c3c57e1daa7775f3b265659373da7ae08c5c11c6442671a513afbeb",
+      "sha256": "866353f992ef9e85c39733a5de1049413bd4533c7a577fd92a03780facafd2cf",
       "executable": false
     },
     "AGENTS.md": {
@@ -346,7 +346,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "add3d1c3c8669c7b1184a0f61a0aee06376c1bb09b53c595a6cfcc160341374a",
+      "sha256": "c59cf3e5899cc1677e4c59583a05a119756e65c24e980539538a2a50d54b7eeb",
       "executable": false
     },
     "DEMO.md": {
@@ -378,7 +378,7 @@
       "executable": false
     },
     "docs/CLAIMS.md": {
-      "sha256": "2c18a1d4f9afd5a73ec5fb9be34555cb4fdeee2577c7731f97fa15c3113943b9",
+      "sha256": "3305625822924bbf00b89d843738ceb96cdb5def9f5f4b79cabc116a4a66e89f",
       "executable": false
     },
     "docs/dashboard-widgets.md": {
@@ -1922,7 +1922,7 @@
       "executable": false
     },
     "scripts/porthole/contract-docs.mjs": {
-      "sha256": "75794aedc032b8853a2f6889091cb74caf62d915aa3330af5e4b821f195201a5",
+      "sha256": "8f3772212c06e0258631183952d75824218a347dee00b59d8bb7ae2c87a0cc28",
       "executable": false
     },
     "scripts/porthole/export-parquet.py": {
