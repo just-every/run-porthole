@@ -4370,7 +4370,7 @@
       "executable": false
     },
     "src/porthole/portability/format.ts": {
-      "sha256": "0abee1042f515c412cdf6f3c169a59a9014bed54b6ce632d5231812f182598d2",
+      "sha256": "de29276d9d3464e62fd858d8dc0639ef46fc17a65052ed8dbd727cc217aeb202",
       "executable": false
     },
     "src/porthole/portability/health-history.ts": {
