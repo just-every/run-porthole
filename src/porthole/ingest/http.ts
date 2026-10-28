@@ -1,3 +1,4 @@
+import {agentStatsRecords,agentStatsProtocol} from '../metrics/agent-stats/normalize'
 import type { Bindings } from '../../auth.server'
 import { AuthError } from '../../modules/operator-auth/index.mjs'
 import { CredentialLimit, verifyCredential } from '../credentials/verify'
@@ -14,7 +15,7 @@ import { lokiProto, lokiRecords, remoteWrite } from './vendor'
 import { readBytes, unsnappy, utf8 } from './wire'
 
 const root='/api/porthole/v1/ingest'
-const intake:Record<string,Signal>={'/api/porthole/v1/ingest/pre-sampling/traces':'traces','/v1/traces':'traces','/v1/logs':'logs','/v1/metrics':'metrics','/v1/profiles':'profiles','/api/v1/write':'metrics','/loki/api/v1/push':'logs'}
+const intake:Record<string,Signal>={'/api/v0.2/stats':'metrics','/api/porthole/v1/ingest/pre-sampling/traces':'traces','/v1/traces':'traces','/v1/logs':'logs','/v1/metrics':'metrics','/v1/profiles':'profiles','/api/v1/write':'metrics','/loki/api/v1/push':'logs'}
 const native=new Set(['/app/ingest',root+'/status',root+'/records',root+'/archive',root+'/control',root+'/drain',root+'/loss'])
 const json=(value:unknown,status=200,extra:Record<string,string>={})=>Response.json(value,{status,headers:{...privateHeaders,...extra}})
 function failure(request:Request,error:unknown) {
@@ -34,7 +35,7 @@ function failure(request:Request,error:unknown) {
  return json({error:code},status,extra)
 }
 export async function ingestResponse(request: Request,env: Bindings):Promise<Response|null> {
- const path=new URL(request.url).pathname,signal=intake[path],unsupported=/^\/opentelemetry\.proto\.collector\./.test(path)
+ const path=new URL(request.url).pathname,signal=intake[path],unsupported=/^\/opentelemetry\.proto\.collector\./.test(path)||/^\/api\/v[^/]+\/stats$/.test(path)&&path!=='/api/v0.2/stats'
  if(!signal&&!native.has(path)&&!unsupported)return null
  try {
   sameOrigin(request,env)
@@ -68,7 +69,10 @@ export async function ingestResponse(request: Request,env: Bindings):Promise<Res
    let body=wire
    if(encoding==='gzip')body=await readBytes(new Response(new Uint8Array(body).buffer).body!.pipeThrough(new DecompressionStream('gzip')))
    else if(encoding!=='identity'&&encoding!=='snappy')invalid('unsupported_content_encoding',415)
-   if(path==='/api/v1/write'){
+   if(path==='/api/v0.2/stats'){
+    if(type!=='application/json'||encoding==='snappy')invalid('unsupported_agent_stats_encoding',415)
+    records=agentStatsRecords(object(JSON.parse(utf8(body))),request.headers);protocol=agentStatsProtocol
+   }else if(path==='/api/v1/write'){
     if(type!=='application/x-protobuf'||encoding!=='snappy'||request.headers.get('x-prometheus-remote-write-version')!=='0.1.0'||request.headers.get('content-type')?.includes('proto=io.prometheus'))invalid('unsupported_remote_write_version_or_encoding',415)
     records=remoteWrite(unsnappy(body),request.headers);protocol='prometheus.WriteRequest/v1'
    }else if(path==='/loki/api/v1/push'){

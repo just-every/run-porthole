@@ -6,50 +6,22 @@ receivers:
     protocols:
       http:
         endpoint: ${env:PORTHOLE_COLLECTOR_LISTEN}
-connectors:
-  forward/tail: {}
-processors:
-  batch/retained:
-    timeout: 200ms
-    send_batch_size: 100
-    send_batch_max_size: 100
-  tail_sampling:
-    decision_wait: 2s
-    num_traces: 20000
-    expected_new_traces_per_sec: 1000
-    decision_cache:
-      sampled_cache_size: 20000
-      non_sampled_cache_size: 20000
-    policies:
-      - name: protected-errors
-        type: status_code
-        status_code:
-          status_codes: [ERROR]
-      - name: protected-slow
-        type: latency
-        latency:
-          threshold_ms: 150
-      - name: ordinary-ten-percent
-        type: probabilistic
-        probabilistic:
-          sampling_percentage: 10
 exporters:
-  otlphttp/pre-sampling:
+  otlphttp/durable-sampling:
     traces_endpoint: ${env:PORTHOLE_COLLECTOR_DESTINATION}/api/porthole/v1/ingest/pre-sampling/traces
     headers:
       Authorization: ${env:PORTHOLE_COLLECTOR_AUTHORIZATION}
     encoding: json
     compression: none
+    # No acknowledged memory queue, batch processor, or local tail decision.
+    # Destination persists and derives metrics before its durable decision.
     sending_queue:
       enabled: false
-  otlphttp/retained:
-    traces_endpoint: ${env:PORTHOLE_COLLECTOR_DESTINATION}/v1/traces
-    headers:
-      Authorization: ${env:PORTHOLE_COLLECTOR_AUTHORIZATION}
-    encoding: json
-    compression: none
-    sending_queue:
-      enabled: false
+    retry_on_failure:
+      enabled: true
+      initial_interval: 1s
+      max_interval: 2s
+      max_elapsed_time: 8s
 service:
   extensions: [health_check]
   telemetry:
@@ -58,8 +30,4 @@ service:
   pipelines:
     traces/full-input:
       receivers: [otlp]
-      exporters: [otlphttp/pre-sampling, forward/tail]
-    traces/retained:
-      receivers: [forward/tail]
-      processors: [tail_sampling, batch/retained]
-      exporters: [otlphttp/retained]
+      exporters: [otlphttp/durable-sampling]

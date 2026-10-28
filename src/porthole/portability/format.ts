@@ -59,13 +59,13 @@ export async function validateRow(payload: PortableRow, state: Validation): Prom
  const item=byTable.get(payload.table); if(!item) return bad()
  const row=payload.row
  if(Object.keys(row).sort().join(',')!==[...item.columns].sort().join(',')) bad()
- for(const [key,value] of Object.entries(row)) if(value!==null && typeof value!=='string' && !(item.table==='porthole_metric_points'&&key==='value'?Number.isSafeInteger(value):integer(value))) bad()
+ for(const [key,value] of Object.entries(row)) if(value!==null && typeof value!=='string' && !(item.table==='porthole_metric_points'&&key==='value'?typeof value==='number'&&Number.isFinite(value):integer(value))) bad()
  const required=(...keys:string[])=>{for(const key of keys)if(!str(row[key]) || !(row[key] as string).length)bad()}
  if(item.table==='porthole_metric_rules') {
   if(!uuid(row.id)||!integer(row.revision,1)||!integer(row.from_sequence,1)||!integer(row.created_at)||!uuid(row.owner_id)||!['active','quarantined'].includes(String(row.state)))bad()
   metricDefinition(json(row.definition))
  } else if(item.table==='porthole_metric_points') {
-  if(!uuid(row.rule_id)||!uuid(row.batch_id)||!integer(row.revision,1)||!integer(row.ordinal)||row.valid!==1||row.value!==null&&(!Number.isSafeInteger(row.value)||Math.abs(Number(row.value))>1000000000000)||typeof row.event_time_ns!=='string'||!/^\d{20}$/.test(row.event_time_ns)||typeof row.trace_id!=='string'||!/^[a-f0-9]{32}$/.test(row.trace_id)||typeof row.span_id!=='string'||!/^[a-f0-9]{16}$/.test(row.span_id))bad()
+  if(!uuid(row.rule_id)||!uuid(row.batch_id)||!integer(row.revision,1)||!integer(row.ordinal)||row.valid!==1||row.value!==null&&(typeof row.value!=='number'||!Number.isFinite(row.value)||Math.abs(Number(row.value))>1000000000000)||typeof row.event_time_ns!=='string'||!/^\d{20}$/.test(row.event_time_ns)||typeof row.trace_id!=='string'||!/^[a-f0-9]{32}$/.test(row.trace_id)||typeof row.span_id!=='string'||!/^[a-f0-9]{16}$/.test(row.span_id))bad()
   const dimensions=json(row.dimensions);if(!Array.isArray(dimensions)||dimensions.length>3||dimensions.some(d=>typeof d!=='string'||d.length>80))bad()
  } else if(item.table==='porthole_migration_erasure_fences') {
   validateImportErasureFence(row)
