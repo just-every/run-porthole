@@ -478,7 +478,7 @@ export async function signalExportJourney({origin,cookie,freshOwner,restartWorke
 /** Exact owner-approved local envelope erasure and later-journal restore fence. */
 export async function subjectErasureJourney({origin,freshOwner,restartWorker,sql,withEmptyDestination,withPinnedClock}) {
  const {otlpLogBatch,profileBatch,ingestScope}=await import('./ingest.mjs')
- const root='/api/porthole/v1/subject-erasure',identifier='synthetic-porthole-1800@example.com'
+ const root='/api/porthole/v1/subject-erasure',identifier='synthetic-porthole-1800'
  const scope={...ingestScope,services:['synthetic-porthole-1801']}
  let cookie=await freshOwner()
  const send=(path,data,session=cookie)=>post(origin,session,path,data)
@@ -492,9 +492,9 @@ export async function subjectErasureJourney({origin,freshOwner,restartWorker,sql
  const intake=(signal,body)=>fetch(origin+'/v1/'+signal,{method:'POST',headers:{authorization:'Bearer '+source.secret,'content-type':'application/json'},body:JSON.stringify(body)})
  for(const [signal,body] of [['logs',logs],['metrics',metrics],['traces',traces],['profiles',profiles]])await value(await intake(signal,body))
  await value(await send('/api/porthole/v1/ingest/drain',{}))
- const unrelated=otlpLogBatch([time+10n]);unrelated.resourceLogs[0].resource.attributes=attributes('synthetic-porthole-1805@example.com')
+ const unrelated=otlpLogBatch([time+10n]);unrelated.resourceLogs[0].resource.attributes=attributes('synthetic-porthole-1805')
  await value(await intake('logs',unrelated));await value(await send('/api/porthole/v1/ingest/drain',{}))
- const old=otlpLogBatch([time-20n*86400n*1000000000n]);old.resourceLogs[0].resource.attributes=attributes('synthetic-porthole-1806@example.com')
+ const old=otlpLogBatch([time-20n*86400n*1000000000n]);old.resourceLogs[0].resource.attributes=attributes('synthetic-porthole-1806')
  await value(await intake('logs',old));await value(await send('/api/porthole/v1/ingest/drain',{}))
  const retention='/api/porthole/v1/retention',selection={signal:'logs',service:scope.services[0],team:scope.teams[0]}
  const thirty=await value(await send(retention+'/preview',{selection,days:30}))
@@ -505,21 +505,28 @@ export async function subjectErasureJourney({origin,freshOwner,restartWorker,sql
  assert.equal(reduction.volumes.records,1);assert.ok(reduction.volumes.payloadBytes>0)
  const policy=await value(await get(origin,cookie,retention))
  assert.equal(policy.policies[0].days,30,'unapproved reduction changes no policy')
- assert.equal((await sql(`SELECT COUNT(*) AS n FROM porthole_ingest_batches WHERE instr(records,${literal('synthetic-porthole-1806@example.com')})>0`))[0].n,1,'unapproved reduction removes no original envelope')
+ assert.equal((await sql(`SELECT COUNT(*) AS n FROM porthole_ingest_batches WHERE instr(records,${literal('synthetic-porthole-1806')})>0`))[0].n,1,'unapproved reduction removes no original envelope')
  for(const days of [15,30,7]) {
   const preview=await value(await send(retention+'/preview',{selection:{...selection,signal:'traces'},days}))
   assert.match(preview.qualification,days<15?/Below/:/unproved/)
  }
- const mixedIdentifier='synthetic-porthole-1807@example.com',mixed=otlpLogBatch([time+30n,time+31n])
- mixed.resourceLogs[0].resource.attributes=attributes('synthetic-porthole-1808@example.com')
+ const mixedIdentifier='synthetic-porthole-1807',mixed=otlpLogBatch([time+30n,time+31n])
+ mixed.resourceLogs[0].resource.attributes=attributes('synthetic-porthole-1808')
  mixed.resourceLogs[0].scopeLogs[0].logRecords[0].attributes.push({key:'user.email',value:{stringValue:mixedIdentifier}})
  await value(await intake('logs',mixed))
  const mixedPreview=await value(await send(root,{identifier:mixedIdentifier}))
- assert.equal(mixedPreview.canApply,false)
- const mixedBefore=await sql('SELECT * FROM porthole_ingest_batches ORDER BY id')
- assert.equal((await send(root+'/apply',{identifier:mixedIdentifier,digest:mixedPreview.digest,confirm:'erase-exact-batches'})).status,409,'mixed envelope cannot erase unrelated records')
- assert.deepEqual(await sql('SELECT * FROM porthole_ingest_batches ORDER BY id'),mixedBefore,'mixedSubjectStorageUnchanged')
+ assert.equal(mixedPreview.canApply,true)
+ assert.equal(mixedPreview.records,1);assert.equal(mixedPreview.batches[0].remainingRecords,1)
  const before=await savedExport(origin,cookie,await send(api+'/exports',{}))
+ const mixedResult=await value(await send(root+'/apply',{identifier:mixedIdentifier,digest:mixedPreview.digest,confirm:'erase-exact-batches'}))
+ assert.equal(mixedResult.erasedRecords,1)
+ await value(await send('/api/porthole/v1/ingest/drain',{}))
+ const peer=await sql(`SELECT id,payload FROM porthole_telemetry_records WHERE batch_id=${literal(mixedPreview.batches[0].id)}`)
+ assert.equal(peer.length,1);assert.equal(peer[0].id,mixedPreview.batches[0].id+':1')
+ assert.ok(peer[0].payload.includes('synthetic-porthole-1808'));assert.ok(!peer[0].payload.includes(mixedIdentifier))
+ assert.equal((await intake('logs',mixed)).status,409,'original mixed wire cannot resurrect the erased subject')
+ const split=await sql(`SELECT wire_base64,records,record_count FROM porthole_ingest_batches WHERE id=${literal(mixedPreview.batches[0].id)}`)
+ assert.equal(split[0].wire_base64,'');assert.equal(split[0].record_count,1);assert.equal(JSON.parse(split[0].records)[0],null)
  // One D1 read captures every custody table consistently; parallel Wrangler
  // readers contend on the same local SQLite migration connection.
  const snapshotQueries=[]
@@ -556,12 +563,12 @@ export async function subjectErasureJourney({origin,freshOwner,restartWorker,sql
  assert.deepEqual(await storage(),changedBefore,'changedInventoryDeletesNothing')
  const exact=await value(await send(root,{identifier}))
  assert.equal(exact.batches.length,5);assert.equal(exact.records,6,'pending original wire is part of the reviewed erasure')
- await restartWorker(()=>sql('UPDATE porthole_analytical_configuration SET changed_at=1 WHERE singleton=1'))
+ await restartWorker(()=>sql('UPDATE porthole_analytical_configuration SET changed_at=1,revision=revision+1 WHERE singleton=1'))
  const analyticalBefore=await storage()
  const analyticalRefusal=await send(root+'/apply',{identifier,digest:exact.digest,confirm:'erase-exact-batches'})
- assert.equal(analyticalRefusal.status,409);assert.equal((await analyticalRefusal.json()).error,'analytical_erasure_not_supported')
+ assert.equal(analyticalRefusal.status,409);assert.equal((await analyticalRefusal.json()).error,'erasure_preview_changed')
  assert.deepEqual(await storage(),analyticalBefore,'configuredAnalyticalCustodyDeletesNothing')
- await restartWorker(()=>sql('UPDATE porthole_analytical_configuration SET changed_at=0 WHERE singleton=1'))
+ await restartWorker(()=>sql('UPDATE porthole_analytical_configuration SET changed_at=0,revision=revision-1 WHERE singleton=1'))
  const noTimerBefore=await storage()
  const now=Date.now()
  await withPinnedClock(now+31*86400000,async()=>{assert.equal((await get(origin,cookie,'/health')).status,200);assert.deepEqual(await storage(),noTimerBefore,'noAutomaticExpiryOrDeletion')})
@@ -570,17 +577,17 @@ export async function subjectErasureJourney({origin,freshOwner,restartWorker,sql
  const approvalAt=Date.now()
  await restartWorker(()=>sql(`UPDATE oa_step_up_challenges SET consumed_at=${approvalAt-299000} WHERE session_id=${literal(session.id)} AND consumed_at IS NOT NULL`))
  const result=await withPinnedClock(approvalAt,async()=>value(await send(root+'/apply',{identifier,digest:exact.digest,confirm:'erase-exact-batches'})))
- assert.deepEqual(result,{batchIds:exact.batches.map(row=>row.id),erasedBatches:exact.batches.length,erasedRecords:exact.records,digest:exact.digest,limitations:exact.limitations},'receiptContainsNoErasedContent')
+ assert.deepEqual(result,{custody:{complete:true,copies:[]},batchIds:exact.batches.map(row=>row.id),erasedBatches:exact.batches.length,erasedRecords:exact.records,digest:exact.digest,limitations:exact.limitations},'receiptContainsNoErasedContent')
  assert.deepEqual(result.batchIds,exact.batches.map(row=>row.id),'receiptHasExactBatchIds')
  assert.equal(result.erasedRecords,6,'proofAtFourMinutesFiftyNineAccepted')
  // Later archive reads require their own still-fresh proof after this boundary.
  cookie=await freshOwner()
- const skeletons=await sql('SELECT wire_base64,records,record_count,identity FROM porthole_ingest_batches WHERE id IN (SELECT id FROM porthole_erased_batches)')
+ const skeletons=await sql('SELECT wire_base64,records,record_count,identity FROM porthole_ingest_batches WHERE id IN (SELECT id FROM porthole_erased_batches) AND record_count=0')
  assert.equal(skeletons.length,5)
  assert.ok(skeletons.every(row=>row.wire_base64===''&&row.records==='[]'&&row.record_count===0&&row.identity.startsWith('erased:')),'opaque skeletons preserve nonreusable sequence watermarks without original data')
  const delivery=await value(await get(origin,cookie,'/api/porthole/v1/ingest/status'))
  const erasedSources=delivery.sources.filter(row=>row.sourceId===source.credential.id&&row.lost>0)
- assert.equal(erasedSources.reduce((n,row)=>n+row.lost,0),6)
+ assert.equal(erasedSources.reduce((n,row)=>n+row.lost,0),7)
  assert.ok(erasedSources.every(row=>row.evaluation==='Unknown'&&row.reasons.some(reason=>reason.reason==='owner_erasure')),'erasure remains explicit missing evidence')
  assert.equal((await get(origin,cookie,api+'/exports/'+before.job.id+'/manifest')).status,404,'a frozen old product export is invalidated')
  for(const table of ['porthole_ingest_batches','porthole_telemetry_records','porthole_telemetry_archive','porthole_archive_rows','porthole_archive_chunks']) {
@@ -589,21 +596,21 @@ export async function subjectErasureJourney({origin,freshOwner,restartWorker,sql
  }
  assert.equal((await intake('logs',logs)).status,409,'the same original wire cannot be reintroduced by retry')
  const journal=await value(await get(origin,cookie,root+'/journal'))
- assert.equal(journal.records.length,5);assert.ok(!JSON.stringify(journal).includes(identifier))
+ assert.equal(journal.records.length,6);assert.ok(!JSON.stringify(journal).includes(identifier))
  await restartWorker();cookie=await freshOwner()
  assert.deepEqual(await value(await get(origin,cookie,root+'/journal')),journal)
  for(const signal of scope.signals) {
   const response=await value(await get(origin,cookie,'/api/porthole/v1/ingest/records?'+new URLSearchParams({signal,service:scope.services[0]})))
-  assert.equal(response.records.length,signal==='logs'?2:0,'query recomputes from remaining local records')
+  assert.equal(response.records.length,signal==='logs'?3:0,'query recomputes from remaining local records')
  }
  const portable=await savedExport(origin,cookie,await send(api+'/exports',{}))
- assert.deepEqual(portable.rows.filter(row=>row.table==='porthole_erased_batches').map(row=>row.row),journal.records)
+ assert.deepEqual(portable.rows.filter(row=>row.table==='porthole_erased_batches').map(({row})=>({...row,ordinals:row.ordinals===null?null:JSON.parse(row.ordinals)})),journal.records)
  await withEmptyDestination(async destination=>{
   const owner=await destination.freshOwner()
   const request=(path,data)=>post(destination.origin,owner,path,data)
   const apply={...journal,confirm:'apply-erasure-journal'}
   const receipt=await value(await request(root+'/journal',apply))
-  assert.deepEqual(receipt,{applied:journal.records.length,batchIds:journal.records.map(row=>row.id)},'journalReceiptContainsNoErasedContent')
+  assert.deepEqual(receipt,{applied:journal.records.length,batchIds:journal.records.map(row=>row.id),custody:{complete:true,copies:[]}},'journalReceiptContainsNoErasedContent')
   await value(await request(root+'/journal',apply))
   const conflict=structuredClone(apply);conflict.records[0].content_digest='0'.repeat(64)
   assert.equal((await request(root+'/journal',conflict)).status,503,'conflicting journal cannot replace a committed content fence')
@@ -611,9 +618,11 @@ export async function subjectErasureJourney({origin,freshOwner,restartWorker,sql
   const restored=await value(await request(api+'/restores',{manifest:before.manifest}),201)
   for(const chunk of before.chunks)await value(await request(api+'/restores/'+restored.id+'/chunks',{chunk}))
   await value(await request(api+'/restores/'+restored.id+'/commit',{confirm:before.manifest.rootHash}))
+  await value(await request('/api/porthole/v1/ingest/control',{paused:false}))
+  await value(await request('/api/porthole/v1/ingest/drain',{}))
   const selection={scope:{services:scope.services,environments:scope.environments,teams:scope.teams},signals:scope.signals,from:String(time),through:String(time+100n)}
   const exported=await value(await request('/api/porthole/v1/exports',selection),201)
-  assert.equal(exported.estimate.totalRecords,1,'old archive plus later real erasure journal cannot export the erased envelopes')
+  assert.equal(exported.estimate.totalRecords,2,'old archive plus later real erasure journal cannot export the erased envelopes')
   await value(await request('/api/porthole/v1/exports/'+exported.id+'/approve',{confirm:exported.id}))
   const page=await get(destination.origin,owner,'/api/porthole/v1/exports/'+exported.id+'/pages')
   assert.equal(page.status,200);assert.ok(!(await page.text()).includes(identifier))
@@ -621,6 +630,35 @@ export async function subjectErasureJourney({origin,freshOwner,restartWorker,sql
   assert.equal((await value(await get(destination.origin,owner,retention))).policies[0].active,0,'restored retention selection has no active approval')
   const {browserProof}=await import('./audit.mjs')
   await browserProof({origin:destination.origin,cookie:owner,paths:['/app/explore','/app/explore?'+new URLSearchParams({signal:'traces',service:scope.services[0],environment:scope.environments[0],team:scope.teams[0]})],name:'subject-erasure-restored'})
+ })
+
+ cookie=await freshOwner()
+ const scheduleStart=Date.now(),scheduleSession=await value(await get(origin,cookie,'/auth/session'))
+ await withPinnedClock(scheduleStart,async()=>{
+  const preview=await value(await send(retention+'/preview',{selection,days:15,schedule:true}))
+  assert.equal((await send(retention+'/approve',{selection,days:15,cutoffNs:preview.cutoffNs,confirm:preview.digest,schedule:false})).status,409,'a policy preview cannot smuggle schedule authority')
+  await value(await send(retention+'/approve',{selection,days:15,cutoffNs:preview.cutoffNs,confirm:preview.digest,schedule:true}))
+  assert.equal((await value(await send(retention+'/tick',{}))).runs.length,0,'approved expiry waits for its schedule')
+ })
+ await restartWorker(()=>sql(`UPDATE oa_step_up_challenges SET consumed_at=${scheduleStart+3600001} WHERE session_id=${literal(scheduleSession.id)} AND consumed_at IS NOT NULL`))
+ await withPinnedClock(scheduleStart+3600001,async()=>{
+  const expiry=await value(await send(retention+'/tick',{}))
+  assert.equal(expiry.runs.length,1);assert.equal(expiry.runs[0].erasedRecords,1)
+  const state=await value(await get(origin,cookie,retention))
+  assert.equal(state.runs.length,1);assert.equal(state.runs[0].erased_records,1)
+  for(const table of ['porthole_ingest_batches','porthole_telemetry_records','porthole_telemetry_archive']) {
+   const column=table==='porthole_ingest_batches'?'records':'payload'
+   assert.equal((await sql(`SELECT COUNT(*) AS n FROM ${table} WHERE instr(${column},${literal('synthetic-porthole-1806')})>0`))[0].n,0,'approved expiry removes original and retained custody')
+  }
+  assert.equal((await value(await send(retention+'/tick',{}))).runs.length,0,'one scheduled instant cannot expire twice')
+  const audit=await value(await get(origin,cookie,'/api/v1/audit/export'))
+  assert.ok(audit.records.some(row=>row.entry.action==='retention.expire'&&row.entry.phase==='committed'))
+ })
+ const owner=await value(await get(origin,cookie,'/auth/session'))
+ await restartWorker(()=>sql(`UPDATE porthole_members SET revision=revision+1 WHERE operator_id=${literal(owner.operator.id)}`))
+ await restartWorker(()=>sql(`UPDATE oa_step_up_challenges SET consumed_at=${scheduleStart+7200002} WHERE session_id=${literal(scheduleSession.id)} AND consumed_at IS NOT NULL`))
+ await withPinnedClock(scheduleStart+7200002,async()=>{
+  assert.equal((await value(await send(retention+'/tick',{}))).runs.length,0,'changed owner authority suspends the schedule')
  })
  console.log('subjectErasureJourney passed: exact four-signal mapping, no-effect preview, stale approval refusal, fresh native owner authorization, pending and retained envelope deletion, retry refusal, private journal, restart and old-archive re-export fence')
 }

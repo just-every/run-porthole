@@ -15,12 +15,12 @@ export function validateEntries(value:unknown,legacy=false):ErasedBatch[] {
  return value.map(row=>{
   if(!row||typeof row!=='object'||Object.keys(row).sort().join(',')!==(legacy?'content_digest,erased_at,id':'content_digest,erased_at,id,ordinals')||typeof row.id!=='string'||!/^[a-f0-9-]{36}$/.test(row.id)||typeof row.content_digest!=='string'||!/^[a-f0-9]{64}$/.test(row.content_digest)||!Number.isSafeInteger(row.erased_at)||row.erased_at<0||row.erased_at>Date.now())fail('invalid_erasure_journal',400)
   const ordinals=legacy?null:row.ordinals
-  if(ordinals!==null&&(!Array.isArray(ordinals)||!ordinals.length||ordinals.length>10000||ordinals.some((n:unknown)=>!Number.isSafeInteger(n)||Number(n)<0)||new Set(ordinals).size!==ordinals.length))fail('invalid_erasure_journal',400)
+  if(ordinals!==null&&(!Array.isArray(ordinals)||!ordinals.length||ordinals.length>10000||ordinals.some((n:unknown,index:number)=>!Number.isSafeInteger(n)||Number(n)<0||index>0&&Number(n)<=ordinals[index-1])||new Set(ordinals).size!==ordinals.length))fail('invalid_erasure_journal',400)
   return {...row,ordinals}
  })
 }
 const batches=`SELECT b.id FROM porthole_ingest_batches b JOIN porthole_erased_batches e ON e.id=b.id OR e.content_digest=b.digest`
-const erasedOrdinal=(batch:string,ordinal:string)=>`EXISTS(SELECT 1 FROM porthole_erased_batches e JOIN porthole_ingest_batches b ON b.id=e.id OR b.digest=e.content_digest WHERE b.id=${batch} AND (e.ordinals IS NULL OR EXISTS(SELECT 1 FROM json_each(e.ordinals) o WHERE o.value=${ordinal})))`
+const erasedOrdinal=(batch:string,ordinal:string)=>`EXISTS(SELECT 1 FROM porthole_erased_batches e JOIN porthole_ingest_batches erased_source ON erased_source.id=e.id OR erased_source.digest=e.content_digest WHERE erased_source.id=${batch} AND (e.ordinals IS NULL OR EXISTS(SELECT 1 FROM json_each(e.ordinals) o WHERE o.value=${ordinal})))`
 export function eraseJournaledBatches(db:D1Database):D1PreparedStatement[] {
  const selected=erasedOrdinal('b.id','CAST(j.key AS INTEGER)')
  return [

@@ -274,8 +274,60 @@ export async function analyticalConnectionJourney() {
      await restored.browser('/app/settings/analytics','analytics-inactive-destination','Connection authorized')
     }})
    } finally {await destination.dispose()}
+
+   // Mixed custody is exercised through real control-plane intake and the two
+   // independent worker transports, including an unavailable configured copy.
+   const erasure='/api/porthole/v1/subject-erasure',subject='synthetic-porthole-1890',peer='synthetic-porthole-1891'
+   const mixedPacket={resourceLogs:[{resource,scopeLogs:[{logRecords:[subject,peer].map((id,index)=>({timeUnixNano:String(BigInt(at)+BigInt(index+500)),body:{stringValue:id},attributes:[{key:'user.id',value:{stringValue:id}}]}))}]}]}
+   const mixedResponse=await call('/v1/logs',{method:'POST',headers:{authorization:'Bearer '+credential.secret,'content-type':'application/json'},body:JSON.stringify(mixedPacket)})
+   assert.equal(mixedResponse.status,200)
+   const batchId=mixedResponse.headers.get('x-porthole-batch')
+   await post('/api/porthole/v1/ingest/drain',{},200,nextOwner)
+   const batch=await getDb().prepare('SELECT * FROM porthole_ingest_batches WHERE id=?').bind(batchId).first()
+   const originalRows=(await getDb().prepare('SELECT r.*,a.archived_at FROM porthole_telemetry_records r JOIN porthole_telemetry_archive a ON a.id=r.id WHERE r.batch_id=? ORDER BY r.ordinal').bind(batchId).all()).results
+   const original={id:batch.id,completionSequence:batch.completion_sequence,sourceId:batch.source_id,signal:batch.signal,digest:batch.digest,acceptedAt:batch.accepted_at,completedAt:batch.completed_at,records:originalRows.map(row=>({id:row.id,ordinal:row.ordinal,team:row.team,service:row.service,environment:row.environment,eventTimeNs:row.event_time_ns,traceId:row.trace_id,spanId:row.span_id,payload:JSON.parse(row.payload),indexedAt:row.indexed_at,archivedAt:row.archived_at,late:row.late,outOfOrder:row.out_of_order}))}
+   const sourceIdentity=(await getDb().prepare('SELECT source_identity FROM porthole_analytical_configuration').first()).source_identity
+   const workerPost=(role,path,data,auth=true)=>fetch(estate.origin(role)+path,{method:'POST',headers:{'content-type':'application/json',...(auth?{authorization:'Bearer '+estate.bindings['ANALYTICS_'+role.toUpperCase()+'_TOKEN']}:{})},body:JSON.stringify(data)})
+   const workerRead=async role=>{
+    const response=await workerPost(role,'/v1/query',{sourceIdentity,requiredWatermark:batch.completion_sequence,signal:'logs',scope,from:'0',through:'18446744073709551615',limit:200})
+    assert.equal(response.status,200,await response.clone().text());return (await response.json()).records
+   }
+   for(const role of ['primary','standby'])assert.equal((await workerRead(role)).filter(row=>[subject,peer].includes(row.payload.record.body.stringValue)).length,2)
+   const connectedState=await (await call('/api/porthole/v1/analytics/configuration',{headers:{cookie:nextOwner}})).json()
+   await post('/api/porthole/v1/analytics/configuration',{revision:connectedState.revision,role:'primary',enabled:false,confirm:'connect-analytical-workers'},200,nextOwner)
+   const preview=(await post(erasure,{identifier:subject},200,nextOwner)).json();const selected=await preview
+   const untouched=await getDb().prepare('SELECT records FROM porthole_ingest_batches WHERE id=?').bind(batchId).first()
+   await post(erasure+'/apply',{identifier:subject,digest:selected.digest,confirm:'erase-exact-batches'},403,adminCookie)
+   assert.deepEqual(await getDb().prepare('SELECT records FROM porthole_ingest_batches WHERE id=?').bind(batchId).first(),untouched,'non-owner erasure changes no custody')
+   const custodyConfig=await (await call('/api/porthole/v1/analytics/configuration',{headers:{cookie:nextOwner}})).json()
+   await estate.stop('standby')
+   const erased=await (await post(erasure+'/apply',{identifier:subject,digest:selected.digest,confirm:'erase-exact-batches'},202,nextOwner)).json()
+   assert.equal(erased.erasedRecords,1);assert.equal(erased.custody.complete,false)
+   assert.equal((await call('/api/porthole/v1/ingest/records?signal=logs',{headers:{cookie:nextOwner}})).status,503,'paused analytical custody does not expose stale records')
+   assert.deepEqual(erased.custody.copies.map(row=>[row.role,row.status]),[['primary','erased'],['standby','pending']])
+   const journal=await (await call(erasure+'/journal',{headers:{cookie:nextOwner}})).json()
+   assert.ok(!JSON.stringify(journal).includes(subject));assert.deepEqual(journal.records.find(row=>row.id===batchId).ordinals,[0])
+   await estate.start('standby')
+   await post('/api/porthole/v1/analytics/configuration',{revision:custodyConfig.revision,role:'standby',enabled:true,confirm:'connect-analytical-workers'},200,nextOwner)
+   for(const role of ['primary','standby']) {
+    let rows=await workerRead(role)
+    assert.ok(!JSON.stringify(rows).includes(subject));assert.equal(rows.filter(row=>row.id===batchId+':1').length,1)
+    assert.equal(rows.find(row=>row.id===batchId+':1').payload.record.body.stringValue,peer)
+    const replay=await workerPost(role,'/v1/replicate',{sourceIdentity,batches:[original]});assert.equal(replay.status,200,await replay.clone().text())
+    const sanitized={...original,records:original.records.slice(1)}
+    const shrink=await workerPost(role,'/v1/replicate',{sourceIdentity,batches:[sanitized]});assert.equal(shrink.status,200,await shrink.clone().text())
+    const forged=structuredClone(sanitized);forged.records[0].payload.record.body.stringValue='synthetic-porthole-1892'
+    assert.equal((await workerPost(role,'/v1/replicate',{sourceIdentity,batches:[forged]})).status,409)
+    assert.equal((await workerPost(role,'/v1/erase',{sourceIdentity,records:journal.records},false)).status,401)
+    assert.equal((await workerPost(role,'/v1/erase',{sourceIdentity:'synthetic-porthole-1893',records:journal.records})).status,409)
+    await estate.stop(role);await estate.start(role)
+    rows=await workerRead(role);assert.ok(!JSON.stringify(rows).includes(subject));assert.equal(rows.filter(row=>row.id===batchId+':1').length,1)
+   }
+   const afterErasure=await (await call('/api/porthole/v1/ingest/records?signal=logs',{headers:{cookie:nextOwner}})).json()
+   assert.equal(afterErasure.analytical.role,'standby');assert.ok(!JSON.stringify(afterErasure).includes(subject));assert.ok(JSON.stringify(afterErasure).includes(peer))
+   await browser('/app/explore','analytics-erased-peer-preserved',peer,nextOwner)
    const candidate=(await promisify(execFile)('git',['rev-parse','HEAD'])).stdout.trim()
-   console.log('PORTHOLE_ANALYTICAL_RUN '+JSON.stringify({runId:'sx-porthole-c7-recovery-20261022',head:candidate,result:'passed'}))
+   console.log('Analytical journey candidate '+candidate)
    console.log('analyticalConnectionJourney passed: real independent primary/standby processes, product query/health/monitor, collector outage and direct provider-edge notice, behind refusal, explicit failover/failback, bounded 20/3 backlog, original ns and no duplicate records/notices')
   }})
  }finally{if(collector?.exitCode===null&&collector.signalCode===null){const stopped=new Promise(resolve=>collector.once('exit',resolve));collector.kill('SIGTERM');await stopped}await estate.dispose()}

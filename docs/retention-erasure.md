@@ -1,83 +1,101 @@
 # Retention and local subject erasure
 
-These native-owner API doors use the installation session, same-origin POSTs,
-an unrestricted product scope and identity proof from the preceding five minutes.
-Delegated credentials cannot preview, approve or erase. Request and response
-contents stay private; audit facts retain opaque references, never identifiers.
+These native-owner API doors require an installation session, same-origin POST,
+unrestricted product scope and identity proof from the preceding five minutes.
+Delegated credentials cannot preview, approve or erase. Audit facts contain opaque
+references and counts, never the subject identifier or removed telemetry.
 
-## Retention selections
+## Retention selections and explicit schedules
 
 POST `/api/porthole/v1/retention/preview` with `selection` containing `signal`,
-`service` and `team`, plus integer `days` from 1 to 730. Service and team may be
-`*`. The response freezes a cutoff, current policy revision, affected retained
+`service` and `team`, plus integer `days` from 1 to 730. Service and team accept
+`*`. The response freezes the cutoff, current policy revision, affected retained
 record count, payload bytes and digest. Hot and archive copies count once.
 The historical-analysis warning describes the loss a reduction would cause.
 
 POST `/api/porthole/v1/retention/approve` with the same selection and days,
 the returned `cutoffNs` and `confirm` equal to the preview digest. Approval
-requires an unchanged preview and current policy revision within five minutes.
-GET `/api/porthole/v1/retention` lists saved policies. A preview, a rejected
-approval and policy approval itself delete no data. There is no expiry worker
-yet; saved policy is a configuration selection, not executed retention proof.
+requires the unchanged preview and current policy revision within five minutes.
+A preview, rejected approval and policy approval itself delete no data.
+
+Scheduling requires `schedule: true` in both preview and approval. Without that
+explicit consent no expiry runs. This authorizes an hourly moving cutoff for
+the exact signal, service, team and retention days, first due one hour after
+approval. The installed scheduled handler runs due work. A fresh native owner
+can also POST `{}` to `/api/porthole/v1/retention/tick` to process due work;
+requests cannot supply a clock or bypass the due instant. A changed policy
+cancels the previous schedule. A removed or changed approving owner suspends
+it. Restored policies are inactive and live scheduling authority is not exported.
+
+GET `/api/porthole/v1/retention` exposes saved policies, scheduled next instants
+and expiry run counts and cutoffs. Each executed instant appends a private,
+minimal audit entry. Expiry applies the same selective erasure journal to
+original envelopes, retained data and configured analytical copies. An unavailable
+copy remains pending; product reads apply its journal before returning data.
 
 Trace selections include 15 and 30 days. A lower custom trace policy is labeled
-below the switching-buyer minimum. The 30-day trace filter tier, resource sizing,
-expiry and full-horizon query qualification remain PORT-085 work. Restored
-policies remain inactive and transfer no approval authority.
+below the switching-buyer minimum. The 30-day trace filter tier, resource sizing
+and full-horizon query qualification remain PORT-085 work.
 
-## Review before local erasure
+## Review before selective erasure
 
 POST `/api/porthole/v1/subject-erasure` with an `identifier` string. Matching
-uses exact decoded string values in the normalized local intake envelope.
-It includes complete and pending envelopes for logs, metrics, traces and
-profiles. Substrings, alternate encodings, RUM and derived projections are not
-qualified. The preview lists matching batch identities, record counts, bytes,
-a digest and limits. It deletes nothing.
+uses exact decoded string values in normalized local intake envelopes for logs,
+metrics, traces and profiles, including pending envelopes. The preview lists
+matching batch identities, selected and remaining record counts, bytes, a digest
+and custody limits. It deletes nothing. The digest binds the record ordinals
+and analytical configuration revision; a changed inventory or connection requires
+new review.
 
-Original wire is an indivisible custody unit. If any record in a matching
-envelope lacks the exact identifier, `canApply` is false and erasure is refused.
-This preserves unrelated subjects until record-level erasure exists. A changed
-inventory requires a new preview. No other subject or service is implicitly
-added to approval.
+POST `/api/porthole/v1/subject-erasure/apply` with that identifier, digest and
+`confirm: "erase-exact-batches"`. One live-authority transaction appends permanent
+record fences, invalidates frozen product archive jobs, withdraws original wire
+and removes the selected normalized, hot, archive and span-metric contributions.
+Other subjects retain their original record IDs, payloads and timestamps.
+Null holes in the normalized envelope preserve original ordinals, including
+when a pending envelope later drains. Scoped missing-evidence windows keep the
+erased interval Unknown. Original-wire retries are refused.
 
-POST `/api/porthole/v1/subject-erasure/apply` with the same identifier, returned
-digest and `confirm: "erase-exact-batches"`. One live-authority transaction
-appends minimal batch tombstones, invalidates frozen product archive jobs,
-clears the selected original wire and normalized envelope payloads, deletes
-their hot and archive records, and keeps only opaque envelope metadata so
-sequence watermarks can never be reused,
-and records scoped missing-evidence windows that keep monitor evaluation Unknown
-for the erased interval. Local health receipts are invalidated. An empty selection is a
-no-op. Original-wire retries refuse instead of reintroducing erased envelopes.
-Previously configured analytical replication makes this operation refuse;
-external replica erasure has not been implemented.
+Every configured primary and standby receives the same append-only journal,
+including paused workers. A successful response lists both acknowledgements.
+An unreachable copy produces HTTP 202 with its pending role, rather than a
+complete deletion claim. Owner reconciliation resumes propagation. Query,
+health and failover apply the journal to the selected copy before using it;
+an unavailable erasure transport therefore refuses data instead of serving a
+stale copy. Analytical replication cannot reinsert an erased ordinal, including
+original and sanitized packet replay after restart.
 
 ## Carry the later journal
 
 GET `/api/porthole/v1/subject-erasure/journal` returns
-`porthole.erased-batches.v1` with batch references, original content digests and
-erasure times, without the selected identifier. Up to 100 entries are returned;
-a larger journal requires the whole product archive rather than truncation.
-To explicitly apply a journal, POST the same format and records with
-`confirm: "apply-erasure-journal"` to that address under fresh owner authority.
-Application is append-only; conflicting content digests refuse atomically.
-It also invalidates product archive jobs and erases matching local envelopes.
+`porthole.erased-batches.v2`: batch references, original content digests, original
+record ordinals and erasure times, without subject identifiers. Null ordinals
+mean an older whole-envelope fence. Up to 100 entries are returned; a larger
+journal requires the whole product archive instead of silent truncation.
+POST the format and records with `confirm: "apply-erasure-journal"` under fresh
+owner authority to apply it. The earlier v1 format remains readable as whole
+envelope fences. Conflicting content digests refuse atomically.
 
-The Settings product archive includes the journal. Applying a later journal
-before restoring an older product archive preserves the later entries and
-clears matching restored envelope payloads and deletes their records before commit. Staged raw chunks are
-removed after successful restore. Subsequent signal export cannot release
-those erased envelopes. Source credentials and approval authority stay inactive.
+The Settings product archive carries this journal. Applying a later journal
+before restoring an older product archive preserves later exclusions, selectively
+withdraws restored records before commit, and keeps unrelated subjects. Staged
+raw chunks are removed after successful restore. Subsequent queries and signal
+exports cannot release the erased subject. Source credentials and approval
+authority stay inactive.
 
-This is a bounded local implementation. Customer buckets and locked S3 objects,
-legal holds, external backups, complete native archive journal application,
-receipt history, imported evidence, dashboard projections, every derived cache,
-service-wide erasure and late arrivals remain unqualified. It never reports
-those domains deleted or sends an external deletion. Full PORT-035 and PORT-061
-acceptance remains partial until those custody paths are implemented and proven.
+## Boundary and adopted authority
 
-The ct ruling of 25 October 2026 at 17:55Z approves this PARTIAL slice with
-digest-bound inventory consent and five-minute identity proof. The erasure
-receipt reports counts and exact batch IDs, never erased content. PORT-096
-retains mixed-subject erasure, analytical custody and audited owner-configured
-retention expiry as named Gaps. ct judges any DONE promotion.
+PORT-096 adopts unrestricted native owner, five-minute identity proof, exact
+inventory consent for mixed local erasure and both configured analytical workers,
+and a separately explicit audited hourly retention schedule. No schedule is
+inferred from policy selection. No external deletion is attempted. The standing
+28 October conservative-default rule permits building this owner-only floor;
+ct approval of the expanded custody and schedule remains required before DONE.
+
+RUM, customer buckets and locked S3 objects, legal holds, external backups,
+complete native installation-archive journal application, notice receipts,
+imported evidence, dashboard projections, every derived cache, service-wide
+erasure and alternate or late subject representations remain PORT-035 and
+PORT-061 gaps. This operation never labels those domains deleted. The earlier
+ct ruling of 25 October 2026 at 17:55Z qualified the homogeneous local slice;
+it did not authorize the broader provider operations.
