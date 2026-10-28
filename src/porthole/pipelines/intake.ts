@@ -34,3 +34,13 @@ export function logContributions(env:Bindings,batchId:string) {
 }
 export const storedFormat=(signal:string)=>signal==='traces'?'porthole.sanitized-trace-envelope.v1':'porthole.sanitized-log-envelope.v1'
 export const storedLogWire=(records:TelemetryRecord[],signal='logs')=>new TextEncoder().encode(canonical({format:storedFormat(signal),records}))
+
+// Approved exclusions apply only to this new acceptance. Keep the pre-exclusion
+// count and byte journal, without retaining the discarded log body in a queue
+// or in a later installation archive.
+export function durableRecord(record:TelemetryRecord):TelemetryRecord {
+ const p=record.payload.pipeline as Record<string,unknown>|undefined
+ if(p?.excluded!==true)return record
+ const excludedPayloadBytes=new TextEncoder().encode(canonical(record.payload)).length
+ return {...record,payload:{pipeline:{revision:p.revision,status:p.status,errors:p.errors,excluded:true,protected:false,metrics:p.metrics,excludedPayloadBytes}}}
+}

@@ -45,7 +45,9 @@ later retry cannot apply a newer parser to an accepted record.
 
 POST `/metrics` and `/accounting` with a `definition` naming scope plus `from`
 and `through` nanoseconds (half-open). Counts include matching accepted logs
-before exclusion. Accounting distinguishes excluded and retained records, exact
+before exclusion. Approved exclusions discard the newly accepted body before
+queuing, keeping only a count and byte journal. Previously accepted data is
+never rewritten. Accounting distinguishes excluded and retained records, exact
 sanitized payload bytes, and its displayed versioned USD projection rates.
 Queue framing and provider infrastructure overhead are outside that projection;
 no provider bill, purchase or spending authority is asserted.

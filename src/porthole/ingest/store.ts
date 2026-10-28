@@ -1,4 +1,4 @@
-import { current, processed, storedFormat, storedLogWire } from '../pipelines/intake'
+import { current, durableRecord, processed, storedFormat, storedLogWire } from '../pipelines/intake'
 import { sanitize } from '../pipelines/redact'
 import { sha256 } from './model'
 import type { Bindings } from '../../auth.server'
@@ -43,7 +43,7 @@ export async function acceptEnvelope(request: Request, env: Bindings, envelope: 
    writes(fence,scope) {
     check(scope,envelope.signal,envelope.records); granted = scope
     if(pipeline){
-     envelope.records=envelope.records.map(record=>processed(record,pipeline.definition,pipeline.revision,envelope.signal==='logs'))
+     envelope.records=envelope.records.map(record=>durableRecord(processed(record,pipeline.definition,pipeline.revision,envelope.signal==='logs')))
      encodedWire=base64(storedLogWire(envelope.records,envelope.signal))
      envelope.protocol+=';stored='+storedFormat(envelope.signal)
     }

@@ -8,18 +8,26 @@ export async function pipelineExclusion({post,value,preview,activate,send,d,sql,
  await preview(proposed,['{"level":"debug"}'])
  const bodies=Array.from({length:count},(_,i)=>JSON.stringify({level:i<excluded||i===count-1?'debug':'info',message:'Checkout US order '+i,...(i===count-1?{protectedError:true}:{})}))
  async function emit(base,label) {
+  const batches=[]
   for(let i=0;i<count;i+=250){
-   await send(bodies.slice(i,i+250),label+'-'+i,base+BigInt(i))
+   batches.push((await send(bodies.slice(i,i+250),label+'-'+i,base+BigInt(i))).id)
    await value(await post(intake+'/drain',{}))
   }
+  return batches
  }
  const firstFrom=String(at),firstThrough=String(at+BigInt(count)+1n)
  await emit(at,'synthetic-porthole-12010')
  let stats=await value(await post(api+'/accounting',{definition:d,from:firstFrom,through:firstThrough}))
  assert.equal(stats.retained.records,count);assert.equal(stats.excluded.records,0,'unapproved exclusion drops nothing')
+ const original=await value(await post('/api/porthole/v1/query',{signal:'logs',service:d.service,environment:d.environment,team:d.team,from:firstFrom,through:firstThrough,limit:1}))
+ assert.equal(original.records[0].payload.record.body.stringValue,bodies[0],'rejected exclusion preserves the actual original body')
  await activate(await preview(proposed,['{"level":"debug"}','{"level":"error"}']))
  const second=at+BigInt(count+100),from=String(second),through=String(second+BigInt(count)+1n)
- await emit(second,'synthetic-porthole-12011')
+ const appliedBatches=await emit(second,'synthetic-porthole-12011')
+ const queued=(await sql(`SELECT records,wire_base64 FROM porthole_ingest_batches WHERE id=${literal(appliedBatches[0])}`))[0]
+ const discarded=JSON.parse(queued.records).filter(r=>r.payload.pipeline.excluded)
+ assert.ok(discarded.length>0&&discarded.every(r=>r.payload.record===undefined&&r.payload.pipeline.excludedPayloadBytes>0),'discarded bodies do not survive in the durable queue')
+ assert.ok(!Buffer.from(queued.wire_base64,'base64').toString().includes('Checkout US order 0'),'discarded bodies do not survive in decoded durable wire')
  stats=await value(await post(api+'/accounting',{definition:d,from,through}))
  assert.equal(stats.excluded.records,excluded);assert.equal(stats.retained.records,retained)
  const selected=[];let cursor,snapshot
