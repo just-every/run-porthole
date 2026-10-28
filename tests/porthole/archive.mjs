@@ -29,6 +29,8 @@ export async function notebookArchiveJourney({origin,freshOwner,withEmptyDestina
  const publications=source.rows.filter(row=>row.table==='porthole_notebook_publications')
  assert.ok(publications.some(p=>p.row.id===publicationId&&p.row.state==='published'),'archive contains the exact reviewed publication as inert context')
  assert.ok(!JSON.stringify(notebookRows).includes('synthetic-porthole-log-0'),'notebook context has references, never detached telemetry')
+ assert.ok(notebookRows.some(row=>JSON.parse(row.row.body).cells.some(cell=>cell.kind==='change')),'service-change cells and their original references are archived')
+ assert.ok(!JSON.stringify(notebookRows).includes('synthetic-porthole-2450'),'service-change source facts are not detached notebook copies')
  const {notebookBrowser}=await import('./notebooks.mjs')
  await withEmptyDestination(async destination=>{
   const destCookie=await destination.freshOwner(),start=await value(await post(destination.origin,destCookie,api+'/restores',{manifest:source.manifest}),201)

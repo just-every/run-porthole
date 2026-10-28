@@ -29,18 +29,18 @@ export async function previewNotebook(request:Request,env:Bindings,actor:Authori
  const source=await current(env,actor,notebookId),body=notebookBody(JSON.parse(source.body))
  if(source.state!=='active'||Number(data.revision)!==source.revision)fail('revision_or_authority_changed',409)
  if(!publicText(data.title)||!publicText(data.summary,2000))fail('explicit_public_text_required',400)
- const keys=body.cells.filter(c=>c.kind!=='text').flatMap(c=>['include.','label.','unit.'].map(prefix=>prefix+c.id))
+ const keys=body.cells.filter(c=>(c.kind==='query'||c.kind==='chart')).flatMap(c=>['include.','label.','unit.'].map(prefix=>prefix+c.id))
  if(Object.keys(data).some(key=>!['revision','title','summary','cells','expiresAt',...keys].includes(key)))fail('invalid_public_fields',400)
  const raw=data.cells===undefined?body.cells.filter(c=>data['include.'+c.id]==='yes').map(c=>({cellId:c.id,label:data['label.'+c.id],unit:data['unit.'+c.id]})):typeof data.cells==='string'?JSON.parse(data.cells):data.cells
  if(!Array.isArray(raw)||!raw.length||raw.length>30)fail('public_cells_required',400)
  const selected=raw.map(value=>object(value))
- if(selected.some(c=>Object.keys(c).sort().join(',')!=='cellId,label,unit'||!publicText(c.label)||!publicUnit(c.unit)||!body.cells.some(cell=>cell.id===c.cellId&&cell.kind!=='text'))||new Set(selected.map(c=>c.cellId)).size!==selected.length)fail('invalid_public_cells',400)
+ if(selected.some(c=>Object.keys(c).sort().join(',')!=='cellId,label,unit'||!publicText(c.label)||!publicUnit(c.unit)||!body.cells.some(cell=>cell.id===c.cellId&&(cell.kind==='query'||cell.kind==='chart')))||new Set(selected.map(c=>c.cellId)).size!==selected.length)fail('invalid_public_cells',400)
  const now=Date.now(),expires=typeof data.expiresAt==='number'?data.expiresAt:Date.parse(String(data.expiresAt))
  if(!Number.isSafeInteger(expires)||expires<=now||expires>now+366*86400000)fail('invalid_public_expiry',400)
  const projection:PublicNotebook={version:1,title:data.title,summary:data.summary,cells:[]},recordIds=new Set<string>(),cellIds:string[]=[]
  for(const cell of body.cells) {
   const chosen=selected.find(c=>c.cellId===cell.id)
-  if(!chosen||cell.kind==='text')continue
+  if(!chosen||(cell.kind!=='query'&&cell.kind!=='chart'))continue
   const result=await resolveCell(request,env,cell)
   if(result.state!=='complete'||chosen.unit!==result.unit||result.aggregate?.value===null)fail('public_cell_evidence_unavailable',409)
   // No source text, query, record payload, author, mention, series label or

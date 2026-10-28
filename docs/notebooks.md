@@ -38,9 +38,8 @@ notebook mutation doors. Ordinary native telemetry reads remain separately
 authorized. Broader sharing restoration and derived retention qualification
 remain open; this feature adds no deletion, expiry or outbound authority.
 
-Service-change links, broader alert integration and imported source-notebook
-continuity are not implemented. The
-ten authorized Datadog source notebooks and durable referenced trace evidence
+Broader alert integration and imported source-notebook continuity remain open.
+The ten authorized Datadog source notebooks and durable referenced trace evidence
 are still required by PORT-039, PORT-048 and PORT-090. No source-retirement or
 full notebook-continuity claim follows from the native notebook journey.
 
@@ -91,3 +90,24 @@ exact source `unit`, plus the current notebook `revision`, public `title`,
 `reviewed-sanitized-notebook`. Its `revoke` action closes the address without a
 new disclosure approval. Native owner sessions are required for these actions;
 telemetry credentials never confer publication authority.
+
+## Observed service changes
+
+In the existing cell form, choose **Service changes**, **logs**, and the exact
+service, environment, team and absolute event range. Capture actual emitted
+OTLP log records whose string attributes include `change.kind` (`deployment`,
+`configuration` or `feature_flag`), `change.id`, `change.version` and
+`change.summary`. `change.previous_version` is optional and remains explicitly
+unavailable when the source did not supply it. This is a documented native log
+convention, not a claim to verify a deployment provider or infer causation.
+Ordinary logs, aggregate queries and empty results cannot become change cells.
+
+A change cell displays the original source change, versions, summary and exact
+nanosecond time. **Open authorized query** resolves its original query and
+watermark. Only the query and record references enter notebook history; source
+facts are read again under the reader's current telemetry permissions. Reruns
+create a revision and preserve the earlier capture. Erased or missing inputs
+show unavailable evidence, and inactive restored cells perform no live query.
+Service-change cells are private context and cannot be selected for anonymous
+publication. No control performs a deployment or changes a flag or configuration.
+Provider-backed change intake and complete PORT-022 qualification remain open.

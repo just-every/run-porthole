@@ -100,9 +100,9 @@ export async function notebookResponse(request:Request,env:Bindings):Promise<Res
    let cell:Cell
    if(data.kind==='text')cell={id:cellId,kind:'text',text:label(data.text,5000)}
    else {
-    if(data.kind!=='query'&&data.kind!=='chart')fail('invalid_notebook_cell',400)
+    if(data.kind!=='query'&&data.kind!=='chart'&&data.kind!=='change')fail('invalid_notebook_cell',400)
     const query=data.query===undefined?Object.fromEntries(['signal','service','environment','team','from','through','metric','dialect','expression'].filter(key=>data[key]!==undefined&&data[key]!=='').map(key=>[key,data[key]])):typeof data.query==='string'?JSON.parse(data.query):data.query
-    cell={id:cellId,kind:data.kind,title:label(data.title),...await capture(request,env,query)}
+    cell={id:cellId,kind:data.kind,title:label(data.title),...await capture(request,env,query,data.kind)}
     const wanted=cellScope(cell)
     if(!scopeWithin(wanted,actor.member.scope))fail('scope_forbidden')
     for(const key of ['services','environments','teams'] as const)scope[key]=[...new Set([...scope[key],...wanted[key]])]
@@ -122,7 +122,7 @@ export async function notebookResponse(request:Request,env:Bindings):Promise<Res
    const cell=body.cells.find(c=>c.id===data.cellId)
    if(!cell||cell.kind==='text')fail('notebook_query_cell_required',400)
    const query={...cell.query,...(data.from!==undefined?{from:String(data.from)}:{}),...(data.through!==undefined?{through:String(data.through)}:{})}
-   Object.assign(cell,await capture(request,env,query))
+   Object.assign(cell,await capture(request,env,query,cell.kind))
   } else if(action==='comment') {
    let mentions=data.mentions??(data.memberRef?[data.memberRef]:[])
    if(typeof mentions==='string')mentions=JSON.parse(mentions)

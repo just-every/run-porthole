@@ -4,9 +4,10 @@ import {aggregateRows} from '../query/aggregate'
 import {normalizeExploration} from '../explore/normalize'
 import {fail} from '../security/authority'
 import {queryInput,type QueryCell,type Snapshot} from './model'
+import {serviceChanges,type ServiceChange} from './service-changes'
 import type {WidgetRecord,Point} from '../dashboards/widgets'
 
-export interface QueryResult {state:'complete'|'unavailable';reason?:string;count:number|null;records:WidgetRecord[];points:Point[];unit:string;aggregate?:ReturnType<typeof aggregateRows>}
+export interface QueryResult {state:'complete'|'unavailable';reason?:string;count:number|null;records:WidgetRecord[];points:Point[];unit:string;aggregate?:ReturnType<typeof aggregateRows>;changes?:ServiceChange[]}
 async function read(request:Request,env:Bindings,query:Record<string,string>,watermark?:number) {
  const records:WidgetRecord[]=[],refs:string[]=[]
  let cursor:string|null=null,snapshot=watermark
@@ -21,8 +22,11 @@ async function read(request:Request,env:Bindings,query:Record<string,string>,wat
  }
  fail('notebook_query_exceeds_2000_records',422)
 }
-export async function capture(request:Request,env:Bindings,raw:unknown):Promise<{query:Record<string,string>;snapshot:Snapshot}> {
- const query=queryInput(raw),result=await read(request,env,query)
+export async function capture(request:Request,env:Bindings,raw:unknown,kind:QueryCell['kind']='query'):Promise<{query:Record<string,string>;snapshot:Snapshot}> {
+ const query=queryInput(raw)
+ if(kind==='change'&&(query.signal!=='logs'||normalizeExploration(query).aggregate))fail('service_change_log_query_required',400)
+ const result=await read(request,env,query)
+ if(kind==='change')serviceChanges(result.records)
  return {query,snapshot:{watermark:result.watermark,recordIds:result.records.map(row=>row.id),queryRefs:result.refs,capturedAt:Date.now()}}
 }
 export async function resolveCell(request:Request,env:Bindings,cell:QueryCell,quarantined=false):Promise<QueryResult> {
@@ -31,6 +35,7 @@ export async function resolveCell(request:Request,env:Bindings,cell:QueryCell,qu
  try {
   const {records}=await read(request,env,cell.query,cell.snapshot.watermark)
   if(JSON.stringify(records.map(row=>row.id))!==JSON.stringify(cell.snapshot.recordIds))return unavailable('Referenced input is missing, erased or outside current authority. Historical results are unavailable.')
+  if(cell.kind==='change')return {state:'complete',count:records.length,records,points:[],unit:'changes',changes:serviceChanges(records)}
   const kind=normalizeExploration(cell.query).aggregate
   if(kind) {
    const aggregate=aggregateRows(kind,{records,cursor:null})

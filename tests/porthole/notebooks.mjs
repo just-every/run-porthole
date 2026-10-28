@@ -179,6 +179,49 @@ export async function notebookJourney({origin,freshOwner,signIn,restartWorker,wi
   assert.ok((await mean.innerText()).includes('Window average: 6.5 ms'))
   assert.ok((await page.locator('[data-cell-id="total"]').innerText()).includes('Window count: 205 records'))
  }})
+ // The change context is emitted through actual intake, then captured through
+ // the same notebook cell door; no copied change facts live in its revisions.
+ const changeFacts=[
+  {kind:'deployment',id:'synthetic-porthole-2450',previous:'release-before',version:'release-after',summary:'Measured service deployment'},
+  {kind:'configuration',id:'synthetic-porthole-2451',previous:'settings-before',version:'settings-after',summary:'Observed configuration change'},
+  {kind:'feature_flag',id:'synthetic-porthole-2452',previous:'flag-before',version:'flag-after',summary:'Observed feature flag change'},
+ ]
+ await ingest('logs',changeFacts.map((change,index)=>({timeUnixNano:ns(t-9000+index),body:{stringValue:'synthetic-porthole-change-'+index},attributes:Object.entries({'change.kind':change.kind,'change.id':change.id,'change.previous_version':change.previous,'change.version':change.version,'change.summary':change.summary}).map(([key,value])=>({key,value:{stringValue:value}}))})))
+ const changeQuery={...query,from:ns(t-10000),through:ns(t-8000)}
+ const unchangedRevision=notebook.revision
+ const invalid=await post(endpoint+'/cells',{revision:unchangedRevision,cellId:'not-a-change',kind:'change',title:'Ordinary logs cannot masquerade as changes',query},422)
+ assert.equal(invalid.error,'service_change_evidence_required')
+ await post(endpoint+'/cells',{revision:unchangedRevision,cellId:'aggregate-change',kind:'change',title:'Aggregates are not change evidence',query:{...changeQuery,dialect:'sql',expression:`SELECT COUNT(*) FROM logs WHERE service='${scope.services[0]}' AND environment='production' AND team='${scope.teams[0]}'`}},400)
+ assert.equal((await get(endpoint)).revision,unchangedRevision,'invalid evidence saves neither a cell nor a revision')
+ await notebookBrowser({origin,cookie,path:pagePath,name:'notebook-service-changes',exercise:async page=>{
+  await page.getByText('Attach query or chart',{exact:true}).click()
+  const capture=page.locator('form').filter({has:page.getByRole('button',{name:'Capture cell',exact:true})})
+  await capture.getByLabel('Cell reference').fill('changes')
+  await capture.getByLabel('Cell title').fill('Observed service changes')
+  await capture.getByLabel('Cell type').selectOption('change')
+  await capture.getByLabel('Signal',{exact:true}).selectOption('logs')
+  for(const [label,value] of [['Service',scope.services[0]],['Environment','production'],['Team',scope.teams[0]],['From in nanoseconds',changeQuery.from],['Through in nanoseconds',changeQuery.through]])await capture.getByLabel(label,{exact:true}).fill(value)
+  await capture.getByRole('button',{name:'Capture cell',exact:true}).click()
+  await page.waitForURL(origin+pagePath)
+  const changes=page.locator('[data-cell-id="changes"]')
+  const text=await changes.innerText()
+  for(const change of changeFacts)for(const expected of [change.id,change.previous,change.version,change.summary])assert.ok(text.includes(expected))
+  assert.equal(await changes.locator('dl').count(),3)
+  await changes.getByRole('link',{name:'Open authorized query'}).click()
+  const result=await page.locator('body').innerText()
+  for(const change of changeFacts)assert.ok(result.includes(change.id),'source query retains the exact original change evidence')
+  await page.goto(origin+pagePath)
+ }})
+ notebook=await get(endpoint)
+ const changeCell=notebook.body.cells.find(cell=>cell.id==='changes'),changeResult=notebook.results[5],changeRevision=notebook.revision
+ assert.equal(changeCell.kind,'change');assert.equal(changeResult.count,3)
+ assert.deepEqual(changeResult.changes.map(change=>[change.kind,change.changeId,change.previousVersion,change.version,change.summary]),changeFacts.map(change=>[change.kind,change.id,change.previous,change.version,change.summary]))
+ assert.deepEqual(changeResult.changes.map(change=>change.timeNs),changeFacts.map((_,index)=>ns(t-9000+index).padStart(20,'0')))
+ assert.deepEqual(changeResult.changes.map(change=>change.recordId),changeCell.snapshot.recordIds)
+ assert.ok(!JSON.stringify(changeCell).includes(changeFacts[0].id),'only query and evidence references are durable notebook context')
+ for(const actor of [responder,contractor])assert.deepEqual((await get(endpoint,200,actor.cookie)).results[5].changes,changeResult.changes)
+ await post(endpoint+'/rerun',{revision:notebook.revision,cellId:'changes',from:ns(t+1000),through:ns(t+2000)},422)
+ assert.equal((await get(endpoint)).revision,changeRevision,'empty reruns cannot silently replace the original change context')
  const beforeRerun=notebook.revision
  await withPinnedClock(t+61000,async()=>{
   await heartbeat();await ingest('logs',[{timeUnixNano:ns(t-500),body:{stringValue:'synthetic-porthole-old-event'}}])
@@ -197,6 +240,7 @@ export async function notebookJourney({origin,freshOwner,signIn,restartWorker,wi
  assert.deepEqual(earlier.results[0].points.map(p=>p.value),[4,9])
  assert.equal(earlier.results[1].count,205,'later intake cannot enter the earlier immutable watermark')
  await restartWorker();cookie=await freshOwner()
+ assert.deepEqual((await get(endpoint+'?version='+changeRevision)).results[5].changes,changeResult.changes,'restart retains original scoped service-change references')
  assert.deepEqual((await get(endpoint+'?version='+initialRevision)).body,initial.body)
  await notebookBrowser({origin,cookie,path:pagePath,name:'notebook-measured-recovery',exercise:async page=>{
   assert.equal(await page.locator('[data-cell-id="chart"] svg circle').count(),1)
@@ -209,6 +253,7 @@ export async function notebookJourney({origin,freshOwner,signIn,restartWorker,wi
  await post(publications,previewData,403,responder.cookie)
  await get(publications,403,contractor.cookie)
  await post(publications,{...previewData,cells:[{cellId:'context',label:'Private text',unit:''}]},400)
+ await post(publications,{...previewData,cells:[{cellId:'changes',label:'Private change facts',unit:'changes'}]},400)
  let published
  await notebookBrowser({origin,cookie,path:publicationSettings,name:'notebook-public-preview',exercise:async page=>{
   await page.getByLabel('Public title',{exact:true}).fill(previewData.title)
@@ -263,6 +308,7 @@ export async function notebookJourney({origin,freshOwner,signIn,restartWorker,wi
  }})
  let publicHtml=await publicGet()
  for(const privateValue of ['Measured incident investigation','Original log evidence','synthetic-porthole-log-0','Incident responder',notebookId,monitor.id,source.secret,'queryRefs','recordIds','authorRef'])assert.ok(!publicHtml.includes(privateValue),'public snapshot excludes private fields')
+ for(const change of changeFacts)assert.ok(!publicHtml.includes(change.id)&&!publicHtml.includes(change.summary),'private change evidence is never an anonymous projection')
  assert.ok(publicHtml.includes('Public recovery summary'));assert.ok(publicHtml.includes('205 records'))
  assert.equal(await publicGet(publicPath,200,'HEAD'),'')
  await notebookBrowser({origin,cookie:'',path:publicPath,name:'notebook-public-snapshot',exercise:async page=>{
@@ -324,6 +370,8 @@ export async function notebookJourney({origin,freshOwner,signIn,restartWorker,wi
  await publicGet('/shared/notebooks/'+erasurePublication.id,404)
  assert.equal((await sql('SELECT COUNT(*) AS n FROM porthole_notebook_publications'))[0].n,0,'erasure purges every affected frozen public projection in the same journal transaction')
  const erasedNotebook=await get(endpoint)
+ assert.equal(erasedNotebook.results[5].state,'unavailable');assert.equal(erasedNotebook.results[5].count,null);assert.deepEqual(erasedNotebook.results[5].records,[])
+ assert.equal(erasedNotebook.results[5].changes,undefined,'erasure cannot leave a detached service-change presentation')
  const refusedPublication=await post(publications,{...previewData,revision:erasedNotebook.revision},409)
  assert.equal(refusedPublication.error,'public_cell_evidence_unavailable','a new publication cannot revive erased inputs')
  notebook=await get(endpoint+'?version='+initialRevision)
@@ -335,6 +383,7 @@ export async function notebookJourney({origin,freshOwner,signIn,restartWorker,wi
  await notebookBrowser({origin,cookie,path:pagePath,name:'notebook-missing-evidence',exercise:async page=>{
   const text=await page.locator('body').innerText();assert.ok(text.includes('Count unavailable'));assert.ok(text.includes('Erased member'))
   assert.ok(!text.includes('synthetic-porthole-log-0'),'erased log data is absent from notebook results')
+  for(const change of changeFacts)assert.ok(!text.includes(change.id)&&!text.includes(change.summary),'erased service changes are unavailable')
  }})
  await notebookBrowser({origin,cookie,path:publicationSettings,name:'notebook-public-missing-evidence',exercise:async page=>{
   assert.equal(await page.getByLabel('Include Original log evidence',{exact:true}).isDisabled(),true)

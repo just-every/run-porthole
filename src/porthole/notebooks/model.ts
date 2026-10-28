@@ -5,7 +5,7 @@ import {uuid} from '../portability/format-id'
 
 export interface Snapshot {watermark:number;recordIds:string[];queryRefs:string[];capturedAt:number}
 export interface TextCell {id:string;kind:'text';text:string}
-export interface QueryCell {id:string;kind:'query'|'chart';title:string;query:Record<string,string>;snapshot:Snapshot}
+export interface QueryCell {id:string;kind:'query'|'chart'|'change';title:string;query:Record<string,string>;snapshot:Snapshot}
 export type Cell=TextCell|QueryCell
 export interface Comment {id:string;text:string;authorRef:string;createdAt:number;mentions:{memberRef:string;status:'undelivered'}[]}
 export interface Notebook {origin:{monitorId:string;revision:number;evaluationId:string};cells:Cell[];comments:Comment[]}
@@ -37,10 +37,12 @@ export function notebookBody(value:unknown):Notebook {
    if(Object.keys(cell).sort().join(',')!=='id,kind,text')fail('invalid_notebook_cell',400)
    return {id:cellId,kind:'text',text:label(cell.text,5000)}
   }
-  if(!['query','chart'].includes(String(cell.kind))||Object.keys(cell).sort().join(',')!=='id,kind,query,snapshot,title')fail('invalid_notebook_cell',400)
+  if(!['query','chart','change'].includes(String(cell.kind))||Object.keys(cell).sort().join(',')!=='id,kind,query,snapshot,title')fail('invalid_notebook_cell',400)
   const snapshot=object(cell.snapshot)
   if(Object.keys(snapshot).sort().join(',')!=='capturedAt,queryRefs,recordIds,watermark'||!integer(snapshot.watermark)||!integer(snapshot.capturedAt)||!Array.isArray(snapshot.recordIds)||snapshot.recordIds.length>2000||new Set(snapshot.recordIds).size!==snapshot.recordIds.length||snapshot.recordIds.some(ref=>typeof ref!=='string'||!/^[a-f0-9-]{36}:\d+$/.test(ref))||!Array.isArray(snapshot.queryRefs)||!snapshot.queryRefs.length||snapshot.queryRefs.length>10||snapshot.queryRefs.some(ref=>!uuid(ref)))fail('invalid_notebook_snapshot',400)
-  return {id:cellId,kind:cell.kind as 'query'|'chart',title:label(cell.title),query:queryInput(cell.query),snapshot:snapshot as unknown as Snapshot}
+  const query=queryInput(cell.query)
+  if(cell.kind==='change'&&(query.signal!=='logs'||normalizeExploration(query).aggregate))fail('service_change_log_query_required',400)
+  return {id:cellId,kind:cell.kind as QueryCell['kind'],title:label(cell.title),query,snapshot:snapshot as unknown as Snapshot}
  })
  const comments=raw.comments.map(value=>{
   const c=object(value)
