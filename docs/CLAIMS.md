@@ -14,7 +14,7 @@
 | A log line is linked to its trace by traceparent | 03, 09 | `PORT-011` missing | missing |
 | A profile shows where the slow span's time went (off-CPU, pgx Query) | 03 | `PORT-015` missing | missing |
 | Slow traces are compared with the baseline by attribute (db.statement, service.version) | 03 | `PORT-009` missing; `PORT-085` missing | missing |
-| A p95 monitor fires and pages the on-call through Oncall and Slack | 04 | `PORT-019` missing; `PORT-020` missing; `PORT-051` missing; `PORT-066` missing | missing |
+| A p95 monitor fires and pages the on-call through Oncall and Slack | 04 | `PORT-019` partial; `PORT-020` missing; `PORT-051` missing; `PORT-066` missing | partial |
 | The agent tests causes and posts the one that held with its cited queries, Spool errors included | 04 | `PORT-028` missing; `PORT-050` missing | missing |
 | The readied rollback rebuilds the index without changing data, after a person approves it in Slack | 04 | `PORT-029` missing; `PORT-077` missing | missing |
 | SLO error budget is tracked (43.2 min budget, 11.4 used, 31.8 left) | 04 | `PORT-021` partial; `PORT-084` missing | partial |
@@ -22,7 +22,7 @@
 | Kubernetes OOM kills arrive as events with pod memory, owner and cluster | 05 | `PORT-007` missing | missing |
 | The agent explains a quiet failure without paging and opens the resize pull request a team merges | 05, 06 | `PORT-020` missing; `PORT-028` missing; `PORT-029` missing; `PORT-082` missing | missing |
 | The agent instruments an untraced service by pull request; coverage goes to 46 of 46 | 07 | `PORT-030` missing; `PORT-004` done; `PORT-008` missing | partial |
-| Noisy monitors are retuned by pull request after a replay against history | 07 | `PORT-030` missing; `PORT-019` missing; `PORT-026` partial | partial |
+| Noisy monitors are retuned by pull request after a replay against history | 07 | `PORT-030` missing; `PORT-019` partial; `PORT-026` partial | partial |
 | A tag that multiplies a metric's series is caught and fixed by a merged pull request | 08 | `PORT-023` missing; `PORT-083` missing; `PORT-014` missing | missing |
 | A debug log nobody reads is dropped by an approved rule, error lines kept | 08 | `PORT-023` missing; `PORT-012` missing; `PORT-030` missing | missing |
 | Logs a day by team are shown against the old total | 08 | `PORT-023` missing | missing |

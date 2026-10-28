@@ -15,7 +15,7 @@ function transport({origin,cookie,call=(path,init)=>fetch(origin+path,init)}) {
  return {call,get:(path,acting=cookie)=>call(path,{headers:{cookie:acting}}),post:(path,data,status=200,acting=cookie)=>call(path,form(origin,acting,data)).then(response=>value(response,status))}
 }
 function group(result,service,status,counts) {
- const matches=result.groups.filter(row=>row.labels.service===service)
+ const matches=result.groups.filter(row=>row.labels.service===service&&row.labels.environment===scope.environments[0]&&row.labels.team===scope.teams[0])
  assert.equal(matches.length,1,'one independently measured service group')
  const found=matches[0]
  assert.deepEqual(found.labels,{service,environment:scope.environments[0],team:scope.teams[0]})
@@ -26,26 +26,27 @@ function group(result,service,status,counts) {
  ])
  return found
 }
-function intake({call,post},credential) {
- let sequence=2310
- const headers=(service,id)=>({authorization:'Bearer '+credential.secret,'content-type':'application/json',...(id?{'x-porthole-batch-id':id}:{}),'x-porthole-team':scope.teams[0],'x-porthole-service':service,'x-porthole-environment':scope.environments[0]})
- const resource=service=>({attributes:[{key:'service.name',value:{stringValue:service}},{key:'deployment.environment.name',value:{stringValue:scope.environments[0]}},{key:'team',value:{stringValue:scope.teams[0]}}]})
+function intake({call,post},credential,selection=scope) {
+ let sequence=2310,lastCapture
+ const headers=(service,id)=>({authorization:'Bearer '+credential.secret,'content-type':'application/json',...(id?{'x-porthole-batch-id':id}:{}),'x-porthole-team':selection.teams[0],'x-porthole-service':service,'x-porthole-environment':selection.environments[0]})
+ const resource=service=>({attributes:[{key:'service.name',value:{stringValue:service}},{key:'deployment.environment.name',value:{stringValue:selection.environments[0]}},{key:'team',value:{stringValue:selection.teams[0]}}]})
  const heartbeat=async(signal='logs')=>{
-  for(const service of scope.services)await value(await call('/api/v1/health/heartbeat',{method:'POST',headers:headers(service),body:JSON.stringify({collectorId:'synthetic-porthole-2304',service,environment:scope.environments[0],team:scope.teams[0],signal})}))
+  for(const service of selection.services)await value(await call('/api/v1/health/heartbeat',{method:'POST',headers:headers(service),body:JSON.stringify({collectorId:'synthetic-porthole-2304',service,environment:selection.environments[0],team:selection.teams[0],signal})}))
  }
  const logs=async(service,times)=>{
   const logRecords=times.map(at=>({timeUnixNano:ns(at),severityNumber:17,body:{stringValue:'synthetic-porthole-2305'}}))
   const packet={resourceLogs:[{resource:resource(service),scopeLogs:[{logRecords}]}]}
-  const response=await call('/v1/logs',{method:'POST',headers:headers(service,'synthetic-porthole-'+sequence++),body:JSON.stringify(packet)})
+  lastCapture={method:'POST',headers:headers(service,'synthetic-porthole-'+sequence++),body:JSON.stringify(packet)}
+  const response=await call('/v1/logs',lastCapture)
   assert.equal(response.status,200,await response.clone().text());await post('/api/porthole/v1/ingest/drain',{})
  }
  const traces=async(at)=>{
   const spans=[1,2].map(i=>({traceId:i.toString(16).padStart(32,'0'),spanId:i.toString(16).padStart(16,'0'),name:'synthetic-porthole-2306',startTimeUnixNano:ns(at),endTimeUnixNano:ns(at+1),kind:2,status:{code:0}}))
-  const packet={resourceSpans:[{resource:resource(scope.services[0]),scopeSpans:[{spans}]}]}
-  const response=await call('/v1/traces',{method:'POST',headers:headers(scope.services[0],'synthetic-porthole-'+sequence++),body:JSON.stringify(packet)})
+  const packet={resourceSpans:[{resource:resource(selection.services[0]),scopeSpans:[{spans}]}]}
+  const response=await call('/v1/traces',{method:'POST',headers:headers(selection.services[0],'synthetic-porthole-'+sequence++),body:JSON.stringify(packet)})
   assert.equal(response.status,200,await response.clone().text());await post('/api/porthole/v1/ingest/drain',{})
  }
- return {heartbeat,logs,traces}
+ return {heartbeat,logs,traces,replay:async()=>assert.equal((await call('/v1/logs',lastCapture)).status,401)}
 }
 async function create(post,{name='synthetic-porthole-2307',definition=body,selection=scope}={}) {
  const monitor=await post(objects,{kind:'monitor',name,scope:selection,body:definition},201)
@@ -62,7 +63,7 @@ async function seedCounts(source,t) {
 const browserDispatch=call=>call?((url,init)=>call(new URL(url).pathname+new URL(url).search,init)):undefined
 
 /** Real OTLP and authenticated collector coverage through the public API.
- * freshOwner/signIn substitute only the existing native mail/grant edge.
+ * freshOwner and signIn substitute only the existing native mail and grant edge.
  * The harness pins Worker time; no telemetry or monitor rows are fabricated.
  */
 export async function deterministicMonitorJourney({origin,freshOwner,signIn,restartWorker,withPinnedClock,withEmptyDestination,sql,call,backend='native'}) {
@@ -76,6 +77,7 @@ export async function deterministicMonitorJourney({origin,freshOwner,signIn,rest
  const health=await value(await get('/api/v1/health'))
  await post('/api/v1/health/configuration',{revision:health.configuration.revision,freshnessSeconds:300,noticesEnabled:false})
  const credential=await post('/app/settings/credentials/mint',{name:'synthetic-porthole-2308',class:'ingest',scope:{...scope,signals:['logs','traces'],actions:['telemetry.write']}},201)
+ await post(objects,{kind:'monitor',name:'synthetic-porthole-2309',scope,body:{...body,windows:[0,120]}},400)
  const source=intake({call:http.call,post},credential),t=Date.now()
  let monitor,pendingAt,episode
  await withPinnedClock(t,async()=>{
@@ -100,6 +102,7 @@ export async function deterministicMonitorJourney({origin,freshOwner,signIn,rest
   const state=await read(monitor.id)
   assert.equal(state.details[monitor.id].revision,monitor.revision);assert.equal(state.details[monitor.id].state,'Firing')
   await monitorScreens({origin,cookie,call,monitor,definition:body})
+  await independentDimensions(http,t+20000)
  })
  await withPinnedClock(t+61000,async()=>{
   await source.heartbeat()
@@ -117,6 +120,17 @@ export async function deterministicMonitorJourney({origin,freshOwner,signIn,rest
   assert.equal(missing.status,'Unknown');assert.equal(missing.observedCount,null)
   assert.equal(missing.lastKnownCount,null,'no heartbeat has ever established a measured empty window')
   assert.ok(missing.groups.length>0);assert.ok(missing.groups.every(row=>row.completeness==='absent'))
+  const noDataAlert=await create(post,{name:'synthetic-porthole-2344',selection:{...scope,services:['synthetic-porthole-2341']},definition:{...body,pendingSeconds:0,noDataPolicy:'alert'}})
+  const alert=await evaluate(noDataAlert)
+  assert.equal(alert.status,'Firing');assert.equal(alert.observedCount,null);assert.ok(alert.firingEpisode)
+  assert.ok(alert.groups.length>0);assert.ok(alert.groups.every(row=>row.status==='NoData'&&row.completeness==='absent'&&row.count===null))
+  const noDataKeep=await create(post,{name:'synthetic-porthole-2345',selection:{...scope,services:['synthetic-porthole-2341']},definition:{...body,pendingSeconds:0,noDataPolicy:'keep-last'}})
+  const kept=await evaluate(noDataKeep)
+  assert.equal(kept.status,'Unknown');assert.equal(kept.observedCount,null);assert.equal(kept.lastKnownCount,null)
+  await healthBrowser({origin,cookie,dispatch:browserDispatch(call),name:'monitor-recovered',path:'/app/monitors?view=triggered',exercise:async page=>{
+   assert.equal(await page.getByRole('link',{name:'synthetic-porthole-2307',exact:true}).count(),0,'measured recovery leaves the triggered view')
+   assert.equal(await page.getByRole('link',{name:'synthetic-porthole-2344',exact:true}).count(),1,'an explicit no-data alert remains distinguishable from measured recovery')
+  }})
   await source.heartbeat('traces');await source.traces(t+110000)
   const traceMonitor=await create(post,{name:'synthetic-porthole-2342',selection:{...scope,services:[scope.services[0]]},definition:{signal:'traces',operator:'above',threshold:1,windowSeconds:60}})
   const trace=await evaluate(traceMonitor)
@@ -132,14 +146,22 @@ export async function deterministicMonitorJourney({origin,freshOwner,signIn,rest
   assert.equal(recurrence.status,'Firing');assert.equal(recurrence.observedCount,4)
   assert.ok(recurrence.firingEpisode);assert.notEqual(recurrence.firingEpisode,episode)
   await post('/app/settings/credentials/revoke',{id:credential.credential.id})
+  await source.replay()
   const lost=await evaluate(monitor)
   assert.equal(lost.status,'Unknown');assert.equal(lost.observedCount,null)
   assert.equal(lost.lastKnownCount,4);assert.equal(lost.firingEpisode,recurrence.firingEpisode)
   assert.ok(lost.groups.every(row=>row.completeness==='source-loss'),'revoked collection never establishes recovery')
+  const lostService=lost.groups.find(row=>row.labels.service===scope.services[0])
+  assert.equal(lostService.count,null);assert.equal(lostService.lastKnownCount,4)
   await healthBrowser({origin,cookie,dispatch:browserDispatch(call),name:'monitor-source-loss',path:'/app/monitors?id='+monitor.id,exercise:async page=>{
    assert.equal(await page.locator('article strong').innerText(),'Unknown')
   }})
  })
+ await post(root+'/state',{id:monitor.id,revision:monitor.revision,state:'inactive',confirm:'inactive'})
+ await evaluate(monitor,409)
+ const disabled=(await read(monitor.id)).details[monitor.id]
+ assert.equal(disabled.state,'Unknown');assert.ok(disabled.history.length>0,'disable retains evaluation history')
+ await post(root+'/state',{id:monitor.id,revision:monitor.revision,state:'active',confirm:'active'})
  // Reuse an existing synthetic fixture member, preserving their assignment.
  const members=await value(await get('/auth/operators'))
  const member=members.find(row=>row.productRole==='admin'&&row.status==='active')
@@ -162,6 +184,14 @@ export async function deterministicMonitorJourney({origin,freshOwner,signIn,rest
  assert.equal(versions.length,2)
  assert.deepEqual(versions.find(row=>row.revision===monitor.revision).body,body,'editing retains the exact earlier definition')
  if(withEmptyDestination)await monitorArchive({origin,cookie,call,withEmptyDestination,monitor:updated})
+ await refresh()
+ const preview=await post('/api/porthole/v1/subject-erasure',{identifier:'synthetic-porthole-2305'})
+ assert.ok(preview.records>0);assert.equal(preview.canApply,true)
+ await post('/api/porthole/v1/subject-erasure/apply',{identifier:'synthetic-porthole-2305',digest:preview.digest,confirm:'erase-exact-batches'})
+ const erased=await read(monitor.id)
+ assert.deepEqual(erased.details[monitor.id].history,[],'erased derived evaluations are no longer exposed')
+ assert.equal(erased.details[monitor.id].count,null)
+ await source.replay()
  console.log('Deterministic monitor journey passed: grouped windows, durable pending, hysteresis, measured zero, absent coverage, traces, source and member revocation, stale revisions, responsive forms, inactive restore ('+backend+').')
 }
 
@@ -187,7 +217,20 @@ async function monitorScreens({origin,cookie,call,monitor,definition}) {
  }})
 }
 
-/** Separate analytical Worker fixture: actual OTLP and exact group/window
+async function independentDimensions(http,t) {
+ const selection={services:[scope.services[0]],environments:['synthetic-porthole-2370'],teams:['synthetic-porthole-2371']}
+ const credential=await http.post('/app/settings/credentials/mint',{name:'synthetic-porthole-2372',class:'ingest',scope:{...selection,signals:['logs'],actions:['telemetry.write']}},201)
+ const source=intake(http,credential,selection);await source.heartbeat();await source.logs(selection.services[0],[t,t+1])
+ const monitor=await create(http.post,{name:'synthetic-porthole-2373',selection:{...scope,environments:[...scope.environments,...selection.environments],teams:[...scope.teams,...selection.teams]},definition:{...body,pendingSeconds:0}})
+ const result=await http.post(root+'/evaluate',{id:monitor.id,revision:monitor.revision})
+ assert.equal(result.groups.length,3,'same service stays separate across environment and team')
+ const isolated=result.groups.find(row=>row.labels.environment===selection.environments[0])
+ assert.deepEqual(isolated.labels,{service:selection.services[0],environment:selection.environments[0],team:selection.teams[0]})
+ assert.deepEqual(isolated.windows.map(row=>row.count),[2,2]);assert.equal(isolated.status,'Healthy')
+ group(result,scope.services[0],'Firing',[4,6]);group(result,scope.services[1],'Healthy',[1,3])
+}
+
+/** Separate analytical Worker fixture: actual OTLP and exact group and window
  * counts, without depending on its control-plane clock or browser listener. */
 export async function countMonitorBackendJourney({origin,cookie,call}) {
  const http=transport({origin,cookie,call}),{post}=http
@@ -199,6 +242,7 @@ export async function countMonitorBackendJourney({origin,cookie,call}) {
  const result=await post(root+'/evaluate',{id:monitor.id,revision:monitor.revision})
  assert.equal(result.status,'Firing');assert.equal(result.observedCount,5);assert.equal(result.groups.length,2)
  group(result,scope.services[0],'Firing',[4,6]);group(result,scope.services[1],'Healthy',[1,3])
+ await independentDimensions(http,Date.now()-1000)
  return {monitor,result}
 }
 

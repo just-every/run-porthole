@@ -4,7 +4,7 @@ import type {ObjectRow} from '../objects/http'
 import {scopeWhere} from '../ingest/read'
 import {fail,type Scope} from '../security/authority'
 import {countWindows} from './counts'
-import {monitorDefinition,dimensions,groupKey,ns,type Group,type Evaluation,type Completeness,type Status} from './model'
+import {monitorDefinition,groupKey,ns,type Group,type Evaluation,type Completeness,type Status} from './model'
 interface Collector {service:string;environment:string;team:string;observed_at:number;live:number}
 export async function evaluateMonitor(env:HealthBindings,monitor:ObjectRow,health:HealthState,now=Date.now()):Promise<Evaluation> {
  const definition=monitorDefinition(JSON.parse(monitor.body)),scope=JSON.parse(monitor.scope) as Scope,where=scopeWhere(scope,'h')
@@ -48,7 +48,7 @@ export async function evaluateMonitor(env:HealthBindings,monitor:ObjectRow,healt
    if(status==='Healthy')episode=null
   } else if(completeness==='absent'&&definition.noDataPolicy==='alert'){status='NoData';episode??=crypto.randomUUID()}
   // An interrupted pending interval never counts as sustained measured breach.
-  const reason=completeness==='measured'?`Observed ${count} ${definition.signal} records; all windows must breach, and all must reach recovery before resolving.`:completeness==='absent'?`No authenticated source has established input coverage. No-data policy: ${definition.noDataPolicy}.`:completeness==='source-loss'?'Recorded source or buffer loss, or stale or revoked source coverage; last-known state cannot resolve.':completeness==='unavailable'?'Analytical storage/query failed; previous firing state and count are last-known only.':completeness==='uncertain-time'?'Source clock uncertainty makes this window incomplete.':'Telemetry component coverage is incomplete.'
+  const reason=completeness==='measured'?`Observed ${count} ${definition.signal} records; all windows must breach, and all must reach recovery before resolving.`:completeness==='absent'?`No authenticated source has established input coverage. No-data policy: ${definition.noDataPolicy}.`:completeness==='source-loss'?'Recorded source or buffer loss, or stale or revoked source coverage; last-known state cannot resolve.':completeness==='unavailable'?'Analytical storage or query failed; previous firing state and count are last-known only.':completeness==='uncertain-time'?'Source clock uncertainty makes this window incomplete.':'Telemetry component coverage is incomplete.'
   groups.push({key,labels:label,status,count,lastKnownCount:count??prior?.lastKnownCount??null,pendingSince,firingEpisode:episode,completeness,windows,reason})
  }
  const unknown=overflow||groups.some(group=>!['measured','absent'].includes(group.completeness)||group.status==='Unknown'),status:Status=unknown?'Unknown':groups.some(group=>['Firing','NoData'].includes(group.status))?'Firing':groups.some(group=>group.status==='Pending')?'Pending':'Healthy'
