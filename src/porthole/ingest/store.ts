@@ -1,3 +1,6 @@
+import { current, processed, storedLogWire } from '../pipelines/intake'
+import { sanitize } from '../pipelines/redact'
+import { sha256 } from './model'
 import type { Bindings } from '../../auth.server'
 import { secretHash, type CredentialScope } from '../credentials/policy'
 import { CredentialLimit, verifyCredential } from '../credentials/verify'
@@ -18,7 +21,7 @@ const groups = (records: TelemetryRecord[], scope: CredentialScope) => {
  return [...grouped.values()]
 }
 function eventStatements(env: Bindings, hash: string, signal: string, records: TelemetryRecord[], scope: CredentialScope, kind: string, reason: string, batch: string | null, fence: Fence, condition = '1', args: unknown[] = []) {
- return groups(records,scope).map(group => env.DB.prepare(`INSERT INTO porthole_ingest_events(id,source_id,signal,team,service,environment,occurred_at,kind,reason,record_count,batch_ref)
+ return groups(records,scope).map(raw => sanitize(raw)).map(group => env.DB.prepare(`INSERT INTO porthole_ingest_events(id,source_id,signal,team,service,environment,occurred_at,kind,reason,record_count,batch_ref)
  SELECT ?,c.id,?,?,?,?,?,?,?,?,? FROM porthole_credentials c WHERE c.secret_hash=? AND ${fence.sql} AND (${condition})`)
  .bind(crypto.randomUUID(),signal,group.team,group.service,group.environment,Date.now(),kind,reason,group.count,batch,hash,...fence.args,...args))
 }
@@ -27,15 +30,23 @@ function check(scope: CredentialScope, signal: string, records: TelemetryRecord[
  * Backlog checks and duplicate recognition run inside that same transaction. */
 export async function acceptEnvelope(request: Request, env: Bindings, envelope: Envelope) {
  const hash = await secretHash((request.headers.get('authorization') ?? '').slice(7)), now = Date.now()
- const encodedWire=base64(envelope.wire)
+ const originalWireBytes=envelope.wire.length
+ const pipeline=envelope.signal==='logs'?await current(env):null
+ if(envelope.signal==='logs'&&sanitize(envelope.identity)!==envelope.identity)envelope.identity='masked-'+await sha256(new TextEncoder().encode(envelope.identity))
+ let encodedWire=base64(envelope.wire)
  // Older three-signal installations can intake during their schema upgrade.
  // They cannot have an erasure journal before its additive migration exists.
  const journalAvailable=!!await env.DB.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='porthole_erased_batches'").first()
  let granted: CredentialScope | undefined
  try {
-  const response = await verifyCredential(request,env,{ action:'telemetry.write',scope:emptyScope,dataScope:allScope,acceptedBytes:envelope.wire.length,
+  const response = await verifyCredential(request,env,{ action:'telemetry.write',scope:emptyScope,dataScope:allScope,acceptedBytes:originalWireBytes,
    writes(fence,scope) {
     check(scope,envelope.signal,envelope.records); granted = scope
+    if(pipeline){
+     envelope.records=envelope.records.map(record=>processed(record,pipeline.definition,pipeline.revision))
+     encodedWire=base64(storedLogWire(envelope.records))
+     envelope.protocol+=';stored=porthole.sanitized-log-envelope.v1'
+    }
     // Resource metadata can be repeated by thousands of records even when
     // the compressed request is small. Bound the durable representation before
     // serializing the whole array, so expansion cannot exhaust the Worker.
@@ -57,7 +68,7 @@ export async function acceptEnvelope(request: Request, env: Bindings, envelope: 
     const pressure = '(SELECT COALESCE(SUM(byte_count),0) FROM porthole_ingest_batches WHERE state=\'pending\')+?>(SELECT max_pending_bytes FROM porthole_ingest_control WHERE singleton=1)'
     return [env.DB.prepare(`INSERT INTO porthole_ingest_batches(id,sequence,source_id,signal,identity,digest,protocol,accepted_at,byte_count,record_count,wire_base64,records)
      SELECT ?,(SELECT COALESCE(MAX(sequence),0)+1 FROM porthole_ingest_batches),c.id,?,?,?,?,?,?,?,?,? FROM porthole_credentials c WHERE c.secret_hash=? AND ${fence.sql}
-     AND ${journalAvailable?'NOT EXISTS(SELECT 1 FROM porthole_erased_batches WHERE content_digest=?)':"NOT EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name='porthole_erased_batches')"} AND NOT (${pressure}) ON CONFLICT(source_id,signal,identity) DO NOTHING`)
+     AND ${journalAvailable?'NOT EXISTS(SELECT 1 FROM porthole_erased_batches WHERE content_digest=?)':"NOT EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name='porthole_erased_batches')"} AND ${pipeline?.available?'COALESCE((SELECT MAX(revision) FROM porthole_pipeline_versions),0)='+pipeline.revision:'1'} AND NOT (${pressure}) ON CONFLICT(source_id,signal,identity) DO NOTHING`)
      .bind(envelope.id,envelope.signal,envelope.identity,envelope.digest,envelope.protocol,now,bufferedBytes,envelope.records.length,encodedWire,encodedRecords,hash,...fence.args,...(journalAvailable?[envelope.digest]:[]),bufferedBytes),
      ...eventStatements(env,hash,envelope.signal,envelope.records,scope,'duplicate','batch_retried',null,fence,`${same} AND NOT EXISTS(SELECT 1 FROM porthole_ingest_batches WHERE id=?)`,[...duplicateArgs,envelope.id]),
      ...eventStatements(env,hash,envelope.signal,envelope.records,scope,'rejected','batch_identity_conflict',null,fence,`${exists} AND NOT (${same})`,[hash,envelope.signal,envelope.identity,...duplicateArgs]),
@@ -69,7 +80,10 @@ export async function acceptEnvelope(request: Request, env: Bindings, envelope: 
   const row = response.results.at(-1)?.results[0] as {id:string;digest:string;state:string;record_count:number;accepted_at:number} | undefined
   const erased=journalAvailable&&await env.DB.prepare('SELECT 1 FROM porthole_erased_batches WHERE content_digest=?').bind(envelope.digest).first()
   if(erased)throw new IntakeError('erased_batch_refused',409)
-  if (!row) throw new IntakeError('queue_pressure',429,5)
+  if (!row) {
+   if(pipeline?.available&&(await current(env)).revision!==pipeline.revision)throw new IntakeError('pipeline_revision_changed',409)
+   throw new IntakeError('queue_pressure',429,5)
+  }
   if (row.digest !== envelope.digest) throw new IntakeError('batch_identity_conflict',409)
   return { batchId:row.id,accepted:row.record_count,duplicate:row.id !== envelope.id,state:row.state,acceptedAt:row.accepted_at }
  } catch (error) {

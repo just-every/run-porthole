@@ -2,6 +2,7 @@
 // Native identities become opaque inactive archive actors; sessions and credentials
 // are omitted entirely, including hashes. Source ids remain audit references.
 const excluded=[
+ 'porthole_pipeline_previews',
  'porthole_metric_previews',
  'porthole_follow_up','porthole_follow_up_events',
  'porthole_analytical_configuration','rer_dependency_%','oc_%','porthole_members','porthole_credentials','porthole_object_approvals',
@@ -15,6 +16,7 @@ export default {
  excludeTables:excluded,
  requiredConfiguration:['OWNER_EMAIL','SESSION_SECRET','SETUP_TOKEN','AUTH_ORIGIN','MAIL_PROVIDER','MAIL_FROM'],
  importSafety:{
+  porthole_pipeline_versions:{state:['quarantined']},
   porthole_metric_rules:{state:['quarantined']},
   porthole_retention_policies:{active:[0]},
   porthole_baggage_policy:{enabled:[0]},
@@ -23,6 +25,7 @@ export default {
   porthole_monitor_state:{status:['Unknown']},
  },
  importRow(table,row) {
+  if(table==='porthole_pipeline_versions')return {...row,state:'quarantined'}
   if(table==='porthole_metric_rules')return {...row,state:'quarantined'}
   if(['porthole_objects','porthole_bucket_history'].includes(table))return {...row,state:'quarantined'}
   if(table==='porthole_retention_policies')return {...row,active:0}
