@@ -34,6 +34,8 @@ export async function notebookArchiveJourney({origin,freshOwner,withEmptyDestina
   await value(await post(destination.origin,destCookie,`${api}/restores/${start.id}/commit`,{confirm:source.manifest.rootHash}))
   let restored=await value(await get(destination.origin,destCookie,root))
   assert.equal(restored.state,'quarantined');assert.equal(restored.revision,before.revision)
+  assert.deepEqual((await value(await get(destination.origin,destCookie,'/api/porthole/v1/notebooks/evaluations'))).evaluations,[],'inactive restored monitors cannot become live investigation authority')
+  await value(await post(destination.origin,destCookie,'/api/porthole/v1/notebooks',{name:'No restored firing authority',evaluationId:before.body.origin.evaluationId}),404)
   assert.deepEqual(restored.body,before.body)
   assert.ok(restored.results.filter(Boolean).every(result=>result.state==='unavailable'&&result.count===null&&result.records.length===0))
   const historical=await value(await get(destination.origin,destCookie,root+'?version='+initialRevision))

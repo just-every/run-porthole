@@ -14,19 +14,25 @@ const json=(value:unknown,status=200)=>Response.json(value,{status,headers:priva
 export async function notebookResponse(request:Request,env:Bindings):Promise<Response|null> {
  const url=new URL(request.url),page=url.pathname.startsWith(app)||url.pathname.startsWith(settings)
  const match=url.pathname.match(/^\/(?:api\/porthole\/v1\/notebooks|app\/notebooks|app\/settings\/notebooks)(?:\/([a-f0-9-]{36})(?:\/(cells|reorder|rerun|comment|share|unshare))?)?$/)
- if(!match&&!([api,app,settings].includes(url.pathname)))return null
+ if(!match&&!([api,app,settings,api+'/evaluations'].includes(url.pathname)))return null
  try {
   if(!['GET','POST'].includes(request.method))fail('method_not_allowed',405)
   if([...url.searchParams].some(([key])=>!['version','monitor'].includes(key)||url.searchParams.getAll(key).length!==1))fail('invalid_notebook_query',400)
   const actor=await authority(request,env,{post:request.method==='POST'}),owner=actor.member.role==='owner',id=match?.[1],action=match?.[2]
   if(actor.member.role==='finance reader')fail('notebooks_forbidden')
   const redirect=(id:string,toSettings=false)=>new Response(null,{status:303,headers:{...privateHeaders,location:(toSettings?settings:app)+'/'+id}})
+  if(url.pathname===api+'/evaluations') {
+   if(!owner)fail('notebook_owner_required')
+   if(request.method!=='GET'||url.search)fail('method_not_allowed',405)
+   const evaluations=(await env.DB.prepare(`SELECT e.id,e.object_id AS monitorId,e.revision,e.evaluated_at AS evaluatedAt,e.window_start_ns AS fromNs,e.window_end_ns AS throughNs,e.observed_count AS observedCount,o.name,o.scope FROM porthole_monitor_evaluations e JOIN porthole_objects o ON o.id=e.object_id AND o.revision=e.revision WHERE e.status='Firing' AND o.state='active' AND ${actor.fence} ORDER BY e.evaluated_at DESC,e.id LIMIT 100`).bind(...actor.args).all<{id:string;scope:string}>()).results.filter(row=>scopeWithin(JSON.parse(row.scope),actor.member.scope)).map(row=>({...row,scope:JSON.parse(row.scope)}))
+   return json({evaluations})
+  }
   if(request.method==='GET'&&!id) {
    if(url.pathname===settings)fail('notebook_not_found',404)
    const rows=(await env.DB.prepare(`SELECT * FROM porthole_notebooks WHERE ${actor.fence} ORDER BY updated_at DESC,id`).bind(...actor.args).all<NotebookRow>()).results
    const visible:NotebookRow[]=[];for(const row of rows)if(await canRead(env,actor,row))visible.push(row)
    if(!page)return json({notebooks:visible.map(row=>({id:row.id,name:row.name,revision:row.revision,state:row.state}))})
-   const firing=owner?(await env.DB.prepare(`SELECT e.id,e.object_id,e.revision,e.evaluated_at,e.observed_count,o.name,o.scope FROM porthole_monitor_evaluations e JOIN porthole_objects o ON o.id=e.object_id AND o.revision=e.revision WHERE e.status='Firing' AND ${actor.fence} ORDER BY e.evaluated_at DESC LIMIT 100`).bind(...actor.args).all<{id:string;object_id:string;revision:number;evaluated_at:number;observed_count:number;name:string;scope:string}>()).results.filter(row=>scopeWithin(JSON.parse(row.scope),actor.member.scope)&&(!url.searchParams.has('monitor')||row.object_id===url.searchParams.get('monitor'))):[]
+   const firing=owner?(await env.DB.prepare(`SELECT e.id,e.object_id,e.revision,e.evaluated_at,e.observed_count,o.name,o.scope FROM porthole_monitor_evaluations e JOIN porthole_objects o ON o.id=e.object_id AND o.revision=e.revision WHERE e.status='Firing' AND o.state='active' AND ${actor.fence} ORDER BY e.evaluated_at DESC LIMIT 100`).bind(...actor.args).all<{id:string;object_id:string;revision:number;evaluated_at:number;observed_count:number;name:string;scope:string}>()).results.filter(row=>scopeWithin(JSON.parse(row.scope),actor.member.scope)&&(!url.searchParams.has('monitor')||row.object_id===url.searchParams.get('monitor'))):[]
    return notebookList(visible,owner,firing)
   }
   if(request.method==='POST'&&!owner)fail('notebook_owner_required')
@@ -34,7 +40,7 @@ export async function notebookResponse(request:Request,env:Bindings):Promise<Res
   if(request.method==='POST'&&!id) {
    const data=await input(request)
    if(!uuid(data.evaluationId))fail('firing_evaluation_required',400)
-   const evaluation=await env.DB.prepare(`SELECT e.*,o.scope FROM porthole_monitor_evaluations e JOIN porthole_objects o ON o.id=e.object_id AND o.revision=e.revision WHERE e.id=? AND e.status='Firing' AND ${actor.fence}`).bind(data.evaluationId,...actor.args).first<{id:string;object_id:string;revision:number;scope:string}>()
+   const evaluation=await env.DB.prepare(`SELECT e.*,o.scope FROM porthole_monitor_evaluations e JOIN porthole_objects o ON o.id=e.object_id AND o.revision=e.revision WHERE e.id=? AND e.status='Firing' AND o.state='active' AND ${actor.fence}`).bind(data.evaluationId,...actor.args).first<{id:string;object_id:string;revision:number;scope:string}>()
    if(!evaluation||!scopeWithin(JSON.parse(evaluation.scope),actor.member.scope))fail('firing_evaluation_unavailable',404)
    const newId=crypto.randomUUID(),row={id:newId} as NotebookRow
    const result=await save(env,actor,row,{origin:{monitorId:evaluation.object_id,revision:evaluation.revision,evaluationId:evaluation.id},cells:[],comments:[]},JSON.parse(evaluation.scope),label(data.name),true)

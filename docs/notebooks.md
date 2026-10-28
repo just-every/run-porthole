@@ -40,3 +40,13 @@ integration and imported source-notebook continuity are not implemented. The
 ten authorized Datadog source notebooks and durable referenced trace evidence
 are still required by PORT-039, PORT-048 and PORT-090. No source-retirement or
 full notebook-continuity claim follows from the native notebook journey.
+
+The versioned native API follows the same session and origin checks. Read
+`/api/porthole/v1/notebooks/evaluations` as an owner to select an authorized
+firing evaluation with its original bounds. Create a notebook by posting
+`name` and `evaluationId` to `/api/porthole/v1/notebooks`. Read the returned
+notebook reference at `/api/porthole/v1/notebooks/<id>`; `?version=<revision>`
+selects retained context. Every mutation includes the current `revision`.
+The `cells`, `reorder`, `rerun` and `comment` actions save new revisions;
+`share` and `unshare` manage private grants. Bearer telemetry credentials
+are refused on all notebook doors.

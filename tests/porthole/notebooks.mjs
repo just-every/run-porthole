@@ -42,6 +42,7 @@ export async function notebookJourney({origin,freshOwner,signIn,restartWorker,wi
   assert.equal(response.headers.get('cache-control'),'no-store');return response.json()
  }
  await get(root,401,'')
+ await get(root+'/evaluations',401,'')
  await post(root,{name:'synthetic-porthole-2400'},400)
  const scope={services:['synthetic-porthole-2401'],environments:['production'],teams:['synthetic-porthole-2402']}
  const otherScope={...scope,services:['synthetic-porthole-2403']},both={...scope,services:[...scope.services,...otherScope.services]}
@@ -72,6 +73,10 @@ export async function notebookJourney({origin,freshOwner,signIn,restartWorker,wi
   const measured=state.state.components.find(c=>c.component==='monitor-evaluation').evidence.monitors.find(m=>m.monitorId===monitor.id)
   assert.equal(measured.status,'Firing');assert.equal(measured.observedCount,205)
  })
+ const evaluations=(await get(root+'/evaluations')).evaluations
+ const firing=evaluations.find(e=>e.monitorId===monitor.id)
+ assert.ok(firing);assert.equal(firing.observedCount,205)
+ assert.equal(firing.fromNs,ns(t-60000).padStart(20,'0'));assert.equal(firing.throughNs,ns(t).padStart(20,'0'))
  let notebookId
  await notebookBrowser({origin,cookie,name:'notebook-from-firing',path:()=>notebookId?'/app/notebooks/'+notebookId:'/app/notebooks?monitor='+monitor.id,exercise:async page=>{
   await page.getByLabel('Notebook name').fill('Measured incident investigation')
@@ -83,6 +88,7 @@ export async function notebookJourney({origin,freshOwner,signIn,restartWorker,wi
  const endpoint=root+'/'+notebookId,pagePath='/app/notebooks/'+notebookId
  let notebook=await get(endpoint)
  assert.equal(notebook.body.origin.monitorId,monitor.id)
+ assert.equal(notebook.body.origin.evaluationId,firing.id)
  const originalOrigin=structuredClone(notebook.body.origin)
  const query={signal:'logs',service:scope.services[0],environment:'production',team:scope.teams[0],from:ns(t-2000),through:ns(t)}
  const attach=async data=>{const result=await post(endpoint+'/cells',{revision:notebook.revision,...data});notebook=await get(endpoint);assert.equal(result.revision,notebook.revision)}
@@ -122,6 +128,7 @@ export async function notebookJourney({origin,freshOwner,signIn,restartWorker,wi
  const responder=await invite(2421,'responder',both),contractor=await invite(2422,'restricted contractor',scope),unshared=await invite(2423,'read-only analyst',both)
  cookie=await freshOwner()
  await get(endpoint,404,responder.cookie)
+ await get(root+'/evaluations',403,responder.cookie)
  await notebookBrowser({origin,cookie,path:'/app/settings/notebooks/'+notebookId,name:'notebook-private-sharing',exercise:async page=>{
   const member=page.locator('form').filter({has:page.getByRole('button',{name:'Share private member link'})})
   await member.getByLabel('Member',{exact:true}).selectOption(responder.id)
@@ -147,6 +154,10 @@ export async function notebookJourney({origin,freshOwner,signIn,restartWorker,wi
  const cross=await fetch(origin+endpoint+'/comment',form('https://synthetic-porthole.invalid',cookie,{revision:notebook.revision,text:'forged'}));assert.equal(cross.status,403)
  const readKey=await post('/app/settings/credentials/mint',{name:'synthetic-porthole-2424',class:'read',scope:{...scope,signals:['logs'],actions:['telemetry.read']}},201)
  assert.equal((await fetch(origin+endpoint,{headers:{authorization:'Bearer '+readKey.secret}})).status,403,'a telemetry credential cannot confer notebook access')
+ await post('/app/settings/credentials/revoke',{id:readKey.credential.id})
+ assert.equal((await fetch(origin+endpoint,{headers:{authorization:'Bearer '+readKey.secret}})).status,403,'revoked credentials never become notebook authority')
+ const revokedRead=await fetch(origin+'/api/porthole/v1/query',{method:'POST',headers:{authorization:'Bearer '+readKey.secret,'content-type':'application/json'},body:JSON.stringify(query)})
+ assert.equal(revokedRead.status,401);assert.ok(!(await revokedRead.text()).includes('synthetic-porthole-log-0'))
  await notebookBrowser({origin,cookie,path:pagePath,name:'notebook-local-mention',exercise:async page=>{
   await page.getByText('Add annotation or local mention',{exact:true}).click()
   await page.getByLabel('Annotation',{exact:true}).fill('Review the measured evidence before rerunning.')
