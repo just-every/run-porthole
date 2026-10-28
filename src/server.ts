@@ -13,6 +13,7 @@ import { seedDemo } from './demo'
 import { portholeResponse } from './porthole/http'
 import { drainIngest } from './porthole/ingest/processor'
 import { healthTick,recordComponentReceipt } from './porthole/health/http'
+import {expireRetention} from './porthole/retention/expiry'
 import { capture } from './porthole/audit/capture'
 
 const api = new Hono<{ Bindings: Bindings }>()
@@ -33,6 +34,7 @@ export default withDemo<Bindings, ExportedHandler<Bindings>>({
       try {
         await drainIngest(env)
       } catch {await recordComponentReceipt(env.DB,{component:'queue',source:'ingest-worker',status:'Unknown',reason:'Durable intake drain failed; accepted envelopes remain pending.'})}
+      await expireRetention(env)
       await healthTick(env)
     })())
   },

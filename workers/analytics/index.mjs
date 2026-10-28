@@ -2,6 +2,7 @@ import { AnalyticalError, authenticate, body, fail, json } from './protocol.mjs'
 import { control, coverageRequest, health, state } from './coverage.mjs';
 import { query } from './query.mjs';
 import { replicate } from './replicate.mjs';
+import { erase } from './erasure.mjs';
 
 export default {
  async fetch(request, env) {
@@ -18,7 +19,7 @@ export default {
     return json(url.pathname === '/v1/manifest' ? { schema: 1, kind: 'porthole-analytics', role: env.ANALYTICS_ROLE, ...result } : result);
    }
    if (request.method !== 'POST') fail('not_found', 404);
-   const handler = { '/v1/replicate': replicate, '/v1/query': query, '/v1/coverage': coverageRequest, '/v1/control': control }[url.pathname];
+   const handler = { '/v1/replicate': replicate, '/v1/erase': erase, '/v1/query': query, '/v1/coverage': coverageRequest, '/v1/control': control }[url.pathname];
    if (!handler) fail('not_found', 404);
    return json(await handler(env.DB, await body(request)));
   } catch (error) {

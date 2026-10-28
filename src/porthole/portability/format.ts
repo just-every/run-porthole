@@ -58,6 +58,7 @@ export async function validateRow(payload: PortableRow, state: Validation): Prom
  if(!object(payload) || Object.keys(payload).sort().join(',')!=='row,table' || !str(payload.table) || !object(payload.row)) bad()
  const item=byTable.get(payload.table); if(!item) return bad()
  const row=payload.row
+ if(item.table==='porthole_erased_batches'&&!Object.hasOwn(row,'ordinals'))row.ordinals=null
  if(Object.keys(row).sort().join(',')!==[...item.columns].sort().join(',')) bad()
  for(const [key,value] of Object.entries(row)) if(value!==null && typeof value!=='string' && !(item.table==='porthole_metric_points'&&key==='value'?Number.isSafeInteger(value):integer(value))) bad()
  const required=(...keys:string[])=>{for(const key of keys)if(!str(row[key]) || !(row[key] as string).length)bad()}
@@ -84,6 +85,7 @@ export async function validateRow(payload: PortableRow, state: Validation): Prom
   if((await digest(JSON.stringify({signal:selection.signal,service:selection.service,team:selection.team}))).slice(0,32)!==row.id)bad()
  } else if(item.table==='porthole_erased_batches') {
   if(!uuid(row.id)||!hex(row.content_digest)||!integer(row.erased_at))bad()
+  if(row.ordinals!==null){const ordinals=json(row.ordinals);if(!Array.isArray(ordinals)||!ordinals.length||ordinals.some(n=>!integer(n))||new Set(ordinals).size!==ordinals.length)bad()}
  } else if(item.table==='porthole_export_exclusions') {
   if(typeof row.record_id!=='string'||!/^[a-f0-9-]{36}:[0-9]+$/.test(row.record_id)||!integer(row.excluded_at))bad()
  } else if(item.table==='porthole_baggage_policy') {
@@ -131,9 +133,10 @@ export async function validateRow(payload: PortableRow, state: Validation): Prom
   if(row.singleton!==1||![0,1].includes(row.paused as number)||!integer(row.max_pending_bytes,1)||!integer(row.revision,1)||!integer(row.changed_at))bad()
  } else if(item.table==='porthole_ingest_batches') {
   required('id','source_id','identity','protocol'); if(!str(row.wire_base64))bad();try{atob(String(row.wire_base64))}catch{return bad()}; if(!['traces','metrics','logs','profiles'].includes(String(row.signal))||!hex(row.digest)||!integer(row.accepted_at)||!integer(row.byte_count)||!integer(row.record_count)||!integer(row.sequence,1)||row.completion_sequence!==null&&!integer(row.completion_sequence,1)||!['pending','complete'].includes(String(row.state))||row.completed_at!==null&&!integer(row.completed_at))bad()
-  const records=json(row.records);if(!Array.isArray(records)||records.length!==row.record_count)bad()
+  const records=json(row.records);if(!Array.isArray(records)||records.filter(r=>r!==null).length!==row.record_count)bad()
   if(row.state==='pending'&&(row.completed_at!==null||row.completion_sequence!==null)||row.state==='complete'&&(!integer(row.completed_at)||!integer(row.completion_sequence,1)))bad()
   for(const raw of records as unknown[]) {
+   if(raw===null)continue
    if(!object(raw))return bad()
    const entry:Record<string,unknown>=raw
    if(Object.keys(entry).sort().join(',')!=='environment,eventTimeNs,late,outOfOrder,payload,service,spanId,team,traceId'||!object(entry.payload)||!/^\d{20}$/.test(String(entry.eventTimeNs))||BigInt(String(entry.eventTimeNs))>18446744073709551615n||![0,1].includes(entry.late as number)||![0,1].includes(entry.outOfOrder as number))bad()
