@@ -108,12 +108,13 @@ export async function validateRow(payload: PortableRow, state: Validation): Prom
  } else if(item.table==='porthole_query_snapshots') {
   if(!uuid(row.id)||!uuid(row.actor_ref)||!['logs','metrics','traces','profiles'].includes(String(row.signal))||!integer(row.through_batch)||!integer(row.created_at)||!/^\d{20}$/.test(String(row.from_ns))||!/^\d{20}$/.test(String(row.through_ns))||String(row.from_ns)>String(row.through_ns))bad()
   const descriptor=json(row.scope) as Record<string,unknown>
-  if(!object(descriptor) || Object.keys(descriptor).some(key=>!['service','environment','team','cursor','limit','trace','metric','dialect','expression'].includes(key)))bad()
+  if(!object(descriptor) || Object.keys(descriptor).some(key=>!['service','environment','team','cursor','limit','trace','metric','dialect','expression','scanLimit'].includes(key)))bad()
   if(descriptor.metric!==undefined&&(row.signal!=='metrics'||typeof descriptor.metric!=='string'||!descriptor.metric.trim()||descriptor.metric.length>120||/[\x00-\x1f\x7f-\x9f]/.test(descriptor.metric)))bad()
   for(const key of ['service','environment','team'])if(descriptor[key]!==undefined && (typeof descriptor[key]!=='string' || !/^[a-zA-Z0-9][a-zA-Z0-9._:/-]{0,119}$/.test(String(descriptor[key]))))bad()
   if(descriptor.trace!==undefined && (row.signal!=='traces'||typeof descriptor.trace!=='string'||!/^[a-f0-9]{32}$/.test(descriptor.trace)||/^0+$/.test(descriptor.trace)))bad()
   if(descriptor.cursor!==undefined && (typeof descriptor.cursor!=='string' || descriptor.cursor.length>512))bad()
   if(descriptor.limit!==undefined && (!Number.isSafeInteger(Number(descriptor.limit)) || Number(descriptor.limit)<1 || Number(descriptor.limit)>(descriptor.trace?2000:200)))bad()
+  if(descriptor.scanLimit!==undefined&&(!Number.isSafeInteger(Number(descriptor.scanLimit))||Number(descriptor.scanLimit)<1||Number(descriptor.scanLimit)>Number(descriptor.limit??100)))bad()
   if(descriptor.dialect!==undefined||descriptor.expression!==undefined){
    if(typeof descriptor.dialect!=='string'||typeof descriptor.expression!=='string')bad()
    try{normalizeExploration({...descriptor,signal:row.signal})}catch{bad()}

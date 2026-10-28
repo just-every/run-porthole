@@ -9,6 +9,7 @@ import {executeJoinQuery,type JoinRead} from './join'
 import {queryActor} from './access'
 export const queryKeys=['dialect','expression','signal','service','environment','team','from','through','cursor','limit','snapshot','trace','metric','scanLimit']
 export async function executeQuery(request:Request,env:Bindings,data:Record<string,unknown>,options:{exportOnly?:boolean}={}) {
+ const started=performance.now()
  const normalized=normalizeExploration(data),url=new URL('/api/porthole/v1/ingest/records',request.url)
  if(normalized.metricQuery)return executeMetricQuery(request,env,normalized,options)
  if(normalized.join){
@@ -33,7 +34,7 @@ export async function executeQuery(request:Request,env:Bindings,data:Record<stri
  if(!response.ok)return response
  const rows=await response.json() as Record<string,unknown>,reference=String(rows.queryRef)
  if(normalized.parameters.cursor!==undefined)rows.resumed=true
- const result={source:normalized.source,parameters:normalized.parameters,...(normalized.logSearch?{plan:normalized.logSearch}:{}),...rows,...(normalized.aggregate?{aggregate:aggregateRows(normalized.aggregate,rows)}:{}),queryRef:reference,replay:`/api/porthole/v1/query/${reference}`}
+ const result={source:normalized.source,parameters:normalized.parameters,plan:normalized.logSearch??{version:1,kind:'record-selection',parameters:normalized.parameters},...rows,statistics:{elapsedMs:performance.now()-started,returnedRecords:(rows.records as unknown[]).length,...(rows.coverage?{coverage:rows.coverage}:{})},...(normalized.aggregate?{aggregate:aggregateRows(normalized.aggregate,rows)}:{}),queryRef:reference,replay:`/api/porthole/v1/query/${reference}`}
  return Response.json(result,{headers:{...privateHeaders,...Object.fromEntries([...response.headers].filter(([key])=>key.startsWith('x-porthole-'))),'x-porthole-entity':reference}})
 }
 export async function snapshotInput(env:Bindings,id:string,actorRef?:string) {

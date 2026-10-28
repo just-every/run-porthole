@@ -30,7 +30,7 @@ export async function executeMetricQuery(request:Request,env:Bindings,normalized
  const metricResult=evaluateMetricSeries(records,plan,range),latest=await queryActor(request,env)
  if(latest.id!==actor.id||latest.revision!==actor.revision||JSON.stringify(latest.scope)!==JSON.stringify(actor.scope))fail('authority_changed',409)
  if(Date.now()>=deadline)reject('metric_query_timeout','The complete evaluation exceeded its deadline. Narrow the range; no late result was returned.')
- const queryRef=crypto.randomUUID(),scope=JSON.stringify({...parameters,dialect:normalized.source.dialect,expression:normalized.source.text})
+ const queryRef=crypto.randomUUID(),scope=JSON.stringify({...Object.fromEntries(Object.entries(parameters).filter(([key])=>['service','environment','team','limit','trace','metric'].includes(key))),dialect:normalized.source.dialect,expression:normalized.source.text})
  const inserted=await env.DB.prepare(`INSERT INTO porthole_query_snapshots SELECT ?,?,?,'metrics',?,?,?,? WHERE ${latest.fence}`).bind(queryRef,actor.id,scope,range.from.padStart(20,'0'),range.through.padStart(20,'0'),Number(snapshot),Date.now(),...latest.args).run()
  if(!inserted.meta.changes)fail('authority_changed',409)
  return Response.json({source:normalized.source,parameters,plan,metricResult,snapshot,from:range.from,through:range.through,records:[],cursor:null,coverage:{state:'complete',scannedCandidates:records.length,matchedRecords:metricResult.statistics.matchedRecords},...(analytical?{analytical}:{}),queryRef,replay:'/api/porthole/v1/query/'+queryRef},{headers:{...privateHeaders,'x-porthole-entity':queryRef,'x-porthole-actor':actor.id,'x-porthole-actor-revision':String(actor.revision)}})

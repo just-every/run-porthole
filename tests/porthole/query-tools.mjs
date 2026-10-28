@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 /** One public-door continuation, export, history and discovery flow. */
-export async function queryToolsJourney({origin,cookie,call,base,snapshot,headers,expected}){
+export async function queryToolsJourney({origin,cookie,call,base,snapshot,headers,expected,backend}){
  const post=(path,body,auth=headers)=>call(path,{method:'POST',headers:{origin,'content-type':'application/json',...auth},body:JSON.stringify(body)})
  const value=async(response,status=200)=>{assert.equal(response.status,status,await response.clone().text());return response.json()}
  const query={...base,snapshot,limit:2,scanLimit:2}
@@ -22,6 +22,11 @@ export async function queryToolsJourney({origin,cookie,call,base,snapshot,header
   exported.push(...lines.map(line=>line.record));next=metadata.next
  }while(next)
  assert.deepEqual(exported.map(row=>row.id).sort(),expected)
+ const suppressed=expected[0]
+ await value(await post('/api/porthole/v1/export-exclusions',{confirm:'apply-exclusions',journal:{format:'porthole.export-exclusions.v1',records:[{recordId:suppressed,excludedAt:Date.now()}]}},{cookie}))
+ next='/api/porthole/v1/query/'+first.queryRef+'/export';const allowed=[]
+ do{const response=await call(next,{headers});assert.equal(response.status,200);const lines=(await response.text()).trim().split('\n').map(JSON.parse),metadata=lines.shift();allowed.push(...lines.map(line=>line.record.id));next=metadata.next}while(next)
+ assert.deepEqual(allowed.sort(),expected.filter(id=>id!==suppressed),'portable export exclusions apply to every backend without changing ordinary reads')
  const history=await value(await call('/api/porthole/v1/query/history',{headers}));assert.ok(history.history.some(row=>row.id===first.queryRef&&row.source.expression===query.expression))
  assert.equal((await call('/api/porthole/v1/query/'+first.queryRef+'/export',{headers:{cookie}})).status,404,'private query references are not a grant to another actor')
  const schema=await value(await post('/api/porthole/v1/query/schema',{...base,expression:'service:checkout',snapshot,limit:200,scanLimit:200}))
@@ -43,5 +48,21 @@ export async function queryToolsJourney({origin,cookie,call,base,snapshot,header
  const expired=await value(await post('/api/porthole/v1/query/runs/'+timed.id+'/advance',{revision:timed.revision}));assert.equal(expired.state,'timed_out');assert.deepEqual(expired.records,[])
  assert.equal((await post('/api/porthole/v1/query/runs',{query:{...base,expression:'service:billing'},scanLimit:2})).status,403)
  assert.equal((await call('/api/porthole/v1/query/history',{headers:{}})).status,401)
+ if(backend==='local'){
+  const scope={services:['checkout'],environments:['query-erasure'],teams:['commerce'],signals:['logs'],actions:['telemetry.write']}
+  const source=await value(await post('/app/settings/credentials/mint',{name:'Query erasure source',class:'ingest',scope},{cookie}),201)
+  const identifier='synthetic-porthole-2199',packet={resourceLogs:[{resource:{attributes:[['service.name','checkout'],['deployment.environment.name','query-erasure'],['team.name','commerce']].map(([key,stringValue])=>({key,value:{stringValue}}))},scopeLogs:[{logRecords:[{timeUnixNano:String(BigInt(Date.now())*1000000n),body:{stringValue:identifier}}]}]}]}
+  const emit=()=>post('/v1/logs',packet,{authorization:'Bearer '+source.secret,'x-porthole-batch-id':'synthetic-porthole-2198'})
+  assert.equal((await emit()).status,200);await value(await post('/api/porthole/v1/ingest/drain',{},{cookie}))
+  const selection={signal:'logs',service:'checkout',environment:'query-erasure',team:'commerce'}
+  const saved=await value(await post('/api/porthole/v1/query',selection,{cookie}));assert.equal(saved.records.length,1)
+  const active=await value(await post('/api/porthole/v1/query/runs',{query:selection,scanLimit:1},{cookie}),201)
+  const preview=await value(await post('/api/porthole/v1/subject-erasure',{identifier},{cookie}));assert.equal(preview.records,1)
+  await value(await post('/api/porthole/v1/subject-erasure/apply',{identifier,digest:preview.digest,confirm:'erase-exact-batches'},{cookie}))
+  const interrupted=await value(await call('/api/porthole/v1/query/runs/'+active.id,{headers:{cookie}}));assert.equal(interrupted.state,'interrupted');assert.equal(interrupted.coverage.scannedCandidates,0)
+  assert.deepEqual((await value(await call(saved.replay,{headers:{cookie}}))).records,[])
+  const gone=await call(saved.replay+'/export',{headers:{cookie}});assert.equal(gone.status,200);assert.equal((await gone.text()).trim().split('\n').length,1)
+  assert.equal((await emit()).status,409,'replayed erased capture cannot rehydrate snapshot or export results')
+ }
  return {runRoot:root,revision:run.revision,exportPath:'/api/porthole/v1/query/'+first.queryRef+'/export'}
 }
