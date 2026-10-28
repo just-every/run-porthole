@@ -342,7 +342,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "295f41a2625b598774e7d79409f1fc15c5e83173c26dbaba38494513479c74b7",
+      "sha256": "ae032ce1c99a823ba71d41f89c8558e7356480ee8a3822c7cbfc749c1c19ae35",
       "executable": false
     },
     "DEMO.md": {
@@ -739,6 +739,10 @@
     },
     "migrations/core/0054_porthole_sampling_projection.sql": {
       "sha256": "7c935d65ac45408e236053d99e1beb10dba1591366ac2400811ee4416ac24692",
+      "executable": false
+    },
+    "migrations/core/0055_porthole_sampling_origins.sql": {
+      "sha256": "a5e2ae7c4597cdd9623106927c51dfb03569301fa5bbb71ed7924e486f1d9a71",
       "executable": false
     },
     "ONBOARDING.md": {

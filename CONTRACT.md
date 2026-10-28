@@ -328,7 +328,7 @@ Every capability claim on the run site's homepage (run-porthole.com, `src/site/h
 
 ## Status
 
-Judged from the code and tests at commit `9a75e962146629b440f4710eba1663dc904cc94e` (28 October 2026). Candidate `cloud/sx-porthole-c-f1` qualifies the same implementation again on its exact commit before landing. PORT-010 and PORT-078 are refreshed by the named public-door journeys under RL-101 and RL-103. Other clause judgments are retained. Exact-SHA branch Verify remains a separate landing gate; partial rows retain the complete clause obligations.
+Judged from the code and tests at commit `2c3dbb34be382e18d67ecff39f3a04c5ab1cf669` (28 October 2026). Candidate `cloud/sx-porthole-c-f1` qualifies the same implementation again on its exact commit before landing. PORT-010 and PORT-078 are refreshed by the named public-door journeys under RL-101 and RL-103. Other clause judgments are retained. Exact-SHA branch Verify remains a separate landing gate; partial rows retain the complete clause obligations.
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
