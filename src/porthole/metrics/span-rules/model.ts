@@ -27,7 +27,7 @@ export function definition(value:unknown):Definition {
  if(cardinality>100)fail('cardinality_refused',422)
  const attribute=kind==='counter'?'count':field(d.value)
  if(!['complete','sampled','unknown'].includes(String(d.upstream)))fail('input_completeness_required',400)
- return {...(d.predicate===undefined?{}:{predicate:predicate(d.predicate)}),...(d.costModel===undefined?{}:{costModel:costModel(d.costModel)}),inputStage:d.inputStage==='pre-sampling'?'pre-sampling':'accepted',status:d.status==='error'?'error':'any',name:label(d.name),service:label(d.service),environment:label(d.environment),team:label(d.team),spanName:label(d.spanName),kind:kind as Definition['kind'],value:attribute,unit:label(d.unit),dimensions:groups,upstream:d.upstream as Definition['upstream']}
+ return {...(d.predicate===undefined?{}:{predicate:predicate(d.predicate)}),...(d.costModel===undefined?{}:{costModel:costModel(d.costModel)}),inputStage:d.inputStage==='pre-sampling'?'pre-sampling':'accepted',status:d.status==='error'?'error':'any',name:label(d.name),service:label(d.service),environment:label(d.environment),team:label(d.team),spanName:d.spanName===undefined?'*':typeof d.spanName==='string'&&d.spanName.length>0&&d.spanName.length<=120&&!/[\x00-\x1f\x7f]/.test(d.spanName)?d.spanName:fail('invalid_span_name',400),kind:kind as Definition['kind'],value:attribute,unit:label(d.unit),dimensions:groups,upstream:d.upstream as Definition['upstream']}
 }
 export const scope=(d:Definition)=>({services:[d.service],environments:[d.environment],teams:[d.team]})
 export const encoded=(d:Definition)=>canonical(d)

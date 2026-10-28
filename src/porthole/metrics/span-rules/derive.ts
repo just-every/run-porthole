@@ -15,9 +15,9 @@ export async function contributions(env:Bindings,batchId:string):Promise<D1Prepa
   const maximum=d.kind==='sum'?1000000000:1000000000000
   return env.DB.prepare(`WITH candidates AS (
    SELECT b.id AS batch_id,CAST(j.key AS INTEGER) AS ordinal,${dims} AS dimensions,${raw} AS value,json_extract(j.value,'$.eventTimeNs') AS event_time_ns,json_extract(j.value,'$.traceId') AS trace_id,json_extract(j.value,'$.spanId') AS span_id
-   FROM porthole_ingest_batches b,json_each(b.records) j WHERE b.id=? AND b.state='pending' AND json_extract(j.value,'$.service')=? AND json_extract(j.value,'$.environment')=? AND json_extract(j.value,'$.team')=? AND json_extract(j.value,'$.payload.record.name')=? AND COALESCE(json_extract(j.value,'$.payload.inputStage'),'accepted')=? AND (?='any' OR json_extract(j.value,'$.payload.record.status.code')=2) AND ${where})
+   FROM porthole_ingest_batches b,json_each(b.records) j WHERE b.id=? AND b.state='pending' AND json_extract(j.value,'$.service')=? AND json_extract(j.value,'$.environment')=? AND json_extract(j.value,'$.team')=? AND (?='*' OR json_extract(j.value,'$.payload.record.name')=?) AND COALESCE(json_extract(j.value,'$.payload.inputStage'),'accepted')=? AND (?='any' OR json_extract(j.value,'$.payload.record.status.code') IN (2,'STATUS_CODE_ERROR')) AND ${where})
    INSERT INTO porthole_metric_points(rule_id,revision,batch_id,ordinal,dimensions,value,valid,event_time_ns,trace_id,span_id)
    SELECT ?,?,batch_id,ordinal,dimensions,CASE WHEN typeof(value) IN ('integer','real') AND ABS(value)<=?  THEN value ELSE NULL END,1,event_time_ns,trace_id,span_id FROM candidates WHERE 1 ON CONFLICT DO NOTHING`)
-   .bind(...args,batchId,d.service,d.environment,d.team,d.spanName,d.inputStage,d.status,...predicates,rule.id,rule.revision,maximum)
+   .bind(...args,batchId,d.service,d.environment,d.team,d.spanName,d.spanName,d.inputStage,d.status,...predicates,rule.id,rule.revision,maximum)
  })
 }

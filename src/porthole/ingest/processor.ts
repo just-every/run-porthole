@@ -1,3 +1,5 @@
+import {redContributions} from '../metrics/red/derive'
+import {reconcileSampling} from './sampling'
 import { contributions } from '../metrics/span-rules/derive'
 import {reconcile as reconcileAnalytical} from '../analytical/client'
 import type { Bindings } from '../../auth.server'
@@ -25,7 +27,7 @@ async function drain(env: Bindings, options: {force?:boolean}, limit:number) {
    // Conditional inserts + transition are atomic. A crash or concurrent drain
    // can only leave the original pending envelope or one complete pair of
    // retained/archive copies. Retry resumes without a lease to get stranded.
-   const metricWrites=await contributions(env,batch.id)
+   const metricWrites=[...await contributions(env,batch.id),...await redContributions(env,batch.id)]
    const results = await env.DB.batch([
     ...metricWrites,
     env.DB.prepare(`INSERT INTO porthole_telemetry_records(id,batch_id,ordinal,source_id,signal,team,service,environment,event_time_ns,trace_id,span_id,payload,indexed_at,late,out_of_order)
@@ -45,8 +47,9 @@ async function drain(env: Bindings, options: {force?:boolean}, limit:number) {
   }
  }
  const pending = await env.DB.prepare("SELECT COUNT(*) AS count FROM porthole_ingest_batches WHERE state='pending'").first<{count:number}>()
+ const sampling=await reconcileSampling(env)
  const analytical=await reconcileAnalytical(env)
- const result={analytical,processedBatches,processedRecords,pendingBatches:pending?.count ?? 0,paused:!!control.paused}
+ const result={sampling,analytical,processedBatches,processedRecords,pendingBatches:pending?.count ?? 0,paused:!!control.paused}
  await recordComponentReceipt(env.DB,{component:'queue',source:'ingest-worker',status:result.paused||result.pendingBatches>0||!analytical.complete?'Unknown':'Healthy',reason:!analytical.complete?'Analytical replication is incomplete; accepted envelopes remain durable.':result.paused?'Durable ingest processing is paused.':result.pendingBatches>0?'Durable ingest work remains buffered.':'Durable ingest drain completed.',evidence:result})
  return result
 }

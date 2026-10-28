@@ -17,3 +17,14 @@ export async function cohort(team:string,environment:string,traceId:string):Prom
  const hash=await sha256(new TextEncoder().encode(canonical([team,environment,traceId])))
  return Number.parseInt(hash.slice(0,8),16)%10000
 }
+
+export function isErrorSpan(span:{status?:{code?:number|string};attributes?:unknown}):boolean {
+ if(span.status?.code===2||span.status?.code==='STATUS_CODE_ERROR')return true
+ if(!Array.isArray(span.attributes))return false
+ return span.attributes.some(item=>{
+  if(!item||typeof item!=='object')return false
+  const attr=item as {key?:string;value?:{intValue?:string;doubleValue?:number}}
+  const value=Number(attr.value?.intValue??attr.value?.doubleValue)
+  return ['http.response.status_code','http.status_code'].includes(String(attr.key))?value>=500&&value<=599:attr.key==='rpc.grpc.status_code'&&Number.isFinite(value)&&value!==0
+ })
+}

@@ -418,6 +418,8 @@ export async function spanMetricJourney({origin,freshOwner,restartWorker,signIn,
   assert.deepEqual(result.groups.map(g=>g.dimensions),[{plan:'basic',region:'eu'},{plan:'basic',region:'us'},{plan:'pro',region:'eu'},{plan:'pro',region:'us'}])
   for(const group of result.groups){const wanted=expected.get(group.dimensions.region+','+group.dimensions.plan);assert.equal(group.count,wanted.count);assert.equal(group.valid,wanted.count);assert.equal(group.sum,index===0?wanted.count:index===1?wanted.sum:wanted.durations.reduce((a,b)=>a+b,0));if(index===2){const sorted=[...wanted.durations].sort((a,b)=>a-b);for(const [key,p]of [['p50',.5],['p95',.95],['p99',.99]])assert.equal(group.quantiles[key],sorted[Math.ceil(sorted.length*p)-1])}const exemplar=group.exemplar;assert.equal(exemplar.service,'orders');assert.ok(BigInt(exemplar.eventTimeNs)>=at&&BigInt(exemplar.eventTimeNs)<BigInt(range.through));const n=parseInt(exemplar.spanId,16)-1;assert.equal(n%2?'eu':'us',group.dimensions.region);assert.equal(Math.floor(n/2)%2?'pro':'basic',group.dimensions.plan)}
  }
+ const {metricPolicyJourney}=await import('./metric-policy.mjs')
+ await metricPolicyJourney({origin,post,call,base,source,restartWorker,freshOwner:async()=>{cookie=await freshOwner();return cookie}})
  if(collectorOrigin) {
   const errorMetrics=await query(errorRule);assert.equal(errorMetrics.coverage.status,'accepted-input-complete');assert.equal(errorMetrics.groups.reduce((n,g)=>n+g.sum,0),total/10,'full-input RED error count equals unsampled source');assert.deepEqual(errorMetrics.groups.map(g=>[g.dimensions,g.count]),[[{plan:'basic',region:'us'},total/20],[{plan:'pro',region:'us'},total/20]])
   const records=[];let cursor=null
@@ -432,8 +434,8 @@ export async function spanMetricJourney({origin,freshOwner,restartWorker,signIn,
   assert.equal(errors,total/10);assert.equal(slow,total/10)
   const ordinary=spans.length-protectedIds.length
   console.log('Stock collector observed '+JSON.stringify({total,retained:spans.length,ordinary,errors,slow}))
-  assert.ok(ordinary>total*.03&&ordinary<total*.09,'stock probabilistic ordinary cohort remains near ten percent; it is not an exact cohort quota')
-  console.log('PORTHOLE_STOCK_SAMPLING '+JSON.stringify({total,retained:spans.length,errors,slow,ordinary,ordinarySource:total*.6,ordinaryRate:10,decisionWaitSeconds:2,bufferTraces:20000}));return
+  assert.ok(ordinary>total*.03&&ordinary<total*.09,'destination cohort ordinary retention remains near ten percent')
+  console.log('PORTHOLE_STOCK_SAMPLING '+JSON.stringify({total,retained:spans.length,errors,slow,ordinary,ordinarySource:total*.6,ordinaryRate:10,policy:'durable-destination-tail',upstream:'unknown'}));return
  }
  const before=await query(rules[0]);await restartWorker();cookie=await freshOwner();for(let i=0;i<packets.length;i++)assert.equal((await send(i)).headers.get('x-porthole-duplicate'),'true');await post('/api/porthole/v1/ingest/drain',{});assert.deepEqual(await query(rules[0]),before,'restart and duplicate batches preserve every metric and exemplar')
  const altered=structuredClone(packets[0]);altered.resourceSpans[0].scopeSpans[0].spans[0].name='changed';const conflict=await fetch((collectorOrigin??origin)+'/v1/traces',{method:'POST',headers:{authorization:'Bearer '+source.secret,'content-type':'application/json','x-porthole-batch-id':'synthetic-porthole-78-0'},body:JSON.stringify(altered)});assert.equal(conflict.status,409)
@@ -450,6 +452,6 @@ export async function spanMetricJourney({origin,freshOwner,restartWorker,signIn,
   const response=await fetch(destination.origin+root,{headers:{cookie:acting}});assert.equal(response.status,200);const listed=(await response.json()).rules;assert.equal(listed.length,3);assert.ok(listed.every(r=>r.state==='quarantined'));await send(root+'/query',{id:rules[0].id,revision:1,...range},404)
   const preview=await send(root+'/preview',{definition:base,id:rules[0].id,revision:1});const enabled=await send(root+'/approve',{previewId:preview.id,digest:preview.digest,confirm:'approve-metric-rule'},201);assert.equal(enabled.revision,2);const empty=await send(root+'/query',{id:enabled.id,revision:2,...range});assert.deepEqual(empty.groups,[]);assert.equal(empty.coverage.status,'incomplete')
  })
- console.log('spanMetricJourney passed: '+total+' accepted spans; exact counter and integer sum; exact p50, p95 and p99; four explicit dimension groups; scoped exemplars, restart, duplicate identity, conflict, forbidden and high-cardinality refusal, upstream sampling labels, native authority and inactive definition restore. Full tail-sampling lifecycle remains unqualified.')
+ console.log('spanMetricJourney passed: '+total+' accepted spans; exact counter and integer sum; exact p50, p95 and p99; four explicit dimension groups; scoped exemplars, restart, duplicate identity, conflict, forbidden and high-cardinality refusal, upstream sampling labels, native authority and inactive definition restore. Collector lifecycle is covered by samplingJourney.')
  }finally{if(collector)await collector.stop()}
 }

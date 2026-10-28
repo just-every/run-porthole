@@ -188,8 +188,14 @@ try {
   if(process.env.PORTHOLE_METRIC_RULES_ONLY==='1') {
    const {spanMetricJourney}=await import('./porthole/ingest.mjs')
    await spanMetricJourney({origin,restartWorker,withEmptyDestination,withPinnedClock,...helpers})
+   const {metricCustodyJourney}=await import('./porthole/metric-custody.mjs')
+   await metricCustodyJourney({withEmptyDestination})
    const {agentStatsJourney}=await import('./porthole/agent-stats.mjs')
    await agentStatsJourney({origin,restartWorker,...helpers})
+   const {samplingJourney}=await import('./porthole/sampling.mjs')
+   await samplingJourney({origin,restartWorker,...helpers})
+   const {browserProof}=await import('./porthole/audit.mjs')
+   await browserProof({origin,cookie:await helpers.freshOwner(),paths:['/app/ingest'],name:'sampling-delivery'})
   } else if(process.env.PORTHOLE_SPLUNK_COLLECTOR_ONLY==='1') {
    const {splunkCollectorJourney}=await import('./porthole/migration-collector.mjs')
    const result=await splunkCollectorJourney({origin,cookie,restartWorker,...helpers})

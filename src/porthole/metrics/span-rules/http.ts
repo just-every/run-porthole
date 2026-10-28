@@ -1,4 +1,5 @@
 import type { Bindings } from '../../../auth.server'
+import {CredentialLimit} from '../../credentials/verify'
 import { AuthError } from '../../../modules/operator-auth/index.mjs'
 import { privateHeaders } from '../../document'
 import { IntakeError, nano, sha256 } from '../../ingest/model'
@@ -63,5 +64,5 @@ export async function metricRuleResponse(request:Request,env:Bindings):Promise<R
   }
   if(path!==root+'/query')fail('not_found',404)
   fail('not_found',404)
- }catch(error){const known=error instanceof AuthError||error instanceof IntakeError;return json({error:known?error.code:'metric_rules_unavailable'},known?error.status:503)}
+ }catch(error){const known=error instanceof AuthError||error instanceof IntakeError||error instanceof CredentialLimit;return json({error:known?error.code:'metric_rules_unavailable'},known?error.status:503)}
 }

@@ -10,7 +10,7 @@ function cursor(value) {
  } catch { fail('invalid_query_cursor'); }
 }
 export async function query(db, input) {
- keys(input, ['sourceIdentity', 'requiredWatermark', 'signal', 'from', 'through', 'scope', 'team', 'service', 'environment', 'limit', 'cursor', 'snapshot', 'archive', 'mode', 'trace', 'metric', 'uncertain']);
+ keys(input, ['sourceIdentity', 'requiredWatermark', 'requiredSamplingWatermark', 'signal', 'from', 'through', 'scope', 'team', 'service', 'environment', 'limit', 'cursor', 'snapshot', 'archive', 'mode', 'trace', 'metric', 'uncertain']);
  signal(input.signal); object(input.scope); keys(input.scope, ['teams', 'services', 'environments']);
  const from = nano(input.from), through = nano(input.through);
  if (from > through) fail('invalid_query_range');

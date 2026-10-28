@@ -28,7 +28,7 @@ export function validateHealthHistory(row:Record<string,unknown>):void {
  try{nested=JSON.parse(row.row) as Record<string,unknown>}catch{return bad()}
  if(!nested||typeof nested!=='object'||Array.isArray(nested)||Object.keys(nested).sort().join(',')!==[...item.columns].sort().join(',')||JSON.stringify(item.keys.map(key=>nested[key]))!==row.row_key)return bad()
  for(const [key,value]of Object.entries(nested)) {
-  if(value!==null&&typeof value!=='string'&&(!Number.isSafeInteger(value)||Number(value)<0))return bad()
+  if(value!==null&&typeof value!=='string'&&(item.table==='porthole_monitor_state'&&key==='last_known_count'?typeof value!=='number'||!Number.isFinite(value):!Number.isSafeInteger(value)||Number(value)<0))return bad()
   if(['evidence','message'].includes(key)) {try{const parsed=JSON.parse(String(value));if(!parsed||typeof parsed!=='object'||Array.isArray(parsed))return bad()}catch{return bad()}}
  }
  if(nested.status!==undefined&&!['Healthy','Firing','Unknown'].includes(String(nested.status)))return bad()

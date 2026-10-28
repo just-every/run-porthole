@@ -1,3 +1,4 @@
+import {monitorMetric,type MetricSelection} from '../metrics/span-rules/monitor'
 import {configuration as analyticalConfiguration,selected as analyticalSelected,query as analyticalQuery} from '../analytical/client'
 import type { Scope } from '../security/authority'
 import type { HealthBindings } from '../health/model'
@@ -7,7 +8,7 @@ import { scopeWhere } from '../ingest/read'
 
 interface Monitor {id:string;revision:number;scope:string;body:string}
 interface Previous {revision:number;status:string;last_known_count:number|null;last_known_at:number|null;firing_episode:string|null}
-interface Definition {signal:'logs'|'traces'|'metrics';operator:'above'|'below';threshold:number;windowSeconds:number}
+interface Definition {signal:'logs'|'traces'|'metrics';operator:'above'|'below';threshold:number;windowSeconds:number;spanMetric?:MetricSelection}
 const ns=(value:number)=>(BigInt(value)*1000000n).toString().padStart(20,'0')
 
 /** Counts actual normalized records in the original event-time window. Unknown
@@ -31,8 +32,12 @@ export async function evaluateMonitors(env:HealthBindings) {
    const lost=await env.DB.prepare(`SELECT COUNT(*) AS count FROM porthole_ingest_events r WHERE r.kind IN ('source_loss','buffer_loss') AND r.signal=? AND (r.range_start_ns IS NULL OR r.range_end_ns IS NULL OR (r.range_start_ns<=? AND r.range_end_ns>=?)) AND ${where.sql}`).bind(definition.signal,through,from,...where.args).first<{count:number}>()
    const uncertain=separate?await analyticalQuery(env,analytical,{signal:definition.signal,scope,from,through,mode:'count',uncertain:true}):await env.DB.prepare(`SELECT COUNT(*) AS count FROM porthole_telemetry_records r WHERE r.signal=? AND json_extract(r.payload,'$.delivery.uncertainTime')=1 AND printf('%020d',CAST(json_extract(r.payload,'$.delivery.receivedTimeUnixNano') AS INTEGER)) BETWEEN ? AND ? AND ${where.sql}`).bind(definition.signal,from,through,...where.args).first<{count:number}>()
    const result=separate?await analyticalQuery(env,analytical,{signal:definition.signal,scope,from,through,mode:'count'}):await env.DB.prepare(`SELECT COUNT(*) AS count FROM porthole_telemetry_records r JOIN porthole_ingest_batches b ON b.id=r.batch_id WHERE b.state='complete' AND r.signal=? AND r.event_time_ns>=? AND r.event_time_ns<=? AND ${where.sql}`).bind(definition.signal,from,through,...where.args).first<{count:number}>()
+   const custom=definition.spanMetric?await monitorMetric(env,definition.spanMetric,scope,from,through):null
    const freshCollector=!!collectors?.count && collectors.oldest!==null && now-collectors.oldest<=health.configuration.freshnessSeconds*1000
-   if (inputs.some(row=>row.status!=='Healthy') || !freshCollector || lost?.count || uncertain?.count || !result) {
+   if(custom){
+    if(!custom.complete||custom.value===null){reason='Custom metric input is incomplete; no RED aggregate is substituted.'}
+    else {count=custom.value;const firing=definition.operator==='above'?count>definition.threshold:count<definition.threshold;status=firing?'Firing':'Healthy';reason=`Observed custom rule ${definition.spanMetric!.id} revision ${definition.spanMetric!.revision} ${definition.spanMetric!.aggregation} = ${count}; accepted input only, upstream ${custom.upstream}.`;episode=firing?(episode??crypto.randomUUID()):null}
+   } else if (inputs.some(row=>row.status!=='Healthy') || !freshCollector || lost?.count || uncertain?.count || !result) {
     reason=uncertain?.count?'Source clock uncertainty makes this window incomplete.':lost?.count?'Recorded source or buffer loss makes this window incomplete.':!freshCollector?'No fresh authenticated collector covers this monitor scope.':'Telemetry component coverage is incomplete.'
    } else {
     count=result.count

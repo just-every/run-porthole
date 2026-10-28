@@ -1,3 +1,4 @@
+import {policy as samplingPolicy} from '../ingest/sampling/model'
 import { definition as metricDefinition } from '../metrics/span-rules/model'
 import { definitionInput } from '../slos/model'
 import {baggageKeys} from '../traces/policy'
@@ -30,7 +31,7 @@ export function manifestInput(value: unknown): Manifest {
  if(!object(value) || Object.keys(value).sort().join(',')!==['format','id','createdAt','rowCount','chunks','rootHash','tables','inactive'].sort().join(',') || value.format!==format || !uuid(value.id) || !integer(value.createdAt) || !integer(value.rowCount) || !integer(value.chunks) || !hex(value.rootHash) || value.inactive!==true || !object(value.tables)) return bad()
  // Older archives predate export exclusions. Their absent journal is empty;
  // a later destination journal still wins during restore.
- for(const table of ['porthole_metric_rules','porthole_metric_points'])if(!Object.hasOwn(value.tables,table))value.tables[table]=0
+ for(const table of ['porthole_metric_rules','porthole_metric_points','porthole_sampling_policies','porthole_sampling_decisions','porthole_red_points'])if(!Object.hasOwn(value.tables,table))value.tables[table]=0
  if(!Object.hasOwn(value.tables,'porthole_slo_versions'))value.tables.porthole_slo_versions=0
  if(!Object.hasOwn(value.tables,'porthole_retention_policies'))value.tables.porthole_retention_policies=0
  if(!Object.hasOwn(value.tables,'porthole_erased_batches'))value.tables.porthole_erased_batches=0
@@ -59,9 +60,18 @@ export async function validateRow(payload: PortableRow, state: Validation): Prom
  const item=byTable.get(payload.table); if(!item) return bad()
  const row=payload.row
  if(Object.keys(row).sort().join(',')!==[...item.columns].sort().join(',')) bad()
- for(const [key,value] of Object.entries(row)) if(value!==null && typeof value!=='string' && !(item.table==='porthole_metric_points'&&key==='value'?typeof value==='number'&&Number.isFinite(value):integer(value))) bad()
+ for(const [key,value] of Object.entries(row)) if(value!==null && typeof value!=='string' && !((item.table==='porthole_metric_points'&&key==='value'||item.table==='porthole_monitor_evaluations'&&key==='observed_count')?typeof value==='number'&&Number.isFinite(value):integer(value))) bad()
  const required=(...keys:string[])=>{for(const key of keys)if(!str(row[key]) || !(row[key] as string).length)bad()}
- if(item.table==='porthole_metric_rules') {
+ if(item.table==='porthole_red_points') {
+  if(!uuid(row.batch_id)||!integer(row.ordinal)||typeof row.event_time_ns!=='string'||!/^\d{20}$/.test(row.event_time_ns)||!['accepted','pre-sampling'].includes(String(row.input_stage))||typeof row.endpoint!=='string'||![0,1].includes(Number(row.error))||row.duration_ns!==null&&!integer(row.duration_ns))bad()
+  for(const key of ['team','service','environment'])if(typeof row[key]!=='string'||!/^[a-zA-Z0-9][a-zA-Z0-9._:/-]{0,119}$/.test(String(row[key])))bad()
+ } else if(item.table==='porthole_sampling_policies') {
+  const d=samplingPolicy(json(row.definition))
+  if(d.team!==row.team||d.service!==row.service||d.environment!==row.environment||!integer(row.revision,1)||!integer(row.from_sequence,1)||!uuid(row.owner_id)||!integer(row.created_at)||!['active','quarantined'].includes(String(row.state)))bad()
+ } else if(item.table==='porthole_sampling_decisions') {
+  samplingPolicy({team:row.team,service:'archive',environment:row.environment,ordinaryPercent:row.ordinary_percent,slowThresholdMs:row.slow_threshold_ms})
+  if(typeof row.trace_id!=='string'||!/^[a-f0-9]{32}$/.test(row.trace_id)||![0,1].includes(Number(row.retained))||!['ordinary','slow','error'].includes(String(row.reason))||!integer(row.cohort)||Number(row.cohort)>=10000||!integer(row.first_decided_at)||!integer(row.last_decided_at)||row.promoted_at!==null&&!integer(row.promoted_at)||typeof row.min_start_ns!=='string'||!/^\d{20}$/.test(row.min_start_ns)||typeof row.max_end_ns!=='string'||!/^\d{20}$/.test(row.max_end_ns)||row.min_start_ns>row.max_end_ns)bad()
+ } else if(item.table==='porthole_metric_rules') {
   if(!uuid(row.id)||!integer(row.revision,1)||!integer(row.from_sequence,1)||!integer(row.created_at)||!uuid(row.owner_id)||!['active','quarantined'].includes(String(row.state)))bad()
   metricDefinition(json(row.definition))
  } else if(item.table==='porthole_metric_points') {
@@ -126,7 +136,7 @@ export async function validateRow(payload: PortableRow, state: Validation): Prom
  } else if(item.table==='porthole_archive_health_history') {
   validateHealthHistory(row)
  } else if(item.table==='porthole_monitor_evaluations') {
-  if(!uuid(row.id)||!uuid(row.object_id)||!integer(row.revision,1)||!integer(row.evaluated_at)||!/^\d{20}$/.test(String(row.window_start_ns))||!/^\d{20}$/.test(String(row.window_end_ns))||String(row.window_start_ns)>String(row.window_end_ns)||!['Healthy','Firing','Unknown'].includes(String(row.status))||row.observed_count!==null&&!integer(row.observed_count)||!str(row.reason)||row.firing_episode!==null&&!str(row.firing_episode))bad()
+  if(!uuid(row.id)||!uuid(row.object_id)||!integer(row.revision,1)||!integer(row.evaluated_at)||!/^\d{20}$/.test(String(row.window_start_ns))||!/^\d{20}$/.test(String(row.window_end_ns))||String(row.window_start_ns)>String(row.window_end_ns)||!['Healthy','Firing','Unknown'].includes(String(row.status))||row.observed_count!==null&&(typeof row.observed_count!=='number'||!Number.isFinite(row.observed_count))||!str(row.reason)||row.firing_episode!==null&&!str(row.firing_episode))bad()
  } else if(item.table==='porthole_ingest_control') {
   if(row.singleton!==1||![0,1].includes(row.paused as number)||!integer(row.max_pending_bytes,1)||!integer(row.revision,1)||!integer(row.changed_at))bad()
  } else if(item.table==='porthole_ingest_batches') {
