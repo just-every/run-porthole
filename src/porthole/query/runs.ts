@@ -55,5 +55,5 @@ export async function runResponse(request:Request,env:Bindings):Promise<Response
  // during a provider read releases no records or successful aggregate.
  if(Date.now()>=run.deadline){run=await update('timed_out',run.cursor,0,0);return json(run,{records:[]})}
  run=await update(result.cursor?'partial':'complete',result.cursor,result.coverage.scannedCandidates,result.records.length)
- return json(run,{page:result,records:result.records,next:run.state==='partial'?runRoot+'/'+id+'/advance:null})
+ return json(run,{page:result,records:result.records,next:run.state==='partial'?runRoot+'/'+id+'/advance':null})
 }
