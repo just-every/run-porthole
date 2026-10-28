@@ -1,3 +1,4 @@
+import {syncRoleErasure} from './erasure'
 import {AuthError} from '../../modules/operator-auth/index.mjs'
 import type {Bindings} from '../../auth.server'
 import type {Scope} from '../security/authority'
@@ -42,11 +43,13 @@ export async function rpc<T>(env:Bindings,role:Role,path:string,input?:unknown):
 }
 export async function coverage(env:Bindings,config:Configuration,role=config.active_role,required?:number) {
  requireEnabled(config)
+ await syncRoleErasure(env,config,role)
  return rpc<Coverage>(env,role,'/v1/coverage',{sourceIdentity:config.source_identity,requiredWatermark:required??await watermark(env)})
 }
 export async function query(env:Bindings,config:Configuration,input:Query) {
  requireEnabled(config)
  const required=await watermark(env)
+ await syncRoleErasure(env,config,config.active_role)
  return rpc<Coverage&{records:AnalyticalRecord[];count:number;cursor:string|null;snapshot:number}>(env,config.active_role,'/v1/query',{sourceIdentity:config.source_identity,requiredWatermark:required,...input})
 }
 export async function reconcile(env:Bindings) {
@@ -57,12 +60,14 @@ export async function reconcile(env:Bindings) {
  for(const role of roles){let stage='health';try{
   const state=await rpc<Coverage>(env,role,'/v1/health')
   if(state.sourceIdentity&&state.sourceIdentity!==config.source_identity)fail('analytics_source_mismatch',409)
+  stage='erase_journal'
+  await syncRoleErasure(env,config,role)
   stage='read_sealed_envelopes'
   const batches=(await env.DB.prepare("SELECT id,completion_sequence,source_id,signal,digest,accepted_at,completed_at,record_count FROM porthole_ingest_batches WHERE state='complete' AND completion_sequence>? ORDER BY completion_sequence LIMIT 20").bind(state.watermark).all<{id:string;completion_sequence:number;source_id:string;signal:string;digest:string;accepted_at:number;completed_at:number;record_count:number}>()).results
   const packets=[];let bytes=0
   for(const batch of batches){
    const records=(await env.DB.prepare('SELECT r.*,a.archived_at FROM porthole_telemetry_records r JOIN porthole_telemetry_archive a ON a.id=r.id WHERE r.batch_id=? ORDER BY r.ordinal').bind(batch.id).all<AnalyticalRecord&{ordinal:number;payload:string;archived_at:number}>()).results
-   const expected=(await env.DB.prepare("SELECT COUNT(*) AS n FROM porthole_ingest_batches b,json_each(b.records) j WHERE b.id=? AND COALESCE(json_extract(j.value,'$.payload.inputStage'),'accepted')!='pre-sampling'").bind(batch.id).first<{n:number}>())!.n
+   const expected=(await env.DB.prepare("SELECT COUNT(*) AS n FROM porthole_ingest_batches b,json_each(b.records) j WHERE b.id=? AND j.type='object' AND COALESCE(json_extract(j.value,'$.payload.inputStage'),'accepted')!='pre-sampling'").bind(batch.id).first<{n:number}>())!.n
    if(records.length!==expected)fail('analytics_source_coverage_incomplete',503)
    const packet={id:batch.id,completionSequence:batch.completion_sequence,sourceId:batch.source_id,signal:batch.signal,digest:batch.digest,acceptedAt:batch.accepted_at,completedAt:batch.completed_at,records:records.map(row=>({id:row.id,ordinal:row.ordinal,team:row.team,service:row.service,environment:row.environment,eventTimeNs:row.event_time_ns,traceId:row.trace_id,spanId:row.span_id,payload:JSON.parse(row.payload),indexedAt:row.indexed_at,archivedAt:row.archived_at,late:row.late,outOfOrder:row.out_of_order}))}
    const length=new TextEncoder().encode(JSON.stringify(packet)).length

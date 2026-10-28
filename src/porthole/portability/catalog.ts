@@ -16,7 +16,7 @@ export const catalog: TableSpec[] = [
  {table:'porthole_migration_custody',columns:custodyColumns,order:'stream,source_table,source_key',query:''},
  spec('porthole_slo_versions',['id','revision','name','definition','owner_id','created_at','state'],'id,revision'),
  spec('porthole_retention_policies',['id','selection','days','revision','changed_at','active'],'id'),
- spec('porthole_erased_batches',['id','content_digest','erased_at'],'id'),
+ spec('porthole_erased_batches',['id','content_digest','erased_at','ordinals'],'id'),
  spec('porthole_export_exclusions',['record_id','excluded_at'],'record_id'),
  spec('porthole_baggage_policy',['singleton','enabled','allowed_keys','attribute_keys','revision','changed_at'],'singleton'),
  spec('porthole_bucket_history',historyColumns,'id'),
