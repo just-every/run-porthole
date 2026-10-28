@@ -325,7 +325,7 @@ export async function analyticalConnectionJourney() {
    }
    const afterErasure=await (await call('/api/porthole/v1/ingest/records?signal=logs',{headers:{cookie:nextOwner}})).json()
    assert.equal(afterErasure.analytical.role,'standby');assert.ok(!JSON.stringify(afterErasure).includes(subject));assert.ok(JSON.stringify(afterErasure).includes(peer))
-   await browser('/app/explore','analytics-erased-peer-preserved',peer,nextOwner)
+   await browser('/app/explore?'+new URLSearchParams({signal:'logs',service:'checkout-api',from:at,through:String(BigInt(at)+1000n)}),'analytics-erased-peer-preserved',peer,nextOwner)
    const candidate=(await promisify(execFile)('git',['rev-parse','HEAD'])).stdout.trim()
    console.log('Analytical journey candidate '+candidate)
    console.log('analyticalConnectionJourney passed: real independent primary/standby processes, product query/health/monitor, collector outage and direct provider-edge notice, behind refusal, explicit failover/failback, bounded 20/3 backlog, original ns and no duplicate records/notices')

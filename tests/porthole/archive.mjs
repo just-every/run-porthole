@@ -629,7 +629,7 @@ export async function subjectErasureJourney({origin,freshOwner,restartWorker,sql
   assert.deepEqual(await value(await get(destination.origin,owner,root+'/journal')),journal,'older archive cannot overwrite the later journal')
   assert.equal((await value(await get(destination.origin,owner,retention))).policies[0].active,0,'restored retention selection has no active approval')
   const {browserProof}=await import('./audit.mjs')
-  await browserProof({origin:destination.origin,cookie:owner,paths:['/app/explore','/app/explore?'+new URLSearchParams({signal:'traces',service:scope.services[0],environment:scope.environments[0],team:scope.teams[0]})],name:'subject-erasure-restored'})
+  await browserProof({origin:destination.origin,cookie:owner,paths:['/app/explore','/app/explore?'+new URLSearchParams({signal:'traces',service:scope.services[0],environment:scope.environments[0],team:scope.teams[0]}),'/app/explore?'+new URLSearchParams({signal:'logs',service:scope.services[0],from:String(time+30n),through:String(time+40n)})],name:'subject-erasure-restored'})
  })
 
  cookie=await freshOwner()
