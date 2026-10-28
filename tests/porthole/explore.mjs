@@ -91,7 +91,7 @@ export async function observabilityAgentJourney({origin,cookie,freshOwner}) {
 }
 
 /** One corpus journey runs through the product with each real query backend. */
-export async function nativeLogSearchJourney({origin,cookie,call=(path,options)=>fetch(origin+path,options),backend='local',screens=true,pauseNextQuery}) {
+export async function nativeLogSearchJourney({origin,cookie,call=(path,options)=>fetch(origin+path,options),backend='local',screens=true,pauseNextQuery,signIn}) {
  const {logSearchPacket,logSearchCases,logSearchExpression}=await import('./log-search-corpus.mjs')
  const post=(path,body,headers={cookie})=>call(path,{method:'POST',headers:{origin,'content-type':'application/json',...headers},body:JSON.stringify(body)})
  const value=async(response,status=200)=>{assert.equal(response.status,status,await response.clone().text());return response.json()}
@@ -140,12 +140,12 @@ export async function nativeLogSearchJourney({origin,cookie,call=(path,options)=
  assert.equal(refs(auditAfter),refs(auditBefore),'unsupported expressions create no executable query snapshot')
  assert.equal((await post('/api/porthole/v1/query',{...base,expression:logSearchExpression},{})).status,401)
  const {queryToolsJourney}=await import('./query-tools.mjs')
- const tools=await queryToolsJourney({origin,cookie,call,base:{...base,expression:logSearchExpression},snapshot,headers,expected:expectedIds([0,5,6]),backend})
+ const tools=await queryToolsJourney({origin,cookie,call,base:{...base,expression:logSearchExpression},snapshot,headers,expected:expectedIds([0,5,6]),backend,signIn})
  const {metricQueryJourney}=await import('./metric-query.mjs')
  const metric=await metricQueryJourney({origin,cookie,call,backend})
  const {queryJoinJourney}=await import('./query-join.mjs')
  const joinQuery=await queryJoinJourney({origin,cookie,call,backend,pauseNextQuery})
- if(screens)await logSearchBrowser({origin,cookie,base,snapshot,expected:expectedIds([0,5,6]),expression:logSearchExpression,call,backend,metric,joinQuery})
+ if(screens)await logSearchBrowser({origin,cookie,base,snapshot,expected:expectedIds([0,5,6]),expression:logSearchExpression,call,backend,metric,joinQuery,tools})
  await value(await post('/app/settings/credentials/revoke',{id:reader.credential.id}))
  assert.equal((await query({expression:logSearchExpression,snapshot})).status,401)
  assert.equal((await call(firstPage.replay,{headers})).status,401,'a saved snapshot never revives revoked read authority')
@@ -158,7 +158,7 @@ export async function nativeLogSearchJourney({origin,cookie,call=(path,options)=
  console.log('nativeLogSearchJourney passed ('+backend+'): typed ingested corpus, exact IDs and pages, scopes, snapshot replay, refusals and revoked credential')
 }
 
-async function logSearchBrowser({origin,cookie,base,snapshot,expected,expression,call,backend,metric,joinQuery}) {
+async function logSearchBrowser({origin,cookie,base,snapshot,expected,expression,call,backend,metric,joinQuery,tools}) {
  const {chromium}=await import('@playwright/test'),{mkdir}=await import('node:fs/promises'),{join}=await import('node:path')
  const browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']})
  const directory=process.env.PORTHOLE_EVIDENCE_DIR;if(directory)await mkdir(directory,{recursive:true})
@@ -198,6 +198,14 @@ async function logSearchBrowser({origin,cookie,base,snapshot,expected,expression
   await page.goto(origin+'/app/explore?'+new URLSearchParams(joinQuery));await page.getByRole('heading',{name:'Query results',exact:true}).waitFor();assert.equal(JSON.parse(await page.locator('pre').innerText()).records.length,1);await capture('join-results')
   const response=await page.goto(origin+'/app/explore?dialect=lucene&expression='+encodeURIComponent('service:checkout @http.status_code:>nope'));assert.equal(response.status(),400);assert.ok(await page.getByRole('alert').isVisible());await capture('refusal')
   const tiny=await page.locator('main').evaluate(element=>[...element.querySelectorAll('p,a,label,input,select,textarea,button,pre,summary')].filter(node=>parseFloat(getComputedStyle(node).fontSize)<13).map(node=>node.tagName));assert.deepEqual(tiny,[])
+  await context.clearCookies()
+  await context.addCookies(tools.contractorCookie.split('; ').map(v=>({name:v.slice(0,v.indexOf('=')),value:v.slice(v.indexOf('=')+1),url:origin})))
+  await page.goto(origin+tools.contractorPage);await page.getByRole('heading',{name:'Query results',exact:true}).waitFor()
+  if(width===1440){
+   assert.deepEqual(JSON.parse(await page.locator('pre').innerText()).records.map(row=>row.id).sort(),expected)
+   assert.equal(await page.getByRole('link',{name:'Export matching records',exact:true}).count(),0)
+  }
+  await capture('contractor-results')
   await context.close()
  }}finally{await browser.close()}
 }

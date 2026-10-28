@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 /** One public-door continuation, export, history and discovery flow. */
-export async function queryToolsJourney({origin,cookie,call,base,snapshot,headers,expected,backend}){
+export async function queryToolsJourney({origin,cookie,call,base,snapshot,headers,expected,backend,signIn}){
  const post=(path,body,auth=headers)=>call(path,{method:'POST',headers:{origin,'content-type':'application/json',...auth},body:JSON.stringify(body)})
  const value=async(response,status=200)=>{assert.equal(response.status,status,await response.clone().text());return response.json()}
  const query={...base,snapshot,limit:2,scanLimit:2}
@@ -25,6 +25,27 @@ export async function queryToolsJourney({origin,cookie,call,base,snapshot,header
   exported.push(...lines.map(line=>line.record));next=metadata.next
  }while(next)
  assert.deepEqual(exported.map(row=>row.id).sort(),expected)
+ // A native owner may export the same selection; a contractor may read it
+ // but cannot turn a private snapshot into an export grant.
+ const nativeQuery={...base,snapshot,limit:200}
+ const ownerQuery=await value(await post('/api/porthole/v1/query',nativeQuery,{cookie}))
+ const ownerExport=await call(ownerQuery.replay+'/export',{headers:{cookie}})
+ assert.equal(ownerExport.status,200)
+ assert.deepEqual((await ownerExport.text()).trim().split('\n').map(JSON.parse).slice(1).map(row=>row.record.id).sort(),expected)
+ const email=['synthetic-porthole-2200','example.com'].join('@')
+ await value(await post('/app/settings/members/invite',{email,displayName:'Scoped query contractor',role:'restricted contractor',scope:{services:['checkout'],environments:[base.environment],teams:[base.team]}},{cookie}),202)
+ const contractorCookie=await signIn(email),contractorHeaders={cookie:contractorCookie}
+ const contractorQuery=await value(await post('/api/porthole/v1/query',nativeQuery,contractorHeaders))
+ assert.deepEqual(contractorQuery.records.map(row=>row.id).sort(),expected)
+ assert.deepEqual((await value(await call(contractorQuery.replay,{headers:contractorHeaders}))).records,contractorQuery.records)
+ for(const path of [contractorQuery.replay+'/export',contractorQuery.replay+'/export?cursor=untrusted',contractorQuery.replay.replace('/api/porthole/v1/query','/app/explore')+'/export']){
+  const response=await call(path,{headers:contractorHeaders})
+  assert.equal(response.status,403,'restricted contractors cannot export matching records: '+await response.clone().text())
+  assert.ok(!(await response.text()).includes(expected[0]),'refusals contain no telemetry')
+ }
+ const contractorPage='/app/explore?'+new URLSearchParams(nativeQuery)
+ const page=await call(contractorPage,{headers:contractorHeaders});assert.equal(page.status,200)
+ assert.ok(!(await page.text()).includes('Export matching records'),'contractors are not offered a forbidden export')
  const suppressed=expected[0]
  await value(await post('/api/porthole/v1/export-exclusions',{confirm:'apply-exclusions',journal:{format:'porthole.export-exclusions.v1',records:[{recordId:suppressed,excludedAt:Date.now()}]}},{cookie}))
  next='/api/porthole/v1/query/'+first.queryRef+'/export';const allowed=[]
@@ -67,5 +88,5 @@ export async function queryToolsJourney({origin,cookie,call,base,snapshot,header
   const gone=await call(saved.replay+'/export',{headers:{cookie}});assert.equal(gone.status,200);assert.equal((await gone.text()).trim().split('\n').length,1)
   assert.equal((await emit()).status,409,'replayed erased capture cannot rehydrate snapshot or export results')
  }
- return {runRoot:root,revision:run.revision,exportPath:'/api/porthole/v1/query/'+first.queryRef+'/export'}
+ return {runRoot:root,revision:run.revision,exportPath:'/api/porthole/v1/query/'+first.queryRef+'/export',contractorCookie,contractorPage}
 }

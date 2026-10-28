@@ -18,6 +18,46 @@ async function savedExport(origin,cookie,start){
  const manifest=await value(await get(origin,cookie,`${api}/exports/${job.id}/manifest`))
  return {job,chunks,manifest,rows:chunks.flatMap(chunk=>chunk.rows)}
 }
+/** Notebook context is portable history, never a copied sharing capability. */
+export async function notebookArchiveJourney({origin,freshOwner,withEmptyDestination,notebookId,initialRevision}) {
+ const cookie=await freshOwner(),root='/api/porthole/v1/notebooks/'+notebookId
+ const before=await value(await get(origin,cookie,root))
+ const source=await savedExport(origin,cookie,await post(origin,cookie,api+'/exports',{}))
+ const notebookRows=source.rows.filter(row=>['porthole_notebooks','porthole_notebook_versions'].includes(row.table))
+ assert.ok(notebookRows.length>4,'archive preserves the actual revision history')
+ assert.ok(!source.rows.some(row=>row.table==='porthole_notebook_shares'),'live grants never enter the archive')
+ assert.ok(!JSON.stringify(notebookRows).includes('synthetic-porthole-log-0'),'notebook context has references, never detached telemetry')
+ const {notebookBrowser}=await import('./notebooks.mjs')
+ await withEmptyDestination(async destination=>{
+  const destCookie=await destination.freshOwner(),start=await value(await post(destination.origin,destCookie,api+'/restores',{manifest:source.manifest}),201)
+  for(const chunk of source.chunks)await value(await post(destination.origin,destCookie,`${api}/restores/${start.id}/chunks`,{chunk}))
+  await value(await post(destination.origin,destCookie,`${api}/restores/${start.id}/commit`,{confirm:source.manifest.rootHash}))
+  let restored=await value(await get(destination.origin,destCookie,root))
+  assert.equal(restored.state,'quarantined');assert.equal(restored.revision,before.revision)
+  assert.deepEqual((await value(await get(destination.origin,destCookie,'/api/porthole/v1/notebooks/evaluations'))).evaluations,[],'inactive restored monitors cannot become live investigation authority')
+  await value(await post(destination.origin,destCookie,'/api/porthole/v1/notebooks',{name:'No restored firing authority',evaluationId:before.body.origin.evaluationId}),404)
+  assert.deepEqual(restored.body,before.body)
+  assert.ok(restored.results.filter(Boolean).every(result=>result.state==='unavailable'&&result.count===null&&result.records.length===0))
+  const historical=await value(await get(destination.origin,destCookie,root+'?version='+initialRevision))
+  assert.equal(historical.revision,initialRevision)
+  assert.ok(historical.results.filter(Boolean).every(result=>result.state==='unavailable'))
+  assert.equal((await destination.sql('SELECT COUNT(*) AS n FROM porthole_notebook_shares'))[0].n,0)
+  assert.equal((await destination.sql('SELECT COUNT(*) AS n FROM porthole_health_notices'))[0].n,0,'mentions and notices do not enter a restored outbox')
+  assert.equal((await get(destination.origin,cookie,root)).status,401,'old native sessions never become restored authority')
+  await value(await post(destination.origin,destCookie,root+'/share',{revision:restored.revision,kind:'team',target:'synthetic-porthole-2402'}),409)
+  await value(await post(destination.origin,destCookie,root+'/comment',{revision:restored.revision,text:'Must remain inert'}),409)
+  await destination.restartWorker()
+  const fresh=await destination.freshOwner()
+  restored=await value(await get(destination.origin,fresh,root))
+  assert.deepEqual(restored.body,before.body)
+  assert.deepEqual(restored.body.comments[0].mentions,before.body.comments[0].mentions)
+  await notebookBrowser({origin:destination.origin,cookie:fresh,path:'/app/notebooks/'+notebookId,name:'notebook-restored-private',exercise:async page=>{
+   const text=await page.locator('body').innerText();assert.ok(text.includes('Restored, inactive'));assert.ok(text.includes('No sharing grants or outbound mention work were restored.'))
+   assert.ok(text.includes('Undelivered. No notification was sent.'))
+   assert.equal(await page.locator('form').count(),0)
+  }})
+ })
+}
 /** Real Worker/D1 journey. The harness switches to a separately migrated D1
  * destination; synthetic bootstrapping uses Base's real confirmation doors. */
 export async function archiveJourney({origin,cookie,sql,restartWorker,freshOwner,withEmptyDestination}){

@@ -1,3 +1,4 @@
+import {columns as notebookColumns} from '../notebooks/model'
 import { healthHistoryQuery } from './health-history'
 import { historyColumns } from '../storage/model'
 import {custodyColumns,custodyQueries} from '../migration/custody/catalog'
@@ -9,6 +10,8 @@ import {journalColumns} from '../migration/erasure/journal'
 export interface TableSpec { table: string; columns: string[]; query: string; order: string }
 const spec = (table: string, columns: string[], order: string): TableSpec => ({ table, columns, order, query: `SELECT ${columns.join(',')} FROM ${table}` })
 export const catalog: TableSpec[] = [
+ spec('porthole_notebook_versions',notebookColumns,'id,revision'),
+ spec('porthole_notebooks',notebookColumns,'id'),
  spec('porthole_metric_rules',['id','revision','definition','from_sequence','created_at','owner_id','state'],'id,revision'),
  spec('porthole_metric_points',['rule_id','revision','batch_id','ordinal','dimensions','value','valid','event_time_ns','trace_id','span_id'],'rule_id,revision,batch_id,ordinal'),
  spec('porthole_migration_erasure_fences',journalColumns,'receipt_id'),
@@ -51,6 +54,9 @@ function allPredicates(clauses:string[]):string {
 }
 export const emptyProduct = allPredicates([emptyCustody,
  'NOT EXISTS(SELECT 1 FROM porthole_query_runs)',
+ 'NOT EXISTS(SELECT 1 FROM porthole_notebooks)',
+ 'NOT EXISTS(SELECT 1 FROM porthole_notebook_versions)',
+ 'NOT EXISTS(SELECT 1 FROM porthole_notebook_shares)',
  'NOT EXISTS(SELECT 1 FROM porthole_metric_rules)',
  'NOT EXISTS(SELECT 1 FROM porthole_metric_points)',
  'NOT EXISTS(SELECT 1 FROM porthole_slo_versions)',

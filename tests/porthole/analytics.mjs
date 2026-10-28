@@ -295,7 +295,13 @@ export async function analyticalConnectionJourney() {
     }})
    } finally {await destination.dispose()}
    const {nativeLogSearchJourney}=await import('./explore.mjs')
-   await nativeLogSearchJourney({origin,cookie:nextOwner,call,backend:'analytical',pauseNextQuery:estate.pauseNextQuery})
+   const signIn=async email=>{
+    const db=getDb(),member=await db.prepare('SELECT id,version FROM oa_operators WHERE email=?').bind(email).first(),issuer=await (await call('/auth/session',{headers:{cookie:nextOwner}})).json(),token=randomBytes(32).toString('base64url'),at=Date.now()
+    await db.prepare("INSERT INTO oa_tokens(id,token_hash,kind,operator_id,operator_version,issuer_id,issuer_version,return_to,created_at,expires_at) VALUES(?,?,'invite',?,?,?,?, '/app',?,?)").bind(randomUUID(),await hashToken(sessionSecret,'link',token),member.id,member.version,issuer.operator.id,issuer.operator.version,at,at+120000).run()
+    const response=await post('/auth/confirm',{token},303,'')
+    return response.headers.getSetCookie().map(value=>value.split(';')[0]).join('; ')
+   }
+   await nativeLogSearchJourney({origin,cookie:nextOwner,call,backend:'analytical',pauseNextQuery:estate.pauseNextQuery,signIn})
    const candidate=(await promisify(execFile)('git',['rev-parse','HEAD'])).stdout.trim()
    console.log('PORTHOLE_ANALYTICAL_RUN '+JSON.stringify({runId:'sx-porthole-c7-recovery-20261022',head:candidate,result:'passed'}))
    console.log('analyticalConnectionJourney passed: real independent primary/standby processes, product query/health/monitor, collector outage and direct provider-edge notice, behind refusal, explicit failover/failback, bounded 20/3 backlog, original ns and no duplicate records/notices')

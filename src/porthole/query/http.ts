@@ -32,6 +32,7 @@ export async function queryResponse(request:Request,env:Bindings):Promise<Respon
   const exported=path.endsWith('/export'),id=path.slice(root.length+1).split('/')[0]
   let data:Record<string,unknown>
   if(exported){
+   if(!actor.canExport)fail('export_forbidden')
    if(request.method!=='GET'||[...url.searchParams.keys()].some(key=>key!=='cursor')||url.searchParams.getAll('cursor').length>1)fail('invalid_query_export',400)
    data=await snapshotInput(env,id,actor.id);delete data.cursor
    if(url.searchParams.has('cursor'))data.cursor=url.searchParams.get('cursor')!
@@ -65,7 +66,7 @@ export async function queryResponse(request:Request,env:Bindings):Promise<Respon
   if(!page)return Response.json(result,{headers:response.headers})
   const next=new URL('/app/explore',request.url)
   for(const [key,value]of Object.entries({...result.parameters as Record<string,unknown>,dialect:(result.source as {dialect:string}).dialect,expression:(result.source as {text:string}).text,snapshot:result.snapshot,cursor:result.cursor}))if(value!==null&&value!==undefined)next.searchParams.set(key,String(value))
-  const view=await results(result,result.cursor?next.pathname+next.search:undefined);view.headers.set('x-porthole-entity',String(result.queryRef));return view
+  const view=await results(result,result.cursor?next.pathname+next.search:undefined,actor.canExport);view.headers.set('x-porthole-entity',String(result.queryRef));return view
  }catch(error){
   const known=error instanceof AuthError||error instanceof LogSearchError,code=known?error.code:'query_unavailable',status=known?error.status:503,detail=error instanceof ExplorationError||error instanceof LogSearchError?{field:error.field,hint:error.hint}:{}
   return page?document('Query unavailable',`<p role="alert">${escape(code.replaceAll('_',' '))}${'hint'in detail?': '+escape(String(detail.hint)):''}</p><p><a href="/app/explore">Return to Explore</a></p>`,status,{forms:true}):Response.json({error:code,...detail},{status,headers:privateHeaders})

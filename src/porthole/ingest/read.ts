@@ -38,6 +38,7 @@ export async function readTelemetry(request: Request, env: Bindings, options: {a
   } else {
    const actor=await authority(request,env)
    if (!['owner','admin','maintainer','responder','read-only analyst','restricted contractor'].includes(actor.member.role)) fail('telemetry_forbidden')
+   if(options.exportOnly&&actor.member.role==='restricted contractor')fail('export_forbidden')
    scope=actor.member.scope;actorRef=actor.member.operatorId;actorRevision=actor.member.revision; fence={sql:actor.fence,args:actor.args}
   }
   if(options.logSearch && signal!=='logs') fail('invalid_log_search_signal',400)
