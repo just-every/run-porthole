@@ -373,6 +373,10 @@
       "sha256": "77eca2c7c9c61d1daf08d29c8f8d30771de731e9cba43cf64b63c9228545df34",
       "executable": false
     },
+    "docs/CLAIMS.md": {
+      "sha256": "2933eeff611784d5d117f64c119413a83585bfc313af4f5eb92bfaea72be9539",
+      "executable": false
+    },
     "docs/dashboard-widgets.md": {
       "sha256": "f94df53e2b4ef2e5e9d954cf53337a5d9c182aa22e4801088b0dc6d09ce90991",
       "executable": false
@@ -383,6 +387,10 @@
     },
     "docs/instrumentation.md": {
       "sha256": "18fc79654e9f81d978b24905a393accfb8b417a1d12f86f460faeaaee9fa390a",
+      "executable": false
+    },
+    "docs/log-pipelines.md": {
+      "sha256": "e03ef0f618bcc739a4a9778d12ddac0c861e6fcf5c09875cbca08425ffdfff58",
       "executable": false
     },
     "docs/LOOK.md": {
@@ -1179,6 +1187,10 @@
     },
     "scripts/build-deployment-spec.mjs": {
       "sha256": "09e96c3ae14ae8d39c216bf725a62e35b9d5dc3968c768d75903fb089dc0c5c6",
+      "executable": false
+    },
+    "scripts/contract-docs.mjs": {
+      "sha256": "34fd249c50e8c3aaf20f4c4e91aebcba806b697d927af58aed6cc900ebf2850d",
       "executable": false
     },
     "scripts/delivery/base/artifact.mjs": {
@@ -4891,6 +4903,26 @@
     },
     "tests/porthole/native-archive.mjs": {
       "sha256": "c8c7fa330c1b7c35c96b25691c86d9f8437e77e10ed837aa650a0cb728f5449c",
+      "executable": false
+    },
+    "tests/porthole/pipelines-analytical.mjs": {
+      "sha256": "538e6a52f5ec110301d702dbc2a089386703972cdea8e23ba2423bf843ad3403",
+      "executable": false
+    },
+    "tests/porthole/pipelines-browser.mjs": {
+      "sha256": "788d610724a8cf1fb3596fb6eb390f70cc46e5f1009f87f3e39ea76f4a33580e",
+      "executable": false
+    },
+    "tests/porthole/pipelines-custody.mjs": {
+      "sha256": "0ce8dec256984b9a863ec1e45abe89f6de7eb665d6b1724a8098bd6978e98238",
+      "executable": false
+    },
+    "tests/porthole/pipelines-exclusion.mjs": {
+      "sha256": "c34af73d2db213e294e0dbbc73f14f4f1d2db1bcd05ba98d9507e5e6b21b083b",
+      "executable": false
+    },
+    "tests/porthole/pipelines.mjs": {
+      "sha256": "fd595a389ca7b9fd289ced6d37256f475860d023b451c037172c2c82a6473568",
       "executable": false
     },
     "tests/porthole/polyglot/estate.mjs": {
