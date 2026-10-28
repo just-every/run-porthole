@@ -30,7 +30,7 @@ export async function evaluateMonitor(env:HealthBindings,monitor:ObjectRow,healt
  for(const [key,label]of [...labels].slice(0,100)) {
   const prior=previous?.groups.find(row=>row.key===key),sources=collectors.filter(row=>definition.groupBy.every(dimension=>row[dimension]===label[dimension]))
   const live=sources.length>0&&sources.every(row=>row.live===1&&row.observed_at<=now&&now-row.observed_at<=health.configuration.freshnessSeconds*1000)
-  let completeness:Completeness=unavailable?'unavailable':overflow?'incomplete':!sources.length?'absent':!live?'source-loss':measured?.uncertain?'uncertain-time':health.components.some(row=>['ingest','queue','storage','query'].includes(row.component)&&row.status!=='Healthy')?'incomplete':'measured'
+  let completeness:Completeness=unavailable?'unavailable':overflow?'incomplete':!sources.length?'absent':!live?'source-loss':!measured?.seen.has(key)?'absent':measured?.uncertain?'uncertain-time':health.components.some(row=>['ingest','queue','storage','query'].includes(row.component)&&row.status!=='Healthy')?'incomplete':'measured'
   const groupScope={...scope}
   for(const dimension of definition.groupBy)groupScope[({service:'services',environment:'environments',team:'teams'} as const)[dimension]]=[label[dimension]!]
   const lossWhere=scopeWhere(groupScope)
@@ -47,9 +47,11 @@ export async function evaluateMonitor(env:HealthBindings,monitor:ObjectRow,healt
    else {status='Healthy';episode=null}
    if(status==='Healthy')episode=null
   } else if(completeness==='absent'&&definition.noDataPolicy==='alert'){status='NoData';episode??=crypto.randomUUID()}
+  else if(definition.noDataPolicy==='keep-last')status=prior?.lastMeasuredStatus??'Unknown'
+  const lastMeasuredStatus=completeness==='measured'?status:prior?.lastMeasuredStatus??null
   // An interrupted pending interval never counts as sustained measured breach.
   const reason=completeness==='measured'?`Observed ${count} ${definition.signal} records; all windows must breach, and all must reach recovery before resolving.`:completeness==='absent'?`No authenticated source has established input coverage. No-data policy: ${definition.noDataPolicy}.`:completeness==='source-loss'?'Recorded source or buffer loss, or stale or revoked source coverage; last-known state cannot resolve.':completeness==='unavailable'?'Analytical storage or query failed; previous firing state and count are last-known only.':completeness==='uncertain-time'?'Source clock uncertainty makes this window incomplete.':'Telemetry component coverage is incomplete.'
-  groups.push({key,labels:label,status,count,lastKnownCount:count??prior?.lastKnownCount??null,pendingSince,firingEpisode:episode,completeness,windows,reason})
+  groups.push({key,labels:label,status,lastMeasuredStatus,count,lastKnownCount:count??prior?.lastKnownCount??null,pendingSince,firingEpisode:episode,completeness,windows,reason:definition.noDataPolicy==='keep-last'&&completeness!=='measured'?reason+' The displayed group decision is last-known only; this evaluation remains incomplete.':reason})
  }
  const unknown=overflow||groups.some(group=>!['measured','absent'].includes(group.completeness)||group.status==='Unknown'),status:Status=unknown?'Unknown':groups.some(group=>['Firing','NoData'].includes(group.status))?'Firing':groups.some(group=>group.status==='Pending')?'Pending':'Healthy'
  const count=groups.every(group=>group.count!==null)?groups.reduce((sum,group)=>sum+group.count!,0):null

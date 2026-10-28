@@ -5,7 +5,7 @@ export interface Definition {signal:'logs'|'traces'|'metrics';operator:'above'|'
 export type Status='Healthy'|'Firing'|'Pending'|'Unknown'|'NoData'
 export type Completeness='measured'|'absent'|'source-loss'|'uncertain-time'|'unavailable'|'incomplete'
 export interface Window {windowSeconds:number;count:number|null;completeness:Completeness}
-export interface Group {key:string;labels:Partial<Record<Dimension,string>>;status:Status;count:number|null;lastKnownCount:number|null;pendingSince:number|null;firingEpisode:string|null;completeness:Completeness;windows:Window[];reason:string}
+export interface Group {key:string;labels:Partial<Record<Dimension,string>>;status:Status;lastMeasuredStatus:Status|null;count:number|null;lastKnownCount:number|null;pendingSince:number|null;firingEpisode:string|null;completeness:Completeness;windows:Window[];reason:string}
 export interface Evaluation {monitorId:string;revision:number;evaluatedAt:number;status:Status;observedCount:number|null;lastKnownCount:number|null;lastKnownAt:number|null;firingEpisode:string|null;reason:string;groups:Group[];snapshot:number}
 export function monitorDefinition(body:Record<string,unknown>):Definition {
  const allowed=['signal','operator','threshold','windowSeconds','windows','pendingSeconds','recoveryThreshold','groupBy','noDataPolicy']
