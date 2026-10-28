@@ -1,10 +1,12 @@
 import type {Bindings} from '../../auth.server'
 import {queryResponse} from '../query/http'
+import {aggregateRows} from '../query/aggregate'
+import {normalizeExploration} from '../explore/normalize'
 import {fail} from '../security/authority'
 import {queryInput,type QueryCell,type Snapshot} from './model'
 import type {WidgetRecord,Point} from '../dashboards/widgets'
 
-export interface QueryResult {state:'complete'|'unavailable';reason?:string;count:number|null;records:WidgetRecord[];points:Point[];unit:string}
+export interface QueryResult {state:'complete'|'unavailable';reason?:string;count:number|null;records:WidgetRecord[];points:Point[];unit:string;aggregate?:ReturnType<typeof aggregateRows>}
 async function read(request:Request,env:Bindings,query:Record<string,string>,watermark?:number) {
  const records:WidgetRecord[]=[],refs:string[]=[]
  let cursor:string|null=null,snapshot=watermark
@@ -29,6 +31,12 @@ export async function resolveCell(request:Request,env:Bindings,cell:QueryCell,qu
  try {
   const {records}=await read(request,env,cell.query,cell.snapshot.watermark)
   if(JSON.stringify(records.map(row=>row.id))!==JSON.stringify(cell.snapshot.recordIds))return unavailable('Referenced input is missing, erased or outside current authority. Historical results are unavailable.')
+  const kind=normalizeExploration(cell.query).aggregate
+  if(kind) {
+   const aggregate=aggregateRows(kind,{records,cursor:null})
+   if(aggregate.value!==null&&!Number.isFinite(aggregate.value))return unavailable('Aggregate numeric range is unavailable; no misleading chart is shown.')
+   return {state:'complete',count:records.length,records,points:aggregate.value===null?[]:[{timeNs:cell.query.through,value:aggregate.value,series:kind}],unit:aggregate.unit,aggregate}
+  }
   const points=records.map(row=>{
    const r=row.payload.record,signal=cell.query.signal
    const value=signal==='traces'?Number(BigInt(String(r.endTimeUnixNano))-BigInt(String(r.startTimeUnixNano)))/1e6:signal==='metrics'?Number(r.asDouble??r.asInt):1

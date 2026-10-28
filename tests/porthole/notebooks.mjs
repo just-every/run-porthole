@@ -168,6 +168,17 @@ export async function notebookJourney({origin,freshOwner,signIn,restartWorker,wi
  }})
  notebook=await get(endpoint)
  assert.deepEqual(notebook.body.comments[0].mentions,[{memberRef:responder.id,status:'undelivered'}])
+ await attach({cellId:'mean',kind:'chart',title:'Window mean latency',query:{...query,signal:'metrics',metric:'synthetic_porthole_notebook_value',dialect:'sql',expression:`SELECT AVG(value) FROM metrics WHERE metric='synthetic_porthole_notebook_value' AND service='${scope.services[0]}' AND environment='production' AND team='${scope.teams[0]}'`}})
+ assert.equal(notebook.results[3].aggregate.value,6.5)
+ assert.deepEqual(notebook.results[3].points.map(p=>p.value),[6.5],'the graph renders the requested window average, not individual observations')
+ await attach({cellId:'total',kind:'query',title:'Whole window log count',query:{...query,dialect:'sql',expression:`SELECT COUNT(*) FROM logs WHERE service='${scope.services[0]}' AND environment='production' AND team='${scope.teams[0]}'`}})
+ assert.equal(notebook.results[4].aggregate.value,205,'aggregate counts include every native snapshot page')
+ await notebookBrowser({origin,cookie,path:pagePath,name:'notebook-window-aggregates',exercise:async page=>{
+  const mean=page.locator('[data-cell-id="mean"]')
+  assert.equal(await mean.locator('svg circle').count(),1)
+  assert.ok((await mean.innerText()).includes('Window average: 6.5 ms'))
+  assert.ok((await page.locator('[data-cell-id="total"]').innerText()).includes('Window count: 205 records'))
+ }})
  const beforeRerun=notebook.revision
  await withPinnedClock(t+61000,async()=>{
   await heartbeat();await ingest('logs',[{timeUnixNano:ns(t-500),body:{stringValue:'synthetic-porthole-old-event'}}])

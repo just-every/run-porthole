@@ -13,6 +13,9 @@ evidence references. Historical results are resolved from currently authorized
 native telemetry reads. If referenced inputs disappear or are erased, the cell
 shows unavailable evidence and no historical count or detached result copy.
 Charts use actual retained observations without filling missing values.
+When a supported SQL query selects a count, average or duration percentile,
+the notebook computes that aggregate across every captured page and plots its
+window result at the ending bound, with that meaning stated beside the chart.
 
 Annotations can include a local teammate reference. The notebook explicitly
 reports these mentions as **Undelivered**; no notification is sent and a mention
