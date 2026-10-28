@@ -1,5 +1,6 @@
 export const nativeCatalog={
  version:1,
+ privacy:'SSN, card, US phone and credential masks precede durable intake. Reviewed pipeline activation additionally masks address and network identifiers within its exact scope, including matching spans.',
  qualification:'Native bounded processors. Complete source-exact Datadog import and corpus comparison remain unqualified.',
  order:'Processors run in array order. A failure adds a diagnostic code; later processors still run. Existing attributes require an explicit overwrite where offered.',
  output:'Extracted attributes live in payload.pipeline.attributes. Service, environment, team and structural trace identity cannot be rerouted by a processor.',

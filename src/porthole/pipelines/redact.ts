@@ -47,10 +47,10 @@ export function redactionRules(input: unknown): RedactionRule[] {
   return { pattern:d.pattern, exceptions:[...new Set(d.exceptions as string[])] }
  })
 }
-function string(value: string, custom: { regex:RegExp; exceptions:string[] }[]): string {
+function string(value: string, custom: { regex:RegExp; exceptions:string[] }[], identifiers: boolean): string {
  if (value.length > 262144) return mask
  for (const rule of custom) value = value.replace(rule.regex, match => rule.exceptions.includes(match) ? match : mask)
- return value
+ value = value
   .replace(/-----BEGIN [A-Z ]{0,40}PRIVATE KEY-----[\s\S]*?-----END [A-Z ]{0,40}PRIVATE KEY-----/g, mask)
   .replace(/\b(?:Bearer|Basic)\s{1,32}[A-Za-z0-9+/_=.-]{1,8192}/gi, mask)
   .replace(/\beyJ[A-Za-z0-9_-]{1,2048}\.[A-Za-z0-9_-]{1,8192}(?:\.[A-Za-z0-9_-]{0,2048})?/g, mask)
@@ -58,17 +58,21 @@ function string(value: string, custom: { regex:RegExp; exceptions:string[] }[]):
   .replace(/\b(?:AKIA|ASIA)[A-Z0-9]{16}\b/g, mask)
   .replace(/\b(?:gh[pousr]_[A-Za-z0-9_]{12,255}|github_pat_[A-Za-z0-9_]{12,255}|xox[baprs]-[A-Za-z0-9-]{8,255}|AIza[A-Za-z0-9_-]{20,100})\b/g, mask)
   .replace(/(\b(?:authorization|api[-_]?key|access[-_]?token|client[-_]?secret|password|secret|token)["']?\s*[=:]\s*["']?)[^\s,"';}]{1,2048}/gi, (_all, prefix: string) => prefix + mask)
-  .replace(/[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]{1,64}@[A-Za-z0-9-]{1,63}(?:\.[A-Za-z0-9-]{1,63}){1,8}/g, mask)
   .replace(/(^|[^0-9])\d{3}[- ]\d{2}[- ]\d{4}(?![0-9])/g, (_all, prefix: string) => prefix + mask)
   .replace(/(^|[^0-9])(?:[0-9][ -]?){12,18}[0-9](?![0-9])/g, (_all, prefix: string) => prefix + mask)
   .replace(/(^|[^0-9])(?:\+?1[ .-]?)?(?:\([0-9]{3}\)|[0-9]{3})[ .-]?[0-9]{3}[ .-]?[0-9]{4}(?![0-9])/g, (_all, prefix: string) => prefix + mask)
   .replace(/(^|[^0-9])\d{9}(?![0-9])/g, (_all, prefix: string) => prefix + mask)
+ // Address and network identifiers are a reviewed pipeline transform.
+ // Before approval they remain available to the existing exact subject erasure.
+ if (!identifiers) return value
+ return value
+  .replace(/[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]{1,64}@[A-Za-z0-9-]{1,63}(?:\.[A-Za-z0-9-]{1,63}){1,8}/g, mask)
   .replace(/\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b/g, mask)
   .replace(/(?:[a-fA-F0-9]{0,4}:){2,7}[a-fA-F0-9]{0,4}(?:%[a-zA-Z0-9_.-]{1,32})?/g, mask)
 }
 
 /** Clone and mask every nested value and key without retaining raw inputs. */
-export function sanitize<T>(input: T, rules: RedactionRule[] = []): T {
+export function sanitize<T>(input: T, rules: RedactionRule[] = [], identifiers = true): T {
  const custom = rules.map(rule => ({ regex:customPattern(rule.pattern), exceptions:rule.exceptions }))
  const seen = new WeakMap<object, unknown>()
  let nodes = 0
@@ -80,9 +84,9 @@ export function sanitize<T>(input: T, rules: RedactionRule[] = []): T {
    if (/^\s*[\[{]/.test(value) && value.length <= 262144) {
     try { const decoded = JSON.parse(value), masked = visit(decoded, depth + 1); return JSON.stringify(decoded) === JSON.stringify(masked) ? value : JSON.stringify(masked) } catch { /* malformed text is masked below */ }
    }
-   return string(value, custom)
+   return string(value, custom, identifiers)
   }
-  if (typeof value === 'number' && Number.isInteger(value) && value >= 1000000000 && value <= 9999999999999999999) return string(String(value), custom) === String(value) ? value : mask
+  if (typeof value === 'number' && Number.isInteger(value) && value >= 1000000000 && value <= 9999999999999999999) return string(String(value), custom, identifiers) === String(value) ? value : mask
   if (!value || typeof value !== 'object') return value
   if (seen.has(value)) return seen.get(value)
   if (Array.isArray(value)) {
@@ -92,7 +96,7 @@ export function sanitize<T>(input: T, rules: RedactionRule[] = []): T {
   }
   const result: Record<string, unknown> = Object.create(null); seen.set(value, result)
   for (const [key, child] of Object.entries(value)) {
-   const clean = string(key, custom)
+   const clean = string(key, custom, identifiers)
    let unique = clean, collision = 1
    while (Object.hasOwn(result, unique)) unique = `${clean}_${collision++}`
    result[unique] = key === 'value' && typeof (value as Record<string,unknown>).key === 'string' && secretKey.test(String((value as Record<string,unknown>).key)) ? {stringValue:mask} : secretKey.test(key) ? mask : visit(child, depth + 1)
@@ -103,8 +107,8 @@ export function sanitize<T>(input: T, rules: RedactionRule[] = []): T {
 }
 
 /** Preserve only validated structural OTLP identities and native delivery clocks. */
-export function sanitizePayload(input: Record<string, unknown>, rules: RedactionRule[] = []): Record<string, unknown> {
- const result = sanitize(input, rules)
+export function sanitizePayload(input: Record<string, unknown>, rules: RedactionRule[] = [], identifiers = false): Record<string, unknown> {
+ const result = sanitize(input, rules, identifiers)
  const object = (value: unknown): Record<string, unknown> | undefined => value !== null && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : undefined
  const source = object(input.record), target = object(result.record)
  if (source && target) {

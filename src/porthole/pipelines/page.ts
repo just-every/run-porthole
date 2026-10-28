@@ -32,7 +32,7 @@ export function page(state: State, status = 200): Promise<Response> {
  ${state.error ? `<p role="alert">${e(state.error)}</p>` : ''}
  <p role="status">${state.definition === null ? 'No active pipeline.' : 'Active pipeline available.'} Current revision: ${e(state.revision)}.</p>
  <p><a href="/api/porthole/v1/pipelines/catalog">Processor catalog</a></p>
- <p>Preview sample transformations before activating a pipeline. Activation applies the exact reviewed definition to future logs.</p>
+ <p>Preview sample transformations before activating a pipeline. Activation applies the exact reviewed definition to future logs. It also masks address and network identifiers on future matching logs and spans.</p>
  ${state.definition === null ? '' : `<details><summary>Active definition</summary><pre>${json(state.definition)}</pre></details>`}
  ${preview ? `<section aria-labelledby="pipeline-preview"><h2 id="pipeline-preview">Review preview</h2>
  <p>Based on revision ${e(preview.expectedRevision)}.</p>

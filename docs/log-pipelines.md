@@ -32,8 +32,10 @@ Processor errors retain sanitized input and diagnostic codes. Errors, critical
 statuses, severe source logs and malformed records are protected from exclusion.
 
 Mandatory US SSN, card and phone masks apply to newly accepted logs and spans before the durable envelope write,
-including failed parsing. Other conservative key, token, address and network
-identifier masks also apply. Custom `redaction` rules accept exact-width
+including failed parsing. Conservative key and token masks also apply.
+Activating the reviewed pipeline adds address and network identifier masks
+within its exact scope; before approval, those identifiers remain available to
+the existing subject-erasure flow. Custom `redaction` rules accept exact-width
 literals, character classes and bounded exact repetitions. Groups, alternatives
 and variable repetitions refuse. Exact custom exceptions cannot override the
 mandatory masks. Credentials are never checked with an external service.

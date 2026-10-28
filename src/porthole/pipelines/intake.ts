@@ -17,9 +17,9 @@ export function processed(record:TelemetryRecord,d:Definition|null,revision:numb
  // rather than routing them to a new or unpermitted destination.
  if([record.team,record.service,record.environment].some(value=>sanitize(value)!==value))throw new IntakeError('sensitive_resource_scope',400)
  const active=d&&applies(record,d)?d:null
- const safe={...record,payload:sanitizePayload(record.payload,active?.redaction)}
+ const safe={...record,payload:sanitizePayload(record.payload,active?.redaction,!!active)}
  const result=parse&&active?transform(safe,active,revision):safe
- result.payload=sanitizePayload(result.payload,active?.redaction)
+ result.payload=sanitizePayload(result.payload,active?.redaction,!!active)
  if(parse&&active) {
   const p=result.payload.pipeline as Record<string,unknown>
   p.metrics=metricMatches(result,active)

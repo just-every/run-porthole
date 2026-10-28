@@ -163,7 +163,7 @@ function initial(record: TelemetryRecord): Attributes {
  return attrs
 }
 export function transform(record: TelemetryRecord, d: Definition, revision: number): TelemetryRecord {
- const clean = { ...record, payload:sanitizePayload(record.payload, d.redaction) }, attrs = initial(clean), errors: {processor:number;code:string}[] = []
+ const clean = { ...record, payload:sanitizePayload(record.payload, d.redaction, true) }, attrs = initial(clean), errors: {processor:number;code:string}[] = []
  const body = object(object(clean.payload.record)?.body)?.stringValue
  if (record.service !== d.service || record.environment !== d.environment || record.team !== d.team) return clean
  for (const [index, processor] of d.processors.entries()) {
@@ -173,7 +173,7 @@ export function transform(record: TelemetryRecord, d: Definition, revision: numb
  const protectedRecord = errors.length > 0 || typeof original?.severityNumber === 'number' && original.severityNumber >= 17 || /^(?:error|fatal|critical)$/i.test(String(original?.severityText ?? '')) || ['error','critical','alert','emergency'].includes(String(attrs.status ?? '').toLowerCase())
  const excluded = !protectedRecord && !!d.exclude && equal(source(attrs, body, d.exclude.field), d.exclude.equals)
  clean.payload.pipeline = { revision, status:errors.length ? 'error' : 'ok', errors, excluded, protected:protectedRecord, attributes:attrs }
- return { ...clean, payload:sanitizePayload(clean.payload, d.redaction) }
+ return { ...clean, payload:sanitizePayload(clean.payload, d.redaction, true) }
 }
 export function metricMatches(record: TelemetryRecord, d: Definition): string[] {
  if (record.service !== d.service || record.environment !== d.environment || record.team !== d.team) return []
