@@ -13,7 +13,8 @@ query fields. The result is:
 {
   parameters: Record<string, string | number>,
   source: { dialect: 'visual' | 'promql' | 'sql' | 'lucene', text: string },
-  aggregate?: 'average' | 'count' | 'p95'
+  aggregate?: 'average' | 'count' | 'p95',
+  logSearch?: { version: 1, root: LogSearchNode }
 }
 ```
 
@@ -62,17 +63,41 @@ subqueries, aliases, comments, semicolons, other predicates, grouping, ordering,
 LIMIT clauses and database names refuse. Time ranges and pagination belong in
 the existing native fields.
 
-Lucene-style exploration supports exact log scope terms:
+Lucene-style exploration executes a bounded native log predicate over retained
+OTLP records in both the local store and the selected analytical Worker:
 
 ```text
-service:checkout environment:production team:commerce
-service:checkout AND environment:production AND team:commerce
+service:checkout @http.status_code:>=500 -status:info
+service:checkout (@http.status_code:[500 TO 599] OR status:warn)
+service:checkout host:checkout-* @payment.note:"payment: retry"
 ```
 
-Terms are implicit conjunctions, with optional explicit uppercase AND. These
-forms return matching log records. Body phrases, arbitrary attributes, OR,
-exclusions, quoted or escaped terms, wildcard queries and regular expressions
-refuse because this slice has no corresponding native predicate.
+Reserved fields are `service`, `environment` (also `env`), `team`, `status` and
+`host`. Status matches severity text without case sensitivity; host reads the
+`host.name` attribute. An `@` field reads typed log or resource attributes,
+including a dotted key or nested OTLP key-value lists. Strings, numbers and
+booleans remain distinct: `@http.status_code:500` does not match the string
+`"500"`, and numeric comparisons do not coerce strings. Missing attributes do
+not match positive terms. `NOT` and unary `-` complement the entire predicate,
+so negating a positive term also selects missing or differently typed values.
+
+Terms use implicit AND or explicit uppercase `AND`, `OR`, `NOT` with parentheses;
+AND binds more tightly than OR. Numeric `>`, `>=`, `<`, `<=`, inclusive `[a TO b]`
+and exclusive `{a TO b}` ranges are supported. An open range endpoint is `*`.
+Quoted text preserves string type. Backslash escapes reserved punctuation and
+spaces; escaped wildcards are literal. Unquoted `*` and `?` match string values,
+and a lone `*` tests existence. Numeric text outside the safe integer range,
+nonnumeric ranges, regex, fuzzy matches, boosts, body searches and unsupported
+operators refuse with an explanation before reading telemetry. Expressions and
+plans allow at most 32 predicates, 128 nodes and 16 nesting levels; these are parser bounds, not a
+claim of runtime scan budgets or complete vendor parity.
+
+The query result exposes `source`, native `parameters` and a versioned `plan`.
+Snapshot replay retains source text and revalidates current authority; the
+browser's Next page link carries the expression, snapshot and cursor. Explicit
+forbidden scopes refuse, and every predicate remains inside native permission,
+time and retention filters. Native fields and conjunctive expression scopes
+must agree. No result establishes equivalence to an unexecuted vendor source.
 
 Expressions are bounded to 2048 characters. Filters are exact and value-sensitive.
 Unsupported or duplicate expression filters refuse; no filter is dropped.

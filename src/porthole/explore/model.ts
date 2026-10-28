@@ -1,10 +1,12 @@
 import {AuthError} from '../../modules/operator-auth/index.mjs'
+import type {LogSearchPlan} from '../../../workers/analytics/log-search.mjs'
+export type {LogSearchPlan} from '../../../workers/analytics/log-search.mjs'
 
 export type Dialect='visual'|'promql'|'sql'|'lucene'
 export type Aggregate='average'|'count'|'p95'
 export type Parameters=Record<string,string|number>
-export interface NormalizedExploration {parameters:Parameters;source:{dialect:Dialect;text:string};aggregate?:Aggregate}
-export interface ParsedExpression {parameters:Parameters;aggregate?:Aggregate}
+export interface NormalizedExploration {parameters:Parameters;source:{dialect:Dialect;text:string};aggregate?:Aggregate;logSearch?:LogSearchPlan}
+export interface ParsedExpression {parameters:Parameters;aggregate?:Aggregate;logSearch?:LogSearchPlan}
 
 export class ExplorationError extends AuthError {
  constructor(code:string,readonly field:string,readonly hint:string) {super(code,400)}

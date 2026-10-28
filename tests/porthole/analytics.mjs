@@ -274,6 +274,8 @@ export async function analyticalConnectionJourney() {
      await restored.browser('/app/settings/analytics','analytics-inactive-destination','Connection authorized')
     }})
    } finally {await destination.dispose()}
+   const {nativeLogSearchJourney}=await import('./explore.mjs')
+   await nativeLogSearchJourney({origin,cookie:nextOwner,call,backend:'analytical'})
    const candidate=(await promisify(execFile)('git',['rev-parse','HEAD'])).stdout.trim()
    console.log('PORTHOLE_ANALYTICAL_RUN '+JSON.stringify({runId:'sx-porthole-c7-recovery-20261022',head:candidate,result:'passed'}))
    console.log('analyticalConnectionJourney passed: real independent primary/standby processes, product query/health/monitor, collector outage and direct provider-edge notice, behind refusal, explicit failover/failback, bounded 20/3 backlog, original ns and no duplicate records/notices')

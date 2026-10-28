@@ -1,9 +1,10 @@
+import type {LogSearchPlan} from '../../../workers/analytics/log-search.mjs'
 import type {Bindings} from '../../auth.server'
 import {verifyCredential} from '../credentials/verify'
 import {allScope,emptyScope,fail,type Scope} from '../security/authority'
 import {privateHeaders} from '../document'
 import {fence,query,requireEnabled,type Configuration} from './client'
-export async function readAnalytical(request:Request,env:Bindings,config:Configuration,context:{scope:Scope;actorRef:string;actorRevision:number;fence:{sql:string;args:unknown[]};snapshot:number;queryRef:string;queryScope:string;from:string;through:string;signal:string;limit:number;archive:boolean}) {
+export async function readAnalytical(request:Request,env:Bindings,config:Configuration,context:{scope:Scope;actorRef:string;actorRevision:number;fence:{sql:string;args:unknown[]};snapshot:number;queryRef:string;queryScope:string;from:string;through:string;signal:string;limit:number;archive:boolean;logSearch?:LogSearchPlan}) {
  const params=new URL(request.url).searchParams,{scope,snapshot,from,through,signal,limit,archive,queryRef}=context
  requireEnabled(config)
  const active=fence(config)
@@ -14,7 +15,7 @@ export async function readAnalytical(request:Request,env:Bindings,config:Configu
   live=inspected.fence
  }
  if(!await env.DB.prepare(`SELECT 1 AS live WHERE (${live.sql}) AND (${active.sql})`).bind(...live.args,...active.args).first())fail('authority_changed',409)
- const data=await query(env,config,{signal,scope:{services:scope.services,environments:scope.environments,teams:scope.teams},from,through,snapshot,limit,archive,...Object.fromEntries([...params].filter(([key])=>['service','environment','team','cursor','trace','metric'].includes(key)))})
+ const data=await query(env,config,{...(context.logSearch?{logSearch:context.logSearch}:{}),signal,scope:{services:scope.services,environments:scope.environments,teams:scope.teams},from,through,snapshot,limit,archive,...Object.fromEntries([...params].filter(([key])=>['service','environment','team','cursor','trace','metric'].includes(key)))})
  if(data.sourceIdentity!==config.source_identity||!Array.isArray(data.records)||data.records.length>limit||data.snapshot!==snapshot||!Number.isSafeInteger(data.watermark)||data.watermark<snapshot)fail('analytics_invalid_response',503)
  for(const row of data.records){
   for(const [column,key]of [['service','services'],['environment','environments'],['team','teams']] as const)if(!scope[key].includes('*')&&!scope[key].includes(row[column])||params.has(column)&&params.get(column)!==row[column])fail('analytics_scope_violation',503)

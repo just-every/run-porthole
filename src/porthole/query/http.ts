@@ -42,12 +42,15 @@ export async function queryResponse(request:Request,env:Bindings):Promise<Respon
    data=await input(request)
   }
   const normalized=normalizeExploration(data)
-  const response=await readTelemetry(queryRequest(request,normalized.parameters),env)
-  if(!response.ok) {if(!page)return response;const error=await response.json() as {error:string};return document('Query unavailable',`<p role="alert">${escape(error.error)}</p><p><a href="/app/explore">Return to Explore</a></p>`,response.status)}
+  const response=await readTelemetry(queryRequest(request,normalized.parameters),env,{logSearch:normalized.logSearch,source:normalized.source})
+  if(!response.ok) {if(!page)return response;const error=await response.json() as {error:string;hint?:string};return document('Query unavailable',`<p role="alert">${escape(error.error)}${error.hint?': '+escape(error.hint):''}</p><p><a href="/app/explore">Return to Explore</a></p>`,response.status)}
   const rows=await response.json() as Record<string,unknown>
-  const result={...rows,source:normalized.source,parameters:normalized.parameters,...(normalized.aggregate?{aggregate:aggregateRows(normalized.aggregate,rows)}:{})},reference=String(rows.queryRef)
+  const result={source:normalized.source,parameters:normalized.parameters,...(normalized.logSearch?{plan:normalized.logSearch}:{}),...rows,...(normalized.aggregate?{aggregate:aggregateRows(normalized.aggregate,rows)}:{})},reference=String(rows.queryRef)
   const headers={...privateHeaders,...Object.fromEntries([...response.headers].filter(([key])=>key.startsWith('x-porthole-'))),'x-porthole-entity':reference}
-  if(page) {const view=await document('Query results',`<p>Snapshot reference: ${reference}</p><p><a href="/api/porthole/v1/query/${reference}">Repeat this snapshot</a> · <a href="/app/explore">New query</a></p><pre>${escape(JSON.stringify(result,null,2))}</pre>`);view.headers.set('x-porthole-entity',reference);return view}
+  if(page) {
+   const next=new URL('/app/explore',request.url)
+   for(const [key,value] of Object.entries({...normalized.parameters,dialect:normalized.source.dialect,expression:normalized.source.text,snapshot:rows.snapshot,cursor:rows.cursor}))if(value!==null&&value!==undefined)next.searchParams.set(key,String(value))
+   const view=await document('Query results',`<p>Snapshot reference: ${reference}</p><p><a href="/api/porthole/v1/query/${reference}">Repeat this snapshot</a> · <a href="/app/explore">New query</a></p>${rows.cursor?`<p><a href="${escape(next.pathname+next.search)}">Next page</a></p>`:''}<pre>${escape(JSON.stringify(result,null,2))}</pre>`);view.headers.set('x-porthole-entity',reference);return view}
   return Response.json({...result,queryRef:reference,replay:`/api/porthole/v1/query/${reference}`},{headers})
  }catch(error) {
   const code=error instanceof AuthError?error.code:'query_unavailable',status=error instanceof AuthError?error.status:503
