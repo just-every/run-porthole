@@ -14,6 +14,7 @@ const matched = `SELECT b.id,b.digest,b.record_count,b.byte_count FROM porthole_
 const erased = 'SELECT id FROM porthole_ingest_batches WHERE id IN (SELECT id FROM porthole_erased_batches) OR digest IN (SELECT content_digest FROM porthole_erased_batches)'
 export function eraseJournaledBatches(db: D1Database): D1PreparedStatement[] {
  return [
+  db.prepare("UPDATE porthole_query_runs SET state='interrupted',scanned=0,matched=0,cursor=NULL,revision=revision+1 WHERE state!='interrupted'"),
   // Preserve a scoped missing-evidence window after removing the original
   // bytes, so a later drain or evaluation cannot turn erasure into recovery.
   db.prepare(`INSERT INTO porthole_ingest_events(id,source_id,signal,team,service,environment,occurred_at,kind,reason,record_count,batch_ref,range_start_ns,range_end_ns)

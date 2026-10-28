@@ -1,7 +1,7 @@
 import {fail} from '../security/authority'
 import type {Aggregate} from '../explore/model'
 export function aggregateRows(kind:Aggregate,result:Record<string,unknown>) {
- const records=result.records as {payload:{record:Record<string,unknown>;metric?:{unit?:string}}}[],partial=!!result.cursor
+ const records=result.records as {payload:{record:Record<string,unknown>;metric?:{unit?:string}}}[],partial=!!result.cursor||!!result.resumed
  const state=partial?'partial':records.length?'complete':'empty'
  if(kind==='count')return {kind,value:partial?null:records.length,state,unit:'records',count:records.length}
  const values=records.map(row=>kind==='p95'?Number(BigInt(String(row.payload.record.endTimeUnixNano))-BigInt(String(row.payload.record.startTimeUnixNano)))/1e6:Number(row.payload.record.asDouble??row.payload.record.asInt))

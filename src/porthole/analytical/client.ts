@@ -47,7 +47,7 @@ export async function coverage(env:Bindings,config:Configuration,role=config.act
 export async function query(env:Bindings,config:Configuration,input:Query) {
  requireEnabled(config)
  const required=await watermark(env)
- return rpc<Coverage&{records:AnalyticalRecord[];count:number;cursor:string|null;snapshot:number}>(env,config.active_role,'/v1/query',{sourceIdentity:config.source_identity,requiredWatermark:required,...input})
+ return rpc<Coverage&{records:AnalyticalRecord[];count:number;cursor:string|null;snapshot:number;coverage?:{state:string;scannedCandidates:number;scannedPayloadBytes:number;matchedRecords:number}}>(env,config.active_role,'/v1/query',{sourceIdentity:config.source_identity,requiredWatermark:required,...input})
 }
 export async function reconcile(env:Bindings) {
  const config=await configuration(env)

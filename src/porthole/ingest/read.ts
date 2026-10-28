@@ -17,12 +17,14 @@ export function scopeWhere(scope: Scope, alias = 'r') {
  return { sql:parts.join(' AND '),args }
 }
 const json = (value:unknown,status=200,headers:Record<string,string>={}) => Response.json(value,{status,headers:{...privateHeaders,...headers}})
-export async function readTelemetry(request: Request, env: Bindings, options: {archive?:boolean;logSearch?:LogSearchPlan;source?:{dialect:string;text:string}} = {}): Promise<Response> {
+export async function readTelemetry(request: Request, env: Bindings, options: {archive?:boolean;exportOnly?:boolean;recordSnapshot?:boolean;logSearch?:LogSearchPlan;source?:{dialect:string;text:string}} = {}): Promise<Response> {
  try {
   const url = new URL(request.url), params = url.searchParams, archive = !!options.archive
-  if ([...params.keys()].some(key => !['signal','service','environment','team','from','through','cursor','limit','snapshot','trace','metric'].includes(key))) fail('invalid_query',400)
+  if ([...params.keys()].some(key => !['signal','service','environment','team','from','through','cursor','limit','snapshot','trace','metric','scanLimit'].includes(key))) fail('invalid_query',400)
   const limit = Number(params.get('limit') ?? 100)
   if (!Number.isSafeInteger(limit) || limit < 1 || limit > (params.has('trace')?2000:200)) fail('invalid_query_limit',400)
+  const scanLimit=params.has('scanLimit')?Number(params.get('scanLimit')):null
+  if(scanLimit!==null&&(!Number.isSafeInteger(scanLimit)||scanLimit<1||scanLimit>limit))fail('invalid_scan_limit',400)
   const signal = params.get('signal')
   if (!signal || !['logs','traces','metrics','profiles'].includes(signal)) fail('signal_required',400)
   let scope: Scope, fence: {sql:string;args:unknown[]},actorRef:string,actorRevision:number
@@ -61,7 +63,8 @@ export async function readTelemetry(request: Request, env: Bindings, options: {a
    if(signal!=='metrics'||!metric.trim().length||metric.length>120||/[\u0000-\u001f\u007f-\u009f]/u.test(metric)||params.getAll('metric').length!==1)fail('invalid_metric_name',400)
    clauses.push("json_extract(r.payload,'$.metric.name')=?");args.push(metric)
   }
-  if(logSearch){clauses.push(logSearch.sql);args.push(...logSearch.args)}
+  if(logSearch&&scanLimit===null){clauses.push(logSearch.sql);args.push(...logSearch.args)}
+  if(options.exportOnly)clauses.push('NOT EXISTS(SELECT 1 FROM porthole_export_exclusions e WHERE e.record_id=r.id)')
   clauses.push('r.event_time_ns>=?','r.event_time_ns<=?');args.push(from,through)
   const snapshot = params.has('snapshot') ? Number(params.get('snapshot')) : (await env.DB.prepare("SELECT COALESCE(MAX(completion_sequence),0) AS snapshot FROM porthole_ingest_batches WHERE state='complete'").first<{snapshot:number}>())!.snapshot
   if (!Number.isSafeInteger(snapshot) || snapshot < 0) fail('invalid_query_snapshot',400)
@@ -76,23 +79,29 @@ export async function readTelemetry(request: Request, env: Bindings, options: {a
   }
   const table=archive ? 'porthole_telemetry_archive' : 'porthole_telemetry_records'
   const select=`SELECT r.* FROM ${table} r JOIN porthole_ingest_batches b ON b.id=r.batch_id WHERE ${clauses.join(' AND ')} AND `
-  const queryRef=crypto.randomUUID(),queryScope=JSON.stringify({...Object.fromEntries([...params].filter(([key])=>['service','environment','team','cursor','limit','trace','metric'].includes(key))),...(options.source?{dialect:options.source.dialect,expression:options.source.text}:{})})
+  const queryRef=crypto.randomUUID(),queryScope=JSON.stringify({...Object.fromEntries([...params].filter(([key])=>['service','environment','team','cursor','limit','trace','metric','scanLimit'].includes(key))),...(options.source?{dialect:options.source.dialect,expression:options.source.text}:{})})
   const analytical=await analyticalConfiguration(env)
-  if(analyticalSelected(env,analytical))return await readAnalytical(request,env,analytical,{scope,actorRef,actorRevision,fence,snapshot,queryRef,queryScope,from,through,signal,limit,archive,logSearch:options.logSearch})
-  const snapshotInsert=(live:{sql:string;args:unknown[]})=>env.DB.prepare(`INSERT INTO porthole_query_snapshots SELECT ?,?,?,?,?,?,?,? WHERE ${live.sql}`).bind(queryRef,actorRef,queryScope,signal,from,through,snapshot,Date.now(),...live.args)
+  if(analyticalSelected(env,analytical))return await readAnalytical(request,env,analytical,{scope,actorRef,actorRevision,fence,snapshot,queryRef,queryScope,from,through,signal,limit,archive,logSearch:options.logSearch,scanLimit,exportOnly:options.exportOnly,recordSnapshot:options.recordSnapshot})
+  const statement=(live:{sql:string;args:unknown[]})=>scanLimit===null
+   ?env.DB.prepare(`${select}${live.sql} ORDER BY r.event_time_ns,r.id LIMIT ?`).bind(...args,...live.args,limit+1)
+   :env.DB.prepare(`WITH candidates AS MATERIALIZED (${select}${live.sql} ORDER BY r.event_time_ns,r.id LIMIT ?) SELECT r.*,CASE WHEN ${logSearch?.sql??'1'} THEN 1 ELSE 0 END AS query_match FROM candidates r ORDER BY r.event_time_ns,r.id`).bind(...args,...live.args,scanLimit,...(logSearch?.args??[]))
+  const snapshotInsert=(live:{sql:string;args:unknown[]})=>options.recordSnapshot===false?env.DB.prepare('SELECT 1'):env.DB.prepare(`INSERT INTO porthole_query_snapshots SELECT ?,?,?,?,?,?,?,? WHERE ${live.sql}`).bind(queryRef,actorRef,queryScope,signal,from,through,snapshot,Date.now(),...live.args)
   let rows: Record<string,unknown>[]
   if (request.headers.has('authorization')) {
-   const estimate=(await env.DB.prepare(`${select}1 ORDER BY r.event_time_ns,r.id LIMIT ?`).bind(...args,limit+1).all<Record<string,unknown>>()).results
+   const estimate=(await statement({sql:'1',args:[]}).all<Record<string,unknown>>()).results
    const scanned=estimate.reduce((sum,row) => sum+new TextEncoder().encode(String(row.payload)).length,0)
    const auth=await verifyCredential(request,env,{action:'telemetry.read',scope:emptyScope,dataScope:allScope,scannedBytes:scanned,writes(live,latest) {
     if (!latest.signals.includes(signal) || JSON.stringify(scope)!==JSON.stringify(latest)) fail('authority_changed',409)
-    return [env.DB.prepare(`${select}${live.sql} ORDER BY r.event_time_ns,r.id LIMIT ?`).bind(...args,...live.args,limit+1),snapshotInsert(live)]
+    return [statement(live),snapshotInsert(live)]
    }})
    rows=auth.results[0].results as Record<string,unknown>[]
-  } else rows=(await env.DB.batch<Record<string,unknown>>([env.DB.prepare(`${select}${fence.sql} ORDER BY r.event_time_ns,r.id LIMIT ?`).bind(...args,...fence.args,limit+1),snapshotInsert(fence)]))[0].results
-  const more=rows.length>limit;rows=rows.slice(0,limit)
+  } else rows=(await env.DB.batch<Record<string,unknown>>([statement(fence),snapshotInsert(fence)]))[0].results
+  const scanned=rows.length,bytes=rows.reduce((sum,row)=>sum+new TextEncoder().encode(String(row.payload)).length,0)
+  const more=scanLimit===null?rows.length>limit:rows.length===scanLimit
+  if(scanLimit===null)rows=rows.slice(0,limit)
   const last=rows.at(-1),cursor=more && last ? base64(new TextEncoder().encode(JSON.stringify([last.event_time_ns,last.id]))).replaceAll('+','-').replaceAll('/','_').replaceAll('=','') : null
-  return json({snapshot,from,through,queryRef,records:rows.map(row=>({...row,payload:JSON.parse(String(row.payload))})),cursor,archive},200,{'x-porthole-entity':queryRef,'x-porthole-actor':actorRef,'x-porthole-actor-revision':String(actorRevision)})
+  if(scanLimit!==null)rows=rows.filter(row=>row.query_match===1)
+  return json({snapshot,from,through,queryRef,records:rows.map(({query_match,...row})=>({...row,payload:JSON.parse(String(row.payload))})),cursor,archive,...(scanLimit===null?{}:{coverage:{state:cursor?'partial':'complete',reason:cursor?'scan_limit':null,scannedCandidates:scanned,scannedPayloadBytes:bytes,matchedRecords:rows.length}})},200,{'x-porthole-entity':queryRef,'x-porthole-actor':actorRef,'x-porthole-actor-revision':String(actorRevision)})
  } catch (error) {
   const known=error instanceof AuthError || error instanceof CredentialLimit || error instanceof IntakeError || error instanceof LogSearchError
   return json({error:known ? error.code : 'telemetry_unavailable',...(error instanceof LogSearchError?{field:error.field,hint:error.hint}:{})},known ? error.status : 503,error instanceof CredentialLimit ? {'retry-after':String(error.retryAfter)} : {})

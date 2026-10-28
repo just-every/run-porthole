@@ -11,13 +11,15 @@ function cursor(value) {
  } catch { fail('invalid_query_cursor'); }
 }
 export async function query(db, input) {
- keys(input, ['sourceIdentity', 'requiredWatermark', 'signal', 'from', 'through', 'scope', 'team', 'service', 'environment', 'limit', 'cursor', 'snapshot', 'archive', 'mode', 'trace', 'metric', 'uncertain', 'logSearch']);
+ keys(input, ['sourceIdentity', 'requiredWatermark', 'signal', 'from', 'through', 'scope', 'team', 'service', 'environment', 'limit', 'cursor', 'snapshot', 'archive', 'mode', 'trace', 'metric', 'uncertain', 'logSearch', 'scanLimit']);
  signal(input.signal); object(input.scope); keys(input.scope, ['teams', 'services', 'environments']);
  const from = nano(input.from), through = nano(input.through);
  if (from > through) fail('invalid_query_range');
  if (input.mode !== undefined && !['records', 'count'].includes(input.mode)) fail('invalid_query_mode');
  if (input.archive !== undefined && typeof input.archive !== 'boolean') fail('invalid_archive');
  const limit = input.limit ?? 100; integer(limit, 1, input.trace ? 2000 : limits.page);
+ const scanLimit=input.scanLimit??null;
+ if(scanLimit!==null){integer(scanLimit,1,Math.min(limit,limits.page));if(input.mode==='count')fail('invalid_query_mode')}
  const time=input.uncertain?"printf('%020d',CAST(json_extract(r.payload,'$.delivery.receivedTimeUnixNano') AS INTEGER))":'r.event_time_ns';
  const clauses = ['r.signal=?', `${time}>=?`, `${time}<=?`, 'b.completion_sequence<=?'];
  if(input.uncertain!==undefined){if(input.uncertain!==true||input.mode!=='count')fail('invalid_query');clauses.push("json_extract(r.payload,'$.delivery.uncertainTime')=1")}
@@ -46,13 +48,23 @@ export async function query(db, input) {
   const [time, id] = cursor(input.cursor);
   clauses.push('(r.event_time_ns>? OR (r.event_time_ns=? AND r.id>?))'); args.push(time, time, id);
  }
+ let logSearch;
  if (input.logSearch !== undefined) {
   if (input.signal !== 'logs') fail('invalid_log_search_signal');
-  const compiled = compileLogSearch(input.logSearch, input.scope);
-  clauses.push(compiled.sql); args.push(...compiled.args);
+  logSearch = compileLogSearch(input.logSearch, input.scope);
+  if(scanLimit===null){clauses.push(logSearch.sql);args.push(...logSearch.args)}
  }
  const covered = await coverage(db, input);
  const selection = `FROM analytics_records r JOIN analytics_batches b ON b.id=r.batch_id WHERE ${clauses.join(' AND ')}`;
+ if(scanLimit!==null){
+  const result=await db.prepare(`WITH candidates AS MATERIALIZED (SELECT r.* ${selection} ORDER BY r.event_time_ns,r.id LIMIT ?) SELECT r.*,CASE WHEN ${logSearch?.sql??'1'} THEN 1 ELSE 0 END AS query_match FROM candidates r ORDER BY r.event_time_ns,r.id`).bind(...args,scanLimit,...(logSearch?.args??[])).all();
+  const candidates=result.results,last=candidates.at(-1),next=candidates.length===scanLimit&&last?btoa(JSON.stringify([last.event_time_ns,last.id])).replaceAll('+','-').replaceAll('/','_').replaceAll('=',''):null;
+  let records=candidates.filter(row=>row.query_match===1).map(({query_match,...row})=>({...row,payload:JSON.parse(row.payload)}));
+  if(input.archive){if(records.some(row=>row.archived_at===null))fail('analytics_archive_coverage_missing',503);records=records.map(({indexed_at,late,out_of_order,...row})=>row)}else records=records.map(({archived_at,...row})=>row);
+  const response={...covered,snapshot,from,through,records,cursor:next,archive:!!input.archive,coverage:{state:next?'partial':'complete',reason:next?'scan_limit':null,scannedCandidates:candidates.length,scannedPayloadBytes:candidates.reduce((sum,row)=>sum+new TextEncoder().encode(row.payload).length,0),matchedRecords:records.length}};
+  if(new TextEncoder().encode(JSON.stringify(response)).byteLength>limits.responseBytes)fail('query_response_too_large',413);
+  await coverage(db,input);return response;
+ }
  if (input.mode === 'count') {
   const row = await db.prepare(`SELECT COUNT(*) AS count ${selection}`).bind(...args).first();
   await coverage(db, input);

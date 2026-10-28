@@ -1,59 +1,72 @@
-import {normalizeExploration,ExplorationError} from '../explore/normalize'
-import {aggregateRows} from './aggregate'
-import type { Bindings } from '../../auth.server'
-import { AuthError } from '../../modules/operator-auth/index.mjs'
-import { authority,fail,allScope,emptyScope } from '../security/authority'
-import { input } from '../security/input'
-import { readTelemetry } from '../ingest/read'
-import { verifyCredential } from '../credentials/verify'
-import { operationDocument as document,escape,privateHeaders } from '../document'
-const keys=['dialect','expression','signal','service','environment','team','from','through','cursor','limit','snapshot','trace','metric']
-function queryRequest(request:Request,data:Record<string,unknown>):Request {
- const url=new URL('/api/porthole/v1/ingest/records',request.url)
- for(const [key,value] of Object.entries(data)) {
-  if(!keys.includes(key) || !['string','number'].includes(typeof value) || key==='metric'&&typeof value!=='string')fail('invalid_query',400)
-  url.searchParams.set(key,String(value))
- }
- return new Request(url,{headers:request.headers})
-}
-export async function queryResponse(request:Request,env:Bindings):Promise<Response|null> {
- const url=new URL(request.url),page=url.pathname==='/app/explore'
- if(!page && url.pathname!=='/api/porthole/v1/query' && !/^\/api\/porthole\/v1\/query\/[a-f0-9-]{36}$/.test(url.pathname))return null
- try {
-  if(url.search&&!page)fail('invalid_query',400)
-  if(page&&[...url.searchParams.keys()].some(key=>!keys.includes(key)))fail('invalid_query',400)
-  // Browser queries retain native session/CSRF checks. Programmatic queries
-  // authenticate only their Authorization credential in readTelemetry, which
-  // reserves bytes and rechecks live custody in the result transaction.
-  if(page || !request.headers.has('authorization'))await authority(request,env,{post:request.method==='POST'})
-  else await verifyCredential(request,env,{action:'telemetry.read',scope:emptyScope,dataScope:allScope,inspectOnly:true})
-  if(page && request.method==='GET' && !url.search) return document('Explore telemetry',`<p><a href="/app/dashboards">Dashboards</a></p><p>Read retained telemetry within your current service, environment and team scope. Each query has a reproducible, private snapshot reference in Audit.</p><form method="post" action="/app/explore"><label>Signal <select name="signal" aria-label="Signal"><option>logs</option><option>metrics</option><option>traces</option><option>profiles</option></select></label><label>Service <input name="service" required></label><label>Environment <input name="environment" required></label><label>Team <input name="team" required></label><label>Metric name <input name="metric"></label><label>From in nanoseconds <input name="from" inputmode="numeric"></label><label>Through in nanoseconds <input name="through" inputmode="numeric"></label><details><summary>Text query</summary><label>Dialect <select name="dialect" aria-label="Dialect"><option value="visual">Visual</option><option value="promql">PromQL selector</option><option value="sql">SQL</option><option value="lucene">Lucene</option></select></label><label>Expression <textarea name="expression" rows="5"></textarea></label><p>Text filters must agree with the selected signal and scope. Unsupported syntax refuses before execution.</p></details><button>Run query</button></form>`,200,{forms:true})
-  let data:Record<string,unknown>
-  const id=url.pathname.split('/').at(-1)!
-  if(page&&request.method==='GET')data=Object.fromEntries(url.searchParams)
-  else if(request.method==='GET' && id!=='query') {
-   const previous=await env.DB.prepare('SELECT * FROM porthole_query_snapshots WHERE id=?').bind(id).first<{scope:string;signal:string;from_ns:string;through_ns:string;through_batch:number}>()
-   if(!previous)fail('query_not_found',404)
-   data={...JSON.parse(previous.scope),signal:previous.signal,snapshot:previous.through_batch}
-   if(previous.from_ns)data.from=previous.from_ns
-   if(previous.through_ns)data.through=previous.through_ns
-  } else {
-   if(request.method!=='POST')fail('method_not_allowed',405)
-   data=await input(request)
+import {ExplorationError} from '../explore/normalize'
+import {LogSearchError} from '../../../workers/analytics/log-search.mjs'
+import type {Bindings} from '../../auth.server'
+import {AuthError} from '../../modules/operator-auth/index.mjs'
+import {fail} from '../security/authority'
+import {input} from '../security/input'
+import {escape,operationDocument as document,privateHeaders} from '../document'
+import {queryActor} from './access'
+import {executeQuery,queryKeys,snapshotInput} from './execute'
+import {discoverAttributes} from './discovery'
+import {runResponse,runRoot} from './runs'
+import {editor,results,runPage} from './page'
+const root='/api/porthole/v1/query',uuid='[a-f0-9-]{36}'
+export async function queryResponse(request:Request,env:Bindings):Promise<Response|null>{
+ const url=new URL(request.url),page=url.pathname.startsWith('/app/explore'),path=page?url.pathname.replace('/app/explore',root):url.pathname
+ if(path!==root&&!new RegExp(`^${root}/(?:history|schema|runs(?:/${uuid}(?:/(?:advance|cancel))?)?|${uuid}(?:/export)?)$`).test(path))return null
+ try{
+  if(page&&request.headers.has('authorization'))fail('native_session_required')
+  const actor=await queryActor(request,env)
+  if(path.startsWith(runRoot)){
+   const internal=new Request(new URL(path+url.search,request.url),request)
+   const response=await runResponse(internal,env)
+   return page&&response.ok?runPage(await response.json()as Record<string,unknown>):response
   }
-  const normalized=normalizeExploration(data)
-  const response=await readTelemetry(queryRequest(request,normalized.parameters),env,{logSearch:normalized.logSearch,source:normalized.source})
-  if(!response.ok) {if(!page)return response;const error=await response.json() as {error:string;hint?:string};return document('Query unavailable',`<p role="alert">${escape(error.error)}${error.hint?': '+escape(error.hint):''}</p><p><a href="/app/explore">Return to Explore</a></p>`,response.status)}
-  const rows=await response.json() as Record<string,unknown>
-  const result={source:normalized.source,parameters:normalized.parameters,...(normalized.logSearch?{plan:normalized.logSearch}:{}),...rows,...(normalized.aggregate?{aggregate:aggregateRows(normalized.aggregate,rows)}:{})},reference=String(rows.queryRef)
-  const headers={...privateHeaders,...Object.fromEntries([...response.headers].filter(([key])=>key.startsWith('x-porthole-'))),'x-porthole-entity':reference}
-  if(page) {
-   const next=new URL('/app/explore',request.url)
-   for(const [key,value] of Object.entries({...normalized.parameters,dialect:normalized.source.dialect,expression:normalized.source.text,snapshot:rows.snapshot,cursor:rows.cursor}))if(value!==null&&value!==undefined)next.searchParams.set(key,String(value))
-   const view=await document('Query results',`<p>Snapshot reference: ${reference}</p><p><a href="/api/porthole/v1/query/${reference}">Repeat this snapshot</a> · <a href="/app/explore">New query</a></p>${rows.cursor?`<p><a href="${escape(next.pathname+next.search)}">Next page</a></p>`:''}<pre>${escape(JSON.stringify(result,null,2))}</pre>`);view.headers.set('x-porthole-entity',reference);return view}
-  return Response.json({...result,queryRef:reference,replay:`/api/porthole/v1/query/${reference}`},{headers})
- }catch(error) {
-  const code=error instanceof AuthError?error.code:'query_unavailable',status=error instanceof AuthError?error.status:503
-  return page?document('Query unavailable',`<p role="alert">${escape(code.replaceAll('_',' '))}${error instanceof ExplorationError?': '+escape(error.hint):''}</p><p><a href="/app/explore">Return to Explore</a></p>`,status,{forms:true}):Response.json({error:code,...(error instanceof ExplorationError?{field:error.field,hint:error.hint}:{})},{status,headers:privateHeaders})
+  if(path===root+'/history'){
+   if(request.method!=='GET'||url.search)fail('invalid_query_history',400)
+   const rows=(await env.DB.prepare(`SELECT id,signal,created_at,scope,from_ns,through_ns,through_batch FROM porthole_query_snapshots WHERE actor_ref=? AND ${actor.fence} ORDER BY created_at DESC,id DESC LIMIT 50`).bind(actor.id,...actor.args).all<{id:string;signal:string;created_at:number;scope:string;from_ns:string;through_ns:string;through_batch:number}>()).results
+   const history=rows.map(row=>({id:row.id,signal:row.signal,createdAt:row.created_at,source:JSON.parse(row.scope),from:row.from_ns,through:row.through_ns,snapshot:row.through_batch,replay:root+'/'+row.id}))
+   return page?document('Query history',`<p><a href="/app/explore">New query</a></p><p>Your latest 50 private snapshots. Replay uses retained data and current authority.</p><ul>${history.map(row=>`<li><a href="/app/explore?${escape(new URLSearchParams({...row.source,signal:row.signal,from:row.from,through:row.through,snapshot:String(row.snapshot)}).toString())}">${escape(row.signal)} · ${escape(new Date(row.createdAt).toISOString())}</a><pre>${escape(JSON.stringify(row.source,null,2))}</pre></li>`).join('')}</ul>`):Response.json({history},{headers:privateHeaders})
+  }
+  if(page&&request.method==='GET'&&path===root&&!url.search)return editor()
+  const exported=path.endsWith('/export'),id=path.slice(root.length+1).split('/')[0]
+  let data:Record<string,unknown>
+  if(exported){
+   if(request.method!=='GET'||[...url.searchParams.keys()].some(key=>key!=='cursor')||url.searchParams.getAll('cursor').length>1)fail('invalid_query_export',400)
+   data=await snapshotInput(env,id,actor.id);delete data.cursor
+   if(url.searchParams.has('cursor'))data.cursor=url.searchParams.get('cursor')!
+  }else if(request.method==='GET'&&new RegExp(`^${uuid}$`).test(id)){if(url.search)fail('invalid_query',400);data=await snapshotInput(env,id,actor.id)}
+  else if(page&&request.method==='GET'){if([...url.searchParams.keys()].some(key=>!queryKeys.includes(key)))fail('invalid_query',400);data=Object.fromEntries(url.searchParams)}
+  else{if(request.method!=='POST'||url.search)fail('invalid_query',400);data=await input(request)}
+  const intent=page?String(data.intent??'query'):path===root+'/schema'?'schema':'query'
+  if(page)delete data.intent
+  const timeoutMs=page?data.timeoutMs:undefined;if(page)delete data.timeoutMs
+  if(intent==='prepare'){
+   const scanLimit=data.scanLimit;delete data.scanLimit
+   const headers=new Headers(request.headers);headers.set('content-type','application/json')
+   const response=await runResponse(new Request(new URL(runRoot,request.url),{method:'POST',headers,body:JSON.stringify({query:data,...(scanLimit?{scanLimit:Number(scanLimit)}:{}),...(timeoutMs?{timeoutMs:Number(timeoutMs)}:{})})}),env)
+   return response.ok?runPage(await response.json()as Record<string,unknown>):response
+  }
+  if(!['query','schema'].includes(intent))fail('invalid_query',400)
+  if(intent==='schema')data={...data,limit:200,scanLimit:data.scanLimit||200}
+  const response=await executeQuery(request,env,data,{exportOnly:exported})
+  if(!response.ok){if(!page)return response;const error=await response.json()as {error:string;hint?:string};return document('Query unavailable',`<p role="alert">${escape(error.error)}${error.hint?': '+escape(error.hint):''}</p><p><a href="/app/explore">Return to Explore</a></p>`,response.status)}
+  const result=await response.json()as Record<string,unknown>
+  if(exported){
+   const next=result.cursor?root+'/'+id+'/export?'+new URLSearchParams({cursor:String(result.cursor)}):null
+   const metadata={type:'query',source:result.source,parameters:result.parameters,plan:result.plan,snapshot:result.snapshot,metricResult:result.metricResult,coverage:result.coverage??{state:next?'partial':'complete'},next}
+   return new Response([JSON.stringify(metadata),...(result.records as unknown[]).map(record=>JSON.stringify({type:'record',record}))].join('\n')+'\n',{headers:{...privateHeaders,'content-type':'application/x-ndjson','content-disposition':'attachment; filename="porthole-query.ndjson"',...(next?{'x-porthole-next':next}:{}),'x-porthole-entity':String(result.queryRef)}})
+  }
+  if(intent==='schema'){
+   const discovered={...discoverAttributes(result.records as Parameters<typeof discoverAttributes>[0]),snapshot:result.snapshot,from:result.from,through:result.through,cursor:result.cursor,coverage:result.coverage}
+   return page?document('Observed attributes',`<p><a href="/app/explore">Return to Explore</a></p><p>Types observed in this authorized candidate page. Missing paths are not evidence of absence outside this page.</p><pre>${escape(JSON.stringify(discovered,null,2))}</pre>`):Response.json(discovered,{headers:privateHeaders})
+  }
+  if(!page)return Response.json(result,{headers:response.headers})
+  const next=new URL('/app/explore',request.url)
+  for(const [key,value]of Object.entries({...result.parameters as Record<string,unknown>,dialect:(result.source as {dialect:string}).dialect,expression:(result.source as {text:string}).text,snapshot:result.snapshot,cursor:result.cursor}))if(value!==null&&value!==undefined)next.searchParams.set(key,String(value))
+  const view=await results(result,result.cursor?next.pathname+next.search:undefined);view.headers.set('x-porthole-entity',String(result.queryRef));return view
+ }catch(error){
+  const known=error instanceof AuthError||error instanceof LogSearchError,code=known?error.code:'query_unavailable',status=known?error.status:503,detail=error instanceof ExplorationError||error instanceof LogSearchError?{field:error.field,hint:error.hint}:{}
+  return page?document('Query unavailable',`<p role="alert">${escape(code.replaceAll('_',' '))}${'hint'in detail?': '+escape(String(detail.hint)):''}</p><p><a href="/app/explore">Return to Explore</a></p>`,status,{forms:true}):Response.json({error:code,...detail},{status,headers:privateHeaders})
  }
 }

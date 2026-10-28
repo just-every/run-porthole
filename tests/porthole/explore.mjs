@@ -139,10 +139,16 @@ export async function nativeLogSearchJourney({origin,cookie,call=(path,options)=
  const refs=audit=>audit.records.filter(row=>row.entry.action==='telemetry.query'&&row.entry.phase==='succeeded'&&row.entry.entityRef).length
  assert.equal(refs(auditAfter),refs(auditBefore),'unsupported expressions create no executable query snapshot')
  assert.equal((await post('/api/porthole/v1/query',{...base,expression:logSearchExpression},{})).status,401)
- if(screens)await logSearchBrowser({origin,cookie,base,snapshot,expected:expectedIds([0,5,6]),expression:logSearchExpression,call,backend})
+ const {queryToolsJourney}=await import('./query-tools.mjs')
+ const tools=await queryToolsJourney({origin,cookie,call,base:{...base,expression:logSearchExpression},snapshot,headers,expected:expectedIds([0,5,6])})
+ const {metricQueryJourney}=await import('./metric-query.mjs')
+ const metric=await metricQueryJourney({origin,cookie,call,backend})
+ if(screens)await logSearchBrowser({origin,cookie,base,snapshot,expected:expectedIds([0,5,6]),expression:logSearchExpression,call,backend,metric})
  await value(await post('/app/settings/credentials/revoke',{id:reader.credential.id}))
  assert.equal((await query({expression:logSearchExpression,snapshot})).status,401)
  assert.equal((await call(firstPage.replay,{headers})).status,401,'a saved snapshot never revives revoked read authority')
+ assert.equal((await call(tools.runRoot,{headers})).status,401)
+ assert.equal((await call(tools.exportPath,{headers})).status,401)
  const replay=await emit();assert.equal(replay.status,200);assert.equal(replay.headers.get('x-porthole-batch'),batch)
  await value(await post('/api/porthole/v1/ingest/drain',{}))
  const owner=await value(await post('/api/porthole/v1/query',{...base,expression:logSearchExpression,snapshot,limit:200}))
@@ -150,7 +156,7 @@ export async function nativeLogSearchJourney({origin,cookie,call=(path,options)=
  console.log('nativeLogSearchJourney passed ('+backend+'): typed ingested corpus, exact IDs and pages, scopes, snapshot replay, refusals and revoked credential')
 }
 
-async function logSearchBrowser({origin,cookie,base,snapshot,expected,expression,call,backend}) {
+async function logSearchBrowser({origin,cookie,base,snapshot,expected,expression,call,backend,metric}) {
  const {chromium}=await import('@playwright/test'),{mkdir}=await import('node:fs/promises'),{join}=await import('node:path')
  const browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']})
  const directory=process.env.PORTHOLE_EVIDENCE_DIR;if(directory)await mkdir(directory,{recursive:true})
@@ -173,6 +179,12 @@ async function logSearchBrowser({origin,cookie,base,snapshot,expected,expression
   await page.getByRole('link',{name:'Next page',exact:true}).click();records.push(...JSON.parse(await page.locator('pre').innerText()).records)
   assert.deepEqual(records.map(row=>row.id).sort(),expected)
   await capture('last-page')
+  await page.goto(origin+'/app/explore/history');await page.getByRole('heading',{name:'Query history',exact:true}).waitFor();assert.ok(await page.getByRole('link',{name:/logs ·/}).count());await capture('history')
+  const fillEditor=async(environment=base.environment)=>{await page.goto(origin+'/app/explore');await page.getByLabel('Service',{exact:true}).fill('checkout');await page.getByLabel('Environment',{exact:true}).fill(environment);await page.getByLabel('Team',{exact:true}).fill(base.team);await page.getByText('Text query',{exact:true}).click()}
+  await fillEditor();await page.getByLabel('Dialect',{exact:true}).selectOption('lucene');await page.getByLabel('Expression',{exact:true}).fill('service:checkout');await page.getByText('Query tools',{exact:true}).click();await page.getByLabel('Candidates per page',{exact:true}).fill('200');await page.getByRole('button',{name:'Discover attributes',exact:true}).click();await page.getByRole('heading',{name:'Observed attributes',exact:true}).waitFor();assert.ok(JSON.parse(await page.locator('pre').innerText()).attributes.some(row=>row.path==='http.status_code'&&row.types.includes('string')));await capture('schema')
+  await fillEditor();await page.getByLabel('Dialect',{exact:true}).selectOption('lucene');await page.getByLabel('Expression',{exact:true}).fill(expression);await page.getByText('Query tools',{exact:true}).click();await page.getByLabel('Candidates per page',{exact:true}).fill('2');await page.getByRole('button',{name:'Prepare bounded run',exact:true}).click();await page.getByRole('heading',{name:'Bounded query run',exact:true}).waitFor();assert.equal(JSON.parse(await page.locator('pre').innerText()).state,'ready');await capture('run-ready')
+  await page.getByRole('button',{name:'Read next candidate page',exact:true}).click();assert.equal(JSON.parse(await page.locator('pre').innerText()).state,'partial');await capture('run-partial');await page.getByRole('button',{name:'Cancel query',exact:true}).click();assert.equal(JSON.parse(await page.locator('pre').innerText()).state,'canceled');await capture('run-canceled')
+  await fillEditor('query-metrics');await page.getByLabel('Signal',{exact:true}).selectOption('metrics');await page.getByLabel('From in nanoseconds',{exact:true}).fill(metric.from);await page.getByLabel('Through in nanoseconds',{exact:true}).fill(metric.through);await page.getByLabel('Dialect',{exact:true}).selectOption('datadog');await page.getByLabel('Expression',{exact:true}).fill(metric.selector);await page.getByRole('button',{name:'Run query',exact:true}).click();await page.getByRole('heading',{name:'Query results',exact:true}).waitFor();assert.deepEqual(JSON.parse(await page.locator('pre').innerText()).metricResult.series[0].points.map(point=>point.value),[10,30,50]);await capture('metric-results')
   const response=await page.goto(origin+'/app/explore?dialect=lucene&expression='+encodeURIComponent('service:checkout @http.status_code:>nope'));assert.equal(response.status(),400);assert.ok(await page.getByRole('alert').isVisible());await capture('refusal')
   const tiny=await page.locator('main').evaluate(element=>[...element.querySelectorAll('p,a,label,input,select,textarea,button,pre,summary')].filter(node=>parseFloat(getComputedStyle(node).fontSize)<13).map(node=>node.tagName));assert.deepEqual(tiny,[])
   await context.close()
