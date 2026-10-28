@@ -179,15 +179,14 @@ Read root CONTRACT.md and ACCEPTANCE.md before building. Every product clause is
 
 ## Lander-Regenerate
 
-This edition retains the legacy contract shape. Regenerate touched Status rows,
-summary counts and claims without rewriting acceptance points:
+The checked-in contract still uses legacy bold clause paragraphs. Until ct's
+judged conversion, preserve that source and its untouched acceptance journeys.
+Refresh touched clauses and derived counts with the seed adapter:
 
 ```sh
-node scripts/contract-docs.mjs write PORT-012
-node scripts/contract-docs.mjs check PORT-012
-pnpm run source:lock
-pnpm run source:check
+node scripts/porthole/contract-docs.mjs write --clauses PORT-049
+node scripts/porthole/contract-docs.mjs check --clauses PORT-049
 ```
 
-Pass every touched clause id to both contract commands. The installed Base
-converter is reserved for ct's whole-contract cleanup.
+Supply the touched clause IDs separated by commas. Regenerate the edition
+source lock after the final edit and staging any new source files.

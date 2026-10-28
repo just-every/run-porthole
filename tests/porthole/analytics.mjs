@@ -77,6 +77,13 @@ try {
  await value(await post(primary,'/v1/replicate',{sourceIdentity,batches:metrics}))
  const metricRead=await value(await post(primary,'/v1/query',{...query,requiredWatermark:4,signal:'metrics',metric:'checkout.cpu'}))
  assert.deepEqual(metricRead.records.map(row=>row.id),[metrics[0].records[0].id]);assert.equal(metricRead.records[0].payload.record.asDouble,30)
+ // Analytical transport validates an untrusted plan before consulting coverage.
+ const forbidden={version:1,root:{op:'term',field:'service',operator:'eq',value:'billing'}}
+ assert.equal((await post(primary,'/v1/query',{...query,requiredWatermark:4,logSearch:forbidden})).status,403)
+ for(const root of [{op:'term',field:'payload',operator:'eq',value:'synthetic-porthole-2050'},{op:'term',field:'@http.status_code',operator:'gte',value:'500'},{op:'term',field:'@http.status_code',operator:'eq',value:500,sql:'SELECT 1'}]){
+  assert.equal((await post(primary,'/v1/query',{...query,requiredWatermark:999,logSearch:{version:1,root}})).status,400,'a malformed plan refuses before the deliberately unavailable watermark')
+ }
+
  assert.equal((await post(primary,'/v1/query',{...query,requiredWatermark:4,metric:'checkout.cpu'})).status,400)
  console.log('analyticalKernelJourney passed: separate Worker/D1 processes, private auth, exact replication/replay, stale standby refusal, actual process stop and original snapshot recovery; kernel-only probe; product integration is checked separately')
 } finally {
@@ -275,6 +282,8 @@ export async function analyticalConnectionJourney() {
      await restored.browser('/app/settings/analytics','analytics-inactive-destination','Connection authorized')
     }})
    } finally {await destination.dispose()}
+   const {nativeLogSearchJourney}=await import('./explore.mjs')
+   await nativeLogSearchJourney({origin,cookie:nextOwner,call,backend:'analytical'})
    const candidate=(await promisify(execFile)('git',['rev-parse','HEAD'])).stdout.trim()
    console.log('PORTHOLE_ANALYTICAL_RUN '+JSON.stringify({runId:'sx-porthole-c7-recovery-20261022',head:candidate,result:'passed'}))
    console.log('analyticalConnectionJourney passed: real independent primary/standby processes, product query/health/monitor, collector outage and direct provider-edge notice, behind refusal, explicit failover/failback, bounded 20/3 backlog, original ns and no duplicate records/notices')

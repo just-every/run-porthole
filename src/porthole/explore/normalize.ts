@@ -1,9 +1,10 @@
 import {promql} from './promql'
 import {sql} from './sql'
 import {lucene} from './lucene'
+import {compileLogSearch,LogSearchError} from '../../../workers/analytics/log-search.mjs'
 import {metricName,reject,type Dialect,type NormalizedExploration,type Parameters} from './model'
 export {ExplorationError} from './model'
-export type {Aggregate,Dialect,NormalizedExploration,Parameters} from './model'
+export type {Aggregate,Dialect,NormalizedExploration,Parameters,LogSearchPlan} from './model'
 
 const nativeKeys=['signal','service','environment','team','from','through','cursor','limit','snapshot','trace','metric']
 const optional=new Set(['metric','from','through','cursor','snapshot','trace','limit'])
@@ -35,5 +36,9 @@ export function normalizeExploration(input:Record<string,unknown>):NormalizedExp
  }
  if(parameters.metric!==undefined&&parameters.signal!=='metrics')reject('conflicting_query_filter','The metric filter applies only to metrics.','metric')
  if(parsed.aggregate==='average'&&!parameters.metric)reject('metric_selection_required','AVG(value) requires one exact metric filter.','metric')
- return {parameters,source:{dialect:dialect as Dialect,text:expression},...(parsed.aggregate?{aggregate:parsed.aggregate}:{})}
+ if(parsed.logSearch) {
+  try {compileLogSearch(parsed.logSearch,{services:[String(parameters.service??'*')],environments:[String(parameters.environment??'*')],teams:[String(parameters.team??'*')]})}
+  catch(error) {if(error instanceof LogSearchError)reject('conflicting_query_filter','Native and expression scope filters must select compatible values.',error.field);throw error}
+ }
+ return {parameters,source:{dialect:dialect as Dialect,text:expression},...(parsed.aggregate?{aggregate:parsed.aggregate}:{}),...(parsed.logSearch?{logSearch:parsed.logSearch}:{})}
 }

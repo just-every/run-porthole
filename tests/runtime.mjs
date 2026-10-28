@@ -190,6 +190,9 @@ try {
    await pipelineJourney({origin,cookie,restartWorker,withEmptyDestination,...helpers})
    const {pipelineAnalyticalJourney}=await import('./porthole/pipelines-analytical.mjs')
    await pipelineAnalyticalJourney()
+  } else if(process.env.PORTHOLE_LOG_SEARCH_ONLY==='1') {
+   const {nativeLogSearchJourney}=await import('./porthole/explore.mjs')
+   await nativeLogSearchJourney({origin,cookie})
   } else if(process.env.PORTHOLE_METRIC_RULES_ONLY==='1') {
    const {spanMetricJourney}=await import('./porthole/ingest.mjs')
    await spanMetricJourney({origin,restartWorker,withEmptyDestination,...helpers})
@@ -211,6 +214,8 @@ try {
   } else if(process.env.PORTHOLE_DASHBOARD_ONLY==='1') {
    const {dashboardJourney}=await import('./porthole/dashboards.mjs')
    await dashboardJourney({origin,cookie,restartWorker,withEmptyDestination,...helpers})
+   const {nativeLogSearchJourney}=await import('./porthole/explore.mjs')
+   await nativeLogSearchJourney({origin,cookie:await helpers.freshOwner()})
   } else if(process.env.PORTHOLE_API_ONLY==='1') {
    const {apiJourney}=await import('./porthole/api.mjs')
    await apiJourney({origin,cookie,restartWorker,...helpers})

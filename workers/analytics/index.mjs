@@ -1,4 +1,4 @@
-import { AnalyticalError, authenticate, body, fail, json } from './protocol.mjs';
+import { AnalyticalError, LogSearchError, authenticate, body, fail, json } from './protocol.mjs';
 import { control, coverageRequest, health, state } from './coverage.mjs';
 import { query } from './query.mjs';
 import { replicate } from './replicate.mjs';
@@ -22,7 +22,8 @@ export default {
    if (!handler) fail('not_found', 404);
    return json(await handler(env.DB, await body(request)));
   } catch (error) {
-   return json({ error: error instanceof AnalyticalError ? error.code : 'analytics_unavailable' }, error instanceof AnalyticalError ? error.status : 503);
+   const known = error instanceof AnalyticalError || error instanceof LogSearchError;
+   return json({ error: known ? error.code : 'analytics_unavailable', ...(error instanceof LogSearchError ? {field:error.field,hint:error.hint} : {}) }, known ? error.status : 503);
   }
  },
 };
