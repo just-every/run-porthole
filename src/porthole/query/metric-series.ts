@@ -38,7 +38,7 @@ function aggregate(values:number[],method:MetricAggregation):number {
  if(!Number.isFinite(value))reject('non_finite_metric_result','Aggregation exceeded the finite numeric range; narrow the query or change the aggregation.')
  return value
 }
-function numeric(point:Record<string,unknown>):number {
+export function metricPointValue(point:Record<string,unknown>):number {
  const hasDouble=Object.hasOwn(point,'asDouble'),hasInt=Object.hasOwn(point,'asInt')
  if(hasDouble===hasInt)reject('invalid_metric_value','Scalar OTLP points require exactly one asDouble or asInt value.')
  let value=hasDouble?point.asDouble:point.asInt
@@ -141,7 +141,7 @@ export function evaluateMetricSeries(records:readonly MetricRecord[],plan:Metric
    if(payload.metricKind!=='gauge'&&payload.metricKind!=='sum')reject('unsupported_metric_data','Only ingested OTLP gauge and sum scalar points are supported; histogram, exponential histogram and summary evaluation is unsupported.')
    if(point.flags!==undefined&&(typeof point.flags!=='number'||!Number.isSafeInteger(point.flags)||point.flags<0))reject('invalid_metric_flags','OTLP point flags must retain their numeric type.')
    if(typeof point.flags==='number'&&(point.flags&1)!==0){noValue.add(index);continue}
-   const value=numeric(point)
+   const value=metricPointValue(point)
    if(typeof point.asInt==='string')decodedIntegers.add(index)
    if(metric.unit!==undefined&&typeof metric.unit!=='string')reject('invalid_metric_unit','Metric units must retain their declared string type.')
    const unit=typeof metric.unit==='string'&&metric.unit.length?metric.unit:null

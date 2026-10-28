@@ -1,10 +1,11 @@
 import {fail} from '../security/authority'
 import type {Aggregate} from '../explore/model'
+import {metricPointValue} from './metric-series'
 export function aggregateRows(kind:Aggregate,result:Record<string,unknown>) {
  const records=result.records as {payload:{record:Record<string,unknown>;metric?:{unit?:string}}}[],partial=!!result.cursor||!!result.resumed
  const state=partial?'partial':records.length?'complete':'empty'
  if(kind==='count')return {kind,value:partial?null:records.length,state,unit:'records',count:records.length}
- const values=records.map(row=>kind==='p95'?Number(BigInt(String(row.payload.record.endTimeUnixNano))-BigInt(String(row.payload.record.startTimeUnixNano)))/1e6:Number(row.payload.record.asDouble??row.payload.record.asInt))
+ const values=records.map(row=>kind==='p95'?Number(BigInt(String(row.payload.record.endTimeUnixNano))-BigInt(String(row.payload.record.startTimeUnixNano)))/1e6:metricPointValue(row.payload.record))
  if(values.some(value=>!Number.isFinite(value)))fail('non_numeric_query_values',400)
  const units=new Set(records.map(row=>row.payload.metric?.unit??''))
  if(kind==='average'&&units.size>1)fail('incompatible_metric_units',400)

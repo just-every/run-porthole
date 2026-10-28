@@ -14,16 +14,18 @@ query fields. The result is:
 ```ts
 {
   parameters: Record<string, string | number>,
-  source: { dialect: 'visual' | 'promql' | 'sql' | 'lucene', text: string },
+  source: { dialect: 'visual' | 'promql' | 'sql' | 'lucene' | 'datadog', text: string },
   aggregate?: 'average' | 'count' | 'p95',
-  logSearch?: { version: 1, root: LogSearchNode }
+  logSearch?: { version: 1, root: LogSearchNode },
+  metricQuery?: MetricQueryPlan,
+  join?: JoinPlan
 }
 ```
 
 Visual queries are the default. They preserve the native signal, service,
 environment, team, range, metric, trace, cursor, limit and snapshot fields.
 A nonempty expression with the visual dialect refuses. Explicit empty optional
-metric, from, through, cursor, limit, snapshot and trace fields mean unset;
+metric, from, through, cursor, limit, scanLimit, snapshot and trace fields mean unset;
 unknown fields always refuse. Native validators still check native values.
 
 PromQL support is limited to bare selector exploration:
@@ -44,7 +46,7 @@ matchers and arithmetic refuse before any read. See the primary
 [Prometheus selector reference](https://prometheus.io/docs/prometheus/latest/querying/basics/)
 for the semantics that remain outside this slice.
 
-SQL supports only these statement families, with case-insensitive keywords:
+SQL supports these scalar statement families and the retained join documented below, with case-insensitive keywords:
 
 ```sql
 SELECT COUNT(*) FROM logs WHERE service='checkout' AND environment='production' AND team='commerce'

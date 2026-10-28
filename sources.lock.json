@@ -298,7 +298,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "cae9e1f39dedc267a634c871100a16af73e19541228b6778117bb173c5f1d125",
+      "sha256": "ffea486c237fa727d96c74f9f01f26156b5c813afb0d5c7a49b500c44186f21b",
       "executable": false
     },
     "AGENTS.md": {
@@ -346,7 +346,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "0811169566372f13ab1aba97f6a80950659d3d35a3ac8d78cdba777bed5b7c1b",
+      "sha256": "a4ce9d879a728ada5eb7ddfe4b56c4d4a23254f16dee46a45f50eed06f34d940",
       "executable": false
     },
     "DEMO.md": {
@@ -1894,7 +1894,7 @@
       "executable": false
     },
     "scripts/porthole/archive-policy.mjs": {
-      "sha256": "1045b3ed6e06938e6c88e9aba630937d008f6f9843c17aff1b53370b07322037",
+      "sha256": "cefdfa31bbdd829d57643d93d88995713f3de7f36605aed84f000453bd8859d9",
       "executable": false
     },
     "scripts/porthole/archive.mjs": {
@@ -4042,7 +4042,7 @@
       "executable": false
     },
     "src/porthole/explore/README.md": {
-      "sha256": "27ac4f86677cf488d2a8ad255449a16d7dbfcd03bac2c4543e84018af87e8412",
+      "sha256": "017dc980cb6eb195780d35b73656cd8348078da5dec6dedad117b33f05f3b95e",
       "executable": false
     },
     "src/porthole/explore/sql.ts": {
@@ -4438,7 +4438,7 @@
       "executable": false
     },
     "src/porthole/query/aggregate.ts": {
-      "sha256": "c283928166fce1ab1459aa7f076fc8328ae11344120ed4386d5acbe386ad5d4c",
+      "sha256": "69b16b5d4ccec42805e2a280fd87b7b184f0cfe53319e9a17355ff1dcc41e8cf",
       "executable": false
     },
     "src/porthole/query/discovery.ts": {
@@ -4466,7 +4466,7 @@
       "executable": false
     },
     "src/porthole/query/metric-series.ts": {
-      "sha256": "f64dbe08299dc4187174d0a59df18056cb3028bec0f31e0c503ff17a5335fef0",
+      "sha256": "57da2c4102b6ca75d89dbcc66ff826236ccd09a97768548f69dd814b0e323f4d",
       "executable": false
     },
     "src/porthole/query/page.ts": {
@@ -4902,7 +4902,7 @@
       "executable": false
     },
     "tests/porthole/metric-query.mjs": {
-      "sha256": "fa46e4b01a5f1a228ed9596907f4b26f104a979d61b4d8f4d5bac554ed430f7e",
+      "sha256": "1fb113ff7e3502dd7399238d4184a1ae906b504e1133112b18b74a88adf30b86",
       "executable": false
     },
     "tests/porthole/migration-collection.mjs": {
