@@ -1378,7 +1378,7 @@
       "executable": false
     },
     "scripts/porthole/archive-policy.mjs": {
-      "sha256": "82190aa1798be6e66415b68fc364146001e2caf8d6d5ade05e986e03022a65e7",
+      "sha256": "d7af15c2661f93079031f97ac6caffcbcabae384213cc577892de123465c240d",
       "executable": false
     },
     "scripts/porthole/archive.mjs": {
@@ -3558,7 +3558,7 @@
       "executable": false
     },
     "src/porthole/ingest/sampling/reconcile.ts": {
-      "sha256": "efea7579cc3b789e60f9915c736f2af35a8cf21b7817b1328d75b1bac075e726",
+      "sha256": "72a7b60e19b3b9e25f6acc8c06883296a3a94ac251cf9c17f5769d5e64493444",
       "executable": false
     },
     "src/porthole/ingest/status.ts": {

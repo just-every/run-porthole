@@ -5,12 +5,11 @@ import { cohort, defaults, isErrorSpan, type SamplingPolicy } from './model'
 interface Batch {id:string;sequence:number;records:string}
 interface Candidate {team:string;environment:string;traceId:string;ordinaryPercent:number;slowThresholdMs:number;minStart:string;maxEnd:string;error:number;cohort:number}
 const stage="json_extract(j.value,'$.payload.inputStage')='pre-sampling'"
-const sameTrace="d.team=json_extract(j.value,'$.team') AND d.environment=json_extract(j.value,'$.environment') AND d.trace_id=json_extract(j.value,'$.traceId')"
 // Only traces affected by the current batch are revisited. Their original
 // envelopes are the late-span recovery buffer; no payload is copied elsewhere.
 // Materialize the current trace keys once per statement. A correlated lookup
 // would rescan the current envelope for every historical span during recovery.
-const affected=`(d.team,d.environment,d.trace_id) IN (SELECT json_extract(a.value,'$.team'),json_extract(a.value,'$.environment'),json_extract(a.value,'$.traceId') FROM porthole_ingest_batches current,json_each(current.records) a WHERE current.id=? AND current.sampling_recoverable=1)`
+const affected=`(d.team,d.environment,d.trace_id) IN (SELECT o.team,o.environment,o.trace_id FROM porthole_sampling_origins o JOIN porthole_ingest_batches current ON current.id=o.batch_id WHERE current.id=? AND current.sampling_recoverable=1)`
 
 /** Called only after metric contributions and the complete transition commit.
  * Every replay is conditional on sampling_pending, so concurrent drains cannot
@@ -40,7 +39,7 @@ export async function reconcileSampling(env:Bindings,options:{limit?:number}={})
   const results=await env.DB.batch([
    // A restored decision is historical provenance. The first new native input
    // starts a fresh decision when no earlier recoverable native input exists.
-   env.DB.prepare(`DELETE FROM porthole_sampling_decisions AS d WHERE ${affected} AND NOT EXISTS(SELECT 1 FROM porthole_ingest_batches prior,json_each(prior.records) old WHERE prior.id!=? AND prior.sampling_recoverable=1 AND prior.signal='traces' AND json_extract(old.value,'$.team')=d.team AND json_extract(old.value,'$.environment')=d.environment AND json_extract(old.value,'$.traceId')=d.trace_id)`).bind(batch.id,batch.id),
+   env.DB.prepare(`DELETE FROM porthole_sampling_decisions AS d WHERE ${affected} AND NOT EXISTS(SELECT 1 FROM porthole_sampling_origins old JOIN porthole_ingest_batches prior ON prior.id=old.batch_id WHERE prior.id!=? AND prior.sampling_recoverable=1 AND old.team=d.team AND old.environment=d.environment AND old.trace_id=d.trace_id)`).bind(batch.id,batch.id),
    env.DB.prepare(`INSERT INTO porthole_sampling_decisions(team,environment,trace_id,retained,reason,ordinary_percent,cohort,slow_threshold_ms,min_start_ns,max_end_ns,first_decided_at,last_decided_at)
     SELECT json_extract(value,'$.team'),json_extract(value,'$.environment'),json_extract(value,'$.traceId'),CASE WHEN json_extract(value,'$.error')=1 OR CAST(json_extract(value,'$.maxEnd') AS INTEGER)-CAST(json_extract(value,'$.minStart') AS INTEGER)>=json_extract(value,'$.slowThresholdMs')*1000000 OR json_extract(value,'$.cohort')<json_extract(value,'$.ordinaryPercent')*100 THEN 1 ELSE 0 END,
     CASE WHEN json_extract(value,'$.error')=1 THEN 'error' WHEN CAST(json_extract(value,'$.maxEnd') AS INTEGER)-CAST(json_extract(value,'$.minStart') AS INTEGER)>=json_extract(value,'$.slowThresholdMs')*1000000 THEN 'slow' ELSE 'ordinary' END,
@@ -53,7 +52,8 @@ export async function reconcileSampling(env:Bindings,options:{limit?:number}={})
     SELECT b.id||':'||j.key,b.id,CAST(j.key AS INTEGER),b.source_id,b.signal,json_extract(j.value,'$.team'),json_extract(j.value,'$.service'),json_extract(j.value,'$.environment'),json_extract(j.value,'$.eventTimeNs'),json_extract(j.value,'$.traceId'),json_extract(j.value,'$.spanId'),
     json_set(json_extract(j.value,'$.payload'),'$.sampling',json_object('policy','destination-tail/v1','policyRevision',COALESCE((SELECT MAX(p.revision) FROM porthole_sampling_policies p WHERE p.state='active' AND p.team=d.team AND p.environment=d.environment AND p.service=json_extract(j.value,'$.service') AND p.from_sequence<=b.sequence),0),'ordinaryPercent',d.ordinary_percent,'probability',CASE WHEN d.reason='ordinary' THEN d.ordinary_percent/100.0 ELSE 1 END,'weight',CASE WHEN d.reason='ordinary' AND d.ordinary_percent>0 THEN 100.0/d.ordinary_percent ELSE 1 END,'reason',d.reason,'cohort',d.cohort,'slowThresholdMs',d.slow_threshold_ms,'firstDecidedAt',d.first_decided_at,'lastDecidedAt',d.last_decided_at,'promotedAt',d.promoted_at,'upstream','unknown','inputCompleteness','accepted-only')),
     ?,json_extract(j.value,'$.late'),json_extract(j.value,'$.outOfOrder')
-    FROM porthole_ingest_batches b,json_each(b.records) j JOIN porthole_sampling_decisions d ON ${sameTrace}
+    FROM porthole_sampling_decisions d JOIN porthole_sampling_origins origin ON origin.team=d.team AND origin.environment=d.environment AND origin.trace_id=d.trace_id
+    JOIN porthole_ingest_batches b ON b.id=origin.batch_id JOIN json_each(b.records) j ON CAST(j.key AS INTEGER)=origin.ordinal
     WHERE b.signal='traces' AND b.state='complete' AND b.sampling_recoverable=1 AND ${stage} AND d.retained=1 AND ${affected}
     ON CONFLICT(batch_id,ordinal) DO UPDATE SET payload=excluded.payload`).bind(now,batch.id),
    env.DB.prepare(`INSERT INTO porthole_telemetry_archive(id,batch_id,ordinal,source_id,signal,team,service,environment,event_time_ns,trace_id,span_id,payload,archived_at)
