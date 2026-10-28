@@ -8,7 +8,9 @@ const stage="json_extract(j.value,'$.payload.inputStage')='pre-sampling'"
 const sameTrace="d.team=json_extract(j.value,'$.team') AND d.environment=json_extract(j.value,'$.environment') AND d.trace_id=json_extract(j.value,'$.traceId')"
 // Only traces affected by the current batch are revisited. Their original
 // envelopes are the late-span recovery buffer; no payload is copied elsewhere.
-const affected=`EXISTS(SELECT 1 FROM porthole_ingest_batches current,json_each(current.records) a WHERE current.id=? AND current.sampling_recoverable=1 AND json_extract(a.value,'$.team')=d.team AND json_extract(a.value,'$.environment')=d.environment AND json_extract(a.value,'$.traceId')=d.trace_id)`
+// Materialize the current trace keys once per statement. A correlated lookup
+// would rescan the current envelope for every historical span during recovery.
+const affected=`(d.team,d.environment,d.trace_id) IN (SELECT json_extract(a.value,'$.team'),json_extract(a.value,'$.environment'),json_extract(a.value,'$.traceId') FROM porthole_ingest_batches current,json_each(current.records) a WHERE current.id=? AND current.sampling_recoverable=1)`
 
 /** Called only after metric contributions and the complete transition commit.
  * Every replay is conditional on sampling_pending, so concurrent drains cannot
