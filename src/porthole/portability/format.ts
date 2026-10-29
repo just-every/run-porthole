@@ -1,4 +1,4 @@
-import {hostDefinition,hostStatuses} from '../monitors/types/host-heartbeat'
+import {hostDefinition,validateHostEvidence} from '../monitors/types/host-heartbeat'
 import {publicationRow} from '../notebooks/publication-model'
 import {notebookRow} from '../notebooks/model'
 import {normalizeExploration} from '../explore/normalize'
@@ -111,9 +111,8 @@ export async function validateRow(payload: PortableRow, state: Validation): Prom
   parseScope(json(row.scope));hostDefinition(json(row.body) as Record<string,unknown>)
  } else if(item.table==='porthole_host_monitor_evaluations') {
   if(!uuid(row.id)||!uuid(row.object_id)||!integer(row.revision,1)||!str(row.host_id)||!integer(row.evaluated_at))bad()
-  const evidence=json(row.evidence) as Record<string,unknown>
-  if(!object(evidence)||evidence.type!=='host-heartbeat'||evidence.hostId!==row.host_id||evidence.evaluatedAt!==row.evaluated_at||!hostStatuses.includes(evidence.status as never)||!Array.isArray(evidence.observations)||evidence.telemetryCoverage!=='unestablished'||evidence.delivery!=='not_requested')bad()
-  hostDefinition(evidence.definition as Record<string,unknown>)
+  const evidence=validateHostEvidence(json(row.evidence))
+  if(evidence.hostId!==row.host_id||evidence.evaluatedAt!==row.evaluated_at)bad()
  } else if(item.table==='porthole_objects') {
   if(!uuid(row.id) || !['monitor','repair'].includes(String(row.kind)) || !str(row.name) || !integer(row.revision,1) || !integer(row.created_at) || !integer(row.updated_at) || !['active','inactive','approved','archived','quarantined','pending','paused','draft'].includes(String(row.state))) bad()
   parseScope(json(row.scope)); const body=json(row.body); if(!object(body)) bad(); validateBody(String(row.kind),body)
