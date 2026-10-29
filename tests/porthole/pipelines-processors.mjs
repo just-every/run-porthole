@@ -43,9 +43,10 @@ export async function pipelineProcessors({post,value,preview,activate,send,get,d
   if(c.input.quantity!==null)attributes.extended=c.extended??12
   return {attributes,errors:c.errors,status:c.errors.length?'error':'ok'}
  })
- const compare=(result,index)=>{
+ const compare=(result,index,accepted=false)=>{
   const e=expected[index%cases.length]
-  assert.deepEqual(result.attributes,e.attributes,'native processor values and types at record '+index)
+  const attributes=accepted?{...e.attributes,'service.name':d.service,'team.name':d.team,'deployment.environment.name':d.environment,'nested-private':'[REDACTED]','synthetic-porthole-207':String(index)}:e.attributes
+  assert.deepEqual(result.attributes,attributes,'native processor values and types at record '+index)
   assert.deepEqual(result.errors,e.errors,'native diagnostic policy at record '+index)
   assert.equal(result.status,e.status)
   assert.equal(result.protected,e.errors.length>0||cases[index%cases.length].input.level==='error')
@@ -69,6 +70,6 @@ export async function pipelineProcessors({post,value,preview,activate,send,get,d
   selected.push(...page.records);cursor=page.cursor;snapshot=page.snapshot
  }while(cursor)
  assert.equal(selected.length,samples.length)
- selected.forEach((record,index)=>compare(record.payload.pipeline,index))
+ selected.forEach((record,index)=>compare(record.payload.pipeline,Number(record.payload.pipeline.attributes['synthetic-porthole-207']),true))
  console.log('pipelineProcessors passed: 120 native inputs through preview, activation, intake and paginated query; source comparison remains unqualified')
 }

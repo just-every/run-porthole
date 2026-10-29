@@ -298,7 +298,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "b74242bb2a4e3314346cfbb5e851e7bc25a7d2cc2d87dcc3d1058f62ad527107",
+      "sha256": "350ae49879ec77fd495e01d58eca877f11a7713795912de5fba61901e181bbff",
       "executable": false
     },
     "AGENTS.md": {
@@ -5038,7 +5038,7 @@
       "executable": false
     },
     "tests/porthole/pipelines-processors.mjs": {
-      "sha256": "380327ee514c336bcedcb20d5519077c4c92c20dcf59de6bfdef3b1b373c0afc",
+      "sha256": "585c51efecdbfe6b0a89025e629c88e94a7596cc6216d6c9a24527518c53c044",
       "executable": false
     },
     "tests/porthole/pipelines-spans.mjs": {

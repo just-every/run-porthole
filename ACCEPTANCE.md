@@ -1,10 +1,6 @@
 # Acceptance requirements
 
-<<<<<<< ours
 Target edition: **20 October 2026**. All **96** clauses comprise **87** target and 9 push-further: 9 are **done**, 17 are **partial** and 70 are **missing**. This checklist mirrors CONTRACT.md; listing a journey is not evidence it passed. Every browser journey includes 1440 × 900 and 390 × 844, realistic US data, restricted roles, failure states, keyboard and focus and accessible reflow under the contract’s common conventions. Tests use the real application, ingest and storage path, with schema-faithful fakes only at the network and provider edge. Native distribution, live authorization, compliance agreements and performance qualification remain separately required evidence where named.
-=======
-Target edition: **20 October 2026**. All **96** clauses comprise **87** target and 9 push-further: 9 are **done**, 15 are **partial** and 72 are **missing**. This checklist mirrors CONTRACT.md; listing a journey is not evidence it passed. Every browser journey includes 1440 × 900 and 390 × 844, realistic US data, restricted roles, failure states, keyboard and focus and accessible reflow under the contract’s common conventions. Tests use the real application, ingest and storage path, with schema-faithful fakes only at the network and provider edge. Native distribution, live authorization, compliance agreements and performance qualification remain separately required evidence where named.
->>>>>>> theirs
 
 ## Clause journeys
 
