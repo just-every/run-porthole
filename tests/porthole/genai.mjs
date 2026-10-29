@@ -8,6 +8,13 @@ import {join} from 'node:path'
 import {form} from './fixture.mjs'
 const execute=promisify(execFile),api='/api/porthole/v1/genai',marker='synthetic-porthole-2701-sensitive-content'
 
+// Official OTLP LogRecord eventName (field 12), without provider attributes.
+function messageLog(eventName,body){
+ const varint=value=>{const bytes=[];do{bytes.push((value&127)|(value>127?128:0));value>>>=7}while(value);return Buffer.from(bytes)}
+ const field=(number,value)=>{const bytes=Buffer.from(value);return Buffer.concat([varint(number*8+2),varint(bytes.length),bytes])}
+ return field(1,field(2,field(2,Buffer.concat([field(5,field(1,body)),field(12,eventName)]))))
+}
+
 async function stock({origin,call,source}){
  const bridge=createServer(async(request,response)=>{
   const parts=[];for await(const part of request)parts.push(part)
@@ -79,6 +86,10 @@ export async function genaiJourney({origin,freshOwner,restartWorker,sql,withEmpt
  const probes=[]
  for(const mutate of [p=>p.resourceSpans[0].scopeSpans[0].spans[0].attributes.push(content),p=>p.resourceSpans[0].resource.attributes.push(content),p=>p.resourceSpans[0].scopeSpans[0].scope.attributes=[content],p=>p.resourceSpans[0].scopeSpans[0].spans[0].events=[{name:'exception',attributes:[{key:'exception.message',value:{stringValue:marker}}]}],p=>p.resourceSpans[0].scopeSpans[0].spans[0].status={code:2,message:marker},p=>p.resourceSpans[0].scopeSpans[0].spans[0].links=[{traceId:receipt.traceId,spanId:receipt.rootId,attributes:[{key:'gen_ai.tool.call.arguments',value:{stringValue:marker}}]}]]){const packet=base();mutate(packet);probes.push(packet)}
  const count=async()=>sql('SELECT COUNT(*) AS n FROM porthole_ingest_batches')
+ const logHeaders={authorization:'Bearer '+source.secret,'content-type':'application/x-protobuf'}
+ assert.equal((await call('/v1/logs',{method:'POST',headers:logHeaders,body:messageLog('synthetic-porthole-event','synthetic-porthole-2791')})).status,200,'ordinary message logs remain supported')
+ const metadataLog={resourceLogs:[{scopeLogs:[{logRecords:[{eventName:'gen_ai.client.inference.operation.details'}]}]}]}
+ assert.equal((await call('/v1/logs',{method:'POST',headers:{authorization:'Bearer '+source.secret,'content-type':'application/json'},body:JSON.stringify(metadataLog)})).status,200,'content-free GenAI event metadata remains supported')
  const before=await count()
  for(const [index,packet]of probes.entries()){
   const response=await call('/v1/traces',{method:'POST',headers:{authorization:'Bearer '+source.secret,'content-type':'application/json',...(index%2?{'content-encoding':'gzip'}:{})},body:index%2?gzipSync(JSON.stringify(packet)):JSON.stringify(packet)})
@@ -86,6 +97,22 @@ export async function genaiJourney({origin,freshOwner,restartWorker,sql,withEmpt
  }
  const unsafeLog={resourceLogs:[{resource:structuredClone(model.payload.resource),scopeLogs:[{logRecords:[{timeUnixNano:'1',attributes:[{key:'gen_ai.system',value:{stringValue:'openai'}}],body:{stringValue:marker}}]}]}]}
  assert.equal((await call('/v1/logs',{method:'POST',headers:{authorization:'Bearer '+source.secret,'content-type':'application/json'},body:JSON.stringify(unsafeLog)})).status,400)
+ for(const eventName of ['gen_ai.system.message','gen_ai.user.message','gen_ai.assistant.message','gen_ai.tool.message','gen_ai.client.inference.operation.details']){
+  for(const body of [{stringValue:marker},{kvlistValue:{values:[{key:'content',value:{stringValue:marker}}]}}]){
+   const packet=structuredClone(unsafeLog),log=packet.resourceLogs[0].scopeLogs[0].logRecords[0]
+   delete log.attributes;log.eventName=eventName;log.body=body
+   const response=await call('/v1/logs',{method:'POST',headers:{authorization:'Bearer '+source.secret,'content-type':'application/json','content-encoding':'gzip'},body:gzipSync(JSON.stringify(packet))})
+   assert.equal(response.status,400,'GenAI message event refuses content without optional provider metadata: '+eventName)
+   assert.equal((await response.json()).message,'genai_content_not_authorized')
+  }
+  const response=await call('/v1/logs',{method:'POST',headers:logHeaders,body:messageLog(eventName,marker)})
+  assert.equal(response.status,400,'protobuf GenAI message content is refused without provider metadata')
+  assert.equal(response.headers.get('x-porthole-error'),'genai_content_not_authorized')
+  assert.ok(!Buffer.from(await response.arrayBuffer()).includes(Buffer.from(marker)))
+ }
+ const eventPacket=base(),eventSpan=eventPacket.resourceSpans[0].scopeSpans[0].spans[0]
+ delete eventSpan.attributes;eventSpan.events=[{name:'gen_ai.user.message',attributes:[{key:'content',value:{stringValue:marker}}]}]
+ assert.equal((await call('/v1/traces',{method:'POST',headers:{authorization:'Bearer '+source.secret,'content-type':'application/json'},body:JSON.stringify(eventPacket)})).status,400,'GenAI span event names protect content without provider metadata')
  assert.deepEqual(await count(),before,'content refusal creates no pending or original-wire envelope')
  const stored=await sql("SELECT records||wire_base64 AS value FROM porthole_ingest_batches UNION ALL SELECT payload FROM porthole_telemetry_records UNION ALL SELECT payload FROM porthole_telemetry_archive UNION ALL SELECT reason FROM porthole_ingest_events")
  assert.ok(stored.length>20);assert.ok(stored.every(row=>!row.value.includes(marker)))
