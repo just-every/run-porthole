@@ -790,6 +790,9 @@ export async function hostHeartbeatJourney({origin,freshOwner,signIn,restartWork
   await stop()
   assert.equal((await evaluate('Healthy',t+1999)).lastHeartbeatAt,t)
   const pending=await evaluate('Pending',t+2000);assert.equal(pending.conditionSince,t+2000)
+  assert.equal(pending.sources.length,1);assert.equal(pending.sources[0].credentialId,mint.credential.id)
+  assert.equal(pending.sources[0].credentialRevision,mint.credential.revision);assert.equal(pending.sources[0].authorized,true)
+  assert.equal(pending.sources[0].lastAt,t)
   await restartWorker()
   assert.equal((await evaluate('Pending',t+4999)).conditionSince,pending.conditionSince,'restart preserves exact pending boundary')
   const firing=await evaluate('Firing',t+5000);assert.ok(firing.episode);assert.equal(firing.transitionAt,t+5000)
@@ -803,6 +806,19 @@ export async function hostHeartbeatJourney({origin,freshOwner,signIn,restartWork
   await stop()
   console.log('Host heartbeat: native Settings and evaluation screens')
   await hostHeartbeatBrowser({origin,cookie,body,monitor,scope})
+  // A second missed interval during recovery must retain the original episode
+  // and restart the continuous presence window, including across a restart.
+  const interrupted=await evaluate('Firing',t+15000);assert.ok(interrupted.episode)
+  await withPinnedClock(t+16000,start);await evaluate('Recovering',t+16000)
+  await withPinnedClock(t+17000,beat);await stop()
+  const repeatedLoss=await evaluate('Firing',t+19000);assert.equal(repeatedLoss.episode,interrupted.episode)
+  await withPinnedClock(t+20000,start)
+  const returned=await evaluate('Recovering',t+20000);assert.equal(returned.recoverySince,t+20000)
+  await restartWorker()
+  for(const delta of [21000,22000,23000])await withPinnedClock(t+delta,beat)
+  assert.equal((await evaluate('Recovering',t+23999)).episode,interrupted.episode)
+  await withPinnedClock(t+24000,beat)
+  assert.equal((await evaluate('Healthy',t+24000)).episode,null);await stop()
   // The native form creates another inactive definition and changes an exact
   // revision. Configuration API changes use the same authority and validator.
   const changed=await post('/api/porthole/v1/objects',{kind:'monitor',id:monitor.id,revision:1,name:'Checkout heartbeat revised',scope,body:{...body,pendingSeconds:4}},201)
@@ -834,6 +850,17 @@ export async function hostHeartbeatJourney({origin,freshOwner,signIn,restartWork
   await send({...heartbeat,hostId:hostname(),service:'synthetic-porthole-foreign'},403)
   await send({...heartbeat,hostId:'synthetic-porthole-reassigned'},409)
   assert.equal((await count())[0].n,previousCount)
+  // Rescoping is a live authority change, not a host failure. Previously
+  // persisted evidence must keep the source generation it actually evaluated.
+  const narrowed=await post('/app/settings/credentials/rescope',{id:mint.credential.id,revision:mint.credential.revision,scope:{...scope,signals:['metrics'],actions:['telemetry.write']}})
+  await send({...heartbeat,hostId:hostname()},403)
+  const unavailable=await evaluate('Unknown',t+25000)
+  assert.equal(unavailable.sourceState,'source_unavailable');assert.equal(unavailable.sources[0].authorized,false)
+  assert.equal(unavailable.sources[0].credentialRevision,narrowed.credential.revision)
+  const recorded=(await get()).monitors.find(row=>row.id===monitor.id).history.find(row=>row.evaluated_at===t+2000)
+  assert.deepEqual(recorded.evidence.sources,pending.sources,'a later scope change cannot rewrite recorded source authority')
+  const restored=await post('/app/settings/credentials/rescope',{id:mint.credential.id,revision:narrowed.credential.revision,scope:{...scope,signals:['logs'],actions:['telemetry.write']}})
+  mint.credential=restored.credential
   const address=['synthetic-porthole-6709','example.com'].join(String.fromCharCode(64))
   await post('/app/settings/members/invite',{email:address,displayName:'Scoped heartbeat responder',role:'responder',scope},202)
   const responder=await signIn(address)
@@ -848,13 +875,13 @@ export async function hostHeartbeatJourney({origin,freshOwner,signIn,restartWork
   assert.equal(forged.status,403)
   // Missing heartbeat storage must never be interpreted as host absence.
   await restartWorker(()=>sql('ALTER TABLE porthole_host_heartbeats RENAME TO porthole_unavailable_heartbeats'))
-  try {const unknown=await evaluate('Unknown',t+12000);assert.equal(unknown.sourceState,'storage_unavailable')}
+  try {const unknown=await evaluate('Unknown',t+26000);assert.equal(unknown.sourceState,'storage_unavailable')}
   finally {await restartWorker(()=>sql('ALTER TABLE porthole_unavailable_heartbeats RENAME TO porthole_host_heartbeats'))}
   // Presence alone leaves the existing count-monitor coverage guard Unknown.
   const counted=await post('/api/porthole/v1/objects',{kind:'monitor',name:'Heartbeat is not traffic',scope,body:{signal:'logs',operator:'above',threshold:0,windowSeconds:60}},201)
   await post('/api/porthole/v1/objects/activate',{id:counted.id,revision:1,confirm:'activate'})
-  await withPinnedClock(t+13000,start);await stop()
-  const tick=await withPinnedClock(t+13000,()=>post('/api/v1/health/tick',{}))
+  await withPinnedClock(t+27000,start);await stop()
+  const tick=await withPinnedClock(t+27000,()=>post('/api/v1/health/tick',{}))
   const countedOutcome=tick.state.components.find(row=>row.component==='monitor-evaluation').evidence.monitors.find(row=>row.monitorId===counted.id)
   assert.equal(countedOutcome.status,'Unknown');assert.equal(countedOutcome.observedCount,null)
   assert.equal(tick.state.status,'Unknown','heartbeat presence cannot establish overall health')
@@ -864,7 +891,8 @@ export async function hostHeartbeatJourney({origin,freshOwner,signIn,restartWork
   assert.ok(credentials.includes('Heartbeat process'))
   await post('/app/settings/credentials/revoke',{id:mint.credential.id,revision:mint.credential.revision})
   await send({...heartbeat,hostId:hostname()},401)
-  const revoked=await evaluate('Unknown',t+16000);assert.equal(revoked.sourceState,'source_unavailable')
+  const revoked=await evaluate('Unknown',t+30000);assert.equal(revoked.sourceState,'source_unavailable')
+  assert.equal(revoked.sources[0].authorized,false);assert.equal(revoked.sources[0].credentialRevision,mint.credential.revision+1)
   assert.equal((await count())[0].n,previousCount+1)
   console.log('Host heartbeat: inactive archive transfer')
   const {hostHeartbeatArchiveJourney}=await import('./archive.mjs')
