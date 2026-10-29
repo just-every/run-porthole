@@ -5038,7 +5038,7 @@
       "executable": false
     },
     "tests/porthole/pipelines-processors.mjs": {
-      "sha256": "585c51efecdbfe6b0a89025e629c88e94a7596cc6216d6c9a24527518c53c044",
+      "sha256": "4058bfe0695956606e251cd0794939d1f235a50ada36bcc8f91105be608a987c",
       "executable": false
     },
     "tests/porthole/pipelines-spans.mjs": {

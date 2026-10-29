@@ -51,8 +51,8 @@ export async function pipelineProcessors({post,value,preview,activate,send,get,d
   assert.equal(result.status,e.status)
   assert.equal(result.protected,e.errors.length>0||cases[index%cases.length].input.level==='error')
  }
- for(let start=0;start<samples.length;start+=30){
-  const p=await preview(definition,samples.slice(start,start+30))
+ for(let start=0;start<samples.length;start+=10){
+  const p=await preview(definition,samples.slice(start,start+10))
   p.results.forEach((result,index)=>compare(result,start+index))
  }
  for(const expression of ['quantity +','quantity ** 2','constructor + 1','('.repeat(40)+'1'+')'.repeat(40)]){
