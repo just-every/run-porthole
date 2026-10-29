@@ -4974,7 +4974,7 @@
       "executable": false
     },
     "tests/porthole/native-archive.mjs": {
-      "sha256": "c8c7fa330c1b7c35c96b25691c86d9f8437e77e10ed837aa650a0cb728f5449c",
+      "sha256": "8476fcec061a72be1e04f3ac23a009250c546be2900872b77586534f339a6f43",
       "executable": false
     },
     "tests/porthole/notebooks.mjs": {
@@ -5066,7 +5066,7 @@
       "executable": false
     },
     "verification.json": {
-      "sha256": "ee9b7822874a14c9aaffea5de0c70b63439234838876bfa185992e0b54136e75",
+      "sha256": "ebdaec87c8c1db27b70f249cb0f75a914f04a8a648ff97f3bd11186f614267b5",
       "executable": false
     },
     "VERIFY-WORKFLOW.md": {
