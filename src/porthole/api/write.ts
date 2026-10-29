@@ -47,6 +47,7 @@ export async function writeDefinition(request:Request,env:Bindings,kind:Collecti
  const results=await env.DB.batch([
   mutation,
   env.DB.prepare(`INSERT OR IGNORE INTO porthole_api_idempotency SELECT ?,?,?,?,?,? WHERE changes()=1 AND ${actor.fence}`).bind(actor.member.operatorId,key,fingerprint,JSON.stringify(value),status,now,...actor.args),
+  ...(row.kind==='monitor'&&JSON.parse(row.body).type==='host-heartbeat'?[env.DB.prepare(`INSERT OR IGNORE INTO porthole_host_monitor_versions SELECT id,revision,name,scope,body,? FROM porthole_objects WHERE id=? AND revision=? AND body=? AND ${actor.fence}`).bind(now,objectId,nextRevision,row.body,...actor.args)]:[]),
  ])
  const committed=await lookup()
  if(!committed)fail(results[0].meta.changes?'authority_changed':'revision_conflict',412)

@@ -1,3 +1,4 @@
+import { evaluateHostMonitor } from '../monitors/types/host-heartbeat'
 import {configuration as analyticalConfiguration,selected as analyticalSelected,query as analyticalQuery} from '../analytical/client'
 import type { Scope } from '../security/authority'
 import type { HealthBindings } from '../health/model'
@@ -19,6 +20,7 @@ export async function evaluateMonitors(env:HealthBindings) {
  const monitors=(await env.DB.prepare("SELECT id,revision,scope,body FROM porthole_objects WHERE kind='monitor' AND state='active' ORDER BY id LIMIT 101").all<Monitor>()).results
  const outcomes: Record<string,unknown>[]=[]
  for (const monitor of monitors.slice(0,100)) {
+  if(JSON.parse(monitor.body).type==='host-heartbeat'){outcomes.push(await evaluateHostMonitor(env,monitor));continue}
   const definition=JSON.parse(monitor.body) as Definition, scope=JSON.parse(monitor.scope) as Scope
   const where=scopeWhere(scope), from=ns(now-definition.windowSeconds*1000), through=ns(now)
   const previous=await env.DB.prepare('SELECT revision,status,last_known_count,last_known_at,firing_episode FROM porthole_monitor_state WHERE object_id=?').bind(monitor.id).first<Previous>()
@@ -57,6 +59,6 @@ export async function evaluateMonitors(env:HealthBindings) {
   outcomes.push({monitorId:monitor.id,revision:monitor.revision,status,observedCount:count,lastKnownCount:persisted?.last_known_count??null,lastKnownAt:persisted?.last_known_at??null,firingEpisode:persisted?.firing_episode??null,reason})
  }
  const complete=monitors.length>0 && monitors.length<=100 && outcomes.every(row=>row.status!=='Unknown')
- await recordComponentReceipt(env.DB,{component:'monitor-evaluation',source:'monitor-worker',status:complete?'Healthy':'Unknown',reason:!monitors.length?'Not configured: no active count monitors.':monitors.length>100?'Monitor evaluation coverage exceeds the bounded 100-monitor pass.':complete?'Active count monitors evaluated against real retained records.':'One or more monitors have incomplete telemetry coverage; firing episodes remain unresolved.',evidence:{evaluatedAt:new Date(now).toISOString(),monitors:outcomes,limit:100}})
+ await recordComponentReceipt(env.DB,{component:'monitor-evaluation',source:'monitor-worker',status:complete?'Healthy':'Unknown',reason:!monitors.length?'Not configured: no active monitors.':monitors.length>100?'Monitor evaluation coverage exceeds the bounded 100-monitor pass.':complete?'Active monitors evaluated against their recorded inputs.':'One or more monitors have incomplete telemetry coverage; firing episodes remain unresolved.',evidence:{evaluatedAt:new Date(now).toISOString(),monitors:outcomes,limit:100}})
  return {evaluated:outcomes.length,complete,monitors:outcomes}
 }

@@ -28,6 +28,7 @@ export async function startRestore(db:D1Database,actor:Authority,value:unknown):
  return jobFor(db,id,actor,'restore')
 }
 function rowKey(table:string,row:Record<string,unknown>):string {
+ if(table==='porthole_host_monitor_versions')return JSON.stringify([row.object_id,row.revision])
  if(table==='porthole_migration_erasure_fences')return String(row.receipt_id)
  if(table==='porthole_migration_custody')return JSON.stringify([row.stream,row.source_table,row.source_key])
  if(table==='porthole_migration_records')return JSON.stringify([row.kind,row.id])
