@@ -47,7 +47,7 @@ export async function explorationJourney({origin,cookie}) {
   {dialect:'sql',expression:averageExpression,metric:'unrelated'},
   {dialect:'sql',expression:averageExpression,signal:'logs'},
   {dialect:'lucene',expression:'service:checkout "Checkout dependency waiting"'},
-  {dialect:'lucene',expression:'service:checkout -team:payments'},
+  {dialect:'lucene',expression:'service:checkout @http.status_code:>not-a-number'},
   {dialect:'visual',expression:'service:checkout',signal:'logs'},
   {dialect:'sql',expression:averageExpression,unknown:'filter'},
  ]
@@ -88,4 +88,93 @@ export async function observabilityAgentJourney({origin,cookie,freshOwner}) {
  assert.equal((await post('/api/porthole/v1/approvals',{id:'synthetic-porthole-230',confirm:'approve'},headers)).status,403)
  const observations={hypothesis:'Dependency wait accompanies slow checkout spans',maxObservedDurationMs:duration,citations:[spans.queryRef,citedLogs.queryRef]}
  console.log('Read-only coding-agent observation '+JSON.stringify(observations))
+}
+
+/** One corpus journey runs through the product with each real query backend. */
+export async function nativeLogSearchJourney({origin,cookie,call=(path,options)=>fetch(origin+path,options),backend='local',screens=true}) {
+ const {logSearchPacket,logSearchCases,logSearchExpression}=await import('./log-search-corpus.mjs')
+ const post=(path,body,headers={cookie})=>call(path,{method:'POST',headers:{origin,'content-type':'application/json',...headers},body:JSON.stringify(body)})
+ const value=async(response,status=200)=>{assert.equal(response.status,status,await response.clone().text());return response.json()}
+ const scope={services:['checkout'],environments:['log-search'],teams:['commerce'],signals:['logs'],actions:['telemetry.read']}
+ const source=await value(await post('/app/settings/credentials/mint',{name:'Log search corpus source',class:'ingest',scope:{...scope,services:['checkout','billing'],teams:['commerce','payments'],actions:['telemetry.write']}}),201)
+ const time=BigInt(Date.now())*1000000n,packet=logSearchPacket(time)
+ const emit=()=>post('/v1/logs',packet,{authorization:'Bearer '+source.secret,'x-porthole-batch-id':'synthetic-porthole-2040'})
+ const accepted=await emit();assert.equal(accepted.status,200,await accepted.clone().text());const batch=accepted.headers.get('x-porthole-batch');assert.ok(batch)
+ await value(await post('/api/porthole/v1/ingest/drain',{}))
+ const reader=await value(await post('/app/settings/credentials/mint',{name:'Log search corpus reader',class:'read',scope}),201)
+ const headers={authorization:'Bearer '+reader.secret}
+ const base={dialect:'lucene',environment:'log-search',team:'commerce',limit:2}
+ let snapshot
+ const query=body=>post('/api/porthole/v1/query',{...base,...body},headers)
+ const expectedIds=ordinals=>ordinals.map(index=>batch+':'+index).sort()
+ let firstPage
+ for(const [expression,ordinals] of logSearchCases){
+  let cursor,records=[],pages=0
+  do {
+   const result=await value(await query({expression,...(snapshot===undefined?{}:{snapshot}),...(cursor?{cursor}:{})}))
+   snapshot??=result.snapshot;assert.equal(result.snapshot,snapshot);assert.equal(result.analytical?.role,backend==='local'?undefined:'primary');assert.equal(result.source.text,expression);assert.equal(result.source.dialect,'lucene');assert.equal(result.plan.version,1)
+   records.push(...result.records);cursor=result.cursor;assert.ok(++pages<10,'bounded corpus pagination terminates')
+   if(expression===logSearchExpression&&!firstPage)firstPage=result
+  }while(cursor)
+  assert.deepEqual(records.map(row=>row.id).sort(),expectedIds(ordinals),backend+': '+expression)
+  assert.equal(records.length,ordinals.length)
+  assert.ok(records.every(row=>row.service==='checkout'&&row.team==='commerce'&&row.environment==='log-search'))
+ }
+ const repeated=await value(await call(firstPage.replay,{headers}))
+ assert.deepEqual(repeated.records.map(row=>row.id),firstPage.records.map(row=>row.id));assert.equal(repeated.source.text,logSearchExpression);assert.deepEqual(repeated.plan,firstPage.plan)
+ const later=logSearchPacket(time+100n);later.resourceLogs=later.resourceLogs.slice(0,1)
+ assert.equal((await post('/v1/logs',later,{authorization:'Bearer '+source.secret,'x-porthole-batch-id':'synthetic-porthole-2041'})).status,200)
+ await value(await post('/api/porthole/v1/ingest/drain',{}))
+ const frozen=await value(await query({expression:logSearchExpression,snapshot,limit:200}))
+ assert.deepEqual(frozen.records.map(row=>row.id).sort(),expectedIds([0,5,6]),'new completed batches cannot enter a retained snapshot')
+ assert.equal((await value(await query({expression:logSearchExpression,limit:200}))).records.length,4)
+ const bounded=await value(await query({expression:logSearchExpression,snapshot,from:String(time+1n),through:String(time+5n),limit:200}))
+ assert.deepEqual(bounded.records.map(row=>row.id),expectedIds([5]),'native time boundaries intersect the typed log plan')
+ for(const expression of ['service:billing','service:checkout OR service:billing','service:checkout -team:payments'])assert.equal((await query({expression,snapshot,team:undefined})).status,403,'explicit forbidden scope refuses: '+expression)
+ const auditBefore=await value(await call('/api/v1/audit/export',{headers:{cookie}}))
+ for(const expression of ['service:checkout @http.status_code:>nope','service:checkout @http.status_code:[500 TO "599"]','service:checkout @http.status_code:9007199254740993','service:checkout @literal:/star.*/','service:checkout status:error~2','service:checkout status:error^2','service:checkout (status:error OR)','service:checkout AND','service:checkout; DELETE FROM logs',Array(33).fill('@http.status_code:>=500').join(' '),'('.repeat(17)+'service:checkout'+')'.repeat(17)]){
+  const response=await query({expression,snapshot});assert.equal(response.status,400,expression+': '+await response.clone().text());const error=await response.json();assert.ok(error.field);assert.ok(error.hint)
+ }
+ const auditAfter=await value(await call('/api/v1/audit/export',{headers:{cookie}}))
+ const refs=audit=>audit.records.filter(row=>row.entry.action==='telemetry.query'&&row.entry.phase==='succeeded'&&row.entry.entityRef).length
+ assert.equal(refs(auditAfter),refs(auditBefore),'unsupported expressions create no executable query snapshot')
+ assert.equal((await post('/api/porthole/v1/query',{...base,expression:logSearchExpression},{})).status,401)
+ if(screens)await logSearchBrowser({origin,cookie,base,snapshot,expected:expectedIds([0,5,6]),expression:logSearchExpression,call,backend})
+ await value(await post('/app/settings/credentials/revoke',{id:reader.credential.id}))
+ assert.equal((await query({expression:logSearchExpression,snapshot})).status,401)
+ assert.equal((await call(firstPage.replay,{headers})).status,401,'a saved snapshot never revives revoked read authority')
+ const replay=await emit();assert.equal(replay.status,200);assert.equal(replay.headers.get('x-porthole-batch'),batch)
+ await value(await post('/api/porthole/v1/ingest/drain',{}))
+ const owner=await value(await post('/api/porthole/v1/query',{...base,expression:logSearchExpression,snapshot,limit:200}))
+ assert.deepEqual(owner.records.map(row=>row.id).sort(),expectedIds([0,5,6]),'capture replay preserves exact row identity and counts')
+ console.log('nativeLogSearchJourney passed ('+backend+'): typed ingested corpus, exact IDs and pages, scopes, snapshot replay, refusals and revoked credential')
+}
+
+async function logSearchBrowser({origin,cookie,base,snapshot,expected,expression,call,backend}) {
+ const {chromium}=await import('@playwright/test'),{mkdir}=await import('node:fs/promises'),{join}=await import('node:path')
+ const browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']})
+ const directory=process.env.PORTHOLE_EVIDENCE_DIR;if(directory)await mkdir(directory,{recursive:true})
+ try{for(const width of [1440,390]){
+  const context=await browser.newContext({viewport:{width,height:width===1440?900:844}})
+  await context.addCookies(cookie.split('; ').map(v=>({name:v.slice(0,v.indexOf('=')),value:v.slice(v.indexOf('=')+1),url:origin})))
+  // Bridge to the emitted Miniflare Worker when the analytical fixture owns it.
+  if(backend!=='local')await context.route(origin+'/**',async route=>{
+   const request=route.request(),url=new URL(request.url()),response=await call(url.pathname+url.search,{method:request.method(),headers:request.headers(),...(request.postDataBuffer()?{body:request.postDataBuffer()}:{})})
+   await route.fulfill({status:response.status,headers:Object.fromEntries(response.headers),body:Buffer.from(await response.arrayBuffer())})
+  })
+  const page=await context.newPage(),capture=async name=>{assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'no horizontal page overflow');if(directory)await page.screenshot({path:join(directory,`log-search-${backend}-${name}-${width}.png`),fullPage:true})}
+  await page.goto(origin+'/app/explore');await page.getByLabel('Service',{exact:true}).fill('checkout');await page.getByLabel('Environment',{exact:true}).fill(base.environment);await page.getByLabel('Team',{exact:true}).fill(base.team)
+  await page.locator('summary').filter({hasText:/^Text query$/}).click();await page.getByLabel('Dialect',{exact:true}).selectOption('lucene');await page.getByLabel('Expression',{exact:true}).fill(expression)
+  await capture('editor');await page.getByRole('button',{name:'Run query',exact:true}).click();await page.getByRole('heading',{name:'Query results',exact:true}).waitFor()
+  const displayed=JSON.parse(await page.locator('pre').innerText());assert.equal(displayed.source.text,expression);assert.equal(displayed.plan.version,1);assert.equal(displayed.records.length,4)
+  await capture('results')
+  const params=new URLSearchParams({...base,expression,snapshot:String(snapshot)});await page.goto(origin+'/app/explore?'+params)
+  const records=JSON.parse(await page.locator('pre').innerText()).records
+  await page.getByRole('link',{name:'Next page',exact:true}).click();records.push(...JSON.parse(await page.locator('pre').innerText()).records)
+  assert.deepEqual(records.map(row=>row.id).sort(),expected)
+  await capture('last-page')
+  const response=await page.goto(origin+'/app/explore?dialect=lucene&expression='+encodeURIComponent('service:checkout @http.status_code:>nope'));assert.equal(response.status(),400);assert.ok(await page.getByRole('alert').isVisible());await capture('refusal')
+  const tiny=await page.locator('main').evaluate(element=>[...element.querySelectorAll('p,a,label,input,select,textarea,button,pre,summary')].filter(node=>parseFloat(getComputedStyle(node).fontSize)<13).map(node=>node.tagName));assert.deepEqual(tiny,[])
+  await context.close()
+ }}finally{await browser.close()}
 }

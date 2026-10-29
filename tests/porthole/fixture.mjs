@@ -9,8 +9,8 @@ export function fixture({origin,sql,restartWorker,sessionSecret,ownerEmail='owne
  const read=statement=>sql(statement)
  async function mutate(statement) {await restartWorker(()=>sql(statement))}
  let ownerSession=null
- async function freshOwner() {
-  if(ownerSession && Date.now()-ownerSession.at<240000) {
+ async function freshOwner({force=false}={}) {
+  if(!force && ownerSession && Date.now()-ownerSession.at<240000) {
    const response=await fetch(origin+'/auth/session',{headers:{cookie:ownerSession.cookie}})
    if(response.status===200) {
     const session=await response.json()

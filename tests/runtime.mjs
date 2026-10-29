@@ -2,7 +2,8 @@ import {queuedEntrypoint} from '@runeditrun/rer/queued-entry';
 const queued=await queuedEntrypoint(import.meta.url,'verify:runtime');if(queued!==null)process.exit(queued);
 import assert from 'node:assert/strict'
 import {createRequire} from 'node:module'
-import { execFile, execFileSync, spawn } from 'node:child_process'
+import { execFile, execFileSync } from 'node:child_process'
+import {emittedWorker,runtimeTransport} from './emitted-worker.mjs'
 import { createServer } from 'node:net'
 import { mkdtemp, readFile, rm, mkdir, writeFile, readdir, copyFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -73,36 +74,24 @@ const origin = `http://127.0.0.1:${port}`
 const setupToken = 'synthetic-runtime-setup-token-1234567890123456789'
 let worker
 let ownerEmail='owner@example.com'
-let output = ''
 let allOutput = ''
-function startWorker() {
- worker = spawn(process.execPath, ['node_modules/wrangler/bin/wrangler.js', 'dev', '--inspector-port', String(inspectorPort), '--local', '--persist-to', persist, '--ip', '127.0.0.1', '--config', 'dist/server/wrangler.json', '--port', String(port), '--var', `AUTH_ORIGIN:${origin}`, '--var', 'AUTH_LOCAL:true', '--var', `OWNER_EMAIL:${ownerEmail}`, '--var', 'MAIL_FROM:synthetic-porthole-4@example.com', '--var', 'SESSION_SECRET:runtime-session-secret-1234567890123456', '--var', `SETUP_TOKEN:${setupToken}`], { stdio: ['ignore', 'pipe', 'pipe'] })
-worker.stdout.on('data', chunk => { output += chunk; allOutput += chunk })
-worker.stderr.on('data', chunk => { output += chunk; allOutput += chunk })
+async function startWorker() {
+ worker = await emittedWorker({config:'dist/server/wrangler.json',persist,port,inspectorPort,
+  bindings:{AUTH_ORIGIN:origin,AUTH_LOCAL:'true',OWNER_EMAIL:ownerEmail,MAIL_FROM:'synthetic-porthole-4@example.com',SESSION_SECRET:'runtime-session-secret-1234567890123456',SETUP_TOKEN:setupToken},
+  onLog:entry=>{allOutput+=entry.message+'\n'},
+ })
+ await worker.ready
 }
 async function stopWorker() {
- worker.kill('SIGTERM')
- await new Promise(resolve => worker.exitCode !== null ? resolve() : worker.once('exit', resolve))
+ await worker?.dispose()
 }
 async function restartWorker(changeStorage) {
- await stopWorker(); if (changeStorage) await changeStorage(); output = ''; startWorker()
- for (let attempt = 0; attempt < 120; attempt++) {
-  if (worker.exitCode !== null) throw Error(output)
-  try { if ((await fetch(`${origin}/health`)).ok) return } catch {}
-  await new Promise(resolve => setTimeout(resolve, 250))
- }
- throw Error('Worker did not restart')
+ await stopWorker(); if (changeStorage) await changeStorage(); await startWorker()
+ assert.ok((await fetch(`${origin}/health`)).ok,'restarted emitted Worker is healthy')
 }
-startWorker()
+const closeTransport=runtimeTransport()
 try {
-  let ready = false
-  for (let attempt = 0; attempt < 120; attempt++) {
-    if (worker.exitCode !== null) throw new Error(output)
-    try { ready = (await fetch(`${origin}/health`)).ok } catch {}
-    if (ready) break
-    await new Promise(resolve => setTimeout(resolve, 250))
-  }
-  assert.ok(ready, output)
+  await startWorker()
   const health = await (await fetch(`${origin}/health`)).json()
   assert.equal(health.status, 'ok')
   assert.equal(health.ok, true)
@@ -188,6 +177,9 @@ try {
   if(process.env.PORTHOLE_PUBLIC_DOCS_ONLY==='1') {
    const {publicDocsJourney}=await import('./porthole/public-docs.mjs')
    await publicDocsJourney({origin,cookie,...helpers})
+  } else if(process.env.PORTHOLE_LOG_SEARCH_ONLY==='1') {
+   const {nativeLogSearchJourney}=await import('./porthole/explore.mjs')
+   await nativeLogSearchJourney({origin,cookie})
   } else if(process.env.PORTHOLE_METRIC_RULES_ONLY==='1') {
    const {spanMetricJourney}=await import('./porthole/ingest.mjs')
    await spanMetricJourney({origin,restartWorker,withEmptyDestination,...helpers})
@@ -209,6 +201,8 @@ try {
   } else if(process.env.PORTHOLE_DASHBOARD_ONLY==='1') {
    const {dashboardJourney}=await import('./porthole/dashboards.mjs')
    await dashboardJourney({origin,cookie,restartWorker,withEmptyDestination,...helpers})
+   const {nativeLogSearchJourney}=await import('./porthole/explore.mjs')
+   await nativeLogSearchJourney({origin,cookie:await helpers.freshOwner()})
   } else if(process.env.PORTHOLE_API_ONLY==='1') {
    const {publicDocsJourney}=await import('./porthole/public-docs.mjs')
    await publicDocsJourney({origin,cookie,...helpers})
@@ -307,6 +301,7 @@ try {
   console.error(allOutput.split('\n').filter(line=>/ERROR|Error|\[wrangler:info\]/.test(line)).slice(-50).join('\n').replace(/[A-Za-z0-9_-]{32,}/g,'[redacted]'))
   throw error
 } finally {
+  await closeTransport()
   await stopWorker()
   for(const store of stores) await rm(store, { recursive: true, force: true })
   // wrangler dev keeps its scratch (.wrangler/tmp) beside the config it runs, which here is the emitted Worker; the artifact producer refuses that folder in dist/server, so leave the build output as rer build wrote it.

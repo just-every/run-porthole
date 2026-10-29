@@ -1,38 +1,49 @@
-// Regenerate touched legacy clause journeys without rewriting ct's contract.
-import {readFile,mkdir,writeFile} from 'node:fs/promises'
+import {readFileSync,writeFileSync,mkdirSync,existsSync} from 'node:fs'
 import {parseContract} from '../../src/base/seed-contract.mjs'
-const [mode,...ids]=process.argv.slice(2)
-if(!['write','check'].includes(mode)||!ids.length)throw Error('Usage: node scripts/porthole/contract-docs.mjs write|check CLAUSE...')
-const source=await readFile('CONTRACT.md','utf8'),lines=source.split('\n')
-const cells=line=>line.trim().slice(1,-1).split(/(?<!\\)\|/).map(cell=>cell.trim())
-const rows=lines.filter(line=>/^\| `[^`]+` \|/.test(line)).map(cells)
-const tally=items=>['done','partial','missing'].map(status=>items.filter(row=>row[3]===status).length).concat(items.length)
-const summary=lines.findIndex(line=>line.startsWith('| Clauses | Done |'))
-if(summary<0)throw Error('Missing contract status summary')
-for(const [offset,label,items] of [[2,'Published',rows.filter(row=>row[2]==='published')],[3,'Target and push further',rows.filter(row=>row[2]!=='published')],[4,'All',rows]])lines[summary+offset]=`| ${label} | ${tally(items).join(' | ')} |`
-const contract=lines.join('\n'),parsed=parseContract(contract),byId=new Map(parsed.clauses.map(clause=>[clause.id,clause]))
-let acceptance=await readFile('ACCEPTANCE.md','utf8')
-for(const id of ids) {
- const clause=byId.get(id)
- if(!clause)throw Error('Unknown clause '+id)
- const points=clause.text.split('**Acceptance evidence:**')[1]?.trim()
- if(!points)throw Error(id+' has no legacy acceptance evidence')
- const row=cells(lines[clause.row-1]),evidence=row[4],gap=row[5]
- const journey=`- **${id} — ${clause.title}. Status: ${clause.status}.** ${points}${evidence?' Evidence: '+evidence:''}${gap&&gap!=='—'?' Open scope: '+gap:''}`
- const paragraphs=acceptance.split('\n\n'),index=paragraphs.findIndex(paragraph=>paragraph.startsWith(`- **${id} — `))
- if(index<0)throw Error('Missing generated journey '+id)
- paragraphs[index]=journey;acceptance=paragraphs.join('\n\n')
+
+// Preserve the legacy contract until ct's judged conversion. This adapter only
+// refreshes selected journey status, evidence and gaps, plus derived counts.
+const [command,...args]=process.argv.slice(2)
+const selected=(args[0]==='--clauses'?args.slice(1):args).flatMap(ids=>ids.split(','))
+if(!['write','check'].includes(command)||!selected.length)throw Error('Use write or check with clause IDs, or --clauses followed by comma-separated clause IDs.')
+const read=path=>readFileSync(path,'utf8')
+let source=read('CONTRACT.md')
+const lines=source.split('\n'),summary=lines.findIndex(line=>line.startsWith('| Clauses | Done |'))
+if(summary<0)throw Error('Missing contract summary')
+let end=summary+2;while(lines[end]?.startsWith('|'))end++
+const contract=parseContract([...lines.slice(0,summary),...lines.slice(end)].join('\n'))
+const tally=clauses=>['done','partial','missing'].map(status=>clauses.filter(clause=>clause.status===status).length).concat(clauses.length)
+const groups=[['Published',contract.clauses.filter(clause=>clause.kind==='published')],['Target and push further',contract.clauses.filter(clause=>clause.kind!=='published')],['All',contract.clauses]]
+lines.splice(summary+2,end-summary-2,...groups.map(([label,clauses])=>`| ${label} | ${tally(clauses).join(' | ')} |`))
+source=lines.join('\n')
+let acceptance=read('ACCEPTANCE.md')
+const [done,partial,missing]=tally(contract.clauses)
+acceptance=acceptance.replace(/\d+ are \*\*done\*\*, \d+ are \*\*partial\*\* and \d+ are \*\*missing\*\*/,`${done} are **done**, ${partial} are **partial** and ${missing} are **missing**`)
+for(const id of selected){
+ const clause=contract.clauses.find(clause=>clause.id===id)
+ if(!clause)throw Error('Unknown clause: '+id)
+ const definition=source.split('\n').find(line=>line.startsWith('**'+id+' — '))
+ if(!definition?.includes('**Acceptance evidence:** '))throw Error('Selected clause needs its existing acceptance evidence: '+id)
+ const outcome=definition.split('**Acceptance evidence:** ')[1]
+ const cells=source.split('\n').find(line=>line.startsWith('| `'+id+'` |')).split(/(?<!\\)\|/).map(cell=>cell.trim())
+ const rows=acceptance.split('\n'),index=rows.findIndex(line=>line.startsWith('- **'+id+' — '))
+ if(index<0)throw Error('Missing acceptance journey: '+id)
+ rows[index]=`- **${id} — ${clause.title}. Status: ${clause.status}.** ${outcome}${cells[5]?` Evidence: ${cells[5]}`:''}${cells[6]&&cells[6]!=='—'?` Open scope: ${cells[6]}`:''}`
+ acceptance=rows.join('\n')
 }
-acceptance=acceptance.replace(/\d+ are \*\*done\*\*, \d+ are \*\*partial\*\* and \d+ are \*\*missing\*\*/,`${parsed.counts.done} are **done**, ${parsed.counts.partial} are **partial** and ${parsed.counts.missing} are **missing**`)
-const claims=['<!-- Generated from CONTRACT.md by scripts/porthole/contract-docs.mjs. -->','# Porthole product status',
- 'These are contract statuses, not a claim that a partial or missing capability is complete. Read the [product contract](/docs/contract) for requirements, named journeys and remaining work.',
- `${parsed.counts.done} done, ${parsed.counts.partial} partial, ${parsed.counts.missing} missing; ${parsed.counts.total} total.`,
- ['| Clause | Capability | Status |','| --- | --- | --- |',...parsed.clauses.map(clause=>`| ${clause.id} | ${clause.title} | ${clause.status} |`)].join('\n')].join('\n\n')+'\n'
-for(const [file,text] of [['CONTRACT.md',contract],['ACCEPTANCE.md',acceptance],['docs/CLAIMS.md',claims]]) {
- let current
- try {current=await readFile(file,'utf8')} catch(error){if(error.code!=='ENOENT')throw error}
- if(current===text)continue
- if(mode==='check')throw Error(file+' is stale; regenerate the touched clauses')
- await mkdir(file.includes('/')?file.slice(0,file.lastIndexOf('/')):'.',{recursive:true});await writeFile(file,text)
+const claims=source.split('## Homepage claims\n')[1]?.split('\n## Status')[0].split('\n').filter(line=>line.startsWith('| ')&&!line.startsWith('| ---')&&!line.startsWith('| Claim |'))??[]
+const claimRows=claims.map(line=>{
+ const cells=line.split(/(?<!\\)\|/).map(cell=>cell.trim()),ids=cells[3].match(/PORT-\d{3}/g)??[]
+ if(!ids.length)return `| ${cells[1]} | ${cells[2]} | ${cells[3]} | ${cells[4]} |`
+ const linked=ids.map(id=>{const clause=contract.clauses.find(clause=>clause.id===id);if(!clause)throw Error('Unknown claim clause: '+id);return clause})
+ const status=linked.every(clause=>clause.status==='done')?'done':linked.every(clause=>clause.status==='missing')?'missing':'partial'
+ return `| ${cells[1]} | ${cells[2]} | ${linked.map(clause=>'`'+clause.id+'` '+clause.status).join('; ')} | ${status} |`
+})
+const clauseStatus=`\n## Clause status\n\nThese are contract statuses, not a claim that a partial or missing capability is complete. Read the [product contract](/docs/contract) for requirements, named journeys and remaining work.\n\n${done} done, ${partial} partial, ${missing} missing; ${contract.clauses.length} total.\n\n| Clause | Capability | Status |\n| --- | --- | --- |\n`+contract.clauses.map(clause=>`| ${clause.id} | ${clause.title} | ${clause.status} |`).join('\n')+'\n'
+const outputs={'CONTRACT.md':source,'ACCEPTANCE.md':acceptance,'docs/CLAIMS.md':'<!-- Generated from CONTRACT.md. -->\n# Porthole homepage claims\n\n| Claim | Section | Clauses | Status |\n| --- | --- | --- | --- |\n'+claimRows.join('\n')+'\n'+clauseStatus}
+for(const [path,contents]of Object.entries(outputs)){
+ if(command==='check'){if(!existsSync(path)||read(path)!==contents)throw Error(path+': generated content differs')}
+ else{if(path.startsWith('docs/'))mkdirSync('docs',{recursive:true});writeFileSync(path,contents)}
 }
-console.log('Contract documents are current for '+ids.join(', '))
+parseContract(source)
+console.log('Contract documents '+(command==='check'?'are current':'regenerated')+' for '+selected.join(', '))

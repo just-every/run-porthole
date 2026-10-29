@@ -16,7 +16,7 @@ async function download(origin,cookie){
 /** Called inside migrationJourney, using its real source plans, reviewed native
  * decisions and independently migrated destination. No direct fixture writes. */
 export async function migrationCustodyJourney({origin,cookie,sql,restartWorker,freshOwner,withEmptyDestination,capture}){
- cookie=await freshOwner()
+ cookie=await freshOwner({force:true})
  const before=(await json(await get(origin,cookie,migration))).records
  assert.ok(before.some(row=>Object.keys(row.value.humanResolutions??{}).length),'migration fixture supplies later native review edits')
  // Exact uploaded bytes containing credentials must never enter an export.
@@ -29,9 +29,12 @@ export async function migrationCustodyJourney({origin,cookie,sql,restartWorker,f
  // a pending-plan refusal; it retains no copied source credential.
  const screened=await post(origin,cookie,'/api/operator/import/plan',{uploadId:upload.uploadId},headers)
  assert.ok([200,409].includes(screened.status),await screened.clone().text())
- cookie=await freshOwner()
+ // Validation can outlive the cache's one-minute proof margin. Obtain real
+ // native approval before the long export; never replay a refused mutation.
+ cookie=await freshOwner({force:true})
  const job=await json(await post(origin,cookie,api+'/exports',{}),201),chunks=[]
  assert.ok(job.totalChunks>1)
+ cookie=await freshOwner({force:true})
  chunks.push(await json(await get(origin,cookie,`${api}/exports/${job.id}/chunks/0`)))
  await restartWorker();cookie=await freshOwner()
  assert.deepEqual(await json(await get(origin,cookie,`${api}/exports/${job.id}/chunks/0`)),chunks[0],'frozen source custody survives export restart and exact replay')
@@ -70,6 +73,7 @@ export async function migrationCustodyJourney({origin,cookie,sql,restartWorker,f
   await json(await post(target,owner,`${api}/restores/${restore.id}/chunks`,{chunk:chunks[0]}))
   for(let index=1;index<chunks.length;index++)await json(await post(target,owner,`${api}/restores/${restore.id}/chunks`,{chunk:chunks[index]}))
   assert.equal((await json(await get(target,owner,migration))).records.length,0,'staging remains invisible')
+  owner=await destination.freshOwner({force:true})
   assert.equal((await post(target,owner,`${api}/restores/${restore.id}/commit`,{confirm:'synthetic-porthole-9542'})).status,400)
   const committed=await json(await post(target,owner,`${api}/restores/${restore.id}/commit`,{confirm:manifest.rootHash}));assert.equal(committed.state,'committed')
   await destination.restartWorker();owner=await destination.freshOwner()
@@ -87,7 +91,7 @@ export async function migrationCustodyJourney({origin,cookie,sql,restartWorker,f
   }
   assert.deepEqual((await json(await get(target,owner,migration))).records,before,'source approval cannot overwrite or undo restored native edits')
   await capture('move-in-restored-custody','/app/import',async page=>{assert.ok(await page.getByRole('heading',{name:'Restored import history',exact:true}).isVisible());assert.match(await page.locator('body').innerText(),/Source approval authority never transfers/);await page.getByRole('heading',{name:'Restored import history',exact:true}).scrollIntoViewIfNeeded()},owner,target)
-  const again=await download(target,owner)
+  const again=await download(target,await destination.freshOwner({force:true}))
   assert.deepEqual(records(again),records(source))
   assert.deepEqual(retained(again),custody,'re-export preserves every custody row without acquiring destination authority')
  })
