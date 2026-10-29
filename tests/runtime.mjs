@@ -49,7 +49,7 @@ async function withPinnedClock(now, run) {
   await command('Runtime.disable')
   const [,id]=await Promise.all([command('Runtime.enable'),context]);contextId=id
   await evaluate(`globalThis.__journeyDateNow=Date.now;Date.now=()=>${now}`);pinned=true
-  return await run()
+  return await run(at=>evaluate(`Date.now=()=>${at}`))
  } finally {if(pinned)await evaluate('Date.now=globalThis.__journeyDateNow;delete globalThis.__journeyDateNow');connection.close()}
 }
 // The installed homepage reads the claim state from D1: run the emitted Worker
@@ -177,7 +177,10 @@ try {
     return await run({origin,cookie:destinationCookie,persist,...destinationHelpers,restartWorker})
    } finally {await restartWorker(()=>{persist=savedStore;ownerEmail=savedOwner})}
   }
-  if(process.env.PORTHOLE_PUBLIC_DOCS_ONLY==='1') {
+  if(process.env.PORTHOLE_HOST_HEARTBEAT_ONLY==='1') {
+   const {hostHeartbeatJourney}=await import('./porthole/health.mjs')
+   await hostHeartbeatJourney({origin,restartWorker,withPinnedClock,withEmptyDestination,...helpers})
+  } else if(process.env.PORTHOLE_PUBLIC_DOCS_ONLY==='1') {
    const {publicDocsJourney}=await import('./porthole/public-docs.mjs')
    await publicDocsJourney({origin,cookie,...helpers})
   } else if(process.env.PORTHOLE_NOTEBOOKS_ONLY==='1') {

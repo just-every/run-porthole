@@ -1,3 +1,4 @@
+import {hostDefinition,validateHostEvidence} from '../monitors/types/host-heartbeat'
 import {publicationRow} from '../notebooks/publication-model'
 import {notebookRow} from '../notebooks/model'
 import {normalizeExploration} from '../explore/normalize'
@@ -42,6 +43,7 @@ export function manifestInput(value: unknown): Manifest {
  for(const table of ['porthole_dashboards','porthole_dashboard_versions','porthole_dashboard_publications'])if(!Object.hasOwn(value.tables,table))value.tables[table]=0
  if(!Object.hasOwn(value.tables,'porthole_baggage_policy'))value.tables.porthole_baggage_policy=0
  for(const table of ['porthole_migration_records','porthole_migration_custody'])if(!Object.hasOwn(value.tables,table))value.tables[table]=0
+ for(const table of ['porthole_host_monitor_versions','porthole_host_monitor_evaluations'])if(!Object.hasOwn(value.tables,table))value.tables[table]=0
  if(!Object.hasOwn(value.tables,'porthole_migration_erasure_fences'))value.tables.porthole_migration_erasure_fences=0
  if(Object.keys(value.tables).sort().join(',')!==catalog.map(item=>item.table).sort().join(',') || Object.values(value.tables).some(v=>!integer(v)) || Object.values(value.tables).reduce<number>((a,b)=>a+(b as number),0)!==value.rowCount || value.chunks!==Math.ceil(value.rowCount/chunkRows)) return bad()
  const tables={porthole_baggage_policy:0,...value.tables}
@@ -54,8 +56,8 @@ export async function chunkInput(value: unknown, index: number, previousHash: st
  if(await digest(JSON.stringify(base))!==claimed) fail('archive_integrity_failed',422)
  return value as unknown as Chunk
 }
-function json(value: unknown): unknown {
- if(!str(value)) return bad()
+function json(value: unknown, maxLength=2097152): unknown {
+ if(typeof value!=='string'||value.length>maxLength) return bad()
  try { return JSON.parse(value) } catch { return bad() }
 }
 export async function validateRow(payload: PortableRow, state: Validation): Promise<void> {
@@ -104,6 +106,15 @@ export async function validateRow(payload: PortableRow, state: Validation): Prom
  } else if(['porthole_dashboards','porthole_dashboard_versions'].includes(item.table)) {
   if(!uuid(row.id)||!str(row.name)||!integer(row.revision,1)||!integer(row.created_at)||!integer(row.updated_at)||!['active','archived','quarantined'].includes(String(row.state)))bad()
   parseScope(json(row.scope));dashboardBody(json(row.body))
+ } else if(item.table==='porthole_host_monitor_versions') {
+  if(!uuid(row.object_id)||!integer(row.revision,1)||!str(row.name)||!integer(row.created_at))bad()
+  parseScope(json(row.scope));hostDefinition(json(row.body) as Record<string,unknown>)
+ } else if(item.table==='porthole_host_monitor_evaluations') {
+  if(!uuid(row.id)||!uuid(row.object_id)||!integer(row.revision,1)||!str(row.host_id)||!integer(row.evaluated_at))bad()
+  // Bounded host evidence includes up to 10,001 observations and its source
+  // snapshots. It can exceed the generic JSON field size without being invalid.
+  const evidence=validateHostEvidence(json(row.evidence,16*1024*1024))
+  if(evidence.hostId!==row.host_id||evidence.evaluatedAt!==row.evaluated_at)bad()
  } else if(item.table==='porthole_objects') {
   if(!uuid(row.id) || !['monitor','repair'].includes(String(row.kind)) || !str(row.name) || !integer(row.revision,1) || !integer(row.created_at) || !integer(row.updated_at) || !['active','inactive','approved','archived','quarantined','pending','paused','draft'].includes(String(row.state))) bad()
   parseScope(json(row.scope)); const body=json(row.body); if(!object(body)) bad(); validateBody(String(row.kind),body)

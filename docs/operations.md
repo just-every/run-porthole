@@ -102,3 +102,58 @@ connectors, routes or executors. Their independent DONE gates remain unchanged.
 Outbound follow-up requires an already declared owner-confirmed adapter and
 separate explicit audited consent; the current follow-up screen offers only
 in-app reminders.
+
+## Host heartbeat monitors
+
+Open Monitor Settings at `/app/settings/monitors` to create an inactive host
+heartbeat definition. Use the machine identities reported by authenticated
+collectors. An owner, admin or maintainer with the full definition scope can
+save a new revision and explicitly activate that exact revision. The same
+validated body is accepted by the existing object and configuration APIs.
+Current members read only monitors whose complete scope they hold; evaluation
+history and old definitions also retain their original scope restrictions.
+
+`collectors/heartbeat/process.mjs` runs on the monitored machine. Supply its
+installation HTTPS origin, scoped ingest secret, heartbeat descriptor and optional
+`intervalSeconds` as one private JSON object on stdin. The descriptor contains
+`collectorId`, `team`, `service`, `environment` and `signal`; the process supplies
+`hostId` from the operating system hostname. It sends no external probe. Keep
+the interval below the configured missed deadline. A collector identity is bound
+to its first explicit host within that credential and scope; moving a collector
+to another host requires a new collector identity. Legacy heartbeats without an
+explicit host continue to support pipeline observation, but cannot establish host
+presence. Credentials must remain active, unexpired and within their custodian's
+current signal and resource grants.
+
+The host definition uses `type: host-heartbeat`, an explicit `hosts` array, a
+`signal`, `missedAfterSeconds`, `pendingSeconds` and `recoverySeconds`. A heartbeat
+is overdue at exactly its trusted receipt time plus the missed interval. Pending
+starts at that deadline, then becomes Firing at the configured pending boundary.
+Recovery requires accepted presence over the recovery interval; any gap reaching
+the missed interval restarts recovery. Evaluation is driven by the existing
+health tick or an authorized explicit evaluation, so the recorded transition time
+is the evaluation time, with the condition boundary retained separately.
+
+Monitors at `/app/monitors` show per-host last recorded evaluations and their
+revision history. The native API at `/api/porthole/v1/monitors` returns the same
+private evidence. POST to `/api/porthole/v1/monitors/evaluate` supplies an active
+monitor ID and its exact revision. Evidence retains the accepted observation
+references, timestamps, original rule and pending or recovery boundaries. New
+evaluations also retain each scoped source identity, receipt bounds, credential
+and membership revisions, native account generation, expiry and whether that
+source was authorized at evaluation time. Later rescoping or revocation cannot
+rewrite that historical decision. These snapshots contain no credential secret
+or broader source grants; they never supply live authority after restore.
+Never-registered hosts and revoked or unavailable sources remain Unknown;
+unavailable heartbeat storage cannot be interpreted as a missed heartbeat.
+Bounded observation coverage is explicit. A fresh heartbeat establishes neither
+telemetry completeness nor overall host health. Existing count-monitor coverage
+checks remain required. No notification delivery, external probe or SLO change
+is authorized by this family.
+
+Product archives preserve definition revisions, per-host evaluation history and
+inert source and pending-state context. Restored monitors stay quarantined;
+collector credentials and live heartbeat state never resume from an archive.
+Other monitor families, complete source-definition migration, source-equivalent
+replay, ownership, templates, downtime and delivery qualification remain open in
+PORT-067.

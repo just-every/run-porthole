@@ -41,7 +41,7 @@
 
 These are contract statuses, not a claim that a partial or missing capability is complete. Read the [product contract](/docs/contract) for requirements, named journeys and remaining work.
 
-9 done, 16 partial, 71 missing; 96 total.
+9 done, 17 partial, 70 missing; 96 total.
 
 | Clause | Capability | Status |
 | --- | --- | --- |
@@ -117,7 +117,7 @@ These are contract statuses, not a claim that a partial or missing capability is
 | PORT-064 | Estate integration and custom-check coverage | missing |
 | PORT-065 | Measured switching-cost projection | missing |
 | PORT-066 | Notification templates handles and Slack controls | missing |
-| PORT-067 | Complete monitor type catalog | missing |
+| PORT-067 | Complete monitor type catalog | partial |
 | PORT-068 | Dashboard widget function and publishing catalog | missing |
 | PORT-069 | General events explorer and overlays | missing |
 | PORT-070 | Detection on newly discovered services | missing |
