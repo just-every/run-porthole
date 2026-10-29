@@ -1,3 +1,4 @@
+import { validateHostEvidence } from '../monitors/types/host-heartbeat'
 import { fail } from '../security/authority'
 const uuid=(value:unknown):value is string=>typeof value==='string'&&/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(value)
 interface Projection {table:string;columns:string[];keys:string[]}
@@ -33,6 +34,10 @@ export function validateHealthHistory(row:Record<string,unknown>):void {
  for(const [key,value]of Object.entries(nested)) {
   if(value!==null&&typeof value!=='string'&&(!Number.isSafeInteger(value)||Number(value)<0))return bad()
   if(['evidence','message'].includes(key)) {try{const parsed=JSON.parse(String(value));if(!parsed||typeof parsed!=='object'||Array.isArray(parsed))return bad()}catch{return bad()}}
+ }
+ if(row.table_name==='porthole_host_monitor_state') {
+  const evidence=validateHostEvidence(JSON.parse(String(nested.evidence)))
+  if(evidence.hostId!==nested.host_id||evidence.evaluatedAt!==nested.evaluated_at)bad()
  }
  if(nested.status!==undefined&&!['Healthy','Firing','Unknown'].includes(String(nested.status)))return bad()
  if(nested.phase!==undefined&&!['failure','recovery'].includes(String(nested.phase)))return bad()

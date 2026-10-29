@@ -177,7 +177,10 @@ try {
     return await run({origin,cookie:destinationCookie,persist,...destinationHelpers,restartWorker})
    } finally {await restartWorker(()=>{persist=savedStore;ownerEmail=savedOwner})}
   }
-  if(process.env.PORTHOLE_PUBLIC_DOCS_ONLY==='1') {
+  if(process.env.PORTHOLE_HOST_HEARTBEAT_ONLY==='1') {
+   const {hostHeartbeatJourney}=await import('./porthole/health.mjs')
+   await hostHeartbeatJourney({origin,restartWorker,withPinnedClock,withEmptyDestination,...helpers})
+  } else if(process.env.PORTHOLE_PUBLIC_DOCS_ONLY==='1') {
    const {publicDocsJourney}=await import('./porthole/public-docs.mjs')
    await publicDocsJourney({origin,cookie,...helpers})
   } else if(process.env.PORTHOLE_NOTEBOOKS_ONLY==='1') {

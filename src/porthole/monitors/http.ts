@@ -12,6 +12,7 @@ export async function monitorsResponse(request:Request,env:Bindings):Promise<Res
  const url=new URL(request.url),settings=url.pathname==='/app/settings/monitors',page=['/app/monitors','/app/monitors/evaluate'].includes(url.pathname)
  if(!settings&&!page&&url.pathname!==api&&url.pathname!==api+'/evaluate')return null
  try {
+  if(url.search)fail('invalid_monitor_query',400)
   const actor=await authority(request,env,{post:request.method==='POST'})
   if(actor.member.role==='finance reader')fail('monitors_forbidden')
   const rows=(await env.DB.prepare(`SELECT * FROM porthole_objects WHERE kind='monitor' AND ${actor.fence} ORDER BY name,id`).bind(...actor.args).all<ObjectRow>()).results.filter(row=>scopeWithin(JSON.parse(row.scope),actor.member.scope)&&JSON.parse(row.body).type==='host-heartbeat')
@@ -35,7 +36,7 @@ export async function monitorsResponse(request:Request,env:Bindings):Promise<Res
    monitors.push({...row,scope:JSON.parse(row.scope),body:JSON.parse(row.body),history:history.filter(item=>versions.some(version=>Number((version as {revision?:number}).revision)===item.revision)),versions})
   }
   if(!await env.DB.prepare(`SELECT 1 AS live WHERE ${actor.fence}`).bind(...actor.args).first())fail('authority_changed',409)
-  return page?hostMonitorPage(monitors):json({monitors})
+  return page?hostMonitorPage(monitors,['owner','admin','maintainer'].includes(actor.member.role)):json({monitors})
  } catch(error) {
   const code=error instanceof AuthError?error.code:'monitors_unavailable',status=error instanceof AuthError?error.status:503
   return page||settings?document('Monitors unavailable',`<p role="alert">${escape(code.replaceAll('_',' '))}</p><p><a href="/app/monitors">Return to Monitors</a></p>`,status):json({error:code},status)

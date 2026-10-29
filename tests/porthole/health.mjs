@@ -170,7 +170,7 @@ async function healthAccessJourney({origin,freshOwner,signIn}) {
 
 export async function healthBrowser({origin,cookie,name,readOnly=false,path='/app/health',contains,expectedStatus=200,dispatch,exercise}) {
  const {chromium}=await import('@playwright/test'),{mkdir}=await import('node:fs/promises'),{join}=await import('node:path')
- const browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']})
+ const browser=await chromium.launch({headless:true,...(process.env.PORTHOLE_CHROMIUM_PATH?{executablePath:process.env.PORTHOLE_CHROMIUM_PATH}:{}),args:['--no-sandbox','--use-mock-keychain','--password-store=basic']})
  try {for(const width of [1440,390]) {
   const context=await browser.newContext({viewport:{width,height:width===1440?900:844}})
   if(dispatch)await context.route(origin+'/**',async route=>{
@@ -287,7 +287,7 @@ export async function recipientMailJourney(analyticalProof) {
  const notices=()=>messages.filter(message=>message.custom_args.rer_delivery_id.startsWith('porthole-health/'))
  const browser=async(token,name,confirmed=false,expired=false)=>{
   const {chromium}=await import('@playwright/test')
-  const browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']})
+  const browser=await chromium.launch({headless:true,...(process.env.PORTHOLE_CHROMIUM_PATH?{executablePath:process.env.PORTHOLE_CHROMIUM_PATH}:{}),args:['--no-sandbox','--use-mock-keychain','--password-store=basic']})
   try {for(const width of [1440,390]) {
    const context=await browser.newContext({viewport:{width,height:width===1440?900:844}})
    await context.route(origin+'/**',async route=>{
@@ -473,7 +473,7 @@ export async function recipientMailJourney(analyticalProof) {
     assert.deepEqual((await health()).notices.find(row=>row.id===id),preserved,'failed receipt verification preserves the entire held outcome')
     await healthBrowser({origin,cookie,path:registryPath,name:'integration-held-receipt',contains:['Reconcile held mail',id],dispatch})
     // Exercise the actual Settings form, with both responsive layouts captured.
-    const {chromium}=await import('@playwright/test'),browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']})
+    const {chromium}=await import('@playwright/test'),browser=await chromium.launch({headless:true,...(process.env.PORTHOLE_CHROMIUM_PATH?{executablePath:process.env.PORTHOLE_CHROMIUM_PATH}:{}),args:['--no-sandbox','--use-mock-keychain','--password-store=basic']})
     try {
      const context=await browser.newContext({viewport:{width:390,height:844}})
      await context.addCookies(cookie.split('; ').map(value=>({name:value.slice(0,value.indexOf('=')),value:value.slice(value.indexOf('=')+1),url:origin})))
@@ -753,4 +753,159 @@ export async function sloJourney({origin,freshOwner,signIn,restartWorker,withEmp
  const {sloArchiveJourney}=await import('./archive.mjs')
  await sloArchiveJourney({origin,freshOwner,withEmptyDestination,sloId:event.id})
  console.log('Native SLO journey passed: event ratios, exact large integer delta sums, exclusions, no traffic, late data, revisions, pending intake, missing and impossible metric pairs, scoped refusal, restart, matching JSON and CSV, inactive archive restore.')
+}
+
+/** A real collector process stops and resumes against the emitted Worker.
+ * Its machine identity and all receipt times come through authenticated intake.
+ * Only the Worker clock is pinned; no heartbeat or evaluation rows are seeded. */
+export async function hostHeartbeatJourney({origin,freshOwner,signIn,restartWorker,withPinnedClock,withEmptyDestination,sql}) {
+ console.log('Host heartbeat: authenticated process and timing boundaries')
+ const {fork}=await import('node:child_process'),{once}=await import('node:events'),{hostname}=await import('node:os')
+ let cookie=await freshOwner(),collector
+ const scope={services:['synthetic-porthole-6701'],environments:['production'],teams:['synthetic-porthole-6702']}
+ const post=async(path,data,status=200,session=cookie)=>{const response=await fetch(origin+path,form(origin,session,data));assert.equal(response.status,status,await response.clone().text());return response.json()}
+ const get=async(session=cookie)=>{const response=await fetch(origin+'/api/porthole/v1/monitors',{headers:{cookie:session}});assert.equal(response.status,200);return response.json()}
+ const mint=await post('/app/settings/credentials/mint',{name:'Heartbeat process',class:'ingest',scope:{...scope,signals:['logs'],actions:['telemetry.write']}},201)
+ const heartbeat={collectorId:'synthetic-porthole-6703',team:scope.teams[0],service:scope.services[0],environment:'production',signal:'logs'}
+ const stop=async()=>{if(collector&&collector.exitCode===null&&collector.signalCode===null){const exited=once(collector,'exit');collector.kill('SIGTERM');await exited}collector=null}
+ const start=async()=>{
+  collector=fork(new URL('./collector-process.mjs',import.meta.url),[],{stdio:['pipe','pipe','pipe','ipc']})
+  const ready=Promise.race([once(collector,'message').then(([message])=>message),once(collector,'exit').then(()=>{throw Error('host_collector_start_failed')})])
+  collector.stdin.end(JSON.stringify({origin,secret:mint.secret,heartbeat,manual:true}))
+  const receipt=await ready;assert.equal(receipt.hostId,hostname());return receipt
+ }
+ const beat=async()=>{const message=once(collector,'message');collector.send('beat');return (await message)[0]}
+ const body={type:'host-heartbeat',hosts:[hostname(),'synthetic-porthole-never-registered'],signal:'logs',missedAfterSeconds:2,pendingSeconds:3,recoverySeconds:4}
+ const monitor=await post('/api/porthole/v1/objects',{kind:'monitor',name:'Checkout host heartbeat',scope,body},201)
+ await post('/api/porthole/v1/objects/activate',{id:monitor.id,revision:1,confirm:'activate'})
+ const evaluate=async(expected,at)=>withPinnedClock(at,async()=>{
+  const result=await post('/api/porthole/v1/monitors/evaluate',{id:monitor.id,revision:monitor.revision})
+  const host=result.groups.find(group=>group.hostId===hostname()),never=result.groups.find(group=>group.hostId!==hostname())
+  assert.equal(host.status,expected,JSON.stringify(host));assert.equal(never.status,'Unknown');assert.equal(never.sourceState,'never_registered')
+  assert.equal(host.telemetryCoverage,'unestablished');assert.equal(host.delivery,'not_requested');return host
+ })
+ try {
+  const t=Date.now()
+  const initial=await withPinnedClock(t,start);assert.equal(Date.parse(initial.observedAt),t)
+  await stop()
+  assert.equal((await evaluate('Healthy',t+1999)).lastHeartbeatAt,t)
+  const pending=await evaluate('Pending',t+2000);assert.equal(pending.conditionSince,t+2000)
+  await restartWorker()
+  assert.equal((await evaluate('Pending',t+4999)).conditionSince,pending.conditionSince,'restart preserves exact pending boundary')
+  const firing=await evaluate('Firing',t+5000);assert.ok(firing.episode);assert.equal(firing.transitionAt,t+5000)
+  await withPinnedClock(t+6000,start)
+  await evaluate('Recovering',t+6000)
+  for(const delta of [7000,8000,9000])await withPinnedClock(t+delta,beat)
+  const recovering=await evaluate('Recovering',t+9999);assert.equal(recovering.recoverySince,t+6000);assert.equal(recovering.episode,firing.episode)
+  await withPinnedClock(t+10000,beat)
+  const healthy=await evaluate('Healthy',t+10000);assert.equal(healthy.episode,null);assert.equal(healthy.transitionAt,t+10000)
+  assert.equal(healthy.observations.length,5,'all accepted recovery observations are reproducible')
+  await stop()
+  console.log('Host heartbeat: native Settings and evaluation screens')
+  await hostHeartbeatBrowser({origin,cookie,body,monitor,scope})
+  // The native form creates another inactive definition and changes an exact
+  // revision. Configuration API changes use the same authority and validator.
+  const changed=await post('/api/porthole/v1/objects',{kind:'monitor',id:monitor.id,revision:1,name:'Checkout heartbeat revised',scope,body:{...body,pendingSeconds:4}},201)
+  assert.equal(changed.revision,2);monitor.revision=2
+  await post('/api/porthole/v1/objects',{kind:'monitor',id:monitor.id,revision:1,name:'Stale edit',scope,body},409)
+  await post('/api/porthole/v1/objects/activate',{id:monitor.id,revision:1,confirm:'activate'},409)
+  await post('/api/porthole/v1/monitors/evaluate',{id:monitor.id,revision:1},409)
+  await post('/api/porthole/v1/objects/activate',{id:monitor.id,revision:2,confirm:'activate'})
+  const before=(await get()).monitors.find(row=>row.id===monitor.id)
+  assert.deepEqual(before.versions.map(row=>row.revision),[2,1]);assert.deepEqual(before.versions[1].body,body)
+  const configuration='/api/porthole/v1/configuration/monitors',apiKey=crypto.randomUUID()
+  const apiBody={name:'Versioned API heartbeat',scope,body:{...body,hosts:[hostname()]}}
+  const nativeApi=(path,method,data,headers={})=>fetch(origin+path,{method,headers:{origin,cookie,'content-type':'application/json',...headers},...(data?{body:JSON.stringify(data)}:{})})
+  const apiCreated=await nativeApi(configuration,'POST',apiBody,{'idempotency-key':apiKey})
+  assert.equal(apiCreated.status,201);const apiDefinition=await apiCreated.json()
+  const replay=await nativeApi(configuration,'POST',apiBody,{'idempotency-key':apiKey})
+  assert.equal(replay.status,201);assert.equal((await replay.json()).id,apiDefinition.id)
+  const apiChanged=await nativeApi(configuration+'/'+apiDefinition.id,'PUT',{...apiBody,body:{...apiBody.body,pendingSeconds:4}},{'idempotency-key':crypto.randomUUID(),'if-match':apiCreated.headers.get('etag')})
+  assert.equal(apiChanged.status,200);assert.equal((await apiChanged.json()).revision,2)
+  const staleApi=await nativeApi(configuration+'/'+apiDefinition.id,'PUT',apiBody,{'idempotency-key':crypto.randomUUID(),'if-match':apiCreated.headers.get('etag')})
+  assert.equal(staleApi.status,412)
+  assert.deepEqual((await get()).monitors.find(row=>row.id===apiDefinition.id).versions.map(row=>row.revision),[2,1])
+  // A foreign source cannot refresh the monitored group, and a caller cannot
+  // move an already registered collector to another machine identity.
+  const send=async(data,expected)=>{const response=await fetch(origin+'/api/v1/health/heartbeat',{method:'POST',headers:{authorization:`Bearer ${mint.secret}`,'content-type':'application/json'},body:JSON.stringify(data)});assert.equal(response.status,expected);await response.text()}
+  const count=()=>sql('SELECT COUNT(*) AS n FROM porthole_host_heartbeats')
+  const previousCount=(await count())[0].n
+  await send({...heartbeat,hostId:hostname(),service:'synthetic-porthole-foreign'},403)
+  await send({...heartbeat,hostId:'synthetic-porthole-reassigned'},409)
+  assert.equal((await count())[0].n,previousCount)
+  const address=['synthetic-porthole-6709','example.com'].join(String.fromCharCode(64))
+  await post('/app/settings/members/invite',{email:address,displayName:'Scoped heartbeat responder',role:'responder',scope},202)
+  const responder=await signIn(address)
+  assert.ok((await get(responder)).monitors.some(row=>row.id===monitor.id))
+  await post('/api/porthole/v1/monitors/evaluate',{id:monitor.id,revision:2},403,responder)
+  const foreignAddress=['synthetic-porthole-6710','example.com'].join(String.fromCharCode(64))
+  await post('/app/settings/members/invite',{email:foreignAddress,displayName:'Other team',role:'read-only analyst',scope:{...scope,teams:['synthetic-porthole-foreign']}},202)
+  const foreign=await signIn(foreignAddress)
+  assert.deepEqual((await get(foreign)).monitors,[])
+  assert.equal((await fetch(origin+'/api/porthole/v1/monitors')).status,401)
+  const forged=await fetch(origin+'/api/porthole/v1/monitors/evaluate',{...form(origin,cookie,{id:monitor.id,revision:2}),headers:{...form(origin,cookie,{}).headers,origin:'https://synthetic-porthole.invalid'}})
+  assert.equal(forged.status,403)
+  // Missing heartbeat storage must never be interpreted as host absence.
+  await restartWorker(()=>sql('ALTER TABLE porthole_host_heartbeats RENAME TO porthole_unavailable_heartbeats'))
+  try {const unknown=await evaluate('Unknown',t+12000);assert.equal(unknown.sourceState,'storage_unavailable')}
+  finally {await restartWorker(()=>sql('ALTER TABLE porthole_unavailable_heartbeats RENAME TO porthole_host_heartbeats'))}
+  // Presence alone leaves the existing count-monitor coverage guard Unknown.
+  const counted=await post('/api/porthole/v1/objects',{kind:'monitor',name:'Heartbeat is not traffic',scope,body:{signal:'logs',operator:'above',threshold:0,windowSeconds:60}},201)
+  await post('/api/porthole/v1/objects/activate',{id:counted.id,revision:1,confirm:'activate'})
+  await withPinnedClock(t+13000,start);await stop()
+  const tick=await withPinnedClock(t+13000,()=>post('/api/v1/health/tick',{}))
+  const countedOutcome=tick.state.components.find(row=>row.component==='monitor-evaluation').evidence.monitors.find(row=>row.monitorId===counted.id)
+  assert.equal(countedOutcome.status,'Unknown');assert.equal(countedOutcome.observedCount,null)
+  assert.equal(tick.state.status,'Unknown','heartbeat presence cannot establish overall health')
+  // Revocation rejects the real process on its next authenticated write and
+  // makes the registered host Unknown rather than Firing or recovered.
+  const credentials=await (await fetch(origin+'/app/settings/credentials',{headers:{cookie}})).text()
+  assert.ok(credentials.includes('Heartbeat process'))
+  await post('/app/settings/credentials/revoke',{id:mint.credential.id,revision:mint.credential.revision})
+  await send({...heartbeat,hostId:hostname()},401)
+  const revoked=await evaluate('Unknown',t+16000);assert.equal(revoked.sourceState,'source_unavailable')
+  assert.equal((await count())[0].n,previousCount+1)
+  console.log('Host heartbeat: inactive archive transfer')
+  const {hostHeartbeatArchiveJourney}=await import('./archive.mjs')
+  await hostHeartbeatArchiveJourney({origin,freshOwner,withEmptyDestination,monitorId:monitor.id})
+  console.log('Host heartbeat journey passed: real process loss and return, exact per-host windows, pending restart, current authority, storage failure, native configuration and inactive archive')
+ } finally {await stop()}
+}
+
+async function hostHeartbeatBrowser({origin,cookie,body,monitor,scope}) {
+ const {chromium}=await import('@playwright/test'),{mkdir}=await import('node:fs/promises'),{join}=await import('node:path')
+ const browser=await chromium.launch({headless:true,...(process.env.PORTHOLE_CHROMIUM_PATH?{executablePath:process.env.PORTHOLE_CHROMIUM_PATH}:{}),args:['--no-sandbox','--use-mock-keychain','--password-store=basic']})
+ try {for(const width of [1440,390]) {
+  const context=await browser.newContext({viewport:{width,height:width===1440?900:844}})
+  await context.addCookies(cookie.split('; ').map(value=>({name:value.slice(0,value.indexOf('=')),value:value.slice(value.indexOf('=')+1),url:origin})))
+  const page=await context.newPage()
+  await page.goto(origin+'/app/settings/monitors')
+  if(width===1440) {
+   const editor=page.locator('form').filter({has:page.getByRole('button',{name:'Save inactive heartbeat monitor',exact:true})})
+   for(const [label,value]of Object.entries({Name:'Native heartbeat form',Service:scope.services[0]+',synthetic-porthole-6711',Environment:'production',Team:scope.teams[0],'Host identities':body.hosts[0],'Missed after seconds':'2','Pending seconds':'3','Recovery seconds':'4'}))await editor.getByLabel(label,{exact:true}).fill(value)
+   await Promise.all([page.waitForURL('**/app/settings/monitors'),editor.getByRole('button',{name:'Save inactive heartbeat monitor',exact:true}).click()])
+   const created=page.locator('article').filter({has:page.getByRole('heading',{name:'Native heartbeat form',exact:true})})
+   assert.ok((await created.innerText()).includes('inactive'))
+   const definitions=await (await page.request.get(origin+'/api/porthole/v1/monitors')).json()
+   assert.deepEqual(definitions.monitors.find(row=>row.name==='Native heartbeat form').scope.services,[scope.services[0],'synthetic-porthole-6711'])
+   await created.getByLabel('Activate this exact revision').check()
+   await Promise.all([page.waitForURL('**/app/settings/monitors'),created.getByRole('button',{name:'Activate heartbeat monitor',exact:true}).click()])
+   assert.ok((await page.locator('article').filter({has:page.getByRole('heading',{name:'Native heartbeat form',exact:true})}).innerText()).includes('active'))
+   const revised=page.locator('article').filter({has:page.getByRole('heading',{name:'Native heartbeat form',exact:true})})
+   await revised.locator('summary').click()
+   await revised.getByLabel('Pending seconds',{exact:true}).fill('4')
+   await revised.getByRole('button',{name:'Save new heartbeat revision',exact:true}).click()
+   assert.ok((await page.locator('article').filter({has:page.getByRole('heading',{name:'Native heartbeat form',exact:true})}).innerText()).includes('Revision 2'))
+   const updated=await (await page.request.get(origin+'/api/porthole/v1/monitors')).json()
+   assert.deepEqual(updated.monitors.find(row=>row.name==='Native heartbeat form').scope.services,[scope.services[0],'synthetic-porthole-6711'])
+   assert.equal(await page.locator('button,a').evaluateAll(nodes=>nodes.filter(node=>!node.textContent.trim()).length),0)
+   assert.ok(await page.locator('input,button').evaluateAll(nodes=>nodes.every(node=>parseFloat(getComputedStyle(node).fontSize)>=13)))
+   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth))
+  }
+  if(process.env.PORTHOLE_EVIDENCE_DIR){await mkdir(process.env.PORTHOLE_EVIDENCE_DIR,{recursive:true});await page.screenshot({path:join(process.env.PORTHOLE_EVIDENCE_DIR,`heartbeat-settings-${width}.png`),fullPage:true})}
+  await page.goto(origin+'/app/monitors')
+  if(width===1440){const text=await page.locator('body').innerText();assert.ok(text.includes('Checkout host heartbeat'));assert.ok(text.includes('Healthy'));assert.ok(text.includes('Unknown'));assert.ok(text.includes('never registered'));assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth))}
+  if(process.env.PORTHOLE_EVIDENCE_DIR)await page.screenshot({path:join(process.env.PORTHOLE_EVIDENCE_DIR,`heartbeat-evaluations-${width}.png`),fullPage:true})
+  await context.close()
+ }}finally {await browser.close()}
 }

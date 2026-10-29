@@ -1,3 +1,4 @@
+import { scopeWhere } from '../../ingest/read'
 import type { Bindings } from '../../../auth.server'
 import { fail, scopeWithin, type Scope, type Authority } from '../../security/authority'
 
@@ -37,9 +38,10 @@ export async function evaluateHostMonitor(env:Bindings,monitor:Monitor,actor?:Au
   const evidence:HostEvidence={type:'host-heartbeat',hostId,status:'Unknown',evaluatedAt:now,lastHeartbeatAt:null,conditionSince:null,recoverySince:null,transitionAt:now,episode:previous?.episode??null,reason:'Heartbeat storage unavailable; earlier evidence is last-known only.',definition,observations:[],sourceState:'storage_unavailable',telemetryCoverage:'unestablished',delivery:'not_requested'}
   let sources:Source[]=[]
   try {
+   const where=scopeWhere(scope,'h')
    const candidates=(await env.DB.prepare(`SELECT h.*,c.status,c.expires_at,c.revision AS credential_revision,c.scope AS credential_scope,m.scope AS custodian_scope,m.role,m.revision AS member_revision,o.version AS operator_version,o.role AS operator_role,o.status AS operator_status
     FROM porthole_host_sources h JOIN porthole_credentials c ON c.id=h.credential_id JOIN porthole_members m ON m.operator_id=c.custodian_id JOIN oa_operators o ON o.id=m.operator_id
-    WHERE h.host_id=? AND h.signal=? ORDER BY h.credential_id,h.collector_id LIMIT 1001`).bind(hostId,definition.signal).all<Source>()).results.filter(row=>inScope(row,scope))
+    WHERE h.host_id=? AND h.signal=? AND ${where.sql} ORDER BY h.credential_id,h.collector_id LIMIT 1001`).bind(hostId,definition.signal,...where.args).all<Source>()).results.filter(row=>inScope(row,scope))
    sources=candidates.filter(row=>live(row,now))
    const keys=new Set(sources.map(sourceKey))
    if(candidates.length>1000) {evidence.reason='Source coverage exceeds the bounded evaluation.';evidence.sourceState='incomplete'}
@@ -79,9 +81,15 @@ export async function evaluateHostMonitor(env:Bindings,monitor:Monitor,actor?:Au
    }
   }catch {evidence.status='Unknown';evidence.sourceState='storage_unavailable';evidence.reason='Heartbeat storage unavailable; earlier evidence is last-known only.'}
   if(previous?.status===evidence.status)evidence.transitionAt=previous.transitionAt
-  const id=crypto.randomUUID(),sourceFence=sources.map(()=>`EXISTS(SELECT 1 FROM porthole_credentials c JOIN porthole_members m ON m.operator_id=c.custodian_id JOIN oa_operators o ON o.id=m.operator_id WHERE c.id=? AND c.revision=? AND m.revision=? AND o.version=? AND c.status='active' AND c.expires_at>? AND o.status='active')`).join(' AND ')
-  const args=sources.flatMap(source=>[source.credential_id,source.credential_revision,source.member_revision,source.operator_version,now])
-  const fence=`${sourceFence?' AND '+sourceFence:''}${actor?' AND '+actor.fence:''}`
+  // One JSON binding avoids a SQL parameter for each source while repeating
+  // every credential, membership and native account generation at commit.
+  const sourceVersions=[...new Map(sources.map(source=>[source.credential_id,{id:source.credential_id,credential:source.credential_revision,member:source.member_revision,operator:source.operator_version}])).values()]
+  const id=crypto.randomUUID(),sourceFence=`NOT EXISTS(SELECT 1 FROM json_each(?) j
+   LEFT JOIN porthole_credentials c ON c.id=json_extract(j.value,'$.id')
+   LEFT JOIN porthole_members m ON m.operator_id=c.custodian_id LEFT JOIN oa_operators o ON o.id=m.operator_id
+   WHERE c.id IS NULL OR m.operator_id IS NULL OR o.id IS NULL OR c.revision!=json_extract(j.value,'$.credential') OR m.revision!=json_extract(j.value,'$.member') OR o.version!=json_extract(j.value,'$.operator') OR c.status!='active' OR c.expires_at<=? OR o.status!='active')`
+  const args=[JSON.stringify(sourceVersions),now]
+  const fence=` AND ${sourceFence}${actor?' AND '+actor.fence:''}`
   const saved=await env.DB.batch([
    env.DB.prepare(`INSERT INTO porthole_host_monitor_evaluations SELECT ?,id,revision,?,?,? FROM porthole_objects WHERE id=? AND revision=? AND state='active'${fence}`).bind(id,hostId,now,JSON.stringify(evidence),monitor.id,monitor.revision,...args,...(actor?.args??[])),
    env.DB.prepare(`INSERT INTO porthole_host_monitor_state SELECT object_id,revision,host_id,evaluated_at,evidence FROM porthole_host_monitor_evaluations WHERE id=?
@@ -91,4 +99,21 @@ export async function evaluateHostMonitor(env:Bindings,monitor:Monitor,actor?:Au
   groups.push(evidence)
  }
  return {monitorId:monitor.id,revision:monitor.revision,type:definition.type,status:groups.some(row=>row.status==='Unknown')?'Unknown':groups.some(row=>row.status==='Firing')?'Firing':groups.some(row=>row.status==='Pending'||row.status==='Recovering')?'Pending':'Healthy',groups}
+}
+
+/** Closed portable evidence: restoring history never supplies live authority. */
+export function validateHostEvidence(value:unknown):HostEvidence {
+ const bad=():never=>fail('archive_semantics_invalid',422)
+ if(!value||typeof value!=='object'||Array.isArray(value))return bad()
+ const row=value as Record<string,unknown>,keys=['type','hostId','status','evaluatedAt','lastHeartbeatAt','conditionSince','recoverySince','transitionAt','episode','reason','definition','observations','sourceState','telemetryCoverage','delivery']
+ if(Object.keys(row).sort().join(',')!==keys.sort().join(',')||row.type!=='host-heartbeat'||!hostStatuses.includes(row.status as never)||typeof row.hostId!=='string'||!/^[A-Za-z0-9][A-Za-z0-9._:-]{0,119}$/.test(row.hostId)||row.telemetryCoverage!=='unestablished'||row.delivery!=='not_requested')return bad()
+ for(const key of ['evaluatedAt','transitionAt'])if(!Number.isSafeInteger(row[key])||Number(row[key])<0)return bad()
+ for(const key of ['lastHeartbeatAt','conditionSince','recoverySince'])if(row[key]!==null&&(!Number.isSafeInteger(row[key])||Number(row[key])<0))return bad()
+ if(row.episode!==null&&(typeof row.episode!=='string'||!/^[a-f0-9-]{36}$/.test(row.episode))||typeof row.reason!=='string'||typeof row.sourceState!=='string'||!Array.isArray(row.observations)||row.observations.length>10000)return bad()
+ try{const definition=hostDefinition(row.definition as Record<string,unknown>);if(!definition.hosts.includes(row.hostId))return bad()}catch{return bad()}
+ for(const beat of row.observations) {
+  if(!beat||typeof beat!=='object'||Object.keys(beat).sort().join(',')!=='collector_id,credential_id,environment,id,observed_at,service,team'||!Number.isSafeInteger(beat.observed_at)||beat.observed_at<0)return bad()
+  for(const key of ['id','credential_id','collector_id','team','service','environment'])if(typeof beat[key]!=='string'||!/^[A-Za-z0-9][A-Za-z0-9._:/-]{0,119}$/.test(beat[key]))return bad()
+ }
+ return value as HostEvidence
 }
