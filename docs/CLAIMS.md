@@ -24,9 +24,9 @@
 | The agent instruments an untraced service by pull request; coverage goes to 46 of 46 | 07 | `PORT-030` missing; `PORT-004` done; `PORT-008` missing | partial |
 | Noisy monitors are retuned by pull request after a replay against history | 07 | `PORT-030` missing; `PORT-019` missing; `PORT-026` partial | partial |
 | A tag that multiplies a metric's series is caught and fixed by a merged pull request | 08 | `PORT-023` missing; `PORT-083` missing; `PORT-014` missing | missing |
-| A debug log nobody reads is dropped by an approved rule, error lines kept | 08 | `PORT-023` missing; `PORT-012` missing; `PORT-030` missing | missing |
+| A debug log nobody reads is dropped by an approved rule, error lines kept | 08 | `PORT-023` missing; `PORT-012` partial; `PORT-030` missing | partial |
 | Logs a day by team are shown against the old total | 08 | `PORT-023` missing | missing |
-| Card numbers and SSNs are masked before indexing, with raw storage searched to prove it | 09 | `PORT-012` missing; `PORT-025` missing | missing |
+| Card numbers and SSNs are masked before indexing, with raw storage searched to prove it | 09 | `PORT-012` partial; `PORT-025` missing | partial |
 | Fifteen days stay hot; older logs are rehydrated from the archive and searchable in minutes | 09 | `PORT-013` missing; `PORT-073` missing | missing |
 | An auditor gets a read-only role over auth logs, and the answer is sent to Evidence | 09 | `PORT-025` missing; `PORT-052` missing | missing |
 | Datadog dashboards, monitors and SLOs come across, with the ones that cannot translate flagged | 10 | `PORT-024` missing; `PORT-039` missing; `PORT-086` missing | missing |
@@ -41,7 +41,7 @@
 
 These are contract statuses, not a claim that a partial or missing capability is complete. Read the [product contract](/docs/contract) for requirements, named journeys and remaining work.
 
-9 done, 16 partial, 71 missing; 96 total.
+9 done, 17 partial, 70 missing; 96 total.
 
 | Clause | Capability | Status |
 | --- | --- | --- |
@@ -70,7 +70,7 @@ These are contract statuses, not a claim that a partial or missing capability is
 | PORT-009 | Trace explorer | missing |
 | PORT-010 | Sampling that keeps what matters | partial |
 | PORT-011 | Log management | missing |
-| PORT-012 | Log pipelines | missing |
+| PORT-012 | Log pipelines | partial |
 | PORT-013 | Tiered storage and archives | missing |
 | PORT-014 | Metrics engine | missing |
 | PORT-015 | Continuous profiling | missing |
