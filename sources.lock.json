@@ -325,7 +325,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "92dd3c9cf1c83b785c0f1ab1f45a61404b58a58a763606bb1fe8fd0231926c64",
+      "sha256": "72418370d294188dc47a65d9fcc42626dcc69255b1e2b3bed50bcfbead4a8471",
       "executable": false
     },
     "agent-surface.json": {
@@ -381,7 +381,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "7048de45b4de0c5d6a0b2a5d0cc844554a594be742c3626a4fb765c39b7c7eea",
+      "sha256": "4956896e130472f0c0a4ac848920d7d2e17d6e9c899df36f89a15743fa3ac570",
       "executable": false
     },
     "DEMO.md": {
@@ -405,7 +405,7 @@
       "executable": false
     },
     "docs/agents.md": {
-      "sha256": "28669bc72df6c66b62e811b2c193d39ea138ea2e69f6c5e4eaa84849f10bbfe4",
+      "sha256": "a26211c35a8d0a6342a39778929823341f6dbdaf2a99a9476d50631a1768a0b6",
       "executable": false
     },
     "docs/analytical.md": {
@@ -585,7 +585,7 @@
       "executable": false
     },
     "management/integration/deployment-spec.json": {
-      "sha256": "f85f5a5b7d2d3fc21dc2432abbda273728ee433ab77892dfe2f3f5e93fb2e33e",
+      "sha256": "5eb180254e901ced017c4fd2868c7ac9ecaa13cd915636ad9c3efbd208ad1615",
       "executable": false
     },
     "migrations/core/0001_owner.sql": {
@@ -814,6 +814,10 @@
     },
     "migrations/core/0054_porthole_agent_activity.sql": {
       "sha256": "bde899989f2e2b3a97b1cb34eb8afdf633626283b4e0837af0bb7b964f5da001",
+      "executable": false
+    },
+    "migrations/core/0055_porthole_agent_archive_semantics.sql": {
+      "sha256": "c7afa66fcb1bc8fdabc6be7ce28b21c93d209aaa341bc19f8629f1b7e2efb49d",
       "executable": false
     },
     "ONBOARDING.md": {
@@ -5405,7 +5409,7 @@
       "executable": false
     },
     "tests/agent-door/journey.mjs": {
-      "sha256": "15eb8cf31e8310b623d64eef2ca2fb38ae96e95b1c13f6e08232f284fb239310",
+      "sha256": "b313fb951a5e48d89443152146c20d89ffe3410637ece4ce86034fabc0c2e7c8",
       "executable": false
     },
     "tests/agent-door/local-policy.mjs": {

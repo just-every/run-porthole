@@ -15,7 +15,7 @@ The installation accepts signed company policy at `/api/rer/agent-policy`.
 An unanswered, blocked, expired or paused policy releases no content. A named
 person decides held reads on `/agents`; the agent cannot approve its own read.
 The review records its preparer as “agent for person” and the actual reviewer
-separately. This read-only surface has no native Undo or mutation capability.
+separately. This read-only surface has no native Undo or mutation capability. Native audit and inactive archives retain opaque event and sponsor references with fixed action names; the linked door record retains the private agent/person label.
 
 Business subjects bind to existing native owner and team IDs through signed
 Business settings. Token email must still match that person; email never selects
