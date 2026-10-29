@@ -15,7 +15,8 @@
       "commands": [
         "pnpm run build",
         "pnpm run typecheck",
-        "pnpm run test:typecheck"
+        "pnpm run test:typecheck",
+        "PORTHOLE_NATIVE_ERASURE_ONLY=1 node tests/porthole/native-archive.mjs"
       ]
     },
     {
@@ -103,15 +104,6 @@
         "PORTHOLE_FOLLOW_UP_ONLY=1 pnpm run test:runtime",
         "PORTHOLE_SLO_ONLY=1 pnpm run test:runtime",
         "PORTHOLE_NOTEBOOKS_ONLY=1 pnpm run test:runtime"
-      ]
-    },
-    {
-      "name": "native-erasure",
-      "browser": true,
-      "hosted": false,
-      "commands": [
-        "pnpm run build",
-        "PORTHOLE_NATIVE_ERASURE_ONLY=1 node tests/porthole/native-archive.mjs"
       ]
     }
   ],
