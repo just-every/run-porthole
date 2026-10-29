@@ -56,7 +56,7 @@ export async function objectsResponse(request:Request,env:Bindings):Promise<Resp
   if(data.id!==undefined) { const previous=await env.DB.prepare('SELECT scope FROM porthole_objects WHERE id=?').bind(id).first<{scope:string}>();if(!previous || !scopeWithin(JSON.parse(previous.scope),actor.member.scope))fail('scope_forbidden') }
   const statement=data.id===undefined?env.DB.prepare(`INSERT INTO porthole_objects SELECT ?,?,?,?,?,?,'inactive',?,? WHERE ${actor.fence}`).bind(id,kind,name,JSON.stringify(scope),JSON.stringify(body),revision,now,now,...actor.args):env.DB.prepare(`UPDATE porthole_objects SET name=?,scope=?,body=?,revision=?,state='inactive',updated_at=? WHERE id=? AND kind=? AND revision=? AND state!='quarantined' AND ${actor.fence}`).bind(name,JSON.stringify(scope),JSON.stringify(body),revision,now,id,kind,revision-1,...actor.args)
   const statements=[statement]
-  if(kind==='monitor' && body.type==='host-heartbeat')statements.push(env.DB.prepare(`INSERT INTO porthole_host_monitor_versions SELECT id,revision,name,scope,body,? FROM porthole_objects WHERE id=? AND revision=? AND body=? AND ${actor.fence}`).bind(now,id,revision,JSON.stringify(body),...actor.args))
+  if(kind==='monitor' && body.type==='host-heartbeat')statements.push(env.DB.prepare(`INSERT INTO porthole_host_monitor_versions SELECT id,revision,name,scope,body,? FROM porthole_objects WHERE id=? AND revision=? AND body=? AND changes()=1 AND ${actor.fence}`).bind(now,id,revision,JSON.stringify(body),...actor.args))
   const [result]=await env.DB.batch(statements)
   if(!result.meta.changes)fail('revision_or_authority_changed',409)
   return form?new Response(null,{status:303,headers:{...privateHeaders,location:destination}}):json({id,revision,state:'inactive'},201)

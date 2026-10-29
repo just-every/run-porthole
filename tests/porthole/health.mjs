@@ -808,6 +808,7 @@ export async function hostHeartbeatJourney({origin,freshOwner,signIn,restartWork
   const changed=await post('/api/porthole/v1/objects',{kind:'monitor',id:monitor.id,revision:1,name:'Checkout heartbeat revised',scope,body:{...body,pendingSeconds:4}},201)
   assert.equal(changed.revision,2);monitor.revision=2
   await post('/api/porthole/v1/objects',{kind:'monitor',id:monitor.id,revision:1,name:'Stale edit',scope,body},409)
+  await post('/api/porthole/v1/objects',{kind:'monitor',id:monitor.id,revision:1,name:'Checkout heartbeat revised',scope,body:{...body,pendingSeconds:4}},409)
   await post('/api/porthole/v1/objects/activate',{id:monitor.id,revision:1,confirm:'activate'},409)
   await post('/api/porthole/v1/monitors/evaluate',{id:monitor.id,revision:1},409)
   await post('/api/porthole/v1/objects/activate',{id:monitor.id,revision:2,confirm:'activate'})
