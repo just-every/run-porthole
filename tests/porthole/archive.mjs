@@ -935,9 +935,12 @@ export async function genaiArchiveJourney({origin,cookie,withEmptyDestination,tr
   const acting=await destination.freshOwner()
   // An older or untrusted archive cannot stage content that current intake
   // would refuse. Rehash the actual supported archive, not a fake backend.
+  for(const eventOnly of [false,true]){
   const unsafe=structuredClone(saved),changed=unsafe.chunks.find(chunk=>chunk.rows.some(row=>row.table==='porthole_telemetry_records'))
   const planted=changed.rows.find(row=>row.table==='porthole_telemetry_records'),payload=JSON.parse(planted.row.payload)
-  payload.record.attributes.push({key:'gen_ai.input.messages',value:{stringValue:marker}});planted.row.payload=JSON.stringify(payload)
+  if(eventOnly){planted.row.signal='logs';payload.record={eventName:'gen_ai.user.message',body:{stringValue:marker}}}
+  else payload.record.attributes.push({key:'gen_ai.input.messages',value:{stringValue:marker}})
+  planted.row.payload=JSON.stringify(payload)
   let chain=unsafe.chunks[0].previousHash
   for(const chunk of unsafe.chunks){chunk.previousHash=chain;chunk.digest=hash(JSON.stringify({version:chunk.version,index:chunk.index,previousHash:chunk.previousHash,rows:chunk.rows}));chain=chunk.digest}
   unsafe.manifest.rootHash=chain
@@ -948,6 +951,7 @@ export async function genaiArchiveJourney({origin,cookie,withEmptyDestination,tr
    await value(response)
   }
   assert.equal((await destination.sql("SELECT COUNT(*) AS n FROM porthole_archive_rows WHERE instr(payload,'"+marker+"')>0"))[0].n,0,'refused model content never enters archive staging')
+  }
   const start=await value(await post(destination.origin,acting,api+'/restores',{manifest:saved.manifest}),201)
   for(const chunk of saved.chunks)await value(await post(destination.origin,acting,`${api}/restores/${start.id}/chunks`,{chunk}))
   await value(await post(destination.origin,acting,`${api}/restores/${start.id}/commit`,{confirm:saved.manifest.rootHash}))
