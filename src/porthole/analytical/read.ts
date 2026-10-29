@@ -1,16 +1,18 @@
+import {agentCredential,type ReadPrincipal} from '../security/agent-read'
 import type {LogSearchPlan} from '../../../workers/analytics/log-search.mjs'
 import type {Bindings} from '../../auth.server'
 import {verifyCredential} from '../credentials/verify'
 import {allScope,emptyScope,fail,type Scope} from '../security/authority'
 import {privateHeaders} from '../document'
 import {fence,query,requireEnabled,type Configuration} from './client'
-export async function readAnalytical(request:Request,env:Bindings,config:Configuration,context:{scope:Scope;actorRef:string;actorRevision:number;fence:{sql:string;args:unknown[]};snapshot:number;queryRef:string;queryScope:string;from:string;through:string;signal:string;limit:number;archive:boolean;logSearch?:LogSearchPlan}) {
+export async function readAnalytical(request:Request,env:Bindings,config:Configuration,context:{principal?:ReadPrincipal;scope:Scope;actorRef:string;actorRevision:number;fence:{sql:string;args:unknown[]};snapshot:number;queryRef:string;queryScope:string;from:string;through:string;signal:string;limit:number;archive:boolean;logSearch?:LogSearchPlan}) {
+ const credential=(use:Parameters<typeof verifyCredential>[2])=>context.principal?.clientId?agentCredential(request,env,context.principal,use!):verifyCredential(request,env,use)
  const params=new URL(request.url).searchParams,{scope,snapshot,from,through,signal,limit,archive,queryRef}=context
  requireEnabled(config)
  const active=fence(config)
  let live=context.fence
- if(request.headers.has('authorization')){
-  const inspected=await verifyCredential(request,env,{action:'telemetry.read',scope:emptyScope,dataScope:allScope,inspectOnly:true})
+ if(context.principal?.clientId||request.headers.has('authorization')){
+  const inspected=await credential({action:'telemetry.read',scope:emptyScope,dataScope:allScope,inspectOnly:true})
   if(!inspected.credential.scope.signals.includes(signal)||(['services','environments','teams'] as const).some(key=>JSON.stringify(inspected.credential.scope[key])!==JSON.stringify(scope[key])))fail('authority_changed',409)
   live=inspected.fence
  }
@@ -31,9 +33,9 @@ export async function readAnalytical(request:Request,env:Bindings,config:Configu
   return [env.DB.prepare(`SELECT 1 AS live WHERE ${condition}`).bind(...args),env.DB.prepare(`INSERT INTO porthole_query_snapshots SELECT ?,?,?,?,?,?,?,? WHERE ${condition}`).bind(queryRef,context.actorRef,context.queryScope,signal,from,through,snapshot,Date.now(),...args)]
  }
  let results:D1Result[]
- if(request.headers.has('authorization')){
+ if(context.principal?.clientId||request.headers.has('authorization')){
   const scanned=data.records.reduce((sum,row)=>sum+new TextEncoder().encode(JSON.stringify(row.payload)).length,0)
-  const auth=await verifyCredential(request,env,{action:'telemetry.read',scope:emptyScope,dataScope:allScope,scannedBytes:scanned,writes(live,latest){if(!latest.signals.includes(signal)||JSON.stringify(latest.services)!==JSON.stringify(scope.services)||JSON.stringify(latest.environments)!==JSON.stringify(scope.environments)||JSON.stringify(latest.teams)!==JSON.stringify(scope.teams))fail('authority_changed',409);return writes(live)}})
+  const auth=await credential({action:'telemetry.read',scope:emptyScope,dataScope:allScope,scannedBytes:scanned,writes(live,latest){if(!latest.signals.includes(signal)||JSON.stringify(latest.services)!==JSON.stringify(scope.services)||JSON.stringify(latest.environments)!==JSON.stringify(scope.environments)||JSON.stringify(latest.teams)!==JSON.stringify(scope.teams))fail('authority_changed',409);return writes(live)}})
   results=auth.results
  }else results=await env.DB.batch(writes(context.fence))
  if(!results[0].results.length)fail('authority_changed',409)
