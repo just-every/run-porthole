@@ -17,7 +17,8 @@ const groups=[['Published',contract.clauses.filter(clause=>clause.kind==='publis
 lines.splice(summary+2,end-summary-2,...groups.map(([label,clauses])=>`| ${label} | ${tally(clauses).join(' | ')} |`))
 source=lines.join('\n')
 let acceptance=read('ACCEPTANCE.md')
-const [done,partial,missing]=tally(contract.clauses)
+const [done,partial,missing,total]=tally(contract.clauses)
+acceptance=acceptance.replace(/All \*\*\d+\*\* clauses comprise [^:]+:/,`All **${total}** clauses comprise **${contract.clauses.filter(clause=>clause.kind==='target').length}** target, ${contract.clauses.filter(clause=>clause.kind==='push-further').length} push-further and ${contract.clauses.filter(clause=>clause.kind==='published').length} published:`)
 acceptance=acceptance.replace(/\d+ are \*\*done\*\*, \d+ are \*\*partial\*\* and \d+ are \*\*missing\*\*/,`${done} are **done**, ${partial} are **partial** and ${missing} are **missing**`)
 for(const id of selected){
  const clause=contract.clauses.find(clause=>clause.id===id)
@@ -26,8 +27,11 @@ for(const id of selected){
  if(!definition?.includes('**Acceptance evidence:** '))throw Error('Selected clause needs its existing acceptance evidence: '+id)
  const outcome=definition.split('**Acceptance evidence:** ')[1]
  const cells=source.split('\n').find(line=>line.startsWith('| `'+id+'` |')).split(/(?<!\\)\|/).map(cell=>cell.trim())
- const rows=acceptance.split('\n'),index=rows.findIndex(line=>line.startsWith('- **'+id+' — '))
- if(index<0)throw Error('Missing acceptance journey: '+id)
+ const rows=acceptance.split('\n');let index=rows.findIndex(line=>line.startsWith('- **'+id+' — '))
+ if(index<0){
+  const following=contract.clauses.slice(contract.clauses.indexOf(clause)+1).map(next=>rows.findIndex(line=>line.startsWith('- **'+next.id+' — '))).find(position=>position>=0)
+  index=following??rows.length;rows.splice(index,0,'','')
+ }
  rows[index]=`- **${id} — ${clause.title}. Status: ${clause.status}.** ${outcome}${cells[5]?` Evidence: ${cells[5]}`:''}${cells[6]&&cells[6]!=='—'?` Open scope: ${cells[6]}`:''}`
  acceptance=rows.join('\n')
 }
