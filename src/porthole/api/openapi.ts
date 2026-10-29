@@ -7,8 +7,9 @@ const definition=ref('Definition')
 const mutationHeaders=[originIntent,{name:'Idempotency-Key',in:'header',required:true,schema:{type:'string',pattern:'^[A-Za-z0-9._:-]{8,120}$'}}]
 const revisionHeader={name:'If-Match',in:'header',required:true,description:'Exact quoted revision ETag returned by GET.',schema:{type:'string',pattern:'^"[1-9][0-9]*"$'}}
 const refused=failures([400,401,403,404,405,409,412,413,415,428,429,503])
+const hostBody={type:'object',additionalProperties:false,required:['type','signal','hosts','missedAfterSeconds','pendingSeconds','recoverySeconds'],properties:{type:{const:'host-heartbeat'},signal:{enum:['logs','metrics','traces','profiles']},hosts:{type:'array',minItems:1,maxItems:100,uniqueItems:true,items:{type:'string',pattern:'^[A-Za-z0-9][A-Za-z0-9._:-]{0,119}$'}},missedAfterSeconds:{type:'integer',minimum:1,maximum:86400},pendingSeconds:{type:'integer',minimum:0,maximum:86400},recoverySeconds:{type:'integer',minimum:0,maximum:86400}}}
 const bodies={
- monitors:{type:'object',additionalProperties:false,required:['signal','operator','threshold','windowSeconds'],properties:{signal:{enum:['logs','metrics','traces']},operator:{enum:['above','below']},threshold:{type:'number'},windowSeconds:{type:'integer',minimum:1,maximum:86400}}},
+ monitors:{oneOf:[hostBody,{type:'object',additionalProperties:false,required:['signal','operator','threshold','windowSeconds'],properties:{signal:{enum:['logs','metrics','traces']},operator:{enum:['above','below']},threshold:{type:'number'},windowSeconds:{type:'integer',minimum:1,maximum:86400}}}]},
  repairs:{type:'object',additionalProperties:false,required:['steps','expiresAt'],properties:{expiresAt:{type:'integer'},steps:{type:'array',minItems:1,maxItems:20,items:{type:'object',additionalProperties:false,required:['kind','target','revision'],properties:{kind:{enum:['restart','rollback']},target:{type:'string',pattern:'^[a-zA-Z0-9][a-zA-Z0-9._:/-]{0,119}$'},revision:{type:'string',pattern:'^[a-zA-Z0-9][a-zA-Z0-9._:/-]{0,119}$'}}}}}},
 }
 const configurationPaths=Object.fromEntries((['monitors','repairs'] as const).flatMap(kind=>{
