@@ -41,7 +41,7 @@
 
 These are contract statuses, not a claim that a partial or missing capability is complete. Read the [product contract](/docs/contract) for requirements, named journeys and remaining work.
 
-10 done, 18 partial, 69 missing; 97 total.
+10 done, 18 partial, 70 missing; 98 total.
 
 | Clause | Capability | Status |
 | --- | --- | --- |
@@ -88,6 +88,7 @@ These are contract statuses, not a claim that a partial or missing capability is
 | PORT-025 | Access audit and compliance | missing |
 | PORT-026 | Observability as code and agent access | partial |
 | PORT-027 | LLM and agent observability | partial |
+| PORT-098 | Prompt and response content events are refused by event name, with or without provider metadata, and never stored or exported | missing |
 | PORT-039 | Datadog complete account migration | missing |
 | PORT-040 | New Relic complete account migration | missing |
 | PORT-041 | Grafana and open-stack migration | missing |
