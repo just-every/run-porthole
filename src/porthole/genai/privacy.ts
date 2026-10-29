@@ -40,9 +40,9 @@ export function assertGenAIMetadata(value:unknown):void {
   }
   for(const [key,entry]of Object.entries(row)){
    if(protectedKey(key)||marked&&contentKey(key))invalid('genai_content_not_authorized')
-   // Resource attributes have their own ordinary scope semantics. Span and log
-   // attributes and event bodies inherit the marked record's content boundary.
-   walk(entry,marked&&['attributes','events','body'].includes(key))
+   // Correlation links share the record's content boundary, just like span
+   // attributes and events. Resource scope still has its ordinary semantics.
+   walk(entry,marked&&['attributes','events','body','links'].includes(key))
   }
  }
  walk(value)
