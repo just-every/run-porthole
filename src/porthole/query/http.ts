@@ -1,3 +1,4 @@
+import {agentReadAuthority,type ReadPrincipal} from '../security/agent-read'
 import {normalizeExploration,ExplorationError} from '../explore/normalize'
 import {aggregateRows} from './aggregate'
 import type { Bindings } from '../../auth.server'
@@ -16,7 +17,7 @@ function queryRequest(request:Request,data:Record<string,unknown>):Request {
  }
  return new Request(url,{headers:request.headers})
 }
-export async function queryResponse(request:Request,env:Bindings):Promise<Response|null> {
+export async function queryResponse(request:Request,env:Bindings,principal?:ReadPrincipal):Promise<Response|null> {
  const url=new URL(request.url),page=url.pathname==='/app/explore'
  if(!page && url.pathname!=='/api/porthole/v1/query' && !/^\/api\/porthole\/v1\/query\/[a-f0-9-]{36}$/.test(url.pathname))return null
  try {
@@ -25,7 +26,8 @@ export async function queryResponse(request:Request,env:Bindings):Promise<Respon
   // Browser queries retain native session/CSRF checks. Programmatic queries
   // authenticate only their Authorization credential in readTelemetry, which
   // reserves bytes and rechecks live custody in the result transaction.
-  if(page || !request.headers.has('authorization'))await authority(request,env,{post:request.method==='POST'})
+  if(principal)await agentReadAuthority(env,principal)
+  else if(page || !request.headers.has('authorization'))await authority(request,env,{post:request.method==='POST'})
   else await verifyCredential(request,env,{action:'telemetry.read',scope:emptyScope,dataScope:allScope,inspectOnly:true})
   if(page && request.method==='GET' && !url.search) return document('Explore telemetry',`<p><a href="/app/dashboards">Dashboards</a></p><p>Read retained telemetry within your current service, environment and team scope. Each query has a reproducible, private snapshot reference in Audit.</p><form method="post" action="/app/explore"><label>Signal <select name="signal" aria-label="Signal"><option>logs</option><option>metrics</option><option>traces</option><option>profiles</option></select></label><label>Service <input name="service" required></label><label>Environment <input name="environment" required></label><label>Team <input name="team" required></label><label>Metric name <input name="metric"></label><label>From in nanoseconds <input name="from" inputmode="numeric"></label><label>Through in nanoseconds <input name="through" inputmode="numeric"></label><details><summary>Text query</summary><label>Dialect <select name="dialect" aria-label="Dialect"><option value="visual">Visual</option><option value="promql">PromQL selector</option><option value="sql">SQL</option><option value="lucene">Lucene</option></select></label><label>Expression <textarea name="expression" rows="5"></textarea></label><p>Text filters must agree with the selected signal and scope. Unsupported syntax refuses before execution.</p></details><button>Run query</button></form>`,200,{forms:true})
   let data:Record<string,unknown>
@@ -42,7 +44,7 @@ export async function queryResponse(request:Request,env:Bindings):Promise<Respon
    data=await input(request)
   }
   const normalized=normalizeExploration(data)
-  const response=await readTelemetry(queryRequest(request,normalized.parameters),env,{logSearch:normalized.logSearch,source:normalized.source})
+  const response=await readTelemetry(queryRequest(request,normalized.parameters),env,{principal,logSearch:normalized.logSearch,source:normalized.source})
   if(!response.ok) {if(!page)return response;const error=await response.json() as {error:string;hint?:string};return document('Query unavailable',`<p role="alert">${escape(error.error)}${error.hint?': '+escape(error.hint):''}</p><p><a href="/app/explore">Return to Explore</a></p>`,response.status)}
   const rows=await response.json() as Record<string,unknown>
   const result={source:normalized.source,parameters:normalized.parameters,...(normalized.logSearch?{plan:normalized.logSearch}:{}),...rows,...(normalized.aggregate?{aggregate:aggregateRows(normalized.aggregate,rows)}:{})},reference=String(rows.queryRef)

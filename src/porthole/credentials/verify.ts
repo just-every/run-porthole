@@ -32,14 +32,23 @@ function fits(wanted: Scope, held: Scope) {
  * Header-only authentication. PORT-062 can add its declared source header when
  * that wire contract ships; currently Authorization: Bearer is the only door. */
 export async function verifyCredential(request: Request, env: Bindings, use: CredentialUse = {}) {
+ return credentialUse(request,env,use)
+}
+/** Server-only continuation of a credential already admitted by the agent door.
+ * The live credential id AND original custodian are required; no HTTP input
+ * can select this path. It uses the same quota reservation and SQL fences. */
+export async function verifyCredentialId(request:Request,env:Bindings,id:string,sponsor:string,use:CredentialUse) {
+ return credentialUse(request,env,use,{id,sponsor})
+}
+async function credentialUse(request:Request,env:Bindings,use:CredentialUse,identity?:{id:string;sponsor:string}) {
  sameOrigin(request, env)
  const url = new URL(request.url)
  if ([...url.searchParams.keys()].some(key => /token|secret|credential|api.?key|authorization/i.test(key))) fail('query_credentials_forbidden', 400)
  const authorization = request.headers.get('authorization') ?? ''
- if (!/^Bearer ph_[A-Za-z0-9_-]{43}$/.test(authorization)) fail('invalid_credential', 401)
- const hash = await secretHash(authorization.slice(7)), now = Date.now()
- const row = await env.DB.prepare(`SELECT c.*,m.scope AS custodian_scope,m.role AS custodian_role,m.revision AS member_revision,o.version AS operator_version ${join} WHERE c.secret_hash=? AND ${live}`)
- .bind(hash, now).first<LiveCredential>()
+ if (!identity && !/^Bearer ph_[A-Za-z0-9_-]{43}$/.test(authorization)) fail('invalid_credential', 401)
+ const hash = identity ? null : await secretHash(authorization.slice(7)), now = Date.now()
+ const row = await env.DB.prepare(`SELECT c.*,m.scope AS custodian_scope,m.role AS custodian_role,m.revision AS member_revision,o.version AS operator_version ${join} WHERE ${identity?'c.id=? AND c.custodian_id=?':'c.secret_hash=?'} AND ${live}`)
+ .bind(...(identity?[identity.id,identity.sponsor]:[hash]), now).first<LiveCredential>()
  if (!row) fail('invalid_credential', 401)
  let scope = intersect(JSON.parse(row.scope) as CredentialScope, JSON.parse(row.custodian_scope) as Scope)
  if (use.dataScope) scope = intersect(scope, use.dataScope)

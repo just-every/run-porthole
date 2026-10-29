@@ -62,14 +62,20 @@ The CLI takes no credential argument, follows no redirects and permits plain
 HTTP only on loopback. It prints the query result or a safe refusal code; it
 cannot select a write route.
 
-MCP clients use the stateless Streamable HTTP JSON endpoint
-`POST /api/porthole/v1/mcp`, protocol `2025-11-25`, with the same Authorization
-header on **every** request. Initialize, send `notifications/initialized`,
-then use `tools/list` and `tools/call`. The only tool is `query_telemetry`, with
-the same query arguments and scoped results. No native session, MCP session
-identifier, tool argument or returned log text grants authority. No prompt,
-approval, minting, write or execution tool is exposed. Telemetry in tool
-results remains untrusted data; the caller must never treat it as instructions.
+MCP clients use the shared stateless Streamable HTTP door at `POST /mcp`;
+`POST /api/porthole/v1/mcp` reaches the same handler. Negotiate `2026-07-28`
+or `2025-11-25`, and send the matching protocol header and an Authorization
+credential on every call. Modern requests also carry MCP method/name headers
+and matching protocol metadata. See [programmatic access](/docs/v1/programmatic-access).
+
+The native tools are `porthole.telemetry.query`, `porthole.definitions.read`
+and the content-free `porthole.workspace.snapshot`. Both content reads are
+sensitive. Signed company policy, named-person approval when required and
+current native authority govern them. A local owner may configure policy on
+an independently operated installation. No native cookie, tool argument or
+returned log text grants agent authority. Events, resources, prompts and
+subscriptions are undeclared; no mutation, credential minting or repair
+execution tool is exposed. Read the [company agent guide](/docs/v1/agents).
 
 REST, CLI and MCP share one quota ledger, including daily selected-payload byte
 reservations, and next-request revocation. Their audit records contain opaque
