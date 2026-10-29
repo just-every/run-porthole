@@ -3,7 +3,6 @@ const queued=await queuedEntrypoint(import.meta.url,'verify:runtime');if(queued!
 import assert from 'node:assert/strict'
 import {createRequire} from 'node:module'
 import { execFile, execFileSync } from 'node:child_process'
-import {emittedWorker,runtimeTransport} from './emitted-worker.mjs'
 import { createServer } from 'node:net'
 import { mkdtemp, readFile, rm, mkdir, writeFile, readdir, copyFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -13,6 +12,10 @@ import {promisify} from 'node:util'
 const execute=promisify(execFile)
 if(process.env.PORTHOLE_MAIL_ONLY==='1'){const {recipientMailJourney}=await import('./porthole/health.mjs');await recipientMailJourney();process.exit(0)}
 if(process.env.PORTHOLE_ANALYTICAL_ONLY==='1'){const {analyticalConnectionJourney}=await import('./porthole/analytics.mjs');await analyticalConnectionJourney();process.exit(0)}
+
+// Standalone journeys own their runtime and HTTP transport. Load Wrangler only
+// for the emitted-Worker harness; its import configures the global dispatcher.
+const {emittedWorker,runtimeTransport}=await import('./emitted-worker.mjs')
 
 const socket = createServer()
 await new Promise(resolve => socket.listen(0, '127.0.0.1', resolve))
