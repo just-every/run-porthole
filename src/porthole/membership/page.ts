@@ -1,7 +1,7 @@
 import { escape as e } from '../document'
 import { roles, type Authority } from '../security/authority'
 import type { MemberRow } from './store'
-export const settingsNav = '<nav aria-label="Settings"><a href="/app/settings/members">Members</a> · <a href="/app/settings/credentials">Credentials</a> · <a href="/app/settings/archive">Archive</a> · <a href="/app/settings/privacy">Actor privacy</a> · <a href="/auth/settings/identity">Sign-in</a></nav>'
+export const settingsNav = '<nav aria-label="Settings"><a href="/app/settings/members">Members</a> · <a href="/app/settings/credentials">Credentials</a> · <a href="/app/settings/monitors">Monitors</a> · <a href="/app/settings/archive">Archive</a> · <a href="/app/settings/privacy">Actor privacy</a> · <a href="/auth/settings/identity">Sign-in</a></nav>'
 const field=(label:string,name:string,value='',extra='')=>`<label>${label}<input name="${name}" value="${e(value)}" ${extra}></label>`
 const choices=(current='',owner=true,inviting=false)=>`<label>Product role<select name="role">${roles.filter(role=>(!inviting || role!=='owner') && (owner || !['owner','admin'].includes(role))).map(role=>`<option${role===current?' selected':''}>${e(role)}</option>`).join('')}</select></label>`
 const scopeFields=(scope?:MemberRow['scope'])=>`${field('Services (comma separated; * for all)','services',scope?.services.join(', ')??'')}${field('Environments (comma separated)','environments',scope?.environments.join(', ')??'')}${field('Teams (comma separated)','teams',scope?.teams.join(', ')??'')}`
