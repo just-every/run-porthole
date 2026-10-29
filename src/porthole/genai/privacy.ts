@@ -13,13 +13,15 @@ const metadata = new Set([
 const protectedKey = (key:string) => /^(?:gen_ai|llm|openai|anthropic)\./i.test(key) && !metadata.has(key)
 const contentKey = (key:string) => /^(?:prompt|completion|messages|tool_arguments|tool_result|input_messages|output_messages)$/i.test(key)
 const scalar = (v:unknown):boolean => typeof v==='string'||typeof v==='number'||typeof v==='boolean'
+const genaiEvent = (name:unknown):boolean => typeof name==='string'&&name.startsWith('gen_ai.')
 export function assertGenAIMetadata(value:unknown):void {
  function walk(value:unknown,genai=false):void {
   if(!value||typeof value!=='object')return
   if(Array.isArray(value)){for(const entry of value)walk(entry,genai);return}
   const row=value as Record<string,unknown>
   const attrs=Array.isArray(row.attributes)?row.attributes as Record<string,unknown>[]:[]
-  const marked=genai||attrs.some(a=>typeof a.key==='string'&&/^(?:gen_ai|llm|porthole\.gen_ai)\./.test(a.key))
+  // GenAI message events identify content even without optional provider attributes.
+  const marked=genai||genaiEvent(row.eventName)||genaiEvent(row.name)||attrs.some(a=>typeof a.key==='string'&&/^(?:gen_ai|llm|porthole\.gen_ai)\./.test(a.key))
   if(typeof row.key==='string'&&(protectedKey(row.key)||marked&&contentKey(row.key)))invalid('genai_content_not_authorized')
   if(typeof row.key==='string'&&metadata.has(row.key)){
    const v=row.value as Record<string,unknown>|undefined
