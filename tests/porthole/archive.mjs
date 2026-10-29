@@ -924,3 +924,39 @@ async function run(source) {
   await run(source)
  } finally {await rm(scratch,{recursive:true,force:true})}
 }
+
+/** Host definitions and evidence survive transfer without restoring sources,
+ * pending authority, collector credentials or active monitor evaluation. */
+export async function hostHeartbeatArchiveJourney({origin,freshOwner,withEmptyDestination,monitorId}) {
+ const cookie=await freshOwner(),source=await savedExport(origin,cookie,await post(origin,cookie,api+'/exports',{}))
+ const sourceHistory=source.rows.filter(row=>row.table==='porthole_host_monitor_evaluations'&&row.row.object_id===monitorId)
+ assert.ok(sourceHistory.some(row=>JSON.parse(row.row.evidence).status==='Firing'))
+ assert.ok(sourceHistory.some(row=>JSON.parse(row.row.evidence).status==='Recovering'))
+ assert.ok(sourceHistory.some(row=>JSON.parse(row.row.evidence).status==='Healthy'))
+ assert.ok(sourceHistory.some(row=>JSON.parse(row.row.evidence).sourceState==='source_unavailable'))
+ const versions=source.rows.filter(row=>row.table==='porthole_host_monitor_versions'&&row.row.object_id===monitorId)
+ assert.equal(versions.length,2)
+ const inert=source.rows.filter(row=>row.table==='porthole_archive_health_history'&&String(row.row.table_name).startsWith('porthole_host_'))
+ assert.ok(inert.some(row=>row.row.table_name==='porthole_host_heartbeats'))
+ assert.ok(inert.some(row=>row.row.table_name==='porthole_host_monitor_state'))
+ await withEmptyDestination(async destination=>{
+  const fresh=await destination.freshOwner(),job=await value(await post(destination.origin,fresh,api+'/restores',{manifest:source.manifest}),201)
+  for(const chunk of source.chunks)await value(await post(destination.origin,fresh,`${api}/restores/${job.id}/chunks`,{chunk}))
+  await value(await post(destination.origin,fresh,`${api}/restores/${job.id}/commit`,{confirm:source.manifest.rootHash}))
+  const getMonitors=async()=>value(await get(destination.origin,fresh,'/api/porthole/v1/monitors'))
+  const monitor=(await getMonitors()).monitors.find(row=>row.id===monitorId)
+  assert.equal(monitor.state,'quarantined');assert.equal(monitor.versions.length,2)
+  assert.deepEqual(monitor.history.map(row=>row.id).sort(),sourceHistory.map(row=>row.row.id).sort())
+  for(const table of ['porthole_host_sources','porthole_host_heartbeats','porthole_host_monitor_state','porthole_credentials','porthole_health_notices'])assert.equal((await destination.sql(`SELECT COUNT(*) AS n FROM ${table}`))[0].n,0,table+' stays inactive')
+  await value(await post(destination.origin,fresh,'/api/porthole/v1/objects/activate',{id:monitorId,revision:2,confirm:'activate'}),409)
+  await value(await post(destination.origin,fresh,'/api/porthole/v1/monitors/evaluate',{id:monitorId,revision:2}),409)
+  const tick=await value(await post(destination.origin,fresh,'/api/v1/health/tick',{}))
+  assert.equal(tick.state.status,'Unknown')
+  assert.equal((await destination.sql('SELECT COUNT(*) AS n FROM porthole_host_monitor_evaluations'))[0].n,source.rows.filter(row=>row.table==='porthole_host_monitor_evaluations').length)
+  await destination.restartWorker()
+  assert.equal((await getMonitors()).monitors.find(row=>row.id===monitorId).state,'quarantined')
+  const again=await savedExport(destination.origin,fresh,await post(destination.origin,fresh,api+'/exports',{}))
+  assert.deepEqual(again.rows.filter(row=>row.table==='porthole_host_monitor_evaluations').map(row=>row.row).sort((a,b)=>a.id.localeCompare(b.id)),source.rows.filter(row=>row.table==='porthole_host_monitor_evaluations').map(row=>row.row).sort((a,b)=>a.id.localeCompare(b.id)))
+  assert.deepEqual(again.rows.filter(row=>row.table==='porthole_archive_health_history'&&String(row.row.table_name).startsWith('porthole_host_')),inert,'inert source and pending history re-exports exactly')
+ })
+}
