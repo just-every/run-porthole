@@ -298,7 +298,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "92f6c6b7e0eea1449a147f08003a7778b6ca7325f776f80ffb5b1fc25d34b82d",
+      "sha256": "405320fdea1994be81bf27191d3b425b2c36cff5363334fd4090a5e9dc9ed8a1",
       "executable": false
     },
     "AGENTS.md": {
@@ -346,7 +346,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "df28c4f3e03d2a5e720946c4fa4394ab86dbf57eea0b244cf3b9eeaa55a43d81",
+      "sha256": "6d219fc63a084b5d1557b4b95b887bc3204c016cd1618b74ea5613ec676e4e93",
       "executable": false
     },
     "DEMO.md": {
@@ -378,7 +378,7 @@
       "executable": false
     },
     "docs/CLAIMS.md": {
-      "sha256": "d4f6167ca770718de6190a5aba317693b78dfd294468f3b88ca86e3f1169bdd7",
+      "sha256": "76a4d3d189d4f54aeb770ff6e1343a228b86e4a8031e9d9776096fbcd9e182b3",
       "executable": false
     },
     "docs/dashboard-widgets.md": {
@@ -4974,7 +4974,7 @@
       "executable": false
     },
     "tests/porthole/native-archive.mjs": {
-      "sha256": "8476fcec061a72be1e04f3ac23a009250c546be2900872b77586534f339a6f43",
+      "sha256": "53190c9d5ba4ad4b414a6779f2fc06bea7910ce878b0620702657fafea264986",
       "executable": false
     },
     "tests/porthole/notebooks.mjs": {

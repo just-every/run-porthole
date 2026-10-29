@@ -41,7 +41,7 @@
 
 These are contract statuses, not a claim that a partial or missing capability is complete. Read the [product contract](/docs/contract) for requirements, named journeys and remaining work.
 
-9 done, 16 partial, 72 missing; 97 total.
+10 done, 16 partial, 71 missing; 97 total.
 
 | Clause | Capability | Status |
 | --- | --- | --- |
@@ -51,7 +51,7 @@ These are contract statuses, not a claim that a partial or missing capability is
 | PORT-033 | Durable audit with private contents | done |
 | PORT-034 | Complete inactive archive and restore | done |
 | PORT-096 | Mixed-subject erasure, analytical custody and retention expiry | missing |
-| PORT-097 | Erasing a log subject after a native backup erases every batch holding that subject, including backed-up custody, and never fails with history_immutable | missing |
+| PORT-097 | Erasing a log subject after a native backup erases every batch holding that subject, including backed-up custody, and never fails with history_immutable | done |
 | PORT-035 | Retention and operator-directed erasure | partial |
 | PORT-036 | Agents are scoped credentials: identity, grants and custody | done |
 | PORT-092 | Agents are scoped credentials: jobs, untrusted data and secret exclusion | partial |
