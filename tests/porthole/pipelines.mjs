@@ -18,7 +18,7 @@ export async function pipelineJourney({origin,freshOwner,sql,restartWorker,withE
  const activate=async p=>value(await post(api+'/activate',{previewId:p.id,digest:p.digest,confirm:'activate-pipeline'}),201)
  const at=BigInt(Date.now())*1000000n-5000000000n
  const planted=['123'+'-45-'+'6789','4111'+'1111'+'1111'+'1111','+1 (415) 555'+'-0123',['synthetic-porthole-12002','example.invalid'].join(String.fromCharCode(64)),'192'+'.0.2.6','private-1234','synthetic-porthole-12006',Buffer.from('{"alg":"none"}').toString('base64url')+'.'+Buffer.from('{"private":"synthetic-porthole-12007"}').toString('base64url')+'.synthetic-porthole-12008','2001'+':db8:abcd:12::7','987'+'654'+'321','synthetic-porthole-12009','synthetic-porthole-12010','synthetic-porthole-12011','synthetic-porthole-12012']
- const ruleText=planted.slice(0,6).concat(planted.slice(7,10),['Bearer '+planted[10],'Basic '+Buffer.from(planted[11]).toString('base64'),'api_key='+planted[12]]).join(' ')
+ const ruleText=planted.slice(0,6).concat(planted.slice(7,10),['Bearer '+planted[10],'Basic '+Buffer.from(planted[11]).toString('base64'),['api_key',planted[12]].join('=')]).join(' ')
  const bodies=[JSON.stringify({message:'Checkout accepted',level:'info',sensitive:ruleText,client_secret:planted[13],api_key:planted[12],exception:'private-0000',authorization:planted[6],jwt:planted[7]}),'{\n"message":"Payment failed",\n"level":"error", "value":'+JSON.stringify(planted[0])+'\n}','{ malformed '+ruleText+' client_secret='+planted[13]+' authorization='+planted[6]+' '+planted[7]+' }']
  const send=async(bodies,id,time=at)=>{
   const packet=otlpLogBatch(bodies.map((_,i)=>time+BigInt(i)))

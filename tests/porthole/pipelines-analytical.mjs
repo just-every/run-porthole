@@ -17,19 +17,20 @@ export async function pipelineAnalyticalJourney() {
    const credential='synthetic-porthole-12101'
    const planted=['123'+'-45-'+'6789','4111'+'1111'+'1111'+'1111','(415) 555'+'-0123',['synthetic-porthole-12102','example.invalid'].join(String.fromCharCode(64)),'192'+'.0.2.17','2001'+':db8:abcd:12::8','Bearer '+credential,Buffer.from('{"alg":"none"}').toString('base64url')+'.'+Buffer.from('{"private":"synthetic-porthole-12103"}').toString('base64url')+'.synthetic-porthole-12104'],at=BigInt(Date.now())*1000000n
    const packet={resourceLogs:[{resource:{attributes:[{key:'service.name',value:{stringValue:d.service}},{key:'deployment.environment.name',value:{stringValue:d.environment}},{key:'team.name',value:{stringValue:d.team}}]},scopeLogs:[{logRecords:[...planted.map((secret,i)=>({timeUnixNano:String(at+BigInt(i)),body:{stringValue:JSON.stringify({message:'Checkout privacy '+secret,level:'info',api_key:credential,custom:'private-1234 private-0000'})}})),{timeUnixNano:String(at+BigInt(planted.length)),body:{stringValue:JSON.stringify({message:'Checkout debug',level:'debug'})}}]}]}]}
+   const maskedValues=planted.concat(credential).concat('private-1234')
    const ingest=()=>call('/v1/logs',{method:'POST',headers:{authorization:'Bearer '+source.secret,'content-type':'application/json'},body:JSON.stringify(packet)})
    assert.equal((await ingest()).status,200)
-   const drained=await (await post('/api/porthole/v1/ingest/drain',{})).json();assert.equal(drained.analytical.complete,true)
+   const drained=await (await post('/api/porthole/v1/ingest/drain',{})).json();assert.equal(drained.analytical.complete,true,JSON.stringify(drained.analytical))
    for(const path of ['/api/porthole/v1/ingest/records','/api/porthole/v1/ingest/archive']){
     const result=await value(await call(path+'?signal=logs&service='+d.service,{headers:{cookie}}))
     assert.equal(result.records.length,planted.length);assert.equal(result.analytical.role,'primary')
-    for(const secret of [...planted,credential,'private-1234'])assert.ok(!JSON.stringify(result).includes(secret),'query exposes only sanitized analytical data')
+    for(const secret of maskedValues)assert.ok(!JSON.stringify(result).includes(secret),'query exposes only sanitized analytical data')
    }
    for(const role of ['primary','standby']){
     const rows=await estate.inspect(role)
     assert.equal(rows.length,planted.length,'both physical analytical replicas receive accepted records')
     assert.ok(JSON.stringify(rows).includes('private-0000'),'approved custom exception survives both analytical copies')
-    for(const secret of [...planted,credential,'private-1234'])assert.ok(!JSON.stringify(rows).includes(secret),'no planted values in analytical durable payload')
+    for(const secret of maskedValues)assert.ok(!JSON.stringify(rows).includes(secret),'no planted values in analytical durable payload')
    }
    const totals=await (await post('/api/porthole/v1/pipelines/metrics',{definition:d,from:String(at),through:String(at+10n)})).json()
    assert.equal(totals.groups[0].count,planted.length+1,'analytical exclusion keeps configured pre-exclusion metric totals')

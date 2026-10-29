@@ -27,6 +27,12 @@ GET `/api/porthole/v1/pipelines/catalog` publishes the native examples and
 bounds. Native processors include JSON, key-value and bounded named grok captures,
 enrichment, attribute remap, status remap, category matches, versioned lookup,
 URL parsing, a bounded user-agent parser, arithmetic and logical routing.
+Arithmetic supports the original binary operation and a bounded `expression`
+with numeric literals, attribute references, unary signs, parentheses and
+standard multiplication and division precedence. Invalid syntax refuses during
+preview; missing or nonnumeric operands and division by zero diagnose the
+record without removing it. The native catalog also publishes the sensitive
+rule families and their activation and exception boundaries.
 This native subset is not a claim of complete Datadog processor equivalence.
 Processor errors retain sanitized input and diagnostic codes. Errors, critical
 statuses, severe source logs and malformed records are protected from exclusion.

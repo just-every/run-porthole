@@ -394,7 +394,7 @@
       "executable": false
     },
     "docs/log-pipelines.md": {
-      "sha256": "a9ed68de61eb42aedf478a5ba6cacbcbfb9e6815cf3357384550aedbff5ad2af",
+      "sha256": "c6c98dd461a3ef6f3849834e8fc23bdcb5179414088f9547ac294889e7815ee4",
       "executable": false
     },
     "docs/LOOK.md": {
@@ -5022,7 +5022,7 @@
       "executable": false
     },
     "tests/porthole/pipelines-analytical.mjs": {
-      "sha256": "af4fe86778b5582bc321fa48eded1ea55f335c4ad3e52932048a663084b5fa40",
+      "sha256": "04a3406dec27104f874ded6a9fb4287e15db5f3d668dbdd340a269c2f193f5bd",
       "executable": false
     },
     "tests/porthole/pipelines-browser.mjs": {
@@ -5046,7 +5046,7 @@
       "executable": false
     },
     "tests/porthole/pipelines.mjs": {
-      "sha256": "3b1f207176dd2c4b80d7ac55d8fb28cdf150d3e85dae03c358ad17561dbdb713",
+      "sha256": "53d4d4780a158a739e83184f36026b5aeb4c61a56e43a073ff374bb14bb6596f",
       "executable": false
     },
     "tests/porthole/polyglot/estate.mjs": {
