@@ -121,7 +121,8 @@ export function validateHostEvidence(value:unknown):HostEvidence {
  if(Object.keys(row).sort().join(',')!==keys.sort().join(',')||row.type!=='host-heartbeat'||!hostStatuses.includes(row.status as never)||typeof row.hostId!=='string'||!/^[A-Za-z0-9][A-Za-z0-9._:-]{0,119}$/.test(row.hostId)||row.telemetryCoverage!=='unestablished'||row.delivery!=='not_requested')return bad()
  for(const key of ['evaluatedAt','transitionAt'])if(!Number.isSafeInteger(row[key])||Number(row[key])<0)return bad()
  for(const key of ['lastHeartbeatAt','conditionSince','recoverySince'])if(row[key]!==null&&(!Number.isSafeInteger(row[key])||Number(row[key])<0))return bad()
- if(row.episode!==null&&(typeof row.episode!=='string'||!/^[a-f0-9-]{36}$/.test(row.episode))||typeof row.reason!=='string'||typeof row.sourceState!=='string'||!Array.isArray(row.observations)||row.observations.length>10000)return bad()
+ // The evaluator retains one extra observation to prove bounded overflow.
+ if(row.episode!==null&&(typeof row.episode!=='string'||!/^[a-f0-9-]{36}$/.test(row.episode))||typeof row.reason!=='string'||typeof row.sourceState!=='string'||!Array.isArray(row.observations)||row.observations.length>10001)return bad()
  try{const definition=hostDefinition(row.definition as Record<string,unknown>);if(!definition.hosts.includes(row.hostId))return bad()}catch{return bad()}
  if(row.sources!==undefined) {
   if(!Array.isArray(row.sources)||row.sources.length>1000)return bad()
