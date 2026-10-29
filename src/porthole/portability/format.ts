@@ -1,4 +1,6 @@
 import {assertGenAIMetadata} from '../genai/privacy'
+import {assertGenAIWire} from '../genai/wire'
+import type {Signal} from '../ingest/model'
 import {publicationRow} from '../notebooks/publication-model'
 import {notebookRow} from '../notebooks/model'
 import {normalizeExploration} from '../explore/normalize'
@@ -145,6 +147,7 @@ export async function validateRow(payload: PortableRow, state: Validation): Prom
  } else if(item.table==='porthole_ingest_batches') {
   required('id','source_id','identity','protocol'); if(!str(row.wire_base64))bad();try{atob(String(row.wire_base64))}catch{return bad()}; if(!['traces','metrics','logs','profiles'].includes(String(row.signal))||!hex(row.digest)||!integer(row.accepted_at)||!integer(row.byte_count)||!integer(row.record_count)||!integer(row.sequence,1)||row.completion_sequence!==null&&!integer(row.completion_sequence,1)||!['pending','complete'].includes(String(row.state))||row.completed_at!==null&&!integer(row.completed_at))bad()
   const records=json(row.records);if(!Array.isArray(records)||records.length!==row.record_count)bad();try{assertGenAIMetadata(records)}catch{fail('archive_genai_content_not_authorized',422)}
+  try{await assertGenAIWire(String(row.wire_base64),String(row.protocol),row.signal as Signal)}catch{fail('archive_genai_content_not_authorized',422)}
   if(row.state==='pending'&&(row.completed_at!==null||row.completion_sequence!==null)||row.state==='complete'&&(!integer(row.completed_at)||!integer(row.completion_sequence,1)))bad()
   for(const raw of records as unknown[]) {
    if(!object(raw))return bad()

@@ -5,9 +5,11 @@ import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {execFile} from 'node:child_process'
 import {promisify} from 'node:util'
+import {gzipSync} from 'node:zlib'
 import {verifyDirectory} from '../../scripts/porthole/archive.mjs'
 import {browserProof} from './audit.mjs'
 import {literal} from './fixture.mjs'
+import {otlpProtoBatch} from './ingest.mjs'
 const execute=promisify(execFile),api='/api/porthole/v1/archive',hash=value=>createHash('sha256').update(value).digest('hex')
 const post=(origin,cookie,path,data)=>fetch(origin+path,{method:'POST',redirect:'manual',headers:{origin,cookie,'content-type':'application/json'},body:JSON.stringify(data)})
 const get=(origin,cookie,path)=>fetch(origin+path,{headers:{cookie}})
@@ -948,6 +950,31 @@ export async function genaiArchiveJourney({origin,cookie,withEmptyDestination,tr
    await value(response)
   }
   assert.equal((await destination.sql("SELECT COUNT(*) AS n FROM porthole_archive_rows WHERE instr(payload,'"+marker+"')>0"))[0].n,0,'refused model content never enters archive staging')
+  // Original source wire is a separate custody copy. A normalized row without
+  // content cannot authorize an older content-bearing OTLP envelope.
+  for(const encoding of ['json','gzip-json','protobuf','gzip-protobuf']){
+   const unsafeWire=structuredClone(saved),wireChunk=unsafeWire.chunks.find(chunk=>chunk.rows.some(row=>row.table==='porthole_ingest_batches'))
+   const batch=wireChunk.rows.find(row=>row.table==='porthole_ingest_batches')
+   const record=JSON.parse(batch.row.records).find(row=>row.payload.record.attributes?.some(attr=>attr.key==='gen_ai.operation.name'))
+   assert.ok(record,'use the actual stock-instrumented provider span')
+   const packet={resourceSpans:[{resource:record.payload.resource,scopeSpans:[{scope:record.payload.scope,spans:[record.payload.record]}]}]}
+   record.payload.record.attributes.push({key:'gen_ai.input.messages',value:{stringValue:marker}})
+   // The binary fixture is an admission probe, not provider qualification.
+   const raw=encoding.endsWith('protobuf')?otlpProtoBatch('traces',BigInt(record.eventTimeNs),[['gen_ai.input.messages',marker]]):Buffer.from(JSON.stringify(packet))
+   const wire=encoding.startsWith('gzip-')?gzipSync(raw):raw
+   batch.row.wire_base64=wire.toString('base64')
+   let chain=unsafeWire.chunks[0].previousHash
+   for(const chunk of unsafeWire.chunks){chunk.previousHash=chain;chunk.digest=hash(JSON.stringify({version:chunk.version,index:chunk.index,previousHash:chunk.previousHash,rows:chunk.rows}));chain=chunk.digest}
+   unsafeWire.manifest.rootHash=chain
+   const denied=await value(await post(destination.origin,acting,api+'/restores',{manifest:unsafeWire.manifest}),201)
+   for(const chunk of unsafeWire.chunks){
+    const response=await post(destination.origin,acting,`${api}/restores/${denied.id}/chunks`,{chunk})
+    if(chunk.index===wireChunk.index){assert.equal(response.status,422,'GenAI original wire refuses before archive staging');assert.equal((await response.json()).error,'archive_genai_content_not_authorized');break}
+    await value(response)
+   }
+   assert.equal((await destination.sql("SELECT COUNT(*) AS n FROM porthole_archive_rows WHERE json_extract(payload,'$.row.wire_base64')="+literal(batch.row.wire_base64)))[0].n,0,'refused wire never enters durable staging')
+   assert.equal((await destination.sql('SELECT COUNT(*) AS n FROM porthole_archive_chunks WHERE instr(packet,'+literal(batch.row.wire_base64)+')>0'))[0].n,0,'refused wire never enters a durable chunk')
+  }
   const start=await value(await post(destination.origin,acting,api+'/restores',{manifest:saved.manifest}),201)
   for(const chunk of saved.chunks)await value(await post(destination.origin,acting,`${api}/restores/${start.id}/chunks`,{chunk}))
   await value(await post(destination.origin,acting,`${api}/restores/${start.id}/commit`,{confirm:saved.manifest.rootHash}))
@@ -958,6 +985,22 @@ export async function genaiArchiveJourney({origin,cookie,withEmptyDestination,tr
   assert.equal((await get(destination.origin,cookie,'/api/porthole/v1/genai?trace='+traceId)).status,401)
   const again=await savedExport(destination.origin,acting,await post(destination.origin,acting,api+'/exports',{}))
   assert.ok(!JSON.stringify(again).includes(marker),'independent re-export remains content free')
+ })
+ await withEmptyDestination(async destination=>{
+  const acting=await destination.freshOwner(),compressed=structuredClone(saved)
+  for(const chunk of compressed.chunks)for(const {table,row}of chunk.rows)if(table==='porthole_ingest_batches'){
+   const records=JSON.parse(row.records)
+   const packet={resourceSpans:records.map(({payload})=>({resource:payload.resource,scopeSpans:[{scope:payload.scope,spans:[payload.record]}]}))}
+   row.wire_base64=gzipSync(Buffer.from(JSON.stringify(packet))).toString('base64')
+  }
+  let chain=compressed.chunks[0].previousHash
+  for(const chunk of compressed.chunks){chunk.previousHash=chain;chunk.digest=hash(JSON.stringify({version:chunk.version,index:chunk.index,previousHash:chunk.previousHash,rows:chunk.rows}));chain=chunk.digest}
+  compressed.manifest.rootHash=chain
+  const start=await value(await post(destination.origin,acting,api+'/restores',{manifest:compressed.manifest}),201)
+  for(const chunk of compressed.chunks)await value(await post(destination.origin,acting,`${api}/restores/${start.id}/chunks`,{chunk}))
+  await value(await post(destination.origin,acting,`${api}/restores/${start.id}/commit`,{confirm:compressed.manifest.rootHash}))
+  assert.deepEqual(await value(await get(destination.origin,acting,'/api/porthole/v1/genai?trace='+traceId)),expected,'valid compressed metadata remains restorable')
+  assert.equal((await destination.sql('SELECT paused FROM porthole_ingest_control'))[0].paused,1)
  })
  console.log('genaiArchiveJourney passed: complete metadata-only wire and retained custody, independent inactive restore and re-export, no inherited sessions or credentials')
 }
