@@ -104,6 +104,15 @@
         "PORTHOLE_SLO_ONLY=1 pnpm run test:runtime",
         "PORTHOLE_NOTEBOOKS_ONLY=1 pnpm run test:runtime"
       ]
+    },
+    {
+      "name": "native-erasure",
+      "browser": true,
+      "hosted": false,
+      "commands": [
+        "pnpm run build",
+        "PORTHOLE_NATIVE_ERASURE_ONLY=1 node tests/porthole/native-archive.mjs"
+      ]
     }
   ],
   "nightly": []
