@@ -346,7 +346,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "b9224ae3e3b1e9df022de57b8641cd37a6490ea1a81bc1f928167c6ecf802cb0",
+      "sha256": "0968aa4412cae20d936c9d81eef1376f0e23eff60a734ef3f2597e4de8d3d5ae",
       "executable": false
     },
     "DEMO.md": {
@@ -1910,7 +1910,7 @@
       "executable": false
     },
     "scripts/porthole/contract-docs.mjs": {
-      "sha256": "68234f0c2c8ba4ee14c1b18a03a70491d8d2bf19ea752f0e769f1f5376b1c35e",
+      "sha256": "c213922239a12d6fe95e09f25d2603c2f77dc84a5f9bb2fe619e1fb7b341005b",
       "executable": false
     },
     "scripts/porthole/export-parquet.py": {
