@@ -59,8 +59,8 @@ export async function chunkInput(value: unknown, index: number, previousHash: st
  if(await digest(JSON.stringify(base))!==claimed) fail('archive_integrity_failed',422)
  return value as unknown as Chunk
 }
-function json(value: unknown): unknown {
- if(!str(value)) return bad()
+function json(value: unknown, maxLength=2097152): unknown {
+ if(typeof value!=='string'||value.length>maxLength) return bad()
  try { return JSON.parse(value) } catch { return bad() }
 }
 export async function validateRow(payload: PortableRow, state: Validation): Promise<void> {
@@ -114,7 +114,8 @@ export async function validateRow(payload: PortableRow, state: Validation): Prom
   parseScope(json(row.scope));hostDefinition(json(row.body) as Record<string,unknown>)
  } else if(item.table==='porthole_host_monitor_evaluations') {
   if(!uuid(row.id)||!uuid(row.object_id)||!integer(row.revision,1)||!str(row.host_id)||!integer(row.evaluated_at))bad()
-  const evidence=validateHostEvidence(json(row.evidence))
+  // Bounded host observations and source snapshots can exceed a general JSON field.
+  const evidence=validateHostEvidence(json(row.evidence,16*1024*1024))
   if(evidence.hostId!==row.host_id||evidence.evaluatedAt!==row.evaluated_at)bad()
  } else if(item.table==='porthole_objects') {
   if(!uuid(row.id) || !['monitor','repair'].includes(String(row.kind)) || !str(row.name) || !integer(row.revision,1) || !integer(row.created_at) || !integer(row.updated_at) || !['active','inactive','approved','archived','quarantined','pending','paused','draft'].includes(String(row.state))) bad()

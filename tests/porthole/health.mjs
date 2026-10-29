@@ -890,6 +890,24 @@ export async function hostHeartbeatJourney({origin,freshOwner,signIn,restartWork
   const countedOutcome=tick.state.components.find(row=>row.component==='monitor-evaluation').evidence.monitors.find(row=>row.monitorId===counted.id)
   assert.equal(countedOutcome.status,'Unknown');assert.equal(countedOutcome.observedCount,null)
   assert.equal(tick.state.status,'Unknown','heartbeat presence cannot establish overall health')
+  // A long recovery window can exceed the evaluation bound with ordinary
+  // one-second collector heartbeats. Keep the overflow evidence portable.
+  const dense=await post('/api/porthole/v1/objects',{kind:'monitor',name:'Long heartbeat recovery',scope,body:{...body,hosts:[hostname()],recoverySeconds:10800}},201)
+  await post('/api/porthole/v1/objects/activate',{id:dense.id,revision:1,confirm:'activate'})
+  const denseStart=t+28000
+  await withPinnedClock(denseStart,async setClock=>{
+   await start()
+   for(let index=1;index<=10000;index++) {
+    await setClock(denseStart+index*1000)
+    const receipt=await beat();assert.equal(Date.parse(receipt.observedAt),denseStart+index*1000)
+    if(index%2000===0)console.log('Host heartbeat: dense accepted observations',index+1)
+   }
+   const result=await post('/api/porthole/v1/monitors/evaluate',{id:dense.id,revision:1})
+   assert.equal(result.status,'Unknown')
+   assert.equal(result.groups[0].sourceState,'incomplete')
+   assert.equal(result.groups[0].observations.length,10001)
+  })
+  await stop()
   // Revocation rejects the real process on its next authenticated write and
   // makes the registered host Unknown rather than Firing or recovered.
   const credentials=await (await fetch(origin+'/app/settings/credentials',{headers:{cookie}})).text()
@@ -898,10 +916,10 @@ export async function hostHeartbeatJourney({origin,freshOwner,signIn,restartWork
   await send({...heartbeat,hostId:hostname()},401)
   const revoked=await evaluate('Unknown',t+30000);assert.equal(revoked.sourceState,'source_unavailable')
   assert.equal(revoked.sources[0].authorized,false);assert.equal(revoked.sources[0].credentialRevision,mint.credential.revision+1)
-  assert.equal((await count())[0].n,previousCount+1)
+  assert.equal((await count())[0].n,previousCount+10002)
   console.log('Host heartbeat: inactive archive transfer')
   const {hostHeartbeatArchiveJourney}=await import('./archive.mjs')
-  await hostHeartbeatArchiveJourney({origin,freshOwner,withEmptyDestination,monitorId:monitor.id})
+  await hostHeartbeatArchiveJourney({origin,freshOwner,withEmptyDestination,monitorId:monitor.id,overflowMonitorId:dense.id})
   console.log('Host heartbeat journey passed: real process loss and return, exact per-host windows, pending restart, current authority, storage failure, native configuration and inactive archive')
  } finally {await stop()}
 }

@@ -929,8 +929,11 @@ async function run(source) {
 
 /** Host definitions and evidence survive transfer without restoring sources,
  * pending authority, collector credentials or active monitor evaluation. */
-export async function hostHeartbeatArchiveJourney({origin,freshOwner,withEmptyDestination,monitorId}) {
+export async function hostHeartbeatArchiveJourney({origin,freshOwner,withEmptyDestination,monitorId,overflowMonitorId}) {
  const cookie=await freshOwner(),source=await savedExport(origin,cookie,await post(origin,cookie,api+'/exports',{}))
+ const overflow=source.rows.find(row=>row.table==='porthole_host_monitor_evaluations'&&row.row.object_id===overflowMonitorId)
+ assert.ok(overflow,'bounded evaluation overflow is exported')
+ assert.equal(JSON.parse(overflow.row.evidence).observations.length,10001)
  const sourceHistory=source.rows.filter(row=>row.table==='porthole_host_monitor_evaluations'&&row.row.object_id===monitorId)
  assert.ok(sourceHistory.some(row=>JSON.parse(row.row.evidence).status==='Firing'))
  assert.ok(sourceHistory.some(row=>JSON.parse(row.row.evidence).status==='Recovering'))
@@ -950,6 +953,10 @@ export async function hostHeartbeatArchiveJourney({origin,freshOwner,withEmptyDe
   const getMonitors=async()=>value(await get(destination.origin,fresh,'/api/porthole/v1/monitors'))
   const monitor=(await getMonitors()).monitors.find(row=>row.id===monitorId)
   assert.equal(monitor.state,'quarantined');assert.equal(monitor.versions.length,2)
+  const restoredOverflow=(await getMonitors()).monitors.find(row=>row.id===overflowMonitorId)
+  assert.equal(restoredOverflow.state,'quarantined')
+  assert.deepEqual(restoredOverflow.history[0].evidence,JSON.parse(overflow.row.evidence),'overflow observations restore exactly without live authority')
+
   assert.deepEqual(monitor.history.map(row=>row.id).sort(),sourceHistory.map(row=>row.row.id).sort())
   for(const historical of sourceHistory)assert.deepEqual(monitor.history.find(row=>row.id===historical.row.id).evidence,JSON.parse(historical.row.evidence),'restore retains exact source generations and observations')
   for(const table of ['porthole_host_sources','porthole_host_heartbeats','porthole_host_monitor_state','porthole_credentials','porthole_health_notices'])assert.equal((await destination.sql(`SELECT COUNT(*) AS n FROM ${table}`))[0].n,0,table+' stays inactive')
