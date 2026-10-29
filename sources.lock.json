@@ -4454,7 +4454,7 @@
       "executable": false
     },
     "src/porthole/objects/http.ts": {
-      "sha256": "e4f3291ecf45b8605e480247311708ca6f94d3e18cf037c88b263a940d70134c",
+      "sha256": "756dcb2d145c51d8ca16f5cd8bf0b2fb4156927663d06c1281a2a0d4fe3d50eb",
       "executable": false
     },
     "src/porthole/objects/page.ts": {
@@ -4946,7 +4946,7 @@
       "executable": false
     },
     "tests/porthole/health.mjs": {
-      "sha256": "33db2236f1df490c273a9e257b0af16c48dc5553b9ae88df1ab237783632d7f3",
+      "sha256": "ac32520cbf5e3aee8a62ae271aa0edeba0466bd55ef7f09f8502cda6f6223599",
       "executable": false
     },
     "tests/porthole/ingest.mjs": {
