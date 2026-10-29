@@ -138,7 +138,12 @@ Monitors at `/app/monitors` show per-host last recorded evaluations and their
 revision history. The native API at `/api/porthole/v1/monitors` returns the same
 private evidence. POST to `/api/porthole/v1/monitors/evaluate` supplies an active
 monitor ID and its exact revision. Evidence retains the accepted observation
-references, timestamps, original rule and pending or recovery boundaries.
+references, timestamps, original rule and pending or recovery boundaries. New
+evaluations also retain each scoped source identity, receipt bounds, credential
+and membership revisions, native account generation, expiry and whether that
+source was authorized at evaluation time. Later rescoping or revocation cannot
+rewrite that historical decision. These snapshots contain no credential secret
+or broader source grants; they never supply live authority after restore.
 Never-registered hosts and revoked or unavailable sources remain Unknown;
 unavailable heartbeat storage cannot be interpreted as a missed heartbeat.
 Bounded observation coverage is explicit. A fresh heartbeat establishes neither
