@@ -1,3 +1,4 @@
+import {localAgentPolicy,refusal} from '../agent-door/local-policy.mjs'
 import assert from 'node:assert/strict'
 import {spawn} from 'node:child_process'
 import {randomUUID} from 'node:crypto'
@@ -59,14 +60,15 @@ export async function apiJourney({origin,cookie,freshOwner}) {
  const rows=pages.stdout.trim().split('\n').map(line=>JSON.parse(line)).flatMap(page=>page.objects)
  assert.deepEqual(new Set(rows.map(row=>row.id)),new Set([first.value.id,second.value.id,concurrentValues[0].id]))
  assert.ok(rows.every(row=>row.scope.teams.includes('commerce-api')&&row.body.signal==='logs'))
- const mcp=async(name,args={})=>fetch(origin+'/api/porthole/v1/mcp',{method:'POST',headers:{...auth,'content-type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:1,method:'tools/call',params:{name,arguments:args}})})
- const tool=await mcp('query_definitions',{collection:'monitors',limit:1})
+ await localAgentPolicy(origin,cookie)
+ const mcp=async(name,args={})=>fetch(origin+'/api/porthole/v1/mcp',{method:'POST',headers:{...auth,'content-type':'application/json','mcp-protocol-version':'2025-11-25'},body:JSON.stringify({jsonrpc:'2.0',id:1,method:'tools/call',params:{name,arguments:args}})})
+ const tool=await mcp('porthole.definitions.read',{collection:'monitors',limit:1})
  assert.equal(tool.status,200)
  const result=(await tool.json()).result.structuredContent
  assert.equal(result.objects.length,1);assert.ok(result.cursor)
- assert.equal((await mcp('query_definitions',{collection:'monitors',id:first.value.id})).status,200)
+ assert.equal((await mcp('porthole.definitions.read',{collection:'monitors',id:first.value.id})).status,200)
  assert.equal((await native(root,'POST',firstBody,{...auth,'idempotency-key':randomUUID()})).status,403,'native cookie cannot escalate bearer')
- assert.equal((await mcp('approval.create')).status,403)
+ assert.equal(refusal(await (await mcp('approval.create')).json()),'tool_not_found')
  const privateRows=(await (await native(root+'?limit=200')).json()).objects
  const foreign=privateRows.find(row=>row.scope.teams.includes('payments-api'))
  assert.equal((await read(root+'/'+foreign.id)).status,404)
@@ -81,7 +83,7 @@ export async function apiJourney({origin,cookie,freshOwner}) {
  assert.equal((await throttled.json()).details.status,429)
  assert.equal((await native('/app/settings/credentials/revoke','POST',{id:key.credential.id})).status,200)
  assert.equal((await read(root)).status,401)
- assert.equal((await mcp('query_definitions',{collection:'monitors'})).status,401)
+ assert.equal((await mcp('porthole.definitions.read',{collection:'monitors'})).status,401)
  assert.equal((await cli(['list','monitors','--all'],key.secret)).code,1)
  const archived=await native(root+'/'+second.value.id,'DELETE',undefined,{'if-match':`"${second.value.revision}"`,'idempotency-key':randomUUID()})
  assert.equal(archived.status,200);assert.equal((await archived.json()).state,'archived');assert.equal((await (await native(root+'/'+second.value.id)).json()).state,'archived')

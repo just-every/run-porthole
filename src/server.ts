@@ -1,3 +1,4 @@
+import { agentResponse } from './porthole/agents'
 import { withDemo } from './modules/demo/index.mjs'
 import { rejectedResponse } from './base/rejected-response'
 import start from '@tanstack/react-start/server-entry'
@@ -39,6 +40,8 @@ export default withDemo<Bindings, ExportedHandler<Bindings>>({
   async fetch(request, env, execution) {
     const asset = await staticAssetResponse(request, env)
     if (asset) return asset
+    const door=await agentResponse(request,runtimeBindings(env))
+    if(door)return rejectedResponse(request,door)
     const privateResponse = await capture(request, runtimeBindings(env), async audited => await authResponse(request, audited) ?? await portholeResponse(request, audited))
     if (privateResponse) return rejectedResponse(request, privateResponse)
     // The installed variant: the Lobby at / and the public claim state it reads.

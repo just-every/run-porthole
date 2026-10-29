@@ -1,3 +1,4 @@
+import type {ReadPrincipal} from '../security/agent-read'
 import type { Bindings } from '../../auth.server'
 import { AuthError } from '../../modules/operator-auth/index.mjs'
 import { CredentialLimit } from '../credentials/verify'
@@ -9,7 +10,7 @@ import { writeDefinition } from './write'
 import { openapi } from './openapi'
 
 const json=(value:unknown,status=200,headers:Record<string,string>={})=>Response.json(value,{status,headers:{...privateHeaders,...headers}})
-export async function apiResponse(request:Request,env:Bindings):Promise<Response|null> {
+export async function apiResponse(request:Request,env:Bindings,principal?:ReadPrincipal):Promise<Response|null> {
  const url=new URL(request.url),spec=url.pathname==='/api/porthole/v1/openapi.json'
  if(!spec && url.pathname!==configurationRoot && !url.pathname.startsWith(configurationRoot+'/'))return null
  const requestId=crypto.randomUUID()
@@ -26,10 +27,11 @@ export async function apiResponse(request:Request,env:Bindings):Promise<Response
    if([...url.searchParams].some(([key])=>!['limit','cursor'].includes(key)) || [...url.searchParams.keys()].some(key=>url.searchParams.getAll(key).length>1) || id && url.search)fail('invalid_query',400)
    const limit=Number(url.searchParams.get('limit')??50),cursor=url.searchParams.get('cursor')??''
    if(!Number.isSafeInteger(limit) || limit<1 || limit>200 || cursor && !/^[a-f0-9-]{36}$/.test(cursor))fail('invalid_pagination',400)
-   const result=await readDefinitions(request,env,{kind,id,limit,cursor}),headers={'x-porthole-actor':result.actorRef,'x-porthole-actor-revision':String(result.actorRevision)}
+   const result=await readDefinitions(request,env,{kind,id,limit,cursor},principal),headers={'x-porthole-actor':result.actorRef,'x-porthole-actor-revision':String(result.actorRevision)}
    if(id)return json(representation(result.rows[0]),200,{...headers,etag:entityTag(result.rows[0].revision),'x-porthole-entity':id})
    return json({objects:result.rows.slice(0,limit).map(representation),cursor:result.rows.length>limit?result.rows[limit-1].id:null},200,headers)
   }
+  if(principal)fail('tool_forbidden')
   if(url.search)fail('invalid_query',400)
   if(!(request.method==='POST'&&!id || ['PUT','DELETE'].includes(request.method)&&id))fail('method_not_allowed',405)
   const result=await writeDefinition(request,env,kind,id)
