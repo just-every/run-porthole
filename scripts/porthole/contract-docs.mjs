@@ -17,7 +17,7 @@ lines.splice(summary+2,end-summary-2,...groups.map(([label,clauses])=>`| ${label
 source=lines.join('\n')
 let acceptance=read('ACCEPTANCE.md')
 const [done,partial,missing,total]=tally(contract.clauses)
-acceptance=acceptance.replace(/All \*\*\d+\*\* clauses comprise \*\*\d+\*\* target and \d+ push-further/,`All **${total}** clauses comprise **${contract.clauses.filter(clause=>clause.kind==='target').length}** target and ${contract.clauses.filter(clause=>clause.kind!=='target').length} push-further`)
+acceptance=acceptance.replace(/All \*\*\d+\*\* clauses comprise [^:]+:/,`All **${total}** clauses comprise **${contract.clauses.filter(clause=>clause.kind==='target').length}** target, ${contract.clauses.filter(clause=>clause.kind==='push-further').length} push-further and ${contract.clauses.filter(clause=>clause.kind==='published').length} published:`)
 acceptance=acceptance.replace(/\d+ are \*\*done\*\*, \d+ are \*\*partial\*\* and \d+ are \*\*missing\*\*/,`${done} are **done**, ${partial} are **partial** and ${missing} are **missing**`)
 for(const id of selected){
  const clause=contract.clauses.find(clause=>clause.id===id)
