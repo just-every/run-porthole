@@ -37,12 +37,13 @@ export function remoteWriteBatch(time) {
  const series=concat(...labels.map(pair=>message(1,label(...pair))),message(2,concat(double(1,12.5),uint(2,time))),message(2,concat(double(1,13.5),uint(2,time+1))))
  return snappyLiteral(message(1,series))
 }
-export function otlpProtoBatch(signal,time) {
+export function otlpProtoBatch(signal,time,spanAttributes=[]) {
  const resource=concat(...attributes().map(entry=>message(1,concat(string(1,entry.key),message(2,string(1,entry.value.stringValue))))))
  let record
  if(signal==='logs')record=concat(fixed(1,time),uint(2,9),message(5,string(1,'synthetic-porthole-209')),message(9,Buffer.from(traceId,'hex')),message(10,Buffer.from(spanId,'hex')))
  else if(signal==='traces')record=concat(message(1,Buffer.from(traceId,'hex')),message(2,Buffer.from(spanId,'hex')),string(5,'synthetic-porthole-210'),uint(6,2),fixed(7,time),fixed(8,time+12345n),message(15,uint(3,2)))
  else record=concat(string(1,'synthetic_porthole_211'),string(3,'ms'),message(5,message(1,concat(fixed(3,time),double(4,24.5)))))
+ if(signal==='traces')record=concat(record,...spanAttributes.map(([key,value])=>message(9,concat(string(1,key),message(2,string(1,value))))))
  const scope=concat(message(1,string(1,'synthetic-porthole-212')),message(2,record),string(3,'https://opentelemetry.io/schemas/1.31.0'))
  return message(1,concat(message(1,resource),message(2,scope)))
 }
