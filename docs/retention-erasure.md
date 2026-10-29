@@ -81,3 +81,20 @@ digest-bound inventory consent and five-minute identity proof. The erasure
 receipt reports counts and exact batch IDs, never erased content. PORT-096
 retains mixed-subject erasure, analytical custody and audited owner-configured
 retention expiry as named Gaps. ct judges any DONE promotion.
+
+
+## Native backup followed by log erasure
+
+A native backup does not freeze the live erasure door. The same fresh native
+owner previews the exact batch inventory and explicitly approves its digest.
+Every matching local batch loses its original wire and normalized records;
+prepared product archive rows and cached download chunks are withdrawn in the
+same transaction. A wrong confirmation, changed inventory or credential-only
+request removes nothing.
+
+Erasing logs invalidates only monitor state whose signal and scope held the
+erased records. Other subjects remain queryable, trace-monitor observations
+and immutable evaluation history remain unchanged, and subsequent native
+exports and inactive restores retain the batch tombstones without the erased
+subject. Previously downloaded owner-held files still need the later journal
+described above; this operation has no authority over external copies.

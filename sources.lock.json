@@ -430,7 +430,7 @@
       "executable": false
     },
     "docs/retention-erasure.md": {
-      "sha256": "fd6c272643a60c3f99e1c6950facd722836a0993644a40a60ffc33863f334e1a",
+      "sha256": "f8bc474aff8919cf64ee1b7d0e3db3109bacbb9ae85f1fb771dc78c6eaca04fc",
       "executable": false
     },
     "docs/signal-exports.md": {
@@ -4490,7 +4490,7 @@
       "executable": false
     },
     "src/porthole/privacy/erasure/http.ts": {
-      "sha256": "b9c6c8a580adce21eaae5bbbf64d67a44512cd025221963a79be79dca70a70ac",
+      "sha256": "ff71f3d235f7d1c0ac69dad04473b668962984508ad3b7d447a14377bcd22054",
       "executable": false
     },
     "src/porthole/privacy/export-exclusions/http.ts": {
@@ -5066,7 +5066,7 @@
       "executable": false
     },
     "verification.json": {
-      "sha256": "ebdaec87c8c1db27b70f249cb0f75a914f04a8a648ff97f3bd11186f614267b5",
+      "sha256": "4202d8492914ae0d20f33c09f3454aa5711e638f8a4a7b19931bd5afcca14338",
       "executable": false
     },
     "VERIFY-WORKFLOW.md": {

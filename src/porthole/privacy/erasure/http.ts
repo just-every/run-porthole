@@ -22,11 +22,18 @@ export function eraseJournaledBatches(db: D1Database): D1PreparedStatement[] {
    FROM porthole_ingest_batches b,json_each(b.records) j WHERE b.id IN (${erased})
    AND NOT EXISTS(SELECT 1 FROM porthole_ingest_events e WHERE e.batch_ref=b.id AND e.reason='owner_erasure' AND e.team=json_extract(j.value,'$.team') AND e.service=json_extract(j.value,'$.service') AND e.environment=json_extract(j.value,'$.environment'))
    GROUP BY b.id,json_extract(j.value,'$.team'),json_extract(j.value,'$.service'),json_extract(j.value,'$.environment')`),
+  // Invalidate only monitors whose signal and scope held erased records.
+  // Match before clearing the batches; immutable evaluation history remains.
+  db.prepare(`UPDATE porthole_monitor_state SET status='Unknown',reason='Local telemetry was erased; prior evidence is incomplete.'
+   WHERE EXISTS(SELECT 1 FROM porthole_objects o JOIN porthole_ingest_batches b ON b.signal=json_extract(o.body,'$.signal'),json_each(b.records) r
+    WHERE o.id=porthole_monitor_state.object_id AND b.id IN (${erased})
+    AND EXISTS(SELECT 1 FROM json_each(o.scope,'$.services') s WHERE s.value='*' OR s.value=json_extract(r.value,'$.service'))
+    AND EXISTS(SELECT 1 FROM json_each(o.scope,'$.environments') s WHERE s.value='*' OR s.value=json_extract(r.value,'$.environment'))
+    AND EXISTS(SELECT 1 FROM json_each(o.scope,'$.teams') s WHERE s.value='*' OR s.value=json_extract(r.value,'$.team')))`),
   db.prepare(`DELETE FROM porthole_telemetry_records WHERE batch_id IN (${erased})`),
   db.prepare(`DELETE FROM porthole_telemetry_archive WHERE batch_id IN (${erased})`),
   db.prepare(`UPDATE porthole_ingest_batches SET identity='erased:'||id,wire_base64='',records='[]',record_count=0,byte_count=0 WHERE id IN (${erased})`),
   db.prepare("UPDATE porthole_health_receipts SET status='Unknown',expires_at=0,reason='Local telemetry was erased; coverage requires new observation.'"),
-  db.prepare("UPDATE porthole_monitor_state SET status='Unknown',reason='Local telemetry was erased; prior evidence is incomplete.'"),
  ]
 }
 export async function subjectErasureResponse(request: Request, env: Bindings): Promise<Response|null> {
