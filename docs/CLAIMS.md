@@ -41,7 +41,7 @@
 
 These are contract statuses, not a claim that a partial or missing capability is complete. Read the [product contract](/docs/contract) for requirements, named journeys and remaining work.
 
-9 done, 15 partial, 72 missing; 96 total.
+9 done, 16 partial, 71 missing; 96 total.
 
 | Clause | Capability | Status |
 | --- | --- | --- |
@@ -96,7 +96,7 @@ These are contract statuses, not a claim that a partial or missing capability is
 | PORT-045 | Historical data and reversible mid-stream cutover | missing |
 | PORT-046 | Native mobile operator access | missing |
 | PORT-047 | Scheduled reports and exports | partial |
-| PORT-048 | Collaborative notebooks and safe sharing | missing |
+| PORT-048 | Collaborative notebooks and safe sharing | partial |
 | PORT-050 | Spool and Uptime evidence handoffs | missing |
 | PORT-051 | Oncall and Lamp keep response ownership | missing |
 | PORT-052 | Auth and Evidence integrations | missing |

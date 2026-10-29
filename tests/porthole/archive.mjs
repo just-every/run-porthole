@@ -18,6 +18,81 @@ async function savedExport(origin,cookie,start){
  const manifest=await value(await get(origin,cookie,`${api}/exports/${job.id}/manifest`))
  return {job,chunks,manifest,rows:chunks.flatMap(chunk=>chunk.rows)}
 }
+/** Notebook context is portable history, never a copied sharing capability. */
+export async function notebookArchiveJourney({origin,freshOwner,withEmptyDestination,notebookId,initialRevision,publicationId,scope}) {
+ const cookie=await freshOwner(),root='/api/porthole/v1/notebooks/'+notebookId
+ const before=await value(await get(origin,cookie,root))
+ const source=await savedExport(origin,cookie,await post(origin,cookie,api+'/exports',{}))
+ const notebookRows=source.rows.filter(row=>['porthole_notebooks','porthole_notebook_versions'].includes(row.table))
+ assert.ok(notebookRows.length>4,'archive preserves the actual revision history')
+ assert.ok(!source.rows.some(row=>row.table==='porthole_notebook_shares'),'live grants never enter the archive')
+ const publications=source.rows.filter(row=>row.table==='porthole_notebook_publications')
+ assert.ok(publications.some(p=>p.row.id===publicationId&&p.row.state==='published'),'archive contains the exact reviewed publication as inert context')
+ assert.ok(!JSON.stringify(notebookRows).includes('synthetic-porthole-log-0'),'notebook context has references, never detached telemetry')
+ assert.ok(notebookRows.some(row=>JSON.parse(row.row.body).cells.some(cell=>cell.kind==='change')),'service-change cells and their original references are archived')
+ assert.ok(!JSON.stringify(notebookRows).includes('synthetic-porthole-2450'),'service-change source facts are not detached notebook copies')
+ const {notebookBrowser}=await import('./notebooks.mjs')
+ await withEmptyDestination(async destination=>{
+  const destCookie=await destination.freshOwner(),start=await value(await post(destination.origin,destCookie,api+'/restores',{manifest:source.manifest}),201)
+  for(const chunk of source.chunks)await value(await post(destination.origin,destCookie,`${api}/restores/${start.id}/chunks`,{chunk}))
+  await value(await post(destination.origin,destCookie,`${api}/restores/${start.id}/commit`,{confirm:source.manifest.rootHash}))
+  let restored=await value(await get(destination.origin,destCookie,root))
+  assert.equal(restored.state,'quarantined');assert.equal(restored.revision,before.revision)
+  assert.deepEqual((await value(await get(destination.origin,destCookie,'/api/porthole/v1/notebooks/evaluations'))).evaluations,[],'inactive restored monitors cannot become live investigation authority')
+  await value(await post(destination.origin,destCookie,'/api/porthole/v1/notebooks',{name:'No restored firing authority',evaluationId:before.body.origin.evaluationId}),404)
+  assert.deepEqual(restored.body,before.body)
+  assert.ok(restored.results.filter(Boolean).every(result=>result.state==='unavailable'&&result.count===null&&result.records.length===0))
+  const historical=await value(await get(destination.origin,destCookie,root+'?version='+initialRevision))
+  assert.equal(historical.revision,initialRevision)
+  assert.ok(historical.results.filter(Boolean).every(result=>result.state==='unavailable'))
+  assert.equal((await destination.sql('SELECT COUNT(*) AS n FROM porthole_notebook_shares'))[0].n,0)
+  assert.equal((await destination.sql("SELECT COUNT(*) AS n FROM porthole_notebook_publications WHERE state!='quarantined'"))[0].n,0,'no published, draft or revoked authority is restored')
+  for(const publication of publications) {
+   const unavailable=await fetch(destination.origin+'/shared/notebooks/'+publication.row.id)
+   assert.equal(unavailable.status,404);assert.ok(!(await unavailable.text()).includes('205 records'))
+  }
+  await value(await post(destination.origin,destCookie,root+'/publications/'+publicationId+'/approve',{}),409)
+  assert.equal((await destination.sql('SELECT COUNT(*) AS n FROM porthole_health_notices'))[0].n,0,'mentions and notices do not enter a restored outbox')
+  assert.equal((await get(destination.origin,cookie,root)).status,401,'old native sessions never become restored authority')
+  await value(await post(destination.origin,destCookie,root+'/share',{revision:restored.revision,kind:'team',target:'synthetic-porthole-2402'}),409)
+  await value(await post(destination.origin,destCookie,root+'/comment',{revision:restored.revision,text:'Must remain inert'}),409)
+  const address=['synthetic-porthole-2421','example.com'].join(String.fromCharCode(64))
+  await value(await post(destination.origin,destCookie,'/app/settings/members/invite',{email:address,displayName:'Reinvited responder',role:'responder',scope}),202)
+  const reinvited=await destination.signIn(address)
+  assert.equal((await get(destination.origin,reinvited,root)).status,404,'a new membership with the same address and team cannot inherit a restored share')
+  await destination.restartWorker()
+  const fresh=await destination.freshOwner()
+  restored=await value(await get(destination.origin,fresh,root))
+  assert.equal((await fetch(destination.origin+'/shared/notebooks/'+publicationId)).status,404,'restart cannot reactivate restored publication authority')
+  assert.deepEqual(restored.body,before.body)
+  assert.deepEqual(restored.body.comments[0].mentions,before.body.comments[0].mentions)
+  await notebookBrowser({origin:destination.origin,cookie:fresh,path:'/app/notebooks/'+notebookId,name:'notebook-restored-private',exercise:async page=>{
+   const text=await page.locator('body').innerText();assert.ok(text.includes('Restored, inactive'));assert.ok(text.includes('No sharing grants or outbound mention work were restored.'))
+   assert.ok(text.includes('Undelivered. No notification was sent.'))
+   assert.equal(await page.locator('form').count(),0)
+  }})
+ })
+ return source
+}
+/** The later local erasure journal also fences an older downloaded archive. */
+export async function notebookJournalRestoreJourney({origin,freshOwner,withEmptyDestination,source,publicationId,notebookId}) {
+ const cookie=await freshOwner(),journal=await value(await get(origin,cookie,'/api/porthole/v1/subject-erasure/journal'))
+ assert.ok(journal.records.length>0)
+ await withEmptyDestination(async destination=>{
+  const fresh=await destination.freshOwner()
+  await value(await post(destination.origin,fresh,'/api/porthole/v1/subject-erasure/journal',{...journal,confirm:'apply-erasure-journal'}))
+  const start=await value(await post(destination.origin,fresh,api+'/restores',{manifest:source.manifest}),201)
+  for(const chunk of source.chunks)await value(await post(destination.origin,fresh,`${api}/restores/${start.id}/chunks`,{chunk}))
+  await value(await post(destination.origin,fresh,`${api}/restores/${start.id}/commit`,{confirm:source.manifest.rootHash}))
+  assert.equal((await destination.sql('SELECT COUNT(*) AS n FROM porthole_notebook_publications'))[0].n,0,'older archive projections are purged against the destination journal before restore commits')
+  assert.equal((await destination.sql('SELECT COUNT(*) AS n FROM porthole_telemetry_records WHERE batch_id IN (SELECT id FROM porthole_erased_batches)'))[0].n,0)
+  assert.equal((await destination.sql("SELECT COUNT(*) AS n FROM porthole_ingest_batches WHERE id IN (SELECT id FROM porthole_erased_batches) AND wire_base64!=''"))[0].n,0)
+  assert.equal((await fetch(destination.origin+'/shared/notebooks/'+publicationId)).status,404)
+  assert.equal((await value(await get(destination.origin,fresh,'/api/porthole/v1/notebooks/'+notebookId))).state,'quarantined')
+  await destination.restartWorker()
+  assert.equal((await fetch(destination.origin+'/shared/notebooks/'+publicationId)).status,404,'restart cannot resurrect the erased projection')
+ })
+}
 /** Real Worker/D1 journey. The harness switches to a separately migrated D1
  * destination; synthetic bootstrapping uses Base's real confirmation doors. */
 export async function archiveJourney({origin,cookie,sql,restartWorker,freshOwner,withEmptyDestination}){
