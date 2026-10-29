@@ -18,6 +18,81 @@ async function savedExport(origin,cookie,start){
  const manifest=await value(await get(origin,cookie,`${api}/exports/${job.id}/manifest`))
  return {job,chunks,manifest,rows:chunks.flatMap(chunk=>chunk.rows)}
 }
+/** Notebook context is portable history, never a copied sharing capability. */
+export async function notebookArchiveJourney({origin,freshOwner,withEmptyDestination,notebookId,initialRevision,publicationId,scope}) {
+ const cookie=await freshOwner(),root='/api/porthole/v1/notebooks/'+notebookId
+ const before=await value(await get(origin,cookie,root))
+ const source=await savedExport(origin,cookie,await post(origin,cookie,api+'/exports',{}))
+ const notebookRows=source.rows.filter(row=>['porthole_notebooks','porthole_notebook_versions'].includes(row.table))
+ assert.ok(notebookRows.length>4,'archive preserves the actual revision history')
+ assert.ok(!source.rows.some(row=>row.table==='porthole_notebook_shares'),'live grants never enter the archive')
+ const publications=source.rows.filter(row=>row.table==='porthole_notebook_publications')
+ assert.ok(publications.some(p=>p.row.id===publicationId&&p.row.state==='published'),'archive contains the exact reviewed publication as inert context')
+ assert.ok(!JSON.stringify(notebookRows).includes('synthetic-porthole-log-0'),'notebook context has references, never detached telemetry')
+ assert.ok(notebookRows.some(row=>JSON.parse(row.row.body).cells.some(cell=>cell.kind==='change')),'service-change cells and their original references are archived')
+ assert.ok(!JSON.stringify(notebookRows).includes('synthetic-porthole-2450'),'service-change source facts are not detached notebook copies')
+ const {notebookBrowser}=await import('./notebooks.mjs')
+ await withEmptyDestination(async destination=>{
+  const destCookie=await destination.freshOwner(),start=await value(await post(destination.origin,destCookie,api+'/restores',{manifest:source.manifest}),201)
+  for(const chunk of source.chunks)await value(await post(destination.origin,destCookie,`${api}/restores/${start.id}/chunks`,{chunk}))
+  await value(await post(destination.origin,destCookie,`${api}/restores/${start.id}/commit`,{confirm:source.manifest.rootHash}))
+  let restored=await value(await get(destination.origin,destCookie,root))
+  assert.equal(restored.state,'quarantined');assert.equal(restored.revision,before.revision)
+  assert.deepEqual((await value(await get(destination.origin,destCookie,'/api/porthole/v1/notebooks/evaluations'))).evaluations,[],'inactive restored monitors cannot become live investigation authority')
+  await value(await post(destination.origin,destCookie,'/api/porthole/v1/notebooks',{name:'No restored firing authority',evaluationId:before.body.origin.evaluationId}),404)
+  assert.deepEqual(restored.body,before.body)
+  assert.ok(restored.results.filter(Boolean).every(result=>result.state==='unavailable'&&result.count===null&&result.records.length===0))
+  const historical=await value(await get(destination.origin,destCookie,root+'?version='+initialRevision))
+  assert.equal(historical.revision,initialRevision)
+  assert.ok(historical.results.filter(Boolean).every(result=>result.state==='unavailable'))
+  assert.equal((await destination.sql('SELECT COUNT(*) AS n FROM porthole_notebook_shares'))[0].n,0)
+  assert.equal((await destination.sql("SELECT COUNT(*) AS n FROM porthole_notebook_publications WHERE state!='quarantined'"))[0].n,0,'no published, draft or revoked authority is restored')
+  for(const publication of publications) {
+   const unavailable=await fetch(destination.origin+'/shared/notebooks/'+publication.row.id)
+   assert.equal(unavailable.status,404);assert.ok(!(await unavailable.text()).includes('205 records'))
+  }
+  await value(await post(destination.origin,destCookie,root+'/publications/'+publicationId+'/approve',{}),409)
+  assert.equal((await destination.sql('SELECT COUNT(*) AS n FROM porthole_health_notices'))[0].n,0,'mentions and notices do not enter a restored outbox')
+  assert.equal((await get(destination.origin,cookie,root)).status,401,'old native sessions never become restored authority')
+  await value(await post(destination.origin,destCookie,root+'/share',{revision:restored.revision,kind:'team',target:'synthetic-porthole-2402'}),409)
+  await value(await post(destination.origin,destCookie,root+'/comment',{revision:restored.revision,text:'Must remain inert'}),409)
+  const address=['synthetic-porthole-2421','example.com'].join(String.fromCharCode(64))
+  await value(await post(destination.origin,destCookie,'/app/settings/members/invite',{email:address,displayName:'Reinvited responder',role:'responder',scope}),202)
+  const reinvited=await destination.signIn(address)
+  assert.equal((await get(destination.origin,reinvited,root)).status,404,'a new membership with the same address and team cannot inherit a restored share')
+  await destination.restartWorker()
+  const fresh=await destination.freshOwner()
+  restored=await value(await get(destination.origin,fresh,root))
+  assert.equal((await fetch(destination.origin+'/shared/notebooks/'+publicationId)).status,404,'restart cannot reactivate restored publication authority')
+  assert.deepEqual(restored.body,before.body)
+  assert.deepEqual(restored.body.comments[0].mentions,before.body.comments[0].mentions)
+  await notebookBrowser({origin:destination.origin,cookie:fresh,path:'/app/notebooks/'+notebookId,name:'notebook-restored-private',exercise:async page=>{
+   const text=await page.locator('body').innerText();assert.ok(text.includes('Restored, inactive'));assert.ok(text.includes('No sharing grants or outbound mention work were restored.'))
+   assert.ok(text.includes('Undelivered. No notification was sent.'))
+   assert.equal(await page.locator('form').count(),0)
+  }})
+ })
+ return source
+}
+/** The later local erasure journal also fences an older downloaded archive. */
+export async function notebookJournalRestoreJourney({origin,freshOwner,withEmptyDestination,source,publicationId,notebookId}) {
+ const cookie=await freshOwner(),journal=await value(await get(origin,cookie,'/api/porthole/v1/subject-erasure/journal'))
+ assert.ok(journal.records.length>0)
+ await withEmptyDestination(async destination=>{
+  const fresh=await destination.freshOwner()
+  await value(await post(destination.origin,fresh,'/api/porthole/v1/subject-erasure/journal',{...journal,confirm:'apply-erasure-journal'}))
+  const start=await value(await post(destination.origin,fresh,api+'/restores',{manifest:source.manifest}),201)
+  for(const chunk of source.chunks)await value(await post(destination.origin,fresh,`${api}/restores/${start.id}/chunks`,{chunk}))
+  await value(await post(destination.origin,fresh,`${api}/restores/${start.id}/commit`,{confirm:source.manifest.rootHash}))
+  assert.equal((await destination.sql('SELECT COUNT(*) AS n FROM porthole_notebook_publications'))[0].n,0,'older archive projections are purged against the destination journal before restore commits')
+  assert.equal((await destination.sql('SELECT COUNT(*) AS n FROM porthole_telemetry_records WHERE batch_id IN (SELECT id FROM porthole_erased_batches)'))[0].n,0)
+  assert.equal((await destination.sql("SELECT COUNT(*) AS n FROM porthole_ingest_batches WHERE id IN (SELECT id FROM porthole_erased_batches) AND wire_base64!=''"))[0].n,0)
+  assert.equal((await fetch(destination.origin+'/shared/notebooks/'+publicationId)).status,404)
+  assert.equal((await value(await get(destination.origin,fresh,'/api/porthole/v1/notebooks/'+notebookId))).state,'quarantined')
+  await destination.restartWorker()
+  assert.equal((await fetch(destination.origin+'/shared/notebooks/'+publicationId)).status,404,'restart cannot resurrect the erased projection')
+ })
+}
 /** Real Worker/D1 journey. The harness switches to a separately migrated D1
  * destination; synthetic bootstrapping uses Base's real confirmation doors. */
 export async function archiveJourney({origin,cookie,sql,restartWorker,freshOwner,withEmptyDestination}){
@@ -658,5 +733,230 @@ export async function sloArchiveJourney({origin,freshOwner,withEmptyDestination,
   const exported=await savedExport(destination.origin,owner,await post(destination.origin,owner,api+'/exports',{}))
   const restored=exported.rows.filter(row=>row.table==='porthole_slo_versions')
   assert.ok(restored.some(row=>row.row.id===sloId));assert.ok(restored.every(row=>row.row.state==='quarantined'))
+ })
+}
+
+
+/** Native backup and subject erasure use real commands and the emitted Worker.
+ * This entry is independent of the existing native installation assertions. */
+export async function nativeBackupErasureJourney() {
+ const {spawn}=await import('node:child_process')
+ const {createServer}=await import('node:net')
+ const {symlink}=await import('node:fs/promises')
+ const {fixture}=await import('./fixture.mjs')
+ const root=process.cwd(),scratch=await mkdtemp(join(tmpdir(),'porthole-native-erasure-'))
+ const address=local=>[local,'example.com'].join(String.fromCharCode(64))
+async function command(cwd,args) {
+ try {return await execute(process.execPath,[join(root,'node_modules/@runeditrun/rer/global/rer.mjs'),...args,'--cwd',cwd],{cwd,env:{...process.env,WRANGLER_SEND_METRICS:'false'},maxBuffer:16*1024*1024})}
+ catch(error){const capture=await readFile(join(cwd,'.seed/installer/install.log'),'utf8').catch(()=> '');const redact=value=>String(value??'').replace(/[A-Za-z0-9_+./=-]{32,}/g,'[redacted]');throw Error(`Native ${args[0]} failed (${error.code})\n${redact(error.stderr).slice(-6000)}\n${redact(error.stdout).slice(-3000)}\n${redact(capture).split('\n').slice(-16).join('\n')}`)}
+}
+async function clone(name) {
+ const directory=join(scratch,name)
+ await execute('git',['clone','--quiet','--local','--no-hardlinks',root,directory])
+ await execute('git',['-C',directory,'config','user.name','Run Edit Run fleet'])
+ await execute('git',['-C',directory,'config','user.email',['fleet','runeditrun.com'].join(String.fromCharCode(64))])
+ await symlink(join(root,'node_modules'),join(directory,'node_modules'),'dir')
+ return directory
+}
+async function sql(cwd,statement) {
+ const result=await execute(process.execPath,[join(root,'node_modules/wrangler/bin/wrangler.js'),'d1','execute','foundation','--local','--persist-to',join(cwd,'.wrangler/state'),'--config',join(cwd,'wrangler.jsonc'),'--json','--command',statement],{cwd,env:{...process.env,WRANGLER_SEND_METRICS:'false'},maxBuffer:8*1024*1024})
+ return JSON.parse(result.stdout).flatMap(value=>value.results??[])
+}
+
+/** One native CLI and HTTP journey: frozen custody, exact owner consent,
+ * scoped history preservation and an independently owned native restore. */
+async function run(source) {
+ const socket=createServer()
+ await new Promise(resolve=>socket.listen(0,'127.0.0.1',resolve))
+ const port=socket.address().port
+ await new Promise(resolve=>socket.close(resolve))
+ const origin='http://127.0.0.1:'+port,ownerEmail=['synthetic-porthole-600','example.com'].join(String.fromCharCode(64))
+ let worker,output='',cookie
+ async function stop() {
+  if(!worker)return
+  worker.kill('SIGTERM')
+  await new Promise(resolve=>worker.exitCode!==null?resolve():worker.once('exit',resolve))
+  worker=null
+ }
+ async function start() {
+  output=''
+  worker=spawn(process.execPath,[join(root,'node_modules/wrangler/bin/wrangler.js'),'dev','--local','--persist-to',join(source,'.wrangler/state'),'--config',join(root,'dist/server/wrangler.json'),'--ip','127.0.0.1','--port',String(port),'--var','AUTH_ORIGIN:'+origin,'--var','AUTH_LOCAL:true','--var','OWNER_EMAIL:'+ownerEmail,'--var','SESSION_SECRET:synthetic-porthole-native-erasure-session-secret','--var','MAIL_PROVIDER:development'],{cwd:root,env:{...process.env,WRANGLER_SEND_METRICS:'false'},stdio:['ignore','pipe','pipe']})
+  worker.stdout.on('data',part=>{output+=part});worker.stderr.on('data',part=>{output+=part})
+  for(let attempt=0;attempt<120;attempt++){
+   if(worker.exitCode!==null)throw Error('Native erasure Worker exited: '+output.slice(-2000))
+   try{if((await fetch(origin+'/health')).ok)return}catch{}
+   await new Promise(resolve=>setTimeout(resolve,250))
+  }
+  throw Error('Native erasure Worker did not start')
+ }
+ async function restartWorker(change){await stop();if(change)await change();await start()}
+ const helpers=fixture({origin,sql:statement=>sql(source,statement),restartWorker,sessionSecret:'synthetic-porthole-native-erasure-session-secret',ownerEmail})
+ const value=async(response,status=200)=>{
+  response=await response
+  assert.equal(response.status,status,await response.clone().text())
+  return response.json()
+ }
+ const send=(path,data,acting=cookie)=>fetch(origin+path,{method:'POST',redirect:'manual',headers:{origin,cookie:acting,'content-type':'application/json'},body:JSON.stringify(data)})
+ const query=signal=>value(send('/api/porthole/v1/query',{signal,service:'synthetic-porthole-9701',limit:200}))
+ const erasure='/api/porthole/v1/subject-erasure',archive='/api/porthole/v1/archive'
+ const scope={services:['synthetic-porthole-9701'],environments:['production'],teams:['synthetic-porthole-9702']}
+ const identifier='synthetic-porthole-9703',peer='synthetic-porthole-9704'
+ const attributes=Object.entries({'service.name':scope.services[0],'deployment.environment.name':scope.environments[0],team:scope.teams[0]}).map(([key,stringValue])=>({key,value:{stringValue}}))
+ const time=BigInt(Date.now())*1000000n
+ const logs=(subject,offset)=>({resourceLogs:[{resource:{attributes},scopeLogs:[{logRecords:[{timeUnixNano:String(time+BigInt(offset)),severityNumber:17,body:{stringValue:subject}}]}]}]})
+ let credential
+ const intake=(signal,body)=>fetch(origin+'/v1/'+signal,{method:'POST',headers:{authorization:'Bearer '+credential.secret,'content-type':'application/json'},body:JSON.stringify(body)})
+ const snapshot=async()=>({
+  batches:await sql(source,'SELECT id,records,wire_base64,record_count FROM porthole_ingest_batches ORDER BY id'),
+  hot:await sql(source,'SELECT id,payload FROM porthole_telemetry_records ORDER BY id'),
+  cold:await sql(source,'SELECT id,payload FROM porthole_telemetry_archive ORDER BY id'),
+  custody:await sql(source,'SELECT job_id,ordinal,payload FROM porthole_archive_rows ORDER BY job_id,ordinal'),
+  chunks:await sql(source,'SELECT job_id,chunk_index,packet FROM porthole_archive_chunks ORDER BY job_id,chunk_index'),
+  history:await sql(source,'SELECT * FROM porthole_monitor_evaluations ORDER BY id'),
+ })
+ try {
+  await start();cookie=await helpers.freshOwner()
+  await fetch(origin+'/setup',{method:'POST',redirect:'manual',headers:{origin,cookie,'content-type':'application/x-www-form-urlencoded'},body:new URLSearchParams({confirm:'yes'})})
+  credential=await value(send('/app/settings/credentials/mint',{name:'synthetic-porthole-9705',class:'ingest',scope:{...scope,signals:['logs','traces'],actions:['telemetry.write']}}),201)
+  const targetBatches=[]
+  for(const offset of [0,1]) {
+   const response=await intake('logs',logs(identifier,offset))
+   await value(response);targetBatches.push(response.headers.get('x-porthole-batch'))
+  }
+  const peerResponse=await intake('logs',logs(peer,2));await value(peerResponse)
+  const peerBatch=peerResponse.headers.get('x-porthole-batch')
+  const trace={resourceSpans:[{resource:{attributes},scopeSpans:[{spans:[{traceId:'97000000000000000000000000000001',spanId:'9700000000000001',name:'synthetic-porthole-9706',kind:2,startTimeUnixNano:String(time),endTimeUnixNano:String(time+1000000n),status:{code:1}}]}]}]}
+  await value(await intake('traces',trace));await value(send('/api/porthole/v1/ingest/drain',{}))
+  const monitors={}
+  for(const signal of ['logs','traces']){
+   const monitor=await value(send('/api/porthole/v1/objects',{kind:'monitor',name:'synthetic-porthole-9707-'+signal,scope,body:{signal,operator:'above',threshold:0,windowSeconds:3600}}),201)
+   await value(send('/api/porthole/v1/objects/activate',{id:monitor.id,revision:monitor.revision,confirm:'activate'}))
+   await value(await fetch(origin+'/api/v1/health/heartbeat',{method:'POST',headers:{authorization:'Bearer '+credential.secret,'content-type':'application/json'},body:JSON.stringify({collectorId:'synthetic-porthole-9708',team:scope.teams[0],service:scope.services[0],environment:scope.environments[0],signal})}))
+   monitors[signal]=monitor.id
+  }
+  await value(send('/api/v1/health/tick',{}))
+  const traceHistory=await sql(source,"SELECT * FROM porthole_monitor_evaluations WHERE object_id="+literal(monitors.traces))
+  assert.equal(traceHistory.length,1,'one real trace evaluation exists before backup')
+  const traceState=await sql(source,"SELECT * FROM porthole_monitor_state WHERE object_id="+literal(monitors.traces))
+  const peerRows=await sql(source,'SELECT * FROM porthole_telemetry_records WHERE batch_id='+literal(peerBatch))
+  assert.equal(peerRows.length,1,'the unrelated subject exists before erasure')
+  assert.equal((await query('logs')).records.length,3)
+  assert.equal((await query('traces')).records.length,1)
+  // Prepare a real Settings export too, including cached download packets.
+  const frozen=await value(send(archive+'/exports',{}),201)
+  for(let index=0;index<frozen.totalChunks;index++)await value(await fetch(origin+archive+'/exports/'+frozen.id+'/chunks/'+index,{headers:{cookie}}))
+  await value(await fetch(origin+archive+'/exports/'+frozen.id+'/manifest',{headers:{cookie}}))
+  assert.ok(JSON.stringify((await snapshot()).custody).includes(identifier),'backup custody contains the subject before erasure')
+  await stop()
+  const beforeFile=join(source,'exports','before-erasure.rer')
+  await command(source,['export','--output',beforeFile])
+  assert.ok((await readFile(beforeFile,'utf8')).includes(identifier),'native backup contains the ingested subject')
+  await start();cookie=await helpers.freshOwner()
+  const preview=await value(send(erasure,{identifier}))
+  assert.deepEqual(preview.batches.map(row=>row.id).sort(),targetBatches.sort(),'preview identifies every matching batch')
+  const beforeRefusal=await snapshot()
+  await value(send(erasure+'/apply',{identifier,digest:preview.digest,confirm:'wrong'}),409)
+  assert.deepEqual(await snapshot(),beforeRefusal,'unconfirmed erasure changes no custody or history')
+  await value(send(erasure+'/apply',{identifier,digest:preview.digest,confirm:'erase-exact-batches'},''),401)
+  const delegated=await fetch(origin+erasure+'/apply',{method:'POST',headers:{origin,authorization:'Bearer '+credential.secret,'content-type':'application/json'},body:JSON.stringify({identifier,digest:preview.digest,confirm:'erase-exact-batches'})})
+  await value(delegated,403)
+  assert.deepEqual(await snapshot(),beforeRefusal,'a credential cannot erase backed-up custody')
+  const erased=await value(send(erasure+'/apply',{identifier,digest:preview.digest,confirm:'erase-exact-batches'}))
+  assert.equal(erased.erasedBatches,2,'backup then erase completes without history_immutable')
+  assert.equal(erased.erasedRecords,2)
+  assert.deepEqual(erased.batchIds.sort(),targetBatches)
+  const after=await snapshot()
+  assert.ok(!JSON.stringify(after).includes(identifier),'live and backed-up custody contain no erased subject')
+  const skeletons=after.batches.filter(row=>targetBatches.includes(row.id))
+  assert.equal(skeletons.length,2);assert.ok(skeletons.every(row=>row.records==='[]'&&row.wire_base64===''&&row.record_count===0))
+  assert.deepEqual(await sql(source,'SELECT * FROM porthole_telemetry_records WHERE batch_id='+literal(peerBatch)),peerRows,'the unrelated subject stays one unchanged record')
+  assert.deepEqual(await sql(source,'SELECT * FROM porthole_monitor_evaluations WHERE object_id='+literal(monitors.traces)),traceHistory,'trace history stays one unchanged entry')
+  assert.deepEqual(await sql(source,'SELECT * FROM porthole_monitor_state WHERE object_id='+literal(monitors.traces)),traceState,'log erasure leaves unrelated trace-monitor evidence unchanged')
+  assert.equal((await sql(source,'SELECT status FROM porthole_monitor_state WHERE object_id='+literal(monitors.logs)))[0].status,'Unknown','a monitor of erased logs cannot present its old count as current evidence')
+  assert.equal((await fetch(origin+archive+'/exports/'+frozen.id+'/manifest',{headers:{cookie}})).status,404,'old product custody is withdrawn')
+  assert.equal((await query('logs')).records.length,1)
+  assert.ok(JSON.stringify((await query('logs')).records).includes(peer))
+  assert.equal((await query('traces')).records.length,1)
+  assert.equal((await intake('logs',logs(identifier,0))).status,409,'replayed original capture cannot resurrect erased data')
+  await value(send('/app/settings/credentials/revoke',{id:credential.credential.id}))
+  assert.equal((await intake('logs',logs(identifier,3))).status,401,'a revoked ingest credential cannot restore erased data')
+  await restartWorker();cookie=await helpers.freshOwner()
+  assert.equal((await query('logs')).records.length,1,'erasure survives restart')
+  if(process.env.PORTHOLE_EVIDENCE_DIR) {
+   const {chromium}=await import('@playwright/test'),{mkdir}=await import('node:fs/promises')
+   const browser=await chromium.launch({headless:true,...(process.env.PORTHOLE_CHROMIUM?{executablePath:process.env.PORTHOLE_CHROMIUM}:{}),args:['--no-sandbox']})
+   try {
+    await mkdir(process.env.PORTHOLE_EVIDENCE_DIR,{recursive:true})
+    for(const width of [1440,390]){
+     const context=await browser.newContext({viewport:{width,height:width===1440?900:844}})
+     await context.addCookies(cookie.split('; ').map(item=>{const index=item.indexOf('=');return{name:item.slice(0,index),value:item.slice(index+1),url:origin}}))
+     const page=await context.newPage()
+     await page.goto(origin+'/app/explore?'+new URLSearchParams({signal:'logs',service:scope.services[0],environment:scope.environments[0],team:scope.teams[0]}))
+     await page.screenshot({path:join(process.env.PORTHOLE_EVIDENCE_DIR,'native-backup-erased-'+width+'.png'),fullPage:true})
+     await context.close()
+    }
+   } finally {await browser.close()}
+  }
+  await stop()
+  const afterFile=join(source,'exports','after-erasure.rer')
+  await command(source,['export','--output',afterFile])
+  const portable=await readFile(afterFile,'utf8')
+  assert.ok(!portable.includes(identifier),'a subsequent native export contains no erased subject')
+  assert.ok(portable.includes(peer),'native export retains the unrelated subject')
+  const destination=await clone('erasure-destination')
+  await command(destination,['import','--input',afterFile,'--yes'])
+  const restored=await sql(destination,'SELECT records,wire_base64 FROM porthole_ingest_batches ORDER BY id')
+  assert.ok(!JSON.stringify(restored).includes(identifier))
+  assert.equal(restored.filter(row=>row.records.includes(peer)).length,1,'native restore retains exactly one unrelated subject batch')
+  assert.deepEqual(await sql(destination,'SELECT * FROM porthole_telemetry_records WHERE batch_id='+literal(peerBatch)),peerRows)
+  assert.deepEqual(await sql(destination,'SELECT * FROM porthole_monitor_evaluations WHERE object_id='+literal(monitors.traces)),traceHistory)
+  assert.equal((await sql(destination,'SELECT COUNT(*) AS n FROM porthole_erased_batches'))[0].n,2,'native restore retains the nonresurrection journal')
+  const reexport=join(destination,'exports','restored-erasure.rer')
+  await command(destination,['export','--output',reexport])
+  assert.ok(!(await readFile(reexport,'utf8')).includes(identifier),'native restore and re-export contain no trace of erased subject')
+  console.log('nativeBackupErasureJourney passed: actual native backup, owner-only exact erasure of every matching batch and frozen custody, unchanged unrelated subject and trace history, capture and revoked-credential refusal, restart and native restore with no erased subject')
+ } finally {await stop()}
+}
+
+ try {
+  const source=await clone('source')
+  await command(source,['setup','--owner-email',address('synthetic-porthole-600'),'--non-interactive'])
+  await run(source)
+ } finally {await rm(scratch,{recursive:true,force:true})}
+}
+
+/** Host definitions and evidence survive transfer without restoring sources,
+ * pending authority, collector credentials or active monitor evaluation. */
+export async function hostHeartbeatArchiveJourney({origin,freshOwner,withEmptyDestination,monitorId}) {
+ const cookie=await freshOwner(),source=await savedExport(origin,cookie,await post(origin,cookie,api+'/exports',{}))
+ const sourceHistory=source.rows.filter(row=>row.table==='porthole_host_monitor_evaluations'&&row.row.object_id===monitorId)
+ assert.ok(sourceHistory.some(row=>JSON.parse(row.row.evidence).status==='Firing'))
+ assert.ok(sourceHistory.some(row=>JSON.parse(row.row.evidence).status==='Recovering'))
+ assert.ok(sourceHistory.some(row=>JSON.parse(row.row.evidence).status==='Healthy'))
+ assert.ok(sourceHistory.some(row=>JSON.parse(row.row.evidence).sourceState==='source_unavailable'))
+ const versions=source.rows.filter(row=>row.table==='porthole_host_monitor_versions'&&row.row.object_id===monitorId)
+ assert.equal(versions.length,2)
+ const inert=source.rows.filter(row=>row.table==='porthole_archive_health_history'&&String(row.row.table_name).startsWith('porthole_host_'))
+ assert.ok(inert.some(row=>row.row.table_name==='porthole_host_heartbeats'))
+ assert.ok(inert.some(row=>row.row.table_name==='porthole_host_monitor_state'))
+ await withEmptyDestination(async destination=>{
+  const fresh=await destination.freshOwner(),job=await value(await post(destination.origin,fresh,api+'/restores',{manifest:source.manifest}),201)
+  for(const chunk of source.chunks)await value(await post(destination.origin,fresh,`${api}/restores/${job.id}/chunks`,{chunk}))
+  await value(await post(destination.origin,fresh,`${api}/restores/${job.id}/commit`,{confirm:source.manifest.rootHash}))
+  const getMonitors=async()=>value(await get(destination.origin,fresh,'/api/porthole/v1/monitors'))
+  const monitor=(await getMonitors()).monitors.find(row=>row.id===monitorId)
+  assert.equal(monitor.state,'quarantined');assert.equal(monitor.versions.length,2)
+  assert.deepEqual(monitor.history.map(row=>row.id).sort(),sourceHistory.map(row=>row.row.id).sort())
+  for(const table of ['porthole_host_sources','porthole_host_heartbeats','porthole_host_monitor_state','porthole_credentials','porthole_health_notices'])assert.equal((await destination.sql(`SELECT COUNT(*) AS n FROM ${table}`))[0].n,0,table+' stays inactive')
+  await value(await post(destination.origin,fresh,'/api/porthole/v1/objects/activate',{id:monitorId,revision:2,confirm:'activate'}),409)
+  await value(await post(destination.origin,fresh,'/api/porthole/v1/monitors/evaluate',{id:monitorId,revision:2}),409)
+  const tick=await value(await post(destination.origin,fresh,'/api/v1/health/tick',{}))
+  assert.equal(tick.state.status,'Unknown')
+  assert.equal((await destination.sql('SELECT COUNT(*) AS n FROM porthole_host_monitor_evaluations'))[0].n,source.rows.filter(row=>row.table==='porthole_host_monitor_evaluations').length)
+  await destination.restartWorker()
+  assert.equal((await getMonitors()).monitors.find(row=>row.id===monitorId).state,'quarantined')
+  const again=await savedExport(destination.origin,fresh,await post(destination.origin,fresh,api+'/exports',{}))
+  assert.deepEqual(again.rows.filter(row=>row.table==='porthole_host_monitor_evaluations').map(row=>row.row).sort((a,b)=>a.id.localeCompare(b.id)),source.rows.filter(row=>row.table==='porthole_host_monitor_evaluations').map(row=>row.row).sort((a,b)=>a.id.localeCompare(b.id)))
+  assert.deepEqual(again.rows.filter(row=>row.table==='porthole_archive_health_history'&&String(row.row.table_name).startsWith('porthole_host_')),inert,'inert source and pending history re-exports exactly')
  })
 }

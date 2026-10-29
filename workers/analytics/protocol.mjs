@@ -1,4 +1,5 @@
 export const limits = Object.freeze({ bodyBytes: 2 * 1024 * 1024, batches: 20, records: 10000, page: 200, responseBytes: 2 * 1024 * 1024 });
+export {LogSearchError} from './log-search.mjs';
 export class AnalyticalError extends Error {
  constructor(code, status = 400) { super(code); this.code = code; this.status = status; }
 }

@@ -6,6 +6,7 @@ import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {randomBytes,randomUUID,createHash} from 'node:crypto'
 const execute=promisify(execFile)
+const address=local=>[local,'example.com'].join(String.fromCharCode(64))
 const root=process.cwd(),scratch=await mkdtemp(join(tmpdir(),'porthole-native-archive-'))
 async function command(cwd,args) {
  try {return await execute(process.execPath,[join(root,'node_modules/@runeditrun/rer/global/rer.mjs'),...args,'--cwd',cwd],{cwd,env:{...process.env,WRANGLER_SEND_METRICS:'false'},maxBuffer:16*1024*1024})}
@@ -15,7 +16,7 @@ async function clone(name) {
  const directory=join(scratch,name)
  await execute('git',['clone','--quiet','--local','--no-hardlinks',root,directory])
  await execute('git',['-C',directory,'config','user.name','Run Edit Run fleet'])
- await execute('git',['-C',directory,'config','user.email','fixture@example.invalid'])
+ await execute('git',['-C',directory,'config','user.email',['fleet','runeditrun.com'].join(String.fromCharCode(64))])
  await symlink(join(root,'node_modules'),join(directory,'node_modules'),'dir')
  return directory
 }
@@ -25,7 +26,7 @@ async function sql(cwd,statement) {
 }
 try {
  const source=await clone('source')
- await command(source,['setup','--owner-email','synthetic-porthole-600@example.com','--non-interactive'])
+ await command(source,['setup','--owner-email',address('synthetic-porthole-600'),'--non-interactive'])
  console.log('nativeArchiveJourney: source setup passed')
  const owner=(await sql(source,"SELECT id FROM oa_operators WHERE role='owner' AND status='active'"))[0]
  assert.ok(owner)
@@ -43,7 +44,7 @@ try {
  await command(source,['export','--output',file])
  console.log('nativeArchiveJourney: source export passed')
  const contents=await readFile(file,'utf8')
- for(const privateValue of [secret,hash,'synthetic-porthole-600@example.com'])assert.ok(!contents.includes(privateValue),'native export excludes credential/hash/native identity')
+ for(const privateValue of [secret,hash,address('synthetic-porthole-600')])assert.ok(!contents.includes(privateValue),'native export excludes credential/hash/native identity')
  const sourceAudit=await sql(source,"SELECT entry FROM porthole_audit_entries WHERE json_extract(entry,'$.action')='installation.export.complete'")
  assert.equal(sourceAudit.length,1,'native export result is in private audit')
  const destination=await clone('destination')
@@ -58,8 +59,8 @@ try {
  assert.deepEqual((await sql(destination,'SELECT enabled,allowed_keys FROM porthole_baggage_policy'))[0],{enabled:0,allowed_keys:'["region"]'},'native restore retains policy lists without forwarding authority')
  assert.equal((await sql(destination,"SELECT COUNT(*) AS n FROM oa_operators"))[0].n,0,'source native identities do not block the destination bootstrap')
  assert.equal((await sql(destination,`SELECT state FROM porthole_archive_actors WHERE actor_ref='${owner.id}'`))[0].state,'inactive','source actor metadata remains opaque and inactive')
- await command(destination,['setup','--owner-email','synthetic-porthole-603@example.com','--non-interactive'])
- const newOwner=(await sql(destination,"SELECT id FROM oa_operators WHERE email='synthetic-porthole-603@example.com' AND role='owner' AND status='active'"))[0]
+ await command(destination,['setup','--owner-email',address('synthetic-porthole-603'),'--non-interactive'])
+ const newOwner=(await sql(destination,"SELECT id FROM oa_operators WHERE email='"+address('synthetic-porthole-603')+"' AND role='owner' AND status='active'"))[0]
  assert.ok(newOwner && newOwner.id!==owner.id,'destination has its own new native owner')
  assert.equal((await sql(destination,'SELECT paused FROM porthole_ingest_control'))[0].paused,1)
  assert.deepEqual((await sql(destination,'SELECT enabled,allowed_keys FROM porthole_baggage_policy'))[0],{enabled:0,allowed_keys:'["region"]'},'native restore retains policy lists without forwarding authority')

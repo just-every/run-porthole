@@ -1,3 +1,5 @@
+import {publicationColumns} from '../notebooks/publication-model'
+import {columns as notebookColumns} from '../notebooks/model'
 import { healthHistoryQuery } from './health-history'
 import { historyColumns } from '../storage/model'
 import {custodyColumns,custodyQueries} from '../migration/custody/catalog'
@@ -9,6 +11,9 @@ import {journalColumns} from '../migration/erasure/journal'
 export interface TableSpec { table: string; columns: string[]; query: string; order: string }
 const spec = (table: string, columns: string[], order: string): TableSpec => ({ table, columns, order, query: `SELECT ${columns.join(',')} FROM ${table}` })
 export const catalog: TableSpec[] = [
+ spec('porthole_notebook_versions',notebookColumns,'id,revision'),
+ spec('porthole_notebooks',notebookColumns,'id'),
+ spec('porthole_notebook_publications',publicationColumns,'id'),
  spec('porthole_metric_rules',['id','revision','definition','from_sequence','created_at','owner_id','state'],'id,revision'),
  spec('porthole_metric_points',['rule_id','revision','batch_id','ordinal','dimensions','value','valid','event_time_ns','trace_id','span_id'],'rule_id,revision,batch_id,ordinal'),
  spec('porthole_migration_erasure_fences',journalColumns,'receipt_id'),
@@ -24,6 +29,8 @@ export const catalog: TableSpec[] = [
  spec('porthole_dashboard_versions',['id','name','scope','body','revision','state','created_at','updated_at'],'id,revision'),
  spec('porthole_dashboards',['id','name','scope','body','revision','state','created_at','updated_at'],'id'),
  spec('porthole_objects',['id','kind','name','scope','body','revision','state','created_at','updated_at'],'id'),
+ spec('porthole_host_monitor_evaluations',['id','object_id','revision','host_id','evaluated_at','evidence'],'evaluated_at,id'),
+ spec('porthole_host_monitor_versions',['object_id','revision','name','scope','body','created_at'],'object_id,revision'),
  spec('porthole_archive_quarantine',['object_id','source_state','archive_id','restored_at','collection','schedules','delivery','execution','leases'],'object_id'),
  {table:'porthole_archive_actors',columns:['actor_ref','role','scope','state'],order:'actor_ref',query:`SELECT operator_id AS actor_ref,role,scope,'inactive' AS state FROM porthole_members UNION SELECT actor_ref,role,scope,state FROM porthole_archive_actors WHERE actor_ref NOT IN (SELECT operator_id FROM porthole_members)`},
  spec('porthole_query_snapshots',['id','actor_ref','scope','signal','from_ns','through_ns','through_batch','created_at'],'id'),
@@ -50,6 +57,10 @@ function allPredicates(clauses:string[]):string {
  return `(${allPredicates(clauses.slice(0,middle))} AND ${allPredicates(clauses.slice(middle))})`
 }
 export const emptyProduct = allPredicates([emptyCustody,
+ 'NOT EXISTS(SELECT 1 FROM porthole_notebook_publications)',
+ 'NOT EXISTS(SELECT 1 FROM porthole_notebooks)',
+ 'NOT EXISTS(SELECT 1 FROM porthole_notebook_versions)',
+ 'NOT EXISTS(SELECT 1 FROM porthole_notebook_shares)',
  'NOT EXISTS(SELECT 1 FROM porthole_metric_rules)',
  'NOT EXISTS(SELECT 1 FROM porthole_metric_points)',
  'NOT EXISTS(SELECT 1 FROM porthole_slo_versions)',
@@ -66,6 +77,11 @@ export const emptyProduct = allPredicates([emptyCustody,
  'NOT EXISTS(SELECT 1 FROM porthole_analytical_configuration WHERE changed_at!=0 OR enabled!=0)',
  'NOT EXISTS(SELECT 1 FROM porthole_bucket_history)',
  'NOT EXISTS(SELECT 1 FROM porthole_health_collectors)',
+ 'NOT EXISTS(SELECT 1 FROM porthole_host_sources)',
+ 'NOT EXISTS(SELECT 1 FROM porthole_host_heartbeats)',
+ 'NOT EXISTS(SELECT 1 FROM porthole_host_monitor_state)',
+ 'NOT EXISTS(SELECT 1 FROM porthole_host_monitor_versions)',
+ 'NOT EXISTS(SELECT 1 FROM porthole_host_monitor_evaluations)',
  'NOT EXISTS(SELECT 1 FROM porthole_health_notices)',
  'NOT EXISTS(SELECT 1 FROM porthole_health_incidents)',
  'NOT EXISTS(SELECT 1 FROM porthole_monitor_state)',

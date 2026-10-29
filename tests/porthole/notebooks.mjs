@@ -1,0 +1,408 @@
+import assert from 'node:assert/strict'
+import {mkdir} from 'node:fs/promises'
+import {join} from 'node:path'
+import {form} from './fixture.mjs'
+
+/** Behavior assertions run at 1440. The same native state is also captured at
+ * 390 for release review; the seed's existing phone smoke owns layout checks. */
+export async function notebookBrowser({origin,cookie,path,name,exercise,status=200}) {
+ const {chromium}=await import('@playwright/test')
+ const browser=await chromium.launch({headless:true,...(process.env.CI?{}:{executablePath:'/usr/bin/chromium'}),args:['--no-sandbox','--use-mock-keychain','--password-store=basic']})
+ try {for(const width of [1440,390]) {
+  const context=await browser.newContext({viewport:{width,height:width===1440?1000:844}})
+  if(cookie)await context.addCookies(cookie.split('; ').map(value=>({name:value.slice(0,value.indexOf('=')),value:value.slice(value.indexOf('=')+1),url:origin})))
+  const page=await context.newPage(),errors=[];page.on('pageerror',error=>errors.push(error.message))
+  const response=await page.goto(origin+(typeof path==='function'?path():path))
+  if(width===1440) {
+   assert.equal(response.status(),status)
+   if(exercise)await exercise(page)
+   assert.equal(await page.locator('a,button').evaluateAll(items=>items.filter(item=>!item.textContent.trim()).length),0,'all notebook controls have visible labels')
+   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'notebook fits the desktop viewport')
+   assert.deepEqual(errors,[])
+  }
+  if(process.env.PORTHOLE_EVIDENCE_DIR) {await mkdir(process.env.PORTHOLE_EVIDENCE_DIR,{recursive:true});await page.screenshot({path:join(process.env.PORTHOLE_EVIDENCE_DIR,`${name}-${width}.png`),fullPage:true})}
+  await context.close()
+ }}finally{await browser.close()}
+}
+
+/** One native sanity journey: actual OTLP intake, measured alert and recovery,
+ * ordered notebook cells, live authority, missing evidence and inert restore. */
+export async function notebookJourney({origin,freshOwner,signIn,restartWorker,withPinnedClock,withEmptyDestination,sql}) {
+ let cookie=await freshOwner()
+ const root='/api/porthole/v1/notebooks'
+ const post=async(path,data,status=200,acting=cookie)=>{
+  const response=await fetch(origin+path,form(origin,acting,data))
+  assert.equal(response.status,status,path+': '+(response.status===status?'':await response.clone().text()))
+  assert.equal(response.headers.get('cache-control'),'no-store')
+  return response.json()
+ }
+ const get=async(path,status=200,acting=cookie)=>{
+  const response=await fetch(origin+path,{headers:acting?{cookie:acting}:{}})
+  assert.equal(response.status,status,path+': '+(response.status===status?'':await response.clone().text()))
+  assert.equal(response.headers.get('cache-control'),'no-store');return response.json()
+ }
+ await get(root,401,'')
+ await get(root+'/evaluations',401,'')
+ await post(root,{name:'synthetic-porthole-2400'},400)
+ const scope={services:['synthetic-porthole-2401'],environments:['production'],teams:['synthetic-porthole-2402']}
+ const otherScope={...scope,services:['synthetic-porthole-2403']},both={...scope,services:[...scope.services,...otherScope.services]}
+ const source=await post('/app/settings/credentials/mint',{name:'synthetic-porthole-2404',class:'ingest',scope:{...both,signals:['logs','metrics'],actions:['telemetry.write']}},201)
+ const t=Date.now(),ns=ms=>String(BigInt(ms)*1000000n)
+ const resource=selected=>({attributes:[{key:'service.name',value:{stringValue:selected.services[0]}},{key:'deployment.environment.name',value:{stringValue:'production'}},{key:'team',value:{stringValue:scope.teams[0]}},{key:'subject',value:{stringValue:'synthetic-porthole-2405'}}]})
+ let sequence=2406
+ let originalPacket
+ const ingest=async(signal,records,selected=scope,expected=200,packet)=>{
+  const body=packet??(signal==='logs'?{resourceLogs:[{resource:resource(selected),scopeLogs:[{logRecords:records}]}]}:{resourceMetrics:[{resource:resource(selected),scopeMetrics:[{metrics:records}]}]})
+  if(signal==='logs'&&records?.length===205)originalPacket=body
+  const response=await fetch(origin+'/v1/'+signal,{method:'POST',headers:{authorization:'Bearer '+source.secret,'content-type':'application/json','x-porthole-batch-id':'synthetic-porthole-'+sequence++,'x-porthole-team':selected.teams[0],'x-porthole-service':selected.services[0],'x-porthole-environment':'production'},body:JSON.stringify(body)})
+  assert.equal(response.status,expected,await response.clone().text())
+  if(expected===200)await post('/api/porthole/v1/ingest/drain',{})
+ }
+ const heartbeat=async()=>{
+  const response=await fetch(origin+'/api/v1/health/heartbeat',{method:'POST',headers:{authorization:'Bearer '+source.secret,'content-type':'application/json'},body:JSON.stringify({collectorId:'synthetic-porthole-2420',service:scope.services[0],environment:'production',team:scope.teams[0],signal:'logs'})})
+  assert.equal(response.status,200)
+ }
+ const metric=(value,at)=>({name:'synthetic_porthole_notebook_value',unit:'ms',gauge:{dataPoints:[{timeUnixNano:ns(at),asDouble:value}]}})
+ const monitor=await post('/api/porthole/v1/objects',{kind:'monitor',name:'Notebook firing alert',scope,body:{signal:'logs',operator:'above',threshold:0,windowSeconds:60}},201)
+ await post('/api/porthole/v1/objects/activate',{id:monitor.id,revision:1,confirm:'activate'})
+ await withPinnedClock(t,async()=>{
+  await heartbeat()
+  await ingest('logs',Array.from({length:205},(_,i)=>({timeUnixNano:ns(t-1000+i),severityNumber:17,body:{stringValue:'synthetic-porthole-log-'+i}})))
+  await ingest('metrics',[metric(4,t-900),metric(9,t-800)])
+  const state=await post('/api/v1/health/tick',{})
+  const measured=state.state.components.find(c=>c.component==='monitor-evaluation').evidence.monitors.find(m=>m.monitorId===monitor.id)
+  assert.equal(measured.status,'Firing');assert.equal(measured.observedCount,205)
+ })
+ const evaluations=(await get(root+'/evaluations')).evaluations
+ const firing=evaluations.find(e=>e.monitorId===monitor.id)
+ assert.ok(firing);assert.equal(firing.observedCount,205)
+ assert.equal(firing.fromNs,ns(t-60000).padStart(20,'0'));assert.equal(firing.throughNs,ns(t).padStart(20,'0'))
+ let notebookId
+ await notebookBrowser({origin,cookie,name:'notebook-from-firing',path:()=>notebookId?'/app/notebooks/'+notebookId:'/app/notebooks?monitor='+monitor.id,exercise:async page=>{
+  await page.getByLabel('Notebook name').fill('Measured incident investigation')
+  await page.getByRole('button',{name:'Save investigation notebook'}).click()
+  await page.waitForURL(/\/app\/notebooks\/[a-f0-9-]{36}$/)
+  notebookId=new URL(page.url()).pathname.split('/').at(-1)
+  assert.ok((await page.locator('body').innerText()).includes('firing monitor revision 1'))
+ }})
+ const endpoint=root+'/'+notebookId,pagePath='/app/notebooks/'+notebookId
+ let notebook=await get(endpoint)
+ assert.equal(notebook.body.origin.monitorId,monitor.id)
+ assert.equal(notebook.body.origin.evaluationId,firing.id)
+ const originalOrigin=structuredClone(notebook.body.origin)
+ const query={signal:'logs',service:scope.services[0],environment:'production',team:scope.teams[0],from:ns(t-2000),through:ns(t)}
+ const attach=async data=>{const result=await post(endpoint+'/cells',{revision:notebook.revision,...data});notebook=await get(endpoint);assert.equal(result.revision,notebook.revision)}
+ await attach({cellId:'logs',kind:'query',title:'Original log evidence',query})
+ assert.equal(notebook.results[0].count,205)
+ assert.equal(notebook.body.cells[0].snapshot.queryRefs.length,2,'all result pages are captured at one watermark')
+ assert.deepEqual(notebook.results[0].records.map(r=>r.payload.record.body.stringValue),Array.from({length:205},(_,i)=>'synthetic-porthole-log-'+i))
+ await attach({cellId:'chart',kind:'chart',title:'Measured latency',query:{...query,signal:'metrics',metric:'synthetic_porthole_notebook_value'}})
+ assert.deepEqual(notebook.results[1].points.map(p=>p.value),[4,9])
+ await notebookBrowser({origin,cookie,path:pagePath,name:'notebook-cells',exercise:async page=>{
+  await page.locator('summary').filter({hasText:/^Add text cell$/}).click()
+  const text=page.locator('form').filter({has:page.getByRole('button',{name:'Add text cell',exact:true})})
+  await text.getByLabel('Cell reference').fill('context')
+  await text.getByLabel('Text',{exact:true}).fill('Investigate the original measured failure before changing anything.')
+  await text.getByRole('button',{name:'Add text cell',exact:true}).click()
+  await page.waitForURL(origin+pagePath)
+  assert.deepEqual(await page.locator('[data-cell-id]').evaluateAll(cells=>cells.map(c=>c.dataset.cellId)),['logs','chart','context'])
+  const chart=page.locator('[data-cell-id="chart"]')
+  assert.equal(await chart.locator('svg circle').count(),2)
+  await chart.getByRole('button',{name:'Move cell up'}).click()
+  await page.waitForURL(origin+pagePath)
+  assert.deepEqual(await page.locator('[data-cell-id]').evaluateAll(cells=>cells.map(c=>c.dataset.cellId)),['chart','logs','context'])
+ }})
+ notebook=await get(endpoint)
+ const initialRevision=notebook.revision,initial=structuredClone(notebook)
+ assert.deepEqual(notebook.body.cells.map(c=>c.id),['chart','logs','context'])
+ const stale=await post(endpoint+'/reorder',{revision:notebook.revision-1,order:['logs','chart','context']},409)
+ assert.equal(stale.error,'revision_or_authority_changed')
+ await post(endpoint+'/reorder',{revision:notebook.revision,order:['logs','logs','context']},400)
+ assert.equal((await get(endpoint)).revision,initialRevision)
+ const address=n=>['synthetic-porthole-'+n,'example.com'].join(String.fromCharCode(64))
+ const invite=async(n,role,selected)=>{
+  await post('/app/settings/members/invite',{email:address(n),displayName:role==='responder'?'Incident responder':role==='restricted contractor'?'Scoped contractor':'Unshared analyst',role,scope:selected},202)
+  const signed=await signIn(address(n)),session=await get('/auth/session',200,signed)
+  return {cookie:signed,id:session.operator.id}
+ }
+ const responder=await invite(2421,'responder',both),contractor=await invite(2422,'restricted contractor',scope),unshared=await invite(2423,'read-only analyst',both)
+ cookie=await freshOwner()
+ await get(endpoint,404,responder.cookie)
+ await get(root+'/evaluations',403,responder.cookie)
+ await notebookBrowser({origin,cookie,path:'/app/settings/notebooks/'+notebookId,name:'notebook-private-sharing',exercise:async page=>{
+  const member=page.locator('form').filter({has:page.getByRole('button',{name:'Share private member link'})})
+  await member.getByLabel('Member',{exact:true}).selectOption(responder.id)
+  await member.getByRole('button',{name:'Share private member link'}).click()
+  await page.waitForURL(origin+'/app/settings/notebooks/'+notebookId)
+  assert.ok((await page.locator('body').innerText()).includes('Incident responder'))
+ }})
+ await post(endpoint+'/share',{revision:notebook.revision,kind:'member',target:contractor.id})
+ for(const actor of [responder,contractor]) {
+  const scoped=await get(endpoint,200,actor.cookie)
+  assert.deepEqual(scoped.results.filter(Boolean).map(r=>r.count),[2,205])
+  await notebookBrowser({origin,cookie:actor.cookie,path:pagePath,name:'notebook-'+(actor===responder?'responder':'contractor'),exercise:async page=>{
+   assert.equal(await page.locator('form').count(),0)
+   assert.ok((await page.locator('body').innerText()).includes('205 records'))
+   assert.equal(await page.locator('svg circle').count(),2)
+  }})
+ }
+ await get(endpoint,404,unshared.cookie)
+ await get(endpoint,401,'')
+ await notebookBrowser({origin,cookie:'',path:pagePath,name:'notebook-signed-out',status:401,exercise:async page=>assert.ok(!(await page.locator('body').innerText()).includes('Measured latency'))})
+ await post(endpoint+'/cells',{revision:notebook.revision,cellId:'forbidden',kind:'text',text:'Cannot alter owner evidence'},403,responder.cookie)
+ assert.equal((await get(endpoint)).revision,initialRevision)
+ const cross=await fetch(origin+endpoint+'/comment',form('https://synthetic-porthole.invalid',cookie,{revision:notebook.revision,text:'forged'}));assert.equal(cross.status,403)
+ const readKey=await post('/app/settings/credentials/mint',{name:'synthetic-porthole-2424',class:'read',scope:{...scope,signals:['logs'],actions:['telemetry.read']}},201)
+ assert.equal((await fetch(origin+endpoint,{headers:{authorization:'Bearer '+readKey.secret}})).status,403,'a telemetry credential cannot confer notebook access')
+ await post('/app/settings/credentials/revoke',{id:readKey.credential.id})
+ assert.equal((await fetch(origin+endpoint,{headers:{authorization:'Bearer '+readKey.secret}})).status,403,'revoked credentials never become notebook authority')
+ const revokedRead=await fetch(origin+'/api/porthole/v1/query',{method:'POST',headers:{authorization:'Bearer '+readKey.secret,'content-type':'application/json'},body:JSON.stringify(query)})
+ assert.equal(revokedRead.status,401);assert.ok(!(await revokedRead.text()).includes('synthetic-porthole-log-0'))
+ await notebookBrowser({origin,cookie,path:pagePath,name:'notebook-local-mention',exercise:async page=>{
+  await page.getByText('Add annotation or local mention',{exact:true}).click()
+  await page.getByLabel('Annotation',{exact:true}).fill('Review the measured evidence before rerunning.')
+  await page.getByLabel('Mention teammate').selectOption(responder.id)
+  await page.getByRole('button',{name:'Save annotation'}).click()
+  await page.waitForURL(origin+pagePath)
+  assert.ok((await page.locator('body').innerText()).includes('Undelivered. No notification was sent.'))
+ }})
+ notebook=await get(endpoint)
+ assert.deepEqual(notebook.body.comments[0].mentions,[{memberRef:responder.id,status:'undelivered'}])
+ await attach({cellId:'mean',kind:'chart',title:'Window mean latency',query:{...query,signal:'metrics',metric:'synthetic_porthole_notebook_value',dialect:'sql',expression:`SELECT AVG(value) FROM metrics WHERE metric='synthetic_porthole_notebook_value' AND service='${scope.services[0]}' AND environment='production' AND team='${scope.teams[0]}'`}})
+ assert.equal(notebook.results[3].aggregate.value,6.5)
+ assert.deepEqual(notebook.results[3].points.map(p=>p.value),[6.5],'the graph renders the requested window average, not individual observations')
+ await attach({cellId:'total',kind:'query',title:'Whole window log count',query:{...query,dialect:'sql',expression:`SELECT COUNT(*) FROM logs WHERE service='${scope.services[0]}' AND environment='production' AND team='${scope.teams[0]}'`}})
+ assert.equal(notebook.results[4].aggregate.value,205,'aggregate counts include every native snapshot page')
+ await notebookBrowser({origin,cookie,path:pagePath,name:'notebook-window-aggregates',exercise:async page=>{
+  const mean=page.locator('[data-cell-id="mean"]')
+  assert.equal(await mean.locator('svg circle').count(),1)
+  assert.ok((await mean.innerText()).includes('Window average: 6.5 ms'))
+  assert.ok((await page.locator('[data-cell-id="total"]').innerText()).includes('Window count: 205 records'))
+ }})
+ // The change context is emitted through actual intake, then captured through
+ // the same notebook cell door; no copied change facts live in its revisions.
+ const changeFacts=[
+  {kind:'deployment',id:'synthetic-porthole-2450',previous:'release-before',version:'release-after',summary:'Measured service deployment'},
+  {kind:'configuration',id:'synthetic-porthole-2451',previous:'settings-before',version:'settings-after',summary:'Observed configuration change'},
+  {kind:'feature_flag',id:'synthetic-porthole-2452',previous:'flag-before',version:'flag-after',summary:'Observed feature flag change'},
+ ]
+ await ingest('logs',changeFacts.map((change,index)=>({timeUnixNano:ns(t-9000+index),body:{stringValue:'synthetic-porthole-change-'+index},attributes:Object.entries({'change.kind':change.kind,'change.id':change.id,'change.previous_version':change.previous,'change.version':change.version,'change.summary':change.summary}).map(([key,value])=>({key,value:{stringValue:value}}))})))
+ const changeQuery={...query,from:ns(t-10000),through:ns(t-8000)}
+ const unchangedRevision=notebook.revision
+ const invalid=await post(endpoint+'/cells',{revision:unchangedRevision,cellId:'not-a-change',kind:'change',title:'Ordinary logs cannot masquerade as changes',query},422)
+ assert.equal(invalid.error,'service_change_evidence_required')
+ await post(endpoint+'/cells',{revision:unchangedRevision,cellId:'aggregate-change',kind:'change',title:'Aggregates are not change evidence',query:{...changeQuery,dialect:'sql',expression:`SELECT COUNT(*) FROM logs WHERE service='${scope.services[0]}' AND environment='production' AND team='${scope.teams[0]}'`}},400)
+ assert.equal((await get(endpoint)).revision,unchangedRevision,'invalid evidence saves neither a cell nor a revision')
+ await notebookBrowser({origin,cookie,path:pagePath,name:'notebook-service-changes',exercise:async page=>{
+  await page.getByText('Attach query or chart',{exact:true}).click()
+  const capture=page.locator('form').filter({has:page.getByRole('button',{name:'Capture cell',exact:true})})
+  await capture.getByLabel('Cell reference').fill('changes')
+  await capture.getByLabel('Cell title').fill('Observed service changes')
+  await capture.getByLabel('Cell type').selectOption('change')
+  await capture.getByLabel('Signal',{exact:true}).selectOption('logs')
+  for(const [label,value] of [['Service',scope.services[0]],['Environment','production'],['Team',scope.teams[0]],['From in nanoseconds',changeQuery.from],['Through in nanoseconds',changeQuery.through]])await capture.getByLabel(label,{exact:true}).fill(value)
+  await capture.getByRole('button',{name:'Capture cell',exact:true}).click()
+  await page.waitForURL(origin+pagePath)
+  const changes=page.locator('[data-cell-id="changes"]')
+  const text=await changes.innerText()
+  for(const change of changeFacts)for(const expected of [change.id,change.previous,change.version,change.summary])assert.ok(text.includes(expected))
+  assert.equal(await changes.locator('ul > li').count(),3)
+  await changes.getByRole('link',{name:'Open authorized query'}).click()
+  const result=await page.locator('body').innerText()
+  for(const change of changeFacts)assert.ok(result.includes(change.id),'source query retains the exact original change evidence')
+  await page.goto(origin+pagePath)
+ }})
+ notebook=await get(endpoint)
+ const changeCell=notebook.body.cells.find(cell=>cell.id==='changes'),changeResult=notebook.results[5],changeRevision=notebook.revision
+ assert.equal(changeCell.kind,'change');assert.equal(changeResult.count,3)
+ assert.deepEqual(changeResult.changes.map(change=>[change.kind,change.changeId,change.previousVersion,change.version,change.summary]),changeFacts.map(change=>[change.kind,change.id,change.previous,change.version,change.summary]))
+ assert.deepEqual(changeResult.changes.map(change=>change.timeNs),changeFacts.map((_,index)=>ns(t-9000+index).padStart(20,'0')))
+ assert.deepEqual(changeResult.changes.map(change=>change.recordId),changeCell.snapshot.recordIds)
+ assert.ok(!JSON.stringify(changeCell).includes(changeFacts[0].id),'only query and evidence references are durable notebook context')
+ for(const actor of [responder,contractor])assert.deepEqual((await get(endpoint,200,actor.cookie)).results[5].changes,changeResult.changes)
+ await post(endpoint+'/rerun',{revision:notebook.revision,cellId:'changes',from:ns(t+1000),through:ns(t+2000)},422)
+ assert.equal((await get(endpoint)).revision,changeRevision,'empty reruns cannot silently replace the original change context')
+ const nextChange={kind:'deployment',id:'synthetic-porthole-2453',version:'release-recovered',summary:'Recovery deployment observed'}
+ await ingest('logs',[{timeUnixNano:ns(t-8990),body:{stringValue:'synthetic-porthole-change-3'},attributes:Object.entries({'change.kind':nextChange.kind,'change.id':nextChange.id,'change.version':nextChange.version,'change.summary':nextChange.summary}).map(([key,value])=>({key,value:{stringValue:value}}))}])
+ await post(endpoint+'/rerun',{revision:notebook.revision,cellId:'changes'})
+ notebook=await get(endpoint)
+ assert.equal(notebook.results[5].count,4)
+ assert.equal(notebook.results[5].changes[3].changeId,nextChange.id)
+ assert.equal(notebook.results[5].changes[3].previousVersion,'','missing source context is not invented')
+ assert.deepEqual((await get(endpoint+'?version='+changeRevision)).results[5].changes,changeResult.changes,'a later capture preserves every original change fact and time')
+ await notebookBrowser({origin,cookie,path:pagePath,name:'notebook-service-change-rerun',exercise:async page=>{
+  const changes=page.locator('[data-cell-id="changes"]')
+  assert.equal(await changes.locator('ul > li').count(),4)
+  const text=await changes.innerText();assert.ok(text.includes(nextChange.version));assert.ok(text.includes('Previous version: Not supplied'))
+ }})
+ const beforeRerun=notebook.revision
+ await withPinnedClock(t+61000,async()=>{
+  await heartbeat();await ingest('logs',[{timeUnixNano:ns(t-500),body:{stringValue:'synthetic-porthole-old-event'}}])
+  await ingest('metrics',[metric(12,t+61000)])
+  const recovered=await post('/api/v1/health/tick',{})
+  const measured=recovered.state.components.find(c=>c.component==='monitor-evaluation').evidence.monitors.find(m=>m.monitorId===monitor.id)
+  assert.equal(measured.status,'Healthy');assert.equal(measured.observedCount,0,'measured recovery uses the unchanged original monitor')
+  await post(endpoint+'/rerun',{revision:notebook.revision,cellId:'chart',from:ns(t+1000),through:ns(t+61000)})
+ })
+ notebook=await get(endpoint)
+ assert.equal(notebook.revision,beforeRerun+1)
+ assert.deepEqual(notebook.results[0].points.map(p=>p.value),[12])
+ assert.deepEqual(notebook.body.origin,originalOrigin)
+ const earlier=await get(endpoint+'?version='+initialRevision)
+ assert.deepEqual(earlier.body,initial.body)
+ assert.deepEqual(earlier.results[0].points.map(p=>p.value),[4,9])
+ assert.equal(earlier.results[1].count,205,'later intake cannot enter the earlier immutable watermark')
+ await restartWorker();cookie=await freshOwner()
+ assert.deepEqual((await get(endpoint+'?version='+changeRevision)).results[5].changes,changeResult.changes,'restart retains original scoped service-change references')
+ assert.deepEqual((await get(endpoint+'?version='+initialRevision)).body,initial.body)
+ await notebookBrowser({origin,cookie,path:pagePath,name:'notebook-measured-recovery',exercise:async page=>{
+  assert.equal(await page.locator('[data-cell-id="chart"] svg circle').count(),1)
+  await page.getByRole('link',{name:'Revision '+initialRevision,exact:true}).click()
+  assert.equal(await page.locator('[data-cell-id="chart"] svg circle').count(),2)
+ }})
+ const publications=endpoint+'/publications',publicationSettings='/app/settings/notebooks/'+notebookId+'/publications'
+ const expiresAt=Date.now()+600000,choices=[{cellId:'logs',label:'Observed errors',unit:'records'},{cellId:'chart',label:'Recovery latency',unit:'ms'},{cellId:'mean',label:'Mean latency',unit:'ms'},{cellId:'total',label:'Total observed errors',unit:'records'}]
+ const previewData={revision:notebook.revision,title:'Public recovery summary',summary:'Measured recovery reviewed for external readers.',cells:choices,expiresAt}
+ await post(publications,previewData,403,responder.cookie)
+ await get(publications,403,contractor.cookie)
+ await post(publications,{...previewData,cells:[{cellId:'context',label:'Private text',unit:''}]},400)
+ await post(publications,{...previewData,cells:[{cellId:'changes',label:'Private change facts',unit:'changes'}]},400)
+ let published
+ await notebookBrowser({origin,cookie,path:publicationSettings,name:'notebook-public-preview',exercise:async page=>{
+  await page.getByLabel('Public title',{exact:true}).fill(previewData.title)
+  await page.getByLabel('Sanitized public summary').fill(previewData.summary)
+  await page.getByLabel('Include Original log evidence',{exact:true}).check()
+  await page.getByLabel('Public label for Original log evidence',{exact:true}).fill('Observed errors')
+  await page.getByLabel('Include Measured latency',{exact:true}).check()
+  await page.getByLabel('Public label for Measured latency',{exact:true}).fill('Recovery latency')
+  assert.equal(await page.getByLabel('Public unit for Measured latency',{exact:true}).inputValue(),'ms')
+  await page.getByLabel('Include Window mean latency',{exact:true}).check()
+  await page.getByLabel('Public label for Window mean latency',{exact:true}).fill('Mean latency')
+  await page.getByLabel('Include Whole window log count',{exact:true}).check()
+  await page.getByLabel('Public label for Whole window log count',{exact:true}).fill('Total observed errors')
+  await page.getByLabel('Expiry in UTC').fill(new Date(expiresAt).toISOString())
+  const [preview]=await Promise.all([page.waitForResponse(r=>r.request().method()==='POST'&&new URL(r.url()).pathname===publicationSettings),page.getByRole('button',{name:'Preview sanitized snapshot'}).click()])
+  assert.equal(preview.status(),303,preview.status()===303?'':await preview.text())
+  await page.waitForURL(/\/publications\/[a-f0-9-]{36}$/)
+  published=await get(publications+'/'+new URL(page.url()).pathname.split('/').at(-1))
+  assert.ok((await page.locator('body').innerText()).includes('State: draft'))
+ }})
+ const publicPath='/shared/notebooks/'+published.id,publication=publications+'/'+published.id
+ const publicGet=async(path=publicPath,status=200,method='GET')=>{
+  const response=await fetch(origin+path,{method})
+  assert.equal(response.status,status,await response.clone().text())
+  assert.equal(response.headers.get('cache-control'),'no-store')
+  assert.equal(response.headers.get('referrer-policy'),'no-referrer')
+  return response.text()
+ }
+ await publicGet(publicPath,404);await publicGet('/shared/notebooks/'+notebookId,404)
+ const projection=JSON.parse(published.projection)
+ assert.deepEqual(projection.cells.map(c=>c.label),['Recovery latency','Observed errors','Mean latency','Total observed errors'],'publication retains notebook order, independently of choice order')
+ assert.deepEqual(projection.cells.map(c=>c.count),[1,205,2,205]);assert.deepEqual(projection.cells[0].points.map(p=>p.value),[12])
+ assert.deepEqual(projection.cells.map(c=>c.value),[null,null,6.5,205],'record counts are never mislabeled as metric values')
+ assert.deepEqual(projection.cells[2].points.map(p=>p.value),[6.5])
+ assert.equal(projection.cells[0].from,ns(t+1000).padStart(20,'0'))
+ const approval={digest:published.digest,revision:published.source_revision,expiresAt:published.expires_at,audience:'anyone-with-address',confirm:'reviewed-sanitized-notebook'}
+ await post(publication+'/approve',approval,403,responder.cookie)
+ await post(publication+'/revoke',{},403,contractor.cookie)
+ await post(publication+'/approve',{...approval,digest:'0'.repeat(64)},409)
+ await post(publication+'/approve',{...approval,audience:'private-members'},409)
+ assert.equal((await get(publication)).state,'draft','unsafe approvals leave the draft unchanged')
+ await withPinnedClock(Date.now()+301000,async()=>{
+  const refused=await post(publication+'/approve',approval,403)
+  assert.equal(refused.error,'step_up_required')
+ })
+ cookie=await freshOwner()
+ await notebookBrowser({origin,cookie,path:publicationSettings+'/'+published.id,name:'notebook-exact-public-review',exercise:async page=>{
+  await page.getByRole('checkbox').check()
+  await page.getByRole('button',{name:'Approve exact public snapshot'}).click()
+  await page.waitForURL(origin+publicationSettings+'/'+published.id)
+  assert.ok((await page.locator('body').innerText()).includes('State: published'))
+ }})
+ let publicHtml=await publicGet()
+ for(const privateValue of ['Measured incident investigation','Original log evidence','synthetic-porthole-log-0','Incident responder',notebookId,monitor.id,source.secret,'queryRefs','recordIds','authorRef'])assert.ok(!publicHtml.includes(privateValue),'public snapshot excludes private fields')
+ for(const change of changeFacts)assert.ok(!publicHtml.includes(change.id)&&!publicHtml.includes(change.summary),'private change evidence is never an anonymous projection')
+ assert.ok(publicHtml.includes('Public recovery summary'));assert.ok(publicHtml.includes('205 records'))
+ assert.equal(await publicGet(publicPath,200,'HEAD'),'')
+ await notebookBrowser({origin,cookie:'',path:publicPath,name:'notebook-public-snapshot',exercise:async page=>{
+  assert.equal(await page.locator('svg circle').count(),2)
+  const text=await page.locator('body').innerText()
+  assert.ok(text.includes('Recovery latency'));assert.ok(text.includes('Window result 6.5 ms'));assert.ok(text.includes('Window result 205 records'))
+  assert.equal(await page.locator('form').count(),0)
+ }})
+ await withPinnedClock(expiresAt+1,async()=>{await publicGet(publicPath,404);await publicGet(publicPath,404,'HEAD')})
+ await restartWorker();cookie=await freshOwner();await publicGet()
+ const revoked=await post(publications,previewData,201)
+ await post(publications+'/'+revoked.id+'/approve',{...approval,digest:revoked.digest})
+ await post(publications+'/'+revoked.id+'/revoke',{})
+ await post(publications+'/'+revoked.id+'/revoke',{})
+ await publicGet('/shared/notebooks/'+revoked.id,404)
+ await post(publications+'/'+revoked.id+'/approve',{...approval,digest:revoked.digest},409)
+ await notebookBrowser({origin,cookie:'',path:'/shared/notebooks/'+revoked.id,name:'notebook-public-revoked',status:404,exercise:async page=>assert.ok(!(await page.locator('body').innerText()).includes('205 records'))})
+ const publishingOwner=await invite(2425,'responder',both)
+ cookie=await freshOwner()
+ await post('/app/settings/members/change',{operatorId:publishingOwner.id,role:'owner',confirmEmail:address(2425)})
+ publishingOwner.cookie=await signIn(address(2425))
+ const ownerPublication=await post(publications,previewData,201,publishingOwner.cookie)
+ await post(publications+'/'+ownerPublication.id+'/approve',{...approval,digest:ownerPublication.digest},200,publishingOwner.cookie)
+ await publicGet('/shared/notebooks/'+ownerPublication.id)
+ cookie=await freshOwner()
+ await post('/app/settings/members/change',{operatorId:publishingOwner.id,role:'responder',scope:otherScope})
+ await publicGet('/shared/notebooks/'+ownerPublication.id,404,'HEAD')
+ await get(publications,401,publishingOwner.cookie)
+ await post('/app/settings/members/remove',{operatorId:publishingOwner.id})
+ await post('/api/porthole/v1/actors/erase',{actorRef:publishingOwner.id,confirm:'erase'})
+ await publicGet('/shared/notebooks/'+ownerPublication.id,404)
+ const stalePublication=await post(publications,previewData,201)
+ const {notebookArchiveJourney}=await import('./archive.mjs')
+ const archived=await notebookArchiveJourney({origin,freshOwner,withEmptyDestination,notebookId,initialRevision,publicationId:published.id,scope})
+ cookie=await freshOwner()
+ await post(endpoint+'/unshare',{revision:notebook.revision,kind:'member',target:responder.id})
+ await get(endpoint,404,responder.cookie)
+ await post(endpoint+'/share',{revision:notebook.revision,kind:'team',target:scope.teams[0]})
+ await get(endpoint,200,responder.cookie)
+ await ingest('logs',[{timeUnixNano:ns(t-700),body:{stringValue:'synthetic-porthole-other-service'}}],otherScope)
+ await attach({cellId:'other-service',kind:'query',title:'Second service evidence',query:{...query,service:otherScope.services[0]}})
+ await publicGet(publicPath,404,'HEAD')
+ await post(publications+'/'+stalePublication.id+'/approve',{...approval,digest:stalePublication.digest},409)
+ const erasurePublication=await post(publications,{...previewData,revision:notebook.revision},201)
+ await post(publications+'/'+erasurePublication.id+'/approve',{...approval,revision:notebook.revision,digest:erasurePublication.digest})
+ await publicGet('/shared/notebooks/'+erasurePublication.id)
+ await get(endpoint,404,contractor.cookie)
+ await notebookBrowser({origin,cookie:contractor.cookie,path:pagePath,name:'notebook-cell-scope-refusal',status:404,exercise:async page=>assert.ok(!(await page.locator('body').innerText()).includes('Second service evidence'))})
+ await get(endpoint,200,responder.cookie)
+ await post('/app/settings/members/change',{operatorId:responder.id,role:'responder',scope:otherScope})
+ await get(endpoint,401,responder.cookie)
+ const narrowed=await signIn(address(2421));await get(endpoint,404,narrowed)
+ cookie=await freshOwner()
+ await post('/app/settings/members/remove',{operatorId:responder.id})
+ await post('/api/porthole/v1/actors/erase',{actorRef:responder.id,confirm:'erase'})
+ const preview=await post('/api/porthole/v1/subject-erasure',{identifier:'synthetic-porthole-2405'})
+ assert.ok(preview.records>=205);assert.equal(preview.canApply,true)
+ await post('/api/porthole/v1/subject-erasure/apply',{identifier:'synthetic-porthole-2405',digest:preview.digest,confirm:'erase-exact-batches'})
+ await publicGet('/shared/notebooks/'+erasurePublication.id,404)
+ assert.equal((await sql('SELECT COUNT(*) AS n FROM porthole_notebook_publications'))[0].n,0,'erasure purges every affected frozen public projection in the same journal transaction')
+ const erasedNotebook=await get(endpoint)
+ assert.equal(erasedNotebook.results[5].state,'unavailable');assert.equal(erasedNotebook.results[5].count,null);assert.deepEqual(erasedNotebook.results[5].records,[])
+ assert.equal(erasedNotebook.results[5].changes,undefined,'erasure cannot leave a detached service-change presentation')
+ const refusedPublication=await post(publications,{...previewData,revision:erasedNotebook.revision},409)
+ assert.equal(refusedPublication.error,'public_cell_evidence_unavailable','a new publication cannot revive erased inputs')
+ notebook=await get(endpoint+'?version='+initialRevision)
+ assert.deepEqual(notebook.body,initial.body)
+ assert.equal(notebook.results[1].state,'unavailable');assert.equal(notebook.results[1].count,null);assert.deepEqual(notebook.results[1].records,[])
+ await ingest('logs',null,scope,409,originalPacket)
+ await restartWorker();cookie=await freshOwner()
+ assert.equal((await get(endpoint+'?version='+initialRevision)).results[1].state,'unavailable')
+ await notebookBrowser({origin,cookie,path:pagePath,name:'notebook-missing-evidence',exercise:async page=>{
+  const text=await page.locator('body').innerText();assert.ok(text.includes('Count unavailable'));assert.ok(text.includes('Erased member'))
+  assert.ok(!text.includes('synthetic-porthole-log-0'),'erased log data is absent from notebook results')
+  for(const change of [...changeFacts,nextChange])assert.ok(!text.includes(change.id)&&!text.includes(change.summary),'erased service changes are unavailable')
+ }})
+ await notebookBrowser({origin,cookie,path:publicationSettings,name:'notebook-public-missing-evidence',exercise:async page=>{
+  assert.equal(await page.getByLabel('Include Original log evidence',{exact:true}).isDisabled(),true)
+  assert.ok((await page.locator('body').innerText()).includes('Evidence unavailable; this cell cannot be published.'))
+ }})
+ const {notebookJournalRestoreJourney}=await import('./archive.mjs')
+ await notebookJournalRestoreJourney({origin,freshOwner,withEmptyDestination,source:archived,publicationId:published.id,notebookId})
+ console.log('Native notebooks passed: measured alert and recovery, immutable multipage cells, scoped links, exact owner-reviewed sanitized external snapshot, expiry and revocation, unsafe approval refusals, journaled projection erasure, restart and private inert archive restore at 1440 and 390.')
+}

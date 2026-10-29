@@ -15,10 +15,14 @@ import { renderMarkdown } from './markdown'
 export function docsPages(run: RunData, styles: string[], contract: SeedContract | undefined): { path: string; html: string }[] {
   const root = process.cwd(), custody = readCustody(root), docs = readDocs(root, custody), resolve = linkResolver(root, docs, custody, run.repository)
   const bodies = new Map(docs.map(doc => [doc.path, renderMarkdown(doc.markdown, href => resolve(doc, href))]))
-  checkDocLinks(docs, bodies)
+  checkDocLinks(docs, bodies, root)
   const frame = { styles, links: homeLinks(run, !!contract) }
   return [
     { path: '/docs', html: indexPage(docs, frame, contract) },
-    ...docs.map(doc => ({ path: doc.path, html: articlePage(doc, bodies.get(doc.path)!, docs, frame, run.repository) })),
+    { path: '/docs/v1', html: indexPage(docs.filter(doc => doc.version === 'v1'), frame, contract, 'v1') },
+    ...docs.flatMap(doc => {
+      const html = articlePage(doc, bodies.get(doc.path)!, docs, frame, run.repository)
+      return [{ path: doc.path, html }, ...(doc.alias ? [{ path: doc.alias, html }] : [])]
+    }),
   ]
 }

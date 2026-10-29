@@ -1,0 +1,9 @@
+{
+  "signal": "logs",
+  "service": "synthetic-porthole-1",
+  "environment": "synthetic-porthole-2",
+  "team": "synthetic-porthole-3",
+  "from": "1793232000000000000",
+  "through": "1793232000000000001",
+  "limit": 50
+}

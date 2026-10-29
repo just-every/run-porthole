@@ -14,6 +14,7 @@ const matched = `SELECT b.id,b.digest,b.record_count,b.byte_count FROM porthole_
 const erased = 'SELECT id FROM porthole_ingest_batches WHERE id IN (SELECT id FROM porthole_erased_batches) OR digest IN (SELECT content_digest FROM porthole_erased_batches)'
 export function eraseJournaledBatches(db: D1Database): D1PreparedStatement[] {
  return [
+  db.prepare(`DELETE FROM porthole_notebook_publications WHERE EXISTS(SELECT 1 FROM json_each(source_review,'$.recordIds') r JOIN porthole_erased_batches e ON substr(r.value,1,36)=e.id OR EXISTS(SELECT 1 FROM porthole_ingest_batches b WHERE b.id=substr(r.value,1,36) AND b.digest=e.content_digest))`),
   // Preserve a scoped missing-evidence window after removing the original
   // bytes, so a later drain or evaluation cannot turn erasure into recovery.
   db.prepare(`INSERT INTO porthole_ingest_events(id,source_id,signal,team,service,environment,occurred_at,kind,reason,record_count,batch_ref,range_start_ns,range_end_ns)
@@ -21,11 +22,18 @@ export function eraseJournaledBatches(db: D1Database): D1PreparedStatement[] {
    FROM porthole_ingest_batches b,json_each(b.records) j WHERE b.id IN (${erased})
    AND NOT EXISTS(SELECT 1 FROM porthole_ingest_events e WHERE e.batch_ref=b.id AND e.reason='owner_erasure' AND e.team=json_extract(j.value,'$.team') AND e.service=json_extract(j.value,'$.service') AND e.environment=json_extract(j.value,'$.environment'))
    GROUP BY b.id,json_extract(j.value,'$.team'),json_extract(j.value,'$.service'),json_extract(j.value,'$.environment')`),
+  // Invalidate only monitors whose signal and scope held erased records.
+  // Match before clearing the batches; immutable evaluation history remains.
+  db.prepare(`UPDATE porthole_monitor_state SET status='Unknown',reason='Local telemetry was erased; prior evidence is incomplete.'
+   WHERE EXISTS(SELECT 1 FROM porthole_objects o JOIN porthole_ingest_batches b ON b.signal=json_extract(o.body,'$.signal'),json_each(b.records) r
+    WHERE o.id=porthole_monitor_state.object_id AND b.id IN (${erased})
+    AND EXISTS(SELECT 1 FROM json_each(o.scope,'$.services') s WHERE s.value='*' OR s.value=json_extract(r.value,'$.service'))
+    AND EXISTS(SELECT 1 FROM json_each(o.scope,'$.environments') s WHERE s.value='*' OR s.value=json_extract(r.value,'$.environment'))
+    AND EXISTS(SELECT 1 FROM json_each(o.scope,'$.teams') s WHERE s.value='*' OR s.value=json_extract(r.value,'$.team')))`),
   db.prepare(`DELETE FROM porthole_telemetry_records WHERE batch_id IN (${erased})`),
   db.prepare(`DELETE FROM porthole_telemetry_archive WHERE batch_id IN (${erased})`),
   db.prepare(`UPDATE porthole_ingest_batches SET identity='erased:'||id,wire_base64='',records='[]',record_count=0,byte_count=0 WHERE id IN (${erased})`),
   db.prepare("UPDATE porthole_health_receipts SET status='Unknown',expires_at=0,reason='Local telemetry was erased; coverage requires new observation.'"),
-  db.prepare("UPDATE porthole_monitor_state SET status='Unknown',reason='Local telemetry was erased; prior evidence is incomplete.'"),
  ]
 }
 export async function subjectErasureResponse(request: Request, env: Bindings): Promise<Response|null> {

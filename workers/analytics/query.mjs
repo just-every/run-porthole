@@ -1,3 +1,4 @@
+import {compileLogSearch} from './log-search.mjs';
 import { fail, integer, keys, limits, nano, object, signal, text } from './protocol.mjs';
 import { coverage } from './coverage.mjs';
 
@@ -10,7 +11,7 @@ function cursor(value) {
  } catch { fail('invalid_query_cursor'); }
 }
 export async function query(db, input) {
- keys(input, ['sourceIdentity', 'requiredWatermark', 'signal', 'from', 'through', 'scope', 'team', 'service', 'environment', 'limit', 'cursor', 'snapshot', 'archive', 'mode', 'trace', 'metric', 'uncertain']);
+ keys(input, ['sourceIdentity', 'requiredWatermark', 'signal', 'from', 'through', 'scope', 'team', 'service', 'environment', 'limit', 'cursor', 'snapshot', 'archive', 'mode', 'trace', 'metric', 'uncertain', 'logSearch']);
  signal(input.signal); object(input.scope); keys(input.scope, ['teams', 'services', 'environments']);
  const from = nano(input.from), through = nano(input.through);
  if (from > through) fail('invalid_query_range');
@@ -44,6 +45,11 @@ export async function query(db, input) {
   if (input.mode === 'count') fail('invalid_query_cursor');
   const [time, id] = cursor(input.cursor);
   clauses.push('(r.event_time_ns>? OR (r.event_time_ns=? AND r.id>?))'); args.push(time, time, id);
+ }
+ if (input.logSearch !== undefined) {
+  if (input.signal !== 'logs') fail('invalid_log_search_signal');
+  const compiled = compileLogSearch(input.logSearch, input.scope);
+  clauses.push(compiled.sql); args.push(...compiled.args);
  }
  const covered = await coverage(db, input);
  const selection = `FROM analytics_records r JOIN analytics_batches b ON b.id=r.batch_id WHERE ${clauses.join(' AND ')}`;

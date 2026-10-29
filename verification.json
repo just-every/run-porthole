@@ -5,7 +5,9 @@
       "browser": false,
       "hosted": false,
       "commands": [
-        "pnpm run check --profile first-party"
+        "pnpm run check --profile first-party",
+        "node scripts/porthole/public-schema.mjs --check",
+        "node scripts/porthole/contract-docs.mjs check PORT-075"
       ]
     },
     {
@@ -15,7 +17,8 @@
       "commands": [
         "pnpm run build",
         "pnpm run typecheck",
-        "pnpm run test:typecheck"
+        "pnpm run test:typecheck",
+        "node --input-type=module -e 'import {nativeBackupErasureJourney} from \"./tests/porthole/archive.mjs\"; await nativeBackupErasureJourney()'"
       ]
     },
     {
@@ -63,7 +66,8 @@
       "hosted": false,
       "commands": [
         "pnpm run build",
-        "PORTHOLE_ANALYTICAL_ONLY=1 pnpm run test:runtime"
+        "PORTHOLE_ANALYTICAL_ONLY=1 pnpm run test:runtime",
+        "PORTHOLE_HOST_HEARTBEAT_ONLY=1 pnpm run test:runtime"
       ]
     },
     {
@@ -82,6 +86,7 @@
       "commands": [
         "pnpm run build",
         "PORTHOLE_DASHBOARD_ONLY=1 pnpm run test:runtime",
+        "pnpm exec rer build --site",
         "PORTHOLE_API_ONLY=1 pnpm run test:runtime"
       ]
     },
@@ -101,7 +106,8 @@
       "commands": [
         "pnpm run build",
         "PORTHOLE_FOLLOW_UP_ONLY=1 pnpm run test:runtime",
-        "PORTHOLE_SLO_ONLY=1 pnpm run test:runtime"
+        "PORTHOLE_SLO_ONLY=1 pnpm run test:runtime",
+        "PORTHOLE_NOTEBOOKS_ONLY=1 pnpm run test:runtime"
       ]
     }
   ],

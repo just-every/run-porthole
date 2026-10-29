@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "findings": [
+    {
+      "rule": "secret.assignment",
+      "path": "base-copies.json",
+      "blob": "5ba84ee2738f4da05ea47cbd62f4eb677471e004",
+      "reason": "SHA-256 file digests in Base's copy inventory for vendored files named keyword.mjs and public-api.mjs; not credentials; digests equal the file bytes",
+      "reviewer": "dm lane",
+      "date": "2026-10-28"
+    }
+  ]
+}

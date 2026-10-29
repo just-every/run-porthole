@@ -2,7 +2,7 @@ import {queuedEntrypoint} from '@runeditrun/rer/queued-entry';
 const queued=await queuedEntrypoint(import.meta.url,'verify:runtime');if(queued!==null)process.exit(queued);
 import assert from 'node:assert/strict'
 import {createRequire} from 'node:module'
-import { execFile, execFileSync, spawn } from 'node:child_process'
+import { execFile, execFileSync } from 'node:child_process'
 import { createServer } from 'node:net'
 import { mkdtemp, readFile, rm, mkdir, writeFile, readdir, copyFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -12,6 +12,10 @@ import {promisify} from 'node:util'
 const execute=promisify(execFile)
 if(process.env.PORTHOLE_MAIL_ONLY==='1'){const {recipientMailJourney}=await import('./porthole/health.mjs');await recipientMailJourney();process.exit(0)}
 if(process.env.PORTHOLE_ANALYTICAL_ONLY==='1'){const {analyticalConnectionJourney}=await import('./porthole/analytics.mjs');await analyticalConnectionJourney();process.exit(0)}
+
+// Standalone journeys own their runtime and HTTP transport. Load Wrangler only
+// for the emitted-Worker harness; its import configures the global dispatcher.
+const {emittedWorker,runtimeTransport}=await import('./emitted-worker.mjs')
 
 const socket = createServer()
 await new Promise(resolve => socket.listen(0, '127.0.0.1', resolve))
@@ -73,36 +77,24 @@ const origin = `http://127.0.0.1:${port}`
 const setupToken = 'synthetic-runtime-setup-token-1234567890123456789'
 let worker
 let ownerEmail='owner@example.com'
-let output = ''
 let allOutput = ''
-function startWorker() {
- worker = spawn(process.execPath, ['node_modules/wrangler/bin/wrangler.js', 'dev', '--inspector-port', String(inspectorPort), '--local', '--persist-to', persist, '--ip', '127.0.0.1', '--config', 'dist/server/wrangler.json', '--port', String(port), '--var', `AUTH_ORIGIN:${origin}`, '--var', 'AUTH_LOCAL:true', '--var', `OWNER_EMAIL:${ownerEmail}`, '--var', 'MAIL_FROM:synthetic-porthole-4@example.com', '--var', 'SESSION_SECRET:runtime-session-secret-1234567890123456', '--var', `SETUP_TOKEN:${setupToken}`], { stdio: ['ignore', 'pipe', 'pipe'] })
-worker.stdout.on('data', chunk => { output += chunk; allOutput += chunk })
-worker.stderr.on('data', chunk => { output += chunk; allOutput += chunk })
+async function startWorker() {
+ worker = await emittedWorker({config:'dist/server/wrangler.json',persist,port,inspectorPort,
+  bindings:{AUTH_ORIGIN:origin,AUTH_LOCAL:'true',OWNER_EMAIL:ownerEmail,MAIL_FROM:'synthetic-porthole-4@example.com',SESSION_SECRET:'runtime-session-secret-1234567890123456',SETUP_TOKEN:setupToken},
+  onLog:entry=>{allOutput+=entry.message+'\n'},
+ })
+ await worker.ready
 }
 async function stopWorker() {
- worker.kill('SIGTERM')
- await new Promise(resolve => worker.exitCode !== null ? resolve() : worker.once('exit', resolve))
+ await worker?.dispose()
 }
 async function restartWorker(changeStorage) {
- await stopWorker(); if (changeStorage) await changeStorage(); output = ''; startWorker()
- for (let attempt = 0; attempt < 120; attempt++) {
-  if (worker.exitCode !== null) throw Error(output)
-  try { if ((await fetch(`${origin}/health`)).ok) return } catch {}
-  await new Promise(resolve => setTimeout(resolve, 250))
- }
- throw Error('Worker did not restart')
+ await stopWorker(); if (changeStorage) await changeStorage(); await startWorker()
+ assert.ok((await fetch(`${origin}/health`)).ok,'restarted emitted Worker is healthy')
 }
-startWorker()
+const closeTransport=runtimeTransport()
 try {
-  let ready = false
-  for (let attempt = 0; attempt < 120; attempt++) {
-    if (worker.exitCode !== null) throw new Error(output)
-    try { ready = (await fetch(`${origin}/health`)).ok } catch {}
-    if (ready) break
-    await new Promise(resolve => setTimeout(resolve, 250))
-  }
-  assert.ok(ready, output)
+  await startWorker()
   const health = await (await fetch(`${origin}/health`)).json()
   assert.equal(health.status, 'ok')
   assert.equal(health.ok, true)
@@ -141,7 +133,7 @@ try {
   const setupPage=await fetch(`${origin}/setup`, { headers: { cookie } })
   assert.equal(setupPage.status,200)
   assert.match(await setupPage.text(),/Independent notices off — incomplete coverage/)
-  if(!process.env.PORTHOLE_METRIC_RULES_ONLY && !process.env.PORTHOLE_SLO_ONLY && !process.env.PORTHOLE_ERASURE_ONLY && !process.env.PORTHOLE_API_ONLY && !process.env.PORTHOLE_DASHBOARD_ONLY && !process.env.PORTHOLE_EXPORT_ONLY && !process.env.PORTHOLE_MIGRATION_ONLY && !process.env.PORTHOLE_PROTOCOL_ONLY && !process.env.PORTHOLE_INGEST_ONLY && !process.env.PORTHOLE_ACCESS_ONLY && !process.env.PORTHOLE_TRACE_ONLY && (process.env.PORTHOLE_HEALTH_ONLY==='1' || !process.env.PORTHOLE_AUDIT_ONLY && !process.env.PORTHOLE_STOCK_ONLY)) {
+  if(!process.env.PORTHOLE_NOTEBOOKS_ONLY && !process.env.PORTHOLE_METRIC_RULES_ONLY && !process.env.PORTHOLE_SLO_ONLY && !process.env.PORTHOLE_ERASURE_ONLY && !process.env.PORTHOLE_API_ONLY && !process.env.PORTHOLE_DASHBOARD_ONLY && !process.env.PORTHOLE_EXPORT_ONLY && !process.env.PORTHOLE_MIGRATION_ONLY && !process.env.PORTHOLE_PROTOCOL_ONLY && !process.env.PORTHOLE_INGEST_ONLY && !process.env.PORTHOLE_ACCESS_ONLY && !process.env.PORTHOLE_TRACE_ONLY && (process.env.PORTHOLE_HEALTH_ONLY==='1' || !process.env.PORTHOLE_AUDIT_ONLY && !process.env.PORTHOLE_STOCK_ONLY)) {
    const {healthBrowser}=await import('./porthole/health.mjs')
    await healthBrowser({origin,cookie,name:'setup-notices-off',path:'/setup',contains:'Independent notices off — incomplete coverage'})
   }
@@ -185,7 +177,19 @@ try {
     return await run({origin,cookie:destinationCookie,persist,...destinationHelpers,restartWorker})
    } finally {await restartWorker(()=>{persist=savedStore;ownerEmail=savedOwner})}
   }
-  if(process.env.PORTHOLE_METRIC_RULES_ONLY==='1') {
+  if(process.env.PORTHOLE_HOST_HEARTBEAT_ONLY==='1') {
+   const {hostHeartbeatJourney}=await import('./porthole/health.mjs')
+   await hostHeartbeatJourney({origin,restartWorker,withPinnedClock,withEmptyDestination,...helpers})
+  } else if(process.env.PORTHOLE_PUBLIC_DOCS_ONLY==='1') {
+   const {publicDocsJourney}=await import('./porthole/public-docs.mjs')
+   await publicDocsJourney({origin,cookie,...helpers})
+  } else if(process.env.PORTHOLE_NOTEBOOKS_ONLY==='1') {
+   const {notebookJourney}=await import('./porthole/notebooks.mjs')
+   await notebookJourney({origin,restartWorker,withEmptyDestination,withPinnedClock,...helpers})
+  } else if(process.env.PORTHOLE_LOG_SEARCH_ONLY==='1') {
+   const {nativeLogSearchJourney}=await import('./porthole/explore.mjs')
+   await nativeLogSearchJourney({origin,cookie})
+  } else if(process.env.PORTHOLE_METRIC_RULES_ONLY==='1') {
    const {spanMetricJourney}=await import('./porthole/ingest.mjs')
    await spanMetricJourney({origin,restartWorker,withEmptyDestination,...helpers})
   } else if(process.env.PORTHOLE_SPLUNK_COLLECTOR_ONLY==='1') {
@@ -206,7 +210,11 @@ try {
   } else if(process.env.PORTHOLE_DASHBOARD_ONLY==='1') {
    const {dashboardJourney}=await import('./porthole/dashboards.mjs')
    await dashboardJourney({origin,cookie,restartWorker,withEmptyDestination,...helpers})
+   const {nativeLogSearchJourney}=await import('./porthole/explore.mjs')
+   await nativeLogSearchJourney({origin,cookie:await helpers.freshOwner()})
   } else if(process.env.PORTHOLE_API_ONLY==='1') {
+   const {publicDocsJourney}=await import('./porthole/public-docs.mjs')
+   await publicDocsJourney({origin,cookie,...helpers})
    const {apiJourney}=await import('./porthole/api.mjs')
    await apiJourney({origin,cookie,restartWorker,...helpers})
    const {dashboardApiJourney}=await import('./porthole/dashboard-api.mjs')
@@ -302,6 +310,7 @@ try {
   console.error(allOutput.split('\n').filter(line=>/ERROR|Error|\[wrangler:info\]/.test(line)).slice(-50).join('\n').replace(/[A-Za-z0-9_-]{32,}/g,'[redacted]'))
   throw error
 } finally {
+  await closeTransport()
   await stopWorker()
   for(const store of stores) await rm(store, { recursive: true, force: true })
   // wrangler dev keeps its scratch (.wrangler/tmp) beside the config it runs, which here is the emitted Worker; the artifact producer refuses that folder in dist/server, so leave the build output as rer build wrote it.

@@ -1,0 +1,46 @@
+{
+  "resourceLogs": [
+    {
+      "resource": {
+        "attributes": [
+          {
+            "key": "service.name",
+            "value": {
+              "stringValue": "synthetic-porthole-1"
+            }
+          },
+          {
+            "key": "deployment.environment.name",
+            "value": {
+              "stringValue": "synthetic-porthole-2"
+            }
+          },
+          {
+            "key": "team.name",
+            "value": {
+              "stringValue": "synthetic-porthole-3"
+            }
+          }
+        ]
+      },
+      "scopeLogs": [
+        {
+          "scope": {
+            "name": "synthetic-porthole-5",
+            "version": "1"
+          },
+          "logRecords": [
+            {
+              "timeUnixNano": "1793232000000000000",
+              "severityNumber": 9,
+              "severityText": "INFO",
+              "body": {
+                "stringValue": "synthetic-porthole-4"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

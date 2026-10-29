@@ -1,5 +1,5 @@
 // The documents the run site publishes under /docs: every Markdown file at the
-// repository root and under src and public, read from the checkout that
+// repository root and under docs, src and public, read from the checkout that
 // `rer build --site` runs the site entry in. The root guides carry a short
 // title, a group and a written summary; every other document keeps its own
 // heading and is listed under Technical reference by its path.
@@ -8,7 +8,7 @@ import { join } from 'node:path'
 import { Lexer, type Tokens } from 'marked'
 import type { Custody, Origin } from './custody'
 
-export const groups = ['Start here', 'Operate & develop', 'Product & design', 'Technical reference'] as const
+export const groups = ['Start here', 'Product guides', 'Operate & develop', 'Product & design', 'Technical reference'] as const
 export type Group = typeof groups[number]
 
 export interface Doc {
@@ -17,6 +17,9 @@ export interface Doc {
   /** Its site path: "/docs/run-locally". */
   path: string
   title: string
+  /** Product guides describe the implemented v1 doors; aliases keep current links usable. */
+  version: 'v1' | null
+  alias: string | null
   /** A root guide's written summary; other documents are listed by their path. */
   summary: string | null
   group: Group
@@ -58,23 +61,29 @@ const heading = (markdown: string) => {
 const slugOf = (file: string) => file.replace(/\.md$/, '').toLowerCase().replace(/[^a-z0-9/]+/g, '-').replace(/^-|-$/g, '')
 
 export function readDocs(root: string, custody: Custody): Doc[] {
-  const docs = [...markdownFiles(root, '', false), ...markdownFiles(root, 'src', true), ...markdownFiles(root, 'public', true)].map((file): Doc => {
+  const docs = [...markdownFiles(root, '', false), ...markdownFiles(root, 'docs', true), ...markdownFiles(root, 'src', true), ...markdownFiles(root, 'public', true)].map((file): Doc => {
     const markdown = readFileSync(join(root, file), 'utf8'), guide = guides[file]
+    const product = file.startsWith('docs/') && !['docs/LOOK.md', 'docs/CLAIMS.md'].includes(file)
+    const slug = product ? slugOf(file.slice(5)) : guide?.slug ?? slugOf(file)
     return {
       file, markdown,
-      path: `/docs/${guide?.slug ?? slugOf(file)}`,
+      path: `/docs/${product ? 'v1/' : ''}${slug}`,
+      version: product ? 'v1' : null,
+      alias: product ? `/docs/${Object.values(guides).some(guide => guide.slug === slug) ? 'product-' : ''}${slug}` : null,
       title: guide?.title ?? heading(markdown) ?? file,
       summary: guide?.summary ?? null,
-      group: guide?.group ?? 'Technical reference',
+      group: product ? 'Product guides' : guide?.group ?? 'Technical reference',
       origin: custody.origin(file),
     }
   })
-  const rank = (doc: Doc) => order.includes(doc.file) ? order.indexOf(doc.file) : order.length
+  const rank = (doc: Doc) => doc.file === 'docs/product-docs.md' ? -1 : order.includes(doc.file) ? order.indexOf(doc.file) : order.length
   docs.sort((a, b) => groups.indexOf(a.group) - groups.indexOf(b.group) || rank(a) - rank(b) || (a.file < b.file ? -1 : a.file > b.file ? 1 : 0))
   const seen = new Set<string>()
   for (const doc of docs) {
-    if (seen.has(doc.path)) throw new Error(`Two documents publish at ${doc.path}; rename one of them.`)
-    seen.add(doc.path)
+    for (const path of [doc.path, ...(doc.alias ? [doc.alias] : [])]) {
+      if (seen.has(path)) throw new Error(`Two documents publish at ${path}; rename one of them.`)
+      seen.add(path)
+    }
   }
   return docs
 }
