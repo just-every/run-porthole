@@ -44,6 +44,7 @@
     "react-dom": "19.2.8"
   },
   "devDependencies": {
+    "@anthropic-ai/sdk": "0.80.0",
     "@cloudflare/vite-plugin": "1.54.5",
     "@cloudflare/workers-types": "5.20260908.1",
     "@opentelemetry/api": "1.10.0",
@@ -51,15 +52,18 @@
     "@opentelemetry/instrumentation-grpc": "0.300.0",
     "@opentelemetry/instrumentation-http": "0.300.0",
     "@opentelemetry/instrumentation-kafkajs": "0.33.0",
+    "@opentelemetry/instrumentation-openai": "0.22.0",
     "@opentelemetry/sdk-node": "0.300.0",
     "@playwright/test": "1.63.0",
     "@runeditrun/rer": "0.2.85",
+    "@traceloop/instrumentation-anthropic": "0.27.0",
     "@types/node": "22.18.8",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.7",
     "@vitejs/plugin-react": "6.1.1",
     "kafkajs": "2.2.4",
     "marked": "18.0.14",
+    "openai": "6.27.0",
     "typescript": "5.9.3",
     "vite": "8.2.2",
     "wrangler": "4.129.1"
