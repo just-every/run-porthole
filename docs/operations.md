@@ -157,3 +157,5 @@ collector credentials and live heartbeat state never resume from an archive.
 Other monitor families, complete source-definition migration, source-equivalent
 replay, ownership, templates, downtime and delivery qualification remain open in
 PORT-067.
+
+Native installation exports use the same inactive host boundary: source registrations, heartbeat observations and pending monitor state are preserved as quarantined archive history. Native restore retains definition versions and recorded evaluations without restoring collector credentials or live host authority.

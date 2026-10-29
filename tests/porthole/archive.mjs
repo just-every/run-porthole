@@ -833,7 +833,7 @@ async function run(source) {
   for(const signal of ['logs','traces']){
    const monitor=await value(send('/api/porthole/v1/objects',{kind:'monitor',name:'synthetic-porthole-9707-'+signal,scope,body:{signal,operator:'above',threshold:0,windowSeconds:3600}}),201)
    await value(send('/api/porthole/v1/objects/activate',{id:monitor.id,revision:monitor.revision,confirm:'activate'}))
-   await value(await fetch(origin+'/api/v1/health/heartbeat',{method:'POST',headers:{authorization:'Bearer '+credential.secret,'content-type':'application/json'},body:JSON.stringify({collectorId:'synthetic-porthole-9708',team:scope.teams[0],service:scope.services[0],environment:scope.environments[0],signal})}))
+   await value(await fetch(origin+'/api/v1/health/heartbeat',{method:'POST',headers:{authorization:'Bearer '+credential.secret,'content-type':'application/json'},body:JSON.stringify({collectorId:'synthetic-porthole-9708',hostId:'synthetic-porthole-9709',team:scope.teams[0],service:scope.services[0],environment:scope.environments[0],signal})}))
    monitors[signal]=monitor.id
   }
   await value(send('/api/v1/health/tick',{}))
@@ -844,6 +844,14 @@ async function run(source) {
   assert.equal(peerRows.length,1,'the unrelated subject exists before erasure')
   assert.equal((await query('logs')).records.length,3)
   assert.equal((await query('traces')).records.length,1)
+  const host=await value(send('/api/porthole/v1/objects',{kind:'monitor',name:'Native archived host',scope,body:{type:'host-heartbeat',signal:'logs',hosts:['synthetic-porthole-9709'],missedAfterSeconds:60,pendingSeconds:3,recoverySeconds:4}}),201)
+  await value(send('/api/porthole/v1/objects/activate',{id:host.id,revision:1,confirm:'activate'}))
+  await value(send('/api/porthole/v1/monitors/evaluate',{id:host.id,revision:1}))
+  const liveHostTables=['porthole_host_sources','porthole_host_heartbeats','porthole_host_monitor_state']
+  const hostRows=Object.fromEntries(await Promise.all(liveHostTables.map(async table=>[table,await sql(source,'SELECT * FROM '+table)])))
+  for(const table of liveHostTables)assert.ok(hostRows[table].length,'native backup starts with real '+table)
+  const hostVersions=await sql(source,'SELECT * FROM porthole_host_monitor_versions WHERE object_id='+literal(host.id))
+  const hostHistory=await sql(source,'SELECT * FROM porthole_host_monitor_evaluations WHERE object_id='+literal(host.id))
   // Prepare a real Settings export too, including cached download packets.
   const frozen=await value(send(archive+'/exports',{}),201)
   for(let index=0;index<frozen.totalChunks;index++)await value(await fetch(origin+archive+'/exports/'+frozen.id+'/chunks/'+index,{headers:{cookie}}))
@@ -907,6 +915,15 @@ async function run(source) {
   assert.ok(portable.includes(peer),'native export retains the unrelated subject')
   const destination=await clone('erasure-destination')
   await command(destination,['import','--input',afterFile,'--yes'])
+  for(const table of liveHostTables) {
+   assert.equal((await sql(destination,'SELECT COUNT(*) AS n FROM '+table))[0].n,0,'native restore never revives '+table)
+   const retained=await sql(destination,'SELECT row,state FROM porthole_archive_health_history WHERE table_name='+literal(table))
+   assert.ok(retained.every(row=>row.state==='quarantined'))
+   for(const expected of hostRows[table])assert.ok(retained.some(row=>JSON.stringify(JSON.parse(row.row))===JSON.stringify(expected)),'native restore retains exact inert '+table)
+  }
+  assert.deepEqual(await sql(destination,'SELECT * FROM porthole_host_monitor_versions WHERE object_id='+literal(host.id)),hostVersions)
+  assert.deepEqual(await sql(destination,'SELECT * FROM porthole_host_monitor_evaluations WHERE object_id='+literal(host.id)),hostHistory)
+  assert.equal((await sql(destination,'SELECT state FROM porthole_objects WHERE id='+literal(host.id)))[0].state,'quarantined')
   const restored=await sql(destination,'SELECT records,wire_base64 FROM porthole_ingest_batches ORDER BY id')
   assert.ok(!JSON.stringify(restored).includes(identifier))
   assert.equal(restored.filter(row=>row.records.includes(peer)).length,1,'native restore retains exactly one unrelated subject batch')
@@ -916,7 +933,7 @@ async function run(source) {
   const reexport=join(destination,'exports','restored-erasure.rer')
   await command(destination,['export','--output',reexport])
   assert.ok(!(await readFile(reexport,'utf8')).includes(identifier),'native restore and re-export contain no trace of erased subject')
-  console.log('nativeBackupErasureJourney passed: actual native backup, owner-only exact erasure of every matching batch and frozen custody, unchanged unrelated subject and trace history, capture and revoked-credential refusal, restart and native restore with no erased subject')
+  console.log('nativeBackupErasureJourney passed: actual native backup, owner-only exact erasure of every matching batch and frozen custody, unchanged unrelated subject and trace history, capture and revoked-credential refusal, restart and native restore with no erased subject or live host authority')
  } finally {await stop()}
 }
 
