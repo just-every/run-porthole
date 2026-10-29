@@ -3918,7 +3918,7 @@
       "executable": false
     },
     "src/porthole/analytical/client.ts": {
-      "sha256": "d683acce0106aab6283f16eaf0e17497da5be5991657503dc23d9f5f98f8bf2b",
+      "sha256": "f7f3dc5b44cb9d0ab5eca329ac868ddc305f7db59509cec4cca27aa05cdd5785",
       "executable": false
     },
     "src/porthole/analytical/http.ts": {
@@ -4913,8 +4913,12 @@
       "sha256": "23abf6648fbeaef9cada06b9ff6d2ad72ee4e80da0f770e6c05cc28430cd3fe7",
       "executable": false
     },
+    "tests/porthole/analytical-transport.mjs": {
+      "sha256": "2629391a054da945e0f74e74d90c6c05552338f8119c635ee110be862cd1ced4",
+      "executable": false
+    },
     "tests/porthole/analytics.mjs": {
-      "sha256": "a177e513ae2e1ca7d7dd554177f0cb13e23ea6bf5b218802583d8071e9479851",
+      "sha256": "d51ea066a0a585b5f15fc5c6d3caf168fd5fb8683f419f85abbe615b4111bdef",
       "executable": false
     },
     "tests/porthole/api.mjs": {

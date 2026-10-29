@@ -36,7 +36,7 @@ export async function rpc<T>(env:Bindings,role:Role,path:string,input?:unknown):
  const chunks:Uint8Array[]=[];let size=0
  for(;;){const {done,value}=await reader!.read();if(done)break;size+=value.length;if(size>2*1024*1024){await reader!.cancel();fail('analytics_response_too_large',503)}chunks.push(value)}
  const bytes=new Uint8Array(size);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.length}
- let data:Record<string,unknown>;try{data=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(bytes))}catch(cause){console.log('PORTHOLE_ANALYTICAL_DECODE_DIAGNOSTIC',JSON.stringify({status:response!.status,size,encoding:response!.headers.get('content-encoding'),type:response!.headers.get('content-type'),decoder:cause instanceof SyntaxError?'json':'utf8'}));fail('analytics_invalid_response',503)}
+ let data:Record<string,unknown>;try{data=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(bytes))}catch{fail('analytics_invalid_response',503)}
  if(!response!.ok){const code=['analytics_incomplete_coverage','analytics_source_mismatch','analytics_identity_conflict'].includes(String(data!.error))?String(data!.error):'analytics_unavailable';fail(code,response!.status===409?409:503)}
  return data! as T
 }

@@ -1,3 +1,4 @@
+import {analyticalTransport} from './analytical-transport.mjs'
 import assert from 'node:assert/strict'
 import {execFile,spawn} from 'node:child_process'
 import {promisify} from 'node:util'
@@ -110,16 +111,7 @@ export async function analyticalEstate() {
    await execute(process.execPath,[wrangler,'d1','migrations','apply','DB','--local','--config',server.config,'--persist-to',server.persist],{cwd:scratch,env});await start(server)
   }
   const find=role=>servers.find(server=>server.role===role)
-  const services=Object.fromEntries(servers.map(server=>['ANALYTICS_'+server.role.toUpperCase(),async request=>{
-   try {
-    const response=await fetch(server.origin+new URL(request.url).pathname,{method:request.method,headers:request.headers,...(request.method==='POST'?{body:Buffer.from(await request.arrayBuffer())}:{}),redirect:'manual',signal:request.signal})
-    if(!response.ok)console.log('PORTHOLE_ANALYTICAL_UPSTREAM_DIAGNOSTIC',JSON.stringify({role:server.role,status:response.status,type:response.headers.get('content-type')}))
-    return response
-   } catch(error) {
-    console.log('PORTHOLE_ANALYTICAL_BRIDGE_DIAGNOSTIC',JSON.stringify({role:server.role,kind:error.name,code:error.code??null,cause:error.cause?.code??null}))
-    throw error
-   }
-  }]))
+  const services=Object.fromEntries(servers.map(server=>['ANALYTICS_'+server.role.toUpperCase(),request=>analyticalTransport(server.origin,request)]))
   const bindings=Object.fromEntries(servers.map(server=>['ANALYTICS_'+server.role.toUpperCase()+'_TOKEN',server.token]))
   const inspect=async role=>JSON.parse((await execute(process.execPath,[wrangler,'d1','execute','DB','--local','--config',find(role).config,'--persist-to',find(role).persist,'--json','--command','SELECT * FROM analytics_records'],{cwd:scratch,env})).stdout).flatMap(result=>result.results??[])
   return {inspect,bindings,services,stop:role=>stop(find(role)),start:role=>start(find(role)),dispose,origin:role=>find(role).origin}
