@@ -1,3 +1,4 @@
+import {localAgentPolicy,refusal as doorRefusal} from '../agent-door/local-policy.mjs'
 import assert from 'node:assert/strict'
 import {spawn} from 'node:child_process'
 import {randomUUID} from 'node:crypto'
@@ -7,7 +8,7 @@ export async function dashboardApiJourney({origin,cookie,freshOwner,signIn}) {
  const root='/api/porthole/v1/dashboards',scope={services:['checkout'],environments:['production'],teams:['commerce']}
  const panels=[{id:'cpu',title:'Checkout CPU',signal:'metrics',service:'checkout',metric:'checkout.cpu',aggregate:'average',unit:'%'},{id:'logs',title:'Checkout logs',signal:'logs',service:'checkout',aggregate:'count',unit:'records'},{id:'latency',title:'Checkout latency',signal:'traces',service:'checkout',aggregate:'p95',unit:'ms'}]
  const definition=(name,selected=panels,team='commerce')=>({name,scope:{...scope,teams:[team]},body:{panels:selected,variables:{team,environment:'production'},range:{from:'0',through:'18446744073709551615'},annotations:[]}})
- const post=(path,body,{session=cookie,secret,key}={})=>fetch(origin+path,{method:'POST',headers:{origin,cookie:session,'content-type':'application/json',...(secret?{authorization:`Bearer ${secret}`}:{}) ,...(key?{'idempotency-key':key}:{})},body:JSON.stringify(body)})
+ const post=(path,body,{session=cookie,secret,key}={})=>fetch(origin+path,{method:'POST',headers:{origin,cookie:session,'content-type':'application/json',...(path.endsWith('/mcp')?{'mcp-protocol-version':'2025-11-25'}:{}),...(secret?{authorization:`Bearer ${secret}`}:{}) ,...(key?{'idempotency-key':key}:{})},body:JSON.stringify(body)})
  const get=(path,secret,session=cookie)=>fetch(origin+path,{headers:{cookie:session,...(secret?{authorization:`Bearer ${secret}`}:{})}})
  const value=async(response,status=200)=>{assert.equal(response.status,status,await response.clone().text());return response.json()}
  const create=async(body,key=randomUUID())=>({receipt:await value(await post(root,body,{key}),201),key,body})
@@ -20,7 +21,8 @@ export async function dashboardApiJourney({origin,cookie,freshOwner,signIn}) {
   child.stdout.on('data',chunk=>stdout+=chunk);child.stderr.on('data',chunk=>stderr+=chunk)
   child.on('error',reject);child.on('exit',code=>resolve({code,stdout,stderr}));child.stdin.end(body===undefined?'':JSON.stringify(body))
  })
- const rpc=(secret,args)=>post('/api/porthole/v1/mcp',{jsonrpc:'2.0',id:1,method:'tools/call',params:{name:'query_definitions',arguments:{collection:'dashboards',...args}}},{secret})
+ await localAgentPolicy(origin,cookie)
+ const rpc=(secret,args)=>post('/api/porthole/v1/mcp',{jsonrpc:'2.0',id:1,method:'tools/call',params:{name:'porthole.definitions.read',arguments:{collection:'dashboards',...args}}},{secret})
  const mint=async(signals=['metrics','logs','traces'],extra={})=>value(await post('/app/settings/credentials/mint',{name:'Dashboard scoped reading',class:'read',scope:{...scope,signals,actions:['definitions.read']},...extra}),201)
  assert.equal((await get(root,undefined,'')).status,401)
  const first=await create(definition('Checkout API performance')),id=first.receipt.id
@@ -101,8 +103,8 @@ export async function dashboardApiJourney({origin,cookie,freshOwner,signIn}) {
  const limited=await mint(['metrics','logs','traces'],{requestsPerMinute:1})
  assert.equal((await get(root,limited.secret)).status,200)
  const throttled=await rpc(limited.secret,{limit:1})
- assert.equal(throttled.status,429);assert.ok(Number(throttled.headers.get('retry-after'))>0)
- const rpcRefusal=await throttled.json();assert.ok(Number.isSafeInteger(rpcRefusal.error.code));assert.ok(rpcRefusal.error.message.length>0)
+ assert.equal(throttled.status,200)
+ const rpcRefusal=await throttled.json();assert.equal(doorRefusal(rpcRefusal),'credential_quota_exceeded');assert.equal(rpcRefusal.result.isError,true)
  const restRefusal=await get(root,limited.secret);assert.equal(restRefusal.status,429)
  const refusal=await restRefusal.json();assert.equal(refusal.details.status,429);assert.equal(refusal.details.code,refusal.error);assert.match(refusal.details.requestId,/^[a-f0-9-]{36}$/)
  assert.equal((await post('/app/settings/credentials/revoke',{id:all.credential.id})).status,200)

@@ -1,3 +1,4 @@
+import {agentReadAuthority,agentCredential,type ReadPrincipal} from '../security/agent-read'
 import type {Bindings} from '../../auth.server'
 import {AuthError} from '../../modules/operator-auth/index.mjs'
 import {verifyCredential,CredentialLimit} from '../credentials/verify'
@@ -27,16 +28,17 @@ function representation(row:DashboardRow,scope:Scope,signals:string[]|null) {
 }
 /** A whole definition and every returned historical revision remain subject
  * to the current member, current definition and all panel signal grants. */
-export async function dashboardReadResponse(request:Request,env:Bindings):Promise<Response> {
+export async function dashboardReadResponse(request:Request,env:Bindings,principal?:ReadPrincipal):Promise<Response> {
+ const credential=(use:Parameters<typeof verifyCredential>[2])=>principal?.clientId?agentCredential(request,env,principal,use!):verifyCredential(request,env,use)
  const requestId=crypto.randomUUID()
  try {
   let scope:Scope,signals:string[]|null=null,actorRef:string,actorRevision:number,live:{sql:string;args:unknown[]}
-  const bearer=request.headers.has('authorization')
+  const bearer=!!principal?.clientId||request.headers.has('authorization')
   if(bearer) {
-   const auth=await verifyCredential(request,env,{action:'definitions.read',scope:emptyScope,dataScope:allScope,inspectOnly:true})
+   const auth=await credential({action:'definitions.read',scope:emptyScope,dataScope:allScope,inspectOnly:true})
    scope=auth.credential.scope;signals=auth.credential.scope.signals;actorRef=auth.credential.id;actorRevision=auth.credential.revision;live=auth.fence
   } else {
-   const actor=await authority(request,env)
+   const actor=principal?await agentReadAuthority(env,principal):await authority(request,env)
    if(actor.member.role==='finance reader')fail('dashboards_forbidden')
    scope=actor.member.scope;actorRef=actor.member.operatorId;actorRevision=actor.member.revision;live={sql:actor.fence,args:actor.args}
   }
@@ -60,7 +62,7 @@ export async function dashboardReadResponse(request:Request,env:Bindings):Promis
   let results:D1Result[]
   if(bearer) {
    const original=JSON.stringify({services:scope.services,environments:scope.environments,teams:scope.teams,signals})
-   const auth=await verifyCredential(request,env,{action:'definitions.read',scope:emptyScope,dataScope:allScope,writes(fence,latest) {
+   const auth=await credential({action:'definitions.read',scope:emptyScope,dataScope:allScope,writes(fence,latest) {
     if(JSON.stringify({services:latest.services,environments:latest.environments,teams:latest.teams,signals:latest.signals})!==original)fail('authority_changed',409)
     return statements(fence)
    }})
@@ -71,7 +73,7 @@ export async function dashboardReadResponse(request:Request,env:Bindings):Promis
   if(!rows.length) {
    // Preserve the native app's explicit scope refusal. Bearer reads never
    // reveal whether an inaccessible definition exists.
-   if(!bearer&&await env.DB.prepare(`SELECT 1 AS present FROM porthole_dashboards WHERE id=? AND ${live.sql}`).bind(id,...live.args).first())fail('scope_forbidden')
+   if(!principal&&!bearer&&await env.DB.prepare(`SELECT 1 AS present FROM porthole_dashboards WHERE id=? AND ${live.sql}`).bind(id,...live.args).first())fail('scope_forbidden')
    fail('dashboard_not_found',404)
   }
   const selected=version===undefined?rows[0]:(results[2].results as unknown as DashboardRow[])[0]

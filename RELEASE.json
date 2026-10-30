@@ -42,7 +42,12 @@
     "migrations/core/0038_dependency_keys_sealed.sql",
     "migrations/core/0039_porthole_baggage.sql",
     "migrations/core/0040_porthole_notice_uncertainty.sql",
-    "migrations/core/0041_porthole_notice_grant.sql"
+    "migrations/core/0041_porthole_notice_grant.sql",
+    "migrations/core/0054_agent_door.sql",
+    "migrations/core/0055_business_settings.sql",
+    "migrations/core/0056_business_people.sql",
+    "migrations/core/0057_porthole_agent_activity.sql",
+    "migrations/core/0058_porthole_agent_archive_semantics.sql"
   ],
   "breaking": false,
   "agentUpdateInstructions": "Install the pinned dependencies and follow OPERATIONS.md. Preserve applied migration bytes and private installation settings."

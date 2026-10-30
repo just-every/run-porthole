@@ -14,7 +14,7 @@ curl -fsSL https://runeditrun.com/install.sh | sh -s -- dev just-every/run-porth
 
 Git is required; rer brings Node and pnpm. Already have Node 22 or later? `npx -y @runeditrun/rer dev just-every/run-porthole` does the same. If the installer prints a line that puts `rer` on your PATH, run that line too. To start it again later, run the same line from the same folder, or `cd run-porthole && rer dev`.
 
-Read [RUN-LOCALLY.md](RUN-LOCALLY.md) and [OPERATIONS.md](OPERATIONS.md) for commands and state. Node 22.20.0, pnpm 10.12.4 and the published `@runeditrun/rer` 0.2.80 are pinned. [edition.json](edition.json) records Base source provenance; the MIT licence is in [LICENSE](LICENSE).
+Read [RUN-LOCALLY.md](RUN-LOCALLY.md) and [OPERATIONS.md](OPERATIONS.md) for commands and state. Node 22.20.0, pnpm 10.12.4 and the published `@runeditrun/rer` 0.2.91 are pinned. [edition.json](edition.json) records Base source provenance; the MIT licence is in [LICENSE](LICENSE).
 
 The public Run page is https://run-porthole.com/run. The public run site at run-porthole.com is built with `rer build --site`, including `/run`, `/docs` from the repository's Markdown and `/contract` from root CONTRACT.md. The separate Run site workflow deploys only when `RUN_SITE_DEPLOY=true`; it needs `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN`. Verify runs independently.
 

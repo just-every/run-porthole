@@ -1,3 +1,4 @@
+import {localAgentPolicy,refusal} from '../agent-door/local-policy.mjs'
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import { mkdir } from 'node:fs/promises'
@@ -156,7 +157,7 @@ export async function credentialQueryJourney({origin,sql,freshOwner,restartWorke
  const scope={services:['synthetic-porthole-1107'],environments:['synthetic-porthole-1108'],teams:['synthetic-porthole-1109'],signals:['logs']}
  const [service]=scope.services,[environment]=scope.environments,[team]=scope.teams,otherService='synthetic-porthole-1110'
  const cookie=await freshOwner(),secrets=[]
- const post=(path,data,credential,extra={})=>fetch(origin+path,{method:'POST',headers:{origin,'content-type':'application/json',...(credential?{authorization:`Bearer ${credential}`}:{cookie}),...extra},body:JSON.stringify(data)})
+ const post=(path,data,credential,extra={})=>fetch(origin+path,{method:'POST',headers:{origin,'content-type':'application/json',...(path.endsWith('/mcp')?{'mcp-protocol-version':'2025-11-25'}:{}),...(credential?{authorization:`Bearer ${credential}`}:{cookie}),...extra},body:JSON.stringify(data)})
  const mint=async(kind,extra={})=>{
   const response=await post(settings+'/mint',{name:'synthetic-porthole-1100',class:kind,scope:{...scope,actions:kindActions[kind]},...extra})
   assert.equal(response.status,201);const value=await response.json();secrets.push(value.secret);return value
@@ -169,6 +170,7 @@ export async function credentialQueryJourney({origin,sql,freshOwner,restartWorke
  assert.equal((await post('/v1/logs',payload,source.secret,{'x-porthole-batch-id':'synthetic-porthole-1103'})).status,200)
  assert.equal((await post('/api/porthole/v1/ingest/drain',{})).status,200)
  const query={signal:'logs',service,environment,team}
+ await localAgentPolicy(origin,cookie)
  const rpc=(method,params={},credential=key.secret,extra={})=>post('/api/porthole/v1/mcp',{jsonrpc:'2.0',id:1,method,params},credential,extra)
  const cli=(data,credential=key.secret,originArgument=origin)=>new Promise((resolve,reject)=>{
   const child=spawn(process.execPath,['scripts/porthole/query.mjs',originArgument],{env:{...process.env,PORTHOLE_CREDENTIAL:credential},stdio:['pipe','pipe','pipe']})
@@ -188,11 +190,11 @@ export async function credentialQueryJourney({origin,sql,freshOwner,restartWorke
  const notification=await post('/api/porthole/v1/mcp',{jsonrpc:'2.0',method:'notifications/initialized'},key.secret)
  assert.equal(notification.status,202)
  const listed=await rpc('tools/list');assert.equal(listed.status,200)
- const tools=(await listed.json()).result.tools;assert.deepEqual(tools.map(tool=>tool.name),['query_telemetry'])
+ const tools=(await listed.json()).result.tools;assert.deepEqual(tools.map(tool=>tool.name),['porthole.definitions.read','porthole.telemetry.query','porthole.workspace.snapshot'])
  assert.equal(tools[0].annotations.readOnlyHint,true);assert.match(tools[0].description,/untrusted/)
- const toolResult=await rpc('tools/call',{name:'query_telemetry',arguments:{...query,snapshot:expected.snapshot}})
+ const toolResult=await rpc('tools/call',{name:'porthole.telemetry.query',arguments:{...query,snapshot:expected.snapshot}})
  assert.equal(toolResult.status,200);privateResponse(toolResult)
- assert.equal(toolResult.headers.get('x-porthole-actor'),key.credential.id)
+ assert.ok((await toolResult.clone().json()).result._meta['com.runeditrun/decision'].id)
  const result=(await toolResult.json()).result
  assert.deepEqual(result.structuredContent.records,expected.records)
  assert.deepEqual(JSON.parse(result.content[0].text),result.structuredContent)
@@ -200,18 +202,18 @@ export async function credentialQueryJourney({origin,sql,freshOwner,restartWorke
  assert.equal(replay.status,200);assert.deepEqual((await replay.json()).records,expected.records)
  for(const forbidden of [{...query,service:otherService},{...query,environment:'synthetic-porthole-1111'},{...query,team:'synthetic-porthole-1112'},{...query,signal:'traces'}]) {
   assert.equal((await post('/api/porthole/v1/query',forbidden,key.secret,{cookie})).status,403,'an owner cookie cannot widen a credential')
-  assert.equal((await rpc('tools/call',{name:'query_telemetry',arguments:forbidden},key.secret,{cookie})).status,403)
+  assert.ok(['scope_forbidden','credential_scope_forbidden'].includes(refusal(await (await rpc('tools/call',{name:'porthole.telemetry.query',arguments:forbidden},key.secret,{cookie})).json())))
   const denied=await cli(forbidden);assert.equal(denied.code,1);assert.match(denied.stderr,/403/);assert.equal(denied.stdout,'')
  }
  for(const credential of [key.secret,proposal.secret]) {
   for(const path of ['/api/porthole/v1/objects','/api/porthole/v1/approvals',settings+'/mint','/api/porthole/v1/ingest/control','/api/porthole/v1/archive/exports']) assert.equal((await post(path,{},credential)).status,403,path)
   assert.equal((await post('/v1/logs',payload,credential)).status,403,'read/proposal keys cannot ingest')
-  for(const name of ['approval.create','credential.mint','plan.execute','telemetry.write']) assert.equal((await rpc('tools/call',{name,arguments:{}},credential)).status,403)
+  for(const name of ['approval.create','credential.mint','plan.execute','telemetry.write']) assert.equal(refusal(await (await rpc('tools/call',{name,arguments:{}},credential)).json()),'tool_not_found')
  }
  assert.equal((await post('/api/porthole/v1/query',query,proposal.secret)).status,200)
  for(const credential of [source.secret,execution.secret]) {
   assert.equal((await post('/api/porthole/v1/query',query,credential)).status,403)
-  assert.equal((await rpc('tools/list',{},credential)).status,403)
+  assert.equal((await rpc('tools/list',{},credential)).status,401)
  }
  assert.equal((await post('/api/porthole/v1/query',query,'')).status,200,'native public query remains supported')
  const invalidCredential='synthetic-porthole-1113'
@@ -223,30 +225,37 @@ export async function credentialQueryJourney({origin,sql,freshOwner,restartWorke
  assert.equal((await post('/api/porthole/v1/query',query,key.secret,{'sec-fetch-site':'cross-site'})).status,403)
  assert.equal((await post('/api/porthole/v1/query?token='+encodeURIComponent(key.secret),query,key.secret)).status,400)
  assert.equal((await rpc('tools/list',{},key.secret,{'mcp-protocol-version':'synthetic-porthole-1105'})).status,400)
- assert.equal((await rpc('tools/call',{name:'query_telemetry',arguments:{...query,authorization:key.secret}})).status,400)
- assert.equal((await rpc('prompts/get',{name:'synthetic-porthole-1106'})).status,403)
+ assert.equal(refusal(await (await rpc('tools/call',{name:'porthole.telemetry.query',arguments:{...query,authorization:key.secret}})).json()),undefined,'undeclared inputs are ignored and never become authority')
+ assert.equal(refusal(await (await rpc('prompts/get',{name:'synthetic-porthole-1106'})).json()),'capability_not_declared')
  assert.equal((await rpc('tools/list',{},'',{cookie})).status,401,'MCP requires a key, never a native owner cookie')
  const invalid=await cli({...query,action:'approval.create'});assert.equal(invalid.code,1);assert.match(invalid.stderr,/400/)
  const unsafe=await cli(query,key.secret,'http://synthetic-porthole.invalid');assert.equal(unsafe.code,1);assert.match(unsafe.stderr,/HTTPS/)
  // Both transports consume the same quota ledger; no transport can multiply it.
  const limited=await mint('read',{requestsPerMinute:1})
  assert.equal((await post('/api/porthole/v1/query',query,limited.secret)).status,200)
- const quota=await rpc('tools/call',{name:'query_telemetry',arguments:query},limited.secret)
- assert.equal(quota.status,429);assert.ok(Number(quota.headers.get('retry-after'))>0)
+ const quota=await rpc('tools/call',{name:'porthole.telemetry.query',arguments:query},limited.secret)
+ assert.equal(quota.status,200);assert.equal(refusal(await quota.json()),'credential_quota_exceeded')
  const cliQuota=await cli(query,limited.secret);assert.equal(cliQuota.code,1);assert.match(cliQuota.stderr,/429/)
  assert.equal((await post(settings+'/revoke',{id:key.credential.id})).status,200)
  for(let pass=0;pass<2;pass++) {
   if(pass)await restartWorker()
   assert.equal((await post('/api/porthole/v1/query',query,key.secret)).status,401)
   assert.equal((await fetch(origin+expected.replay,{headers:{authorization:`Bearer ${key.secret}`}})).status,401)
-  assert.equal((await rpc('tools/call',{name:'query_telemetry',arguments:query})).status,401)
+  assert.equal((await rpc('tools/call',{name:'porthole.telemetry.query',arguments:query})).status,401)
   const revoked=await cli(query);assert.equal(revoked.code,1);assert.match(revoked.stderr,/401/);assert.equal(revoked.stdout,'')
  }
  const audit=await fetch(origin+'/api/v1/audit/export',{headers:{cookie:await freshOwner()}})
  assert.equal(audit.status,200);const auditText=await audit.text(),auditRows=JSON.parse(auditText).records.map(row=>row.entry)
- for(const [action,reference] of [['telemetry.query',expected.queryRef],['telemetry.tool',result.structuredContent.queryRef]]) {
+ for(const [action,reference] of [['telemetry.query',expected.queryRef]]) {
   assert.ok(auditRows.some(row=>row.phase==='succeeded'&&row.action===action&&row.actorRef===key.credential.id&&row.actorRevision===key.credential.revision&&row.entityRef===reference),'public audit attributes successful transport queries to the credential and snapshot')
  }
+ const doorAudit=await (await fetch(origin+'/agents/api/audit',{headers:{cookie:await freshOwner()}})).json()
+ assert.ok(JSON.stringify(doorAudit).includes('native:'+key.credential.id),'door audit retains native client attribution')
+ const nativeQuery=doorAudit.rows.find(row=>row.tool==='porthole.telemetry.query'&&row.client_id==='native:'+key.credential.id&&row.outcome==='done')
+ assert.ok(nativeQuery,'door retains the completed native credential read')
+ assert.equal(nativeQuery.label,`${nativeQuery.agent.name} for ${nativeQuery.sponsor.name}`)
+ assert.ok(auditRows.some(row=>row.operationRef===nativeQuery.operation_id&&row.actorRef===nativeQuery.sponsor.id&&row.entityRef===nativeQuery.id&&row.action===nativeQuery.tool),'native activity links the portable action to the attributed door row')
+ assert.equal(doorAudit.differs_from_policy,0)
  assert.ok(!auditText.includes(injected),'tool arguments and telemetry text never enter the audit')
  assert.equal(typeof getLogs,'function')
  for(const secret of secrets)for(const text of [command.stdout,command.stderr,auditText,getLogs()])assert.ok(!text.includes(secret),'transport, logs and audit outputs exclude header credentials')

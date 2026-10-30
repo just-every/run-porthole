@@ -237,6 +237,29 @@
           }
         ]
       }
+    },
+    {
+      "id": "runeditrun/agent-door",
+      "role": "module",
+      "source": {
+        "kind": "local",
+        "paths": [
+          "src/modules/agent-door",
+          "src/modules/business-settings",
+          "src/foundation/runtime"
+        ],
+        "origin": {
+          "repository": "https://github.com/runeditrun/base.git",
+          "revision": "2135c394939f4a737adabdc8003b0e667b31ac5a",
+          "path": ".",
+          "paths": [
+            "modules/agent-door",
+            "modules/business-settings",
+            "foundation/runtime/theme-frame.ts",
+            "foundation/runtime/icon-head.ts"
+          ]
+        }
+      }
     }
   ]
 }
