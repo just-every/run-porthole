@@ -804,10 +804,6 @@
       "sha256": "ea607c9b51a00d1b06cb4b31c2ec93abf9d5cbe4d6cea883c4033f1b0d05d6c0",
       "executable": false
     },
-    "migrations/core/0051_porthole_pipelines.sql": {
-      "sha256": "4c29df9b94811714e649393cb7e6167c894824d117c1f5bf67674fca1fd4b9b2",
-      "executable": false
-    },
     "migrations/core/0052_porthole_notebook_publications.sql": {
       "sha256": "863f5ef8af46c5df516a247414e437c1f31d46174c933accaa3e845327f28b13",
       "executable": false
@@ -834,6 +830,10 @@
     },
     "migrations/core/0058_porthole_agent_archive_semantics.sql": {
       "sha256": "c7afa66fcb1bc8fdabc6be7ce28b21c93d209aaa341bc19f8629f1b7e2efb49d",
+      "executable": false
+    },
+    "migrations/core/0059_porthole_pipelines.sql": {
+      "sha256": "4c29df9b94811714e649393cb7e6167c894824d117c1f5bf67674fca1fd4b9b2",
       "executable": false
     },
     "ONBOARDING.md": {
