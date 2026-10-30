@@ -234,7 +234,7 @@ export async function credentialQueryJourney({origin,sql,freshOwner,restartWorke
  const limited=await mint('read',{requestsPerMinute:1})
  assert.equal((await post('/api/porthole/v1/query',query,limited.secret)).status,200)
  const quota=await rpc('tools/call',{name:'porthole.telemetry.query',arguments:query},limited.secret)
- assert.equal(quota.status,200);assert.equal(refusal(await quota.json()),'credential_quota_exceeded')
+ assert.equal(quota.status,429);assert.ok(Number(quota.headers.get('retry-after'))>0);assert.equal(refusal(await quota.json()),'credential_quota_exceeded')
  const cliQuota=await cli(query,limited.secret);assert.equal(cliQuota.code,1);assert.match(cliQuota.stderr,/429/)
  assert.equal((await post(settings+'/revoke',{id:key.credential.id})).status,200)
  for(let pass=0;pass<2;pass++) {
