@@ -1,3 +1,4 @@
+import {analyticalTransport} from './analytical-transport.mjs'
 import assert from 'node:assert/strict'
 import {execFile,spawn} from 'node:child_process'
 import {promisify} from 'node:util'
@@ -110,9 +111,10 @@ export async function analyticalEstate() {
    await execute(process.execPath,[wrangler,'d1','migrations','apply','DB','--local','--config',server.config,'--persist-to',server.persist],{cwd:scratch,env});await start(server)
   }
   const find=role=>servers.find(server=>server.role===role)
-  const services=Object.fromEntries(servers.map(server=>['ANALYTICS_'+server.role.toUpperCase(),async request=>{const response=await fetch(server.origin+new URL(request.url).pathname,{method:request.method,headers:request.headers,...(request.method==='POST'?{body:Buffer.from(await request.arrayBuffer())}:{}),redirect:'manual',signal:request.signal});if(!response.ok)console.log('Analytical process '+server.role+' '+new URL(request.url).pathname+' HTTP '+response.status+' '+String((await response.clone().json()).error));return response}]))
+  const services=Object.fromEntries(servers.map(server=>['ANALYTICS_'+server.role.toUpperCase(),request=>analyticalTransport(server.origin,request)]))
   const bindings=Object.fromEntries(servers.map(server=>['ANALYTICS_'+server.role.toUpperCase()+'_TOKEN',server.token]))
-  return {bindings,services,stop:role=>stop(find(role)),start:role=>start(find(role)),dispose,origin:role=>find(role).origin}
+  const inspect=async role=>JSON.parse((await execute(process.execPath,[wrangler,'d1','execute','DB','--local','--config',find(role).config,'--persist-to',find(role).persist,'--json','--command','SELECT * FROM analytics_records'],{cwd:scratch,env})).stdout).flatMap(result=>result.results??[])
+  return {inspect,bindings,services,stop:role=>stop(find(role)),start:role=>start(find(role)),dispose,origin:role=>find(role).origin}
  }catch(error){await dispose();throw error}
 }
 

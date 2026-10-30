@@ -6,6 +6,8 @@ import {publicationRow} from '../notebooks/publication-model'
 import {notebookRow} from '../notebooks/model'
 import {normalizeExploration} from '../explore/normalize'
 import { definition as metricDefinition } from '../metrics/span-rules/model'
+import { definition as pipelineDefinition } from '../pipelines/model'
+import { canonical as canonicalTelemetry } from '../ingest/model'
 import { definitionInput } from '../slos/model'
 import {baggageKeys} from '../traces/policy'
 import { canonical, digest, genesis, type AuditEntry } from '../audit/store'
@@ -39,6 +41,7 @@ export function manifestInput(value: unknown): Manifest {
  // a later destination journal still wins during restore.
  for(const table of ['porthole_notebooks','porthole_notebook_versions','porthole_notebook_publications'])if(!Object.hasOwn(value.tables,table))value.tables[table]=0
  for(const table of ['porthole_metric_rules','porthole_metric_points'])if(!Object.hasOwn(value.tables,table))value.tables[table]=0
+ for(const table of ['porthole_pipeline_versions','porthole_log_metric_points'])if(!Object.hasOwn(value.tables,table))value.tables[table]=0
  if(!Object.hasOwn(value.tables,'porthole_slo_versions'))value.tables.porthole_slo_versions=0
  if(!Object.hasOwn(value.tables,'porthole_retention_policies'))value.tables.porthole_retention_policies=0
  if(!Object.hasOwn(value.tables,'porthole_erased_batches'))value.tables.porthole_erased_batches=0
@@ -74,6 +77,12 @@ export async function validateRow(payload: PortableRow, state: Validation): Prom
   publicationRow(row)
  } else if(['porthole_notebooks','porthole_notebook_versions'].includes(item.table)) {
   notebookRow(row)
+ } else if(item.table==='porthole_pipeline_versions') {
+  if(!integer(row.revision,1)||!integer(row.created_at)||!uuid(row.owner_id)||!['active','quarantined'].includes(String(row.state)))bad()
+  pipelineDefinition(json(row.definition))
+ } else if(item.table==='porthole_log_metric_points') {
+  if(!uuid(row.batch_id)||!integer(row.ordinal)||!integer(row.revision,1)||typeof row.event_time_ns!=='string'||!/^\d{20}$/.test(row.event_time_ns)||BigInt(row.event_time_ns)>18446744073709551615n)bad()
+  for(const key of ['name','team','service','environment'])if(typeof row[key]!=='string'||!/^[a-zA-Z0-9][a-zA-Z0-9._:/-]{0,119}$/.test(String(row[key])))bad()
  } else if(item.table==='porthole_metric_rules') {
   if(!uuid(row.id)||!integer(row.revision,1)||!integer(row.from_sequence,1)||!integer(row.created_at)||!uuid(row.owner_id)||!['active','quarantined'].includes(String(row.state)))bad()
   metricDefinition(json(row.definition))
@@ -157,6 +166,16 @@ export async function validateRow(payload: PortableRow, state: Validation): Prom
   required('id','source_id','identity','protocol'); if(!str(row.wire_base64))bad();try{atob(String(row.wire_base64))}catch{return bad()}; if(!['traces','metrics','logs','profiles'].includes(String(row.signal))||!hex(row.digest)||!integer(row.accepted_at)||!integer(row.byte_count)||!integer(row.record_count)||!integer(row.sequence,1)||row.completion_sequence!==null&&!integer(row.completion_sequence,1)||!['pending','complete'].includes(String(row.state))||row.completed_at!==null&&!integer(row.completed_at))bad()
   const records=json(row.records);if(!Array.isArray(records)||records.length!==row.record_count)bad();try{assertGenAIMetadata(records)}catch{fail('archive_genai_content_not_authorized',422)}
   try{await assertGenAIWire(String(row.wire_base64),String(row.protocol),row.signal as Signal)}catch{fail('archive_genai_content_not_authorized',422)}
+  const erased=row.identity==='erased:'+row.id&&row.wire_base64===''&&row.records==='[]'&&row.record_count===0&&row.byte_count===0
+  if(!erased&&/;stored=porthole\.sanitized-(?:log|trace)-envelope\.v1$/.test(String(row.protocol))) {
+   if(!['logs','traces'].includes(String(row.signal)))bad()
+   // This envelope holds sanitized custody bytes. Its digest deliberately
+   // identifies the original source wire and must not be recomputed here.
+   try {
+    const stored=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(Uint8Array.from(atob(String(row.wire_base64)),c=>c.charCodeAt(0))))
+    if(!object(stored)||Object.keys(stored).sort().join(',')!=='format,records'||stored.format!==(row.signal==='logs'?'porthole.sanitized-log-envelope.v1':'porthole.sanitized-trace-envelope.v1')||canonicalTelemetry(stored.records)!==canonicalTelemetry(records))bad()
+   }catch{return bad()}
+  }
   if(row.state==='pending'&&(row.completed_at!==null||row.completion_sequence!==null)||row.state==='complete'&&(!integer(row.completed_at)||!integer(row.completion_sequence,1)))bad()
   for(const raw of records as unknown[]) {
    if(!object(raw))return bad()
