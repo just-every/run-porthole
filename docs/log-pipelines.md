@@ -44,7 +44,10 @@ including failed parsing and numeric structured values. Explicit sensitive field
 names remain masked when a numeric input has lost leading zeroes. Credential
 fields keep their protection under qualified attribute and header names, such as
 `http.request.header.x-api-key` and `db.password`. Ordinary numeric values retain
-their original type. Conservative key and token masks also apply.
+their original type. Known AWS, Google and Azure credential header aliases are
+masked without contacting a provider. A pipeline definition containing a
+credential field refuses before preview history is written. Conservative key
+and token masks also apply.
 Activating the reviewed pipeline adds address and network identifier masks
 within its exact scope; before approval, those identifiers remain available to
 the existing subject-erasure flow. Custom `redaction` rules accept exact-width
@@ -54,7 +57,9 @@ mandatory masks. Credentials are never checked with an external service.
 
 The original source-wire digest continues to identify retry and erasure. Stored
 log and trace wire is a labeled sanitized JSON envelope; it is not the original transport
-capture. Pipeline revisions are fixed at acceptance, so a pending queue and a
+capture. Validated OTLP event nanoseconds and link trace and span identities
+remain intact; event and link attributes receive the same masks as their parent.
+Pipeline revisions are fixed at acceptance, so a pending queue and a
 later retry cannot apply a newer parser to an accepted record.
 
 POST `/metrics` and `/accounting` with a `definition` naming scope plus `from`
