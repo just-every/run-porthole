@@ -20,10 +20,14 @@ export async function pipelineJourney({origin,freshOwner,sql,restartWorker,withE
  const planted=['123'+'-45-'+'6789','4111'+'1111'+'1111'+'1111','+1 (415) 555'+'-0123',['synthetic-porthole-12002','example.invalid'].join(String.fromCharCode(64)),'192'+'.0.2.6','private-1234','synthetic-porthole-12006',Buffer.from('{"alg":"none"}').toString('base64url')+'.'+Buffer.from('{"private":"synthetic-porthole-12007"}').toString('base64url')+'.synthetic-porthole-12008','2001'+':db8:abcd:12::7','987'+'654'+'321','synthetic-porthole-12009','synthetic-porthole-12010','synthetic-porthole-12011','synthetic-porthole-12012']
  const ruleText=planted.slice(0,6).concat(planted.slice(7,10),['Bearer '+planted[10],'Basic '+Buffer.from(planted[11]).toString('base64'),['api_key',planted[12]].join('='),['Ocp-Apim-Subscription-Key',planted[13]].join('=')]).join(' ')
  const bodies=[JSON.stringify({message:'Checkout accepted',level:'info',sensitive:ruleText,client_secret:planted[13],api_key:planted[12],exception:'private-0000',authorization:planted[6],jwt:planted[7],numericIdentifier:Number(planted[9]),numericCard:Number(planted[1]),'http.request.header.x-api-key':planted[10],'db.password':planted[11],'aws.secret_access_key':planted[13],'http.request.header.x-amz-security-token':planted[10],'http.request.header.x-goog-api-key':planted[12],'http.request.header.ocp-apim-subscription-key':planted[11],ssn:42,innocuousCounter:42}),'{\n"message":"Payment failed",\n"level":"error", "value":'+JSON.stringify(planted[0])+'\n}','{ malformed '+ruleText+' client_secret='+planted[13]+' authorization='+planted[6]+' '+planted[7]+' }']
- const send=async(bodies,id,time=at)=>{
+ // Repeated keys conceal sensitive earlier values from JSON.parse, including
+ // nested objects, escaped values and equivalent escaped key spellings.
+ const escapedSsn=Array.from(planted[0],char=>'\\u'+char.charCodeAt(0).toString(16).padStart(4,'0')).join('')
+ bodies[0]='{"repeated":"'+planted[0]+'","repeated":"safe","nested":[{"note":"'+planted[1]+'","note":"safe"}],"escaped":"'+escapedSsn+'","esc\\u0061ped":"safe",'+bodies[0].slice(1)
+ const send=async(bodies,id,time=at,attributes=[])=>{
   const packet=otlpLogBatch(bodies.map((_,i)=>time+BigInt(i)))
   const resource=packet.resourceLogs[0];resource.resource.attributes=[{key:'service.name',value:{stringValue:d.service}},{key:'team.name',value:{stringValue:d.team}},{key:'deployment.environment.name',value:{stringValue:d.environment}},{key:'nested-private',value:{stringValue:planted[0]}}]
-  resource.scopeLogs[0].logRecords.forEach((row,i)=>{row.body.stringValue=bodies[i];if(bodies[i].includes('protectedError'))row.severityNumber=17})
+  resource.scopeLogs[0].logRecords.forEach((row,i)=>{row.body.stringValue=bodies[i];row.attributes.push(...(attributes[i]??[]));if(bodies[i].includes('protectedError'))row.severityNumber=17})
   const wire=JSON.stringify(packet),response=await fetch(origin+'/v1/logs',{method:'POST',headers:{authorization:'Bearer '+source.secret,'content-type':'application/json','x-porthole-batch-id':id},body:wire})
   assert.equal(response.status,200,await response.clone().text());return {id:response.headers.get('x-porthole-batch'),wire}
  }
@@ -44,6 +48,20 @@ export async function pipelineJourney({origin,freshOwner,sql,restartWorker,withE
  assert.equal((await get(api)).revision,nonOwnerBefore)
  assert.equal((await post(api+'/preview',{definition:{...d,processors:[{type:'enrich',values:{'aws.secret_access_key':planted[13]}}]},samples:[],revision:0})).status,400,'credential values cannot enter persisted definitions or preview history')
  assert.deepEqual(await sql('SELECT COUNT(*) AS n FROM porthole_pipeline_previews'),stateBeforeInvalid)
+ const repeatedDefinition='{"note":"'+planted[0]+'","note":"safe"}'
+ assert.equal((await post(api+'/preview',{definition:{...d,processors:[{type:'enrich',values:{sample:repeatedDefinition}}]},samples:[],revision:0})).status,400,'repeated keys cannot hide a secret in durable definition history')
+ assert.deepEqual(await sql('SELECT COUNT(*) AS n FROM porthole_pipeline_previews'),stateBeforeInvalid,'rejected sensitive definition persists no history')
+ const repeatedBodies=[
+  repeatedDefinition,
+  '{"items":[{"note":"'+planted[1]+'","note":"safe"}]}',
+  '{"escaped":"'+escapedSsn+'","esc\\u0061ped":"safe"}'
+ ]
+ const repeatedPreview=await preview(d,repeatedBodies)
+ for(const result of repeatedPreview.results) {
+  const text=JSON.stringify(result)
+  assert.ok(!text.includes(planted[0])&&!text.includes(planted[1])&&!result.body.stringValue.includes(escapedSsn),'repeated keys cannot conceal sensitive preview text')
+ }
+
  const grok=await preview({...d,processors:[catalog.processors.find(p=>p.type==='grok').example,{type:'status',source:'level'}]},['info Checkout order 1042'])
  assert.equal(grok.results[0].attributes.message,'Checkout order 1042');assert.equal(grok.results[0].attributes.status,'info')
  const multiline=JSON.stringify({level:'info',message:'Checkout unchanged'},null,2)
@@ -59,6 +77,8 @@ export async function pipelineJourney({origin,freshOwner,sql,restartWorker,withE
  for(const key of ['aws.secret_access_key','http.request.header.x-amz-security-token','http.request.header.x-goog-api-key','http.request.header.ocp-apim-subscription-key'])assert.equal(structured[key],'[REDACTED]','provider credential fields remain masked under qualified names')
  assert.equal(structured.ssn,'[REDACTED]','sensitive fields mask even when leading zeroes were lost in numeric input')
  assert.equal(structured.innocuousCounter,42,'ordinary numeric attributes keep their type and value')
+ assert.equal(structured.repeated,'safe');assert.deepEqual(structured.nested,[{note:'safe'}]);assert.equal(structured.escaped,'safe')
+ assert.ok(!p.results[0].body.stringValue.includes(escapedSsn),'escaped discarded values cannot survive in preview text')
  assert.equal((await post(api+'/activate',{previewId:p.id,digest:'0'.repeat(64),confirm:'activate-pipeline'})).status,409)
  const otherSession=await freshOwner({force:true})
  assert.equal((await post(api+'/activate',{previewId:p.id,digest:p.digest,confirm:'activate-pipeline'},otherSession)).status,409,'a second native session cannot spend the first session preview')
@@ -116,6 +136,14 @@ export async function pipelineJourney({origin,freshOwner,sql,restartWorker,withE
  const {pipelineProcessors}=await import('./pipelines-processors.mjs')
  await pipelineProcessors({post,value,preview,activate,send,get,d,at:at+4000000n})
  cookie=await freshOwner()
+ const repeatedCapture=await send(repeatedBodies,'synthetic-porthole-12412',at+5000000n)
+ const repeatedQueue=(await sql(`SELECT records,wire_base64 FROM porthole_ingest_batches WHERE id=${literal(repeatedCapture.id)}`))[0]
+ await value(await post(intake+'/drain',{}))
+ const repeatedCopies=await sql(`SELECT payload FROM porthole_telemetry_records WHERE batch_id=${literal(repeatedCapture.id)} UNION ALL SELECT payload FROM porthole_telemetry_archive WHERE batch_id=${literal(repeatedCapture.id)}`)
+ assert.equal(repeatedCopies.length,repeatedBodies.length*2)
+ const repeatedCustody=JSON.stringify({queue:repeatedQueue.records,wire:Buffer.from(repeatedQueue.wire_base64,'base64').toString(),copies:repeatedCopies,history:await get(api)})
+ for(const secret of [planted[0],planted[1],escapedSsn])assert.ok(!repeatedCustody.includes(secret),'discarded repeated-key values are absent from queue, hot, archive and history custody')
+ console.log('PROBE PORT-012 BAR: isolated repeated-key samples through preview and intake -> sanitized queue, hot and archive; sensitive definition refused with unchanged history')
  const pending=await preview(d,[]),beforeAuthority=await get(api)
  assert.equal((await post(api+'/activate',{previewId:pending.id,digest:pending.digest,confirm:'activate-pipeline'},memberCookie)).status,403,'a maintainer cannot approve an owner preview')
  assert.equal((await get(api)).revision,beforeAuthority.revision)
