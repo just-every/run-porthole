@@ -180,7 +180,7 @@ try {
   }
   if(process.env.PORTHOLE_PIPELINES_ONLY==='1') {
    const {pipelineJourney}=await import('./porthole/pipelines.mjs')
-   await pipelineJourney({origin,cookie,restartWorker,withEmptyDestination,...helpers})
+   await pipelineJourney({origin,cookie,restartWorker,withEmptyDestination,withPinnedClock,...helpers})
    const {pipelineAnalyticalJourney}=await import('./porthole/pipelines-analytical.mjs')
    await pipelineAnalyticalJourney()
   } else if(process.env.PORTHOLE_HOST_HEARTBEAT_ONLY==='1') {

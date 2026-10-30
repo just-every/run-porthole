@@ -1,4 +1,5 @@
 import { invalid } from '../ingest/model'
+import { maxBytes } from '../ingest/wire'
 
 export interface RedactionRule { pattern: string; exceptions: string[] }
 const mask = '[REDACTED]'
@@ -48,7 +49,9 @@ export function redactionRules(input: unknown): RedactionRule[] {
  })
 }
 function string(value: string, custom: { regex:RegExp; exceptions:string[] }[], identifiers: boolean): string {
- if (value.length > 262144) return mask
+ // Accepted wire is already bounded. Scan that supported range instead of
+ // replacing a harmless large body wholesale, which would silently lose data.
+ if (value.length > maxBytes) return invalid('redaction_input_too_large',413)
  for (const rule of custom) value = value.replace(rule.regex, match => rule.exceptions.includes(match) ? match : mask)
  value = value
   .replace(/-----BEGIN [A-Z ]{0,40}PRIVATE KEY-----[\s\S]*?-----END [A-Z ]{0,40}PRIVATE KEY-----/g, mask)
@@ -81,7 +84,7 @@ export function sanitize<T>(input: T, rules: RedactionRule[] = [], identifiers =
   if (typeof value === 'string') {
    // JSON log bodies stay parseable while sensitive object keys and nested
    // values receive the same masks as structured OTLP attributes.
-   if (/^\s*[\[{]/.test(value) && value.length <= 262144) {
+   if (/^\s*[\[{]/.test(value) && value.length <= maxBytes) {
     try { const decoded = JSON.parse(value), masked = visit(decoded, depth + 1); return JSON.stringify(decoded) === JSON.stringify(masked) ? value : JSON.stringify(masked) } catch { /* malformed text is masked below */ }
    }
    return string(value, custom, identifiers)

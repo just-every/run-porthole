@@ -29,18 +29,31 @@ export async function pipelineProcessors({post,value,preview,activate,send,get,d
   {input:{...base,level:'unexpected'},total:17,errors:[{processor:3,code:'status_unmapped'}]},
   {input:{...base,price:2,discount:0},total:12,extended:8,errors:[]},
   {input:{...base,quantity:0,discount:-1},total:3,extended:0,errors:[]},
-  {input:{...base,line:'Café -7'},total:17,action:'Café',units:-7,errors:[]}
+  {input:{...base,line:'Café -7'},total:17,action:'Café',units:-7,errors:[]},
+  {input:{...base,url:'https://example.invalid/カート?商品=本#支払い'},total:17,urlDetails:{'url.details.path':'/%E3%82%AB%E3%83%BC%E3%83%88','url.details.query':'%E5%95%86%E5%93%81=%E6%9C%AC','url.details.fragment':'%E6%94%AF%E6%89%95%E3%81%84'},errors:[]},
+  {input:{...base,agent:'Café '+agent.replace('120.0','121.0')},total:17,agentVersion:'121.0',errors:[]},
+  {input:{...base,original:null},total:17,errors:[{processor:2,code:'target_exists'}]},
+  {input:{...base,reviewed:false},total:17,errors:[{processor:10,code:'target_exists'}]},
+  {input:{...base,region:null},total:17,errors:[{processor:5,code:'lookup_source_type'}]},
+  {input:{},body:'{ malformed',errors:[{processor:0,code:'json_parse_failed'},{processor:1,code:'source_not_string'},{processor:2,code:'source_missing'},{processor:3,code:'status_unmapped'},{processor:5,code:'lookup_source_type'},{processor:6,code:'url_parse_failed'},{processor:7,code:'source_not_string'},{processor:8,code:'arithmetic_operand_type'},{processor:9,code:'arithmetic_operand_type'}]}
  ]
- const samples=Array.from({length:120},(_,i)=>JSON.stringify(cases[i%cases.length].input))
+ const samples=Array.from({length:120},(_,i)=>cases[i%cases.length].body??JSON.stringify(cases[i%cases.length].input))
  const expected=cases.map(c=>{
   const attributes={...c.input,original:c.input.message,'agent.details.browser':'Firefox','agent.details.version':'120.0','agent.details.os':'Linux','agent.details.device':'unknown','url.details.scheme':'https','url.details.host':'example.invalid','url.details.port':'','url.details.path':'/checkout','url.details.query':'q=cart','url.details.fragment':'paid',reviewed:true,optional:null}
-  delete attributes.message
+  Object.assign(attributes,c.urlDetails??{})
+  if(c.agentVersion)attributes['agent.details.version']=c.agentVersion
+  if(c.errors.some(e=>e.processor===2)){
+   if(Object.hasOwn(c.input,'original'))attributes.original=c.input.original
+   else delete attributes.original
+  }else delete attributes.message
+  if(c.errors.some(e=>e.processor===10)){attributes.reviewed=c.input.reviewed;delete attributes.optional}
+  if(c.body){for(const key of Object.keys(attributes))if(key.startsWith('agent.details.')||key.startsWith('url.details.'))delete attributes[key]}
   if(!c.errors.some(e=>e.processor===1)){attributes['parsed.action']=c.action??'Checkout';attributes['parsed.units']=c.units??7}
-  if(c.input.level!=='unexpected'){attributes.status=c.input.level;attributes.category=c.input.level==='error'?'failure':'normal'}
+  if(c.input.level!==undefined&&c.input.level!=='unexpected'){attributes.status=c.input.level;attributes.category=c.input.level==='error'?'failure':'normal'}
   if(c.input.level==='error')attributes['route.destination']='protected-errors'
   if(c.input.region==='us')attributes['region.name']='United States'
   if(c.total!==undefined)attributes.total=c.total
-  if(c.input.quantity!==null)attributes.extended=c.extended??12
+  if(c.input.quantity!==null&&c.input.quantity!==undefined)attributes.extended=c.extended??12
   return {attributes,errors:c.errors,status:c.errors.length?'error':'ok'}
  })
  const compare=(result,index,accepted=false)=>{
