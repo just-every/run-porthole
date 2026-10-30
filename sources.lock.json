@@ -5513,7 +5513,7 @@
       "executable": false
     },
     "tests/porthole/genai.mjs": {
-      "sha256": "5f6bcbd66069a5b7003eca4b4c42d8296a3067a47e9147305903389ff29c89cd",
+      "sha256": "cf093825e61375cf5eacd0d1949d612bd6db6217665059bd4194f5e32bbcd763",
       "executable": false
     },
     "tests/porthole/genai/edge.cjs": {

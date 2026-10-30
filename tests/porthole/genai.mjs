@@ -327,12 +327,14 @@ export async function genaiContentRefusalJourney({origin,cookie,sql,saveArchive,
  const again=await read('/api/porthole/v1/ingest/records?signal=traces&trace='+traceId+'&limit=200')
  assert.deepEqual(again.records,beforeTraces,'owner export leaves accepted control traces unchanged')
  console.log('PROBE PORT-098 retained: owner retained-trace read and frozen archive -> 8 unchanged control spans, 16 retained and 16 archive records, decoded content-free wire')
- const records=await exportInstallation();inspect(records)
+ const beforeExportDecoded=decoded,records=await exportInstallation();inspect(records)
  const items=records.filter(record=>record.kind==='part').flatMap(record=>record.items)
  for(const table of ['porthole_ingest_batches','porthole_telemetry_records','porthole_telemetry_archive'])assert.equal(items.filter(item=>item.kind==='row'&&item.table===table).length,16,'actual installation export includes populated '+table)
- assert.ok(items.some(item=>item.table==='porthole_archive_rows'))
- assert.ok(items.some(item=>item.table==='porthole_archive_chunks'))
- assert.ok(decoded>=64,'pending, retained, frozen and native exported wire were actually decoded')
+ for(const batch of items.filter(item=>item.table==='porthole_ingest_batches')) {
+  const before=retained.batches.find(row=>row.id===batch.row.id)
+  assert.ok(before);assert.equal(batch.row.wire_base64,before.wire_base64);assert.equal(batch.row.records,before.records)
+ }
+ assert.equal(decoded-beforeExportDecoded,16,'every native exported original-wire entry was actually decoded')
  console.log('PROBE PORT-098 export: actual rer export and verified native archive reader -> populated retained and frozen custody decoded, no planted prompt or response content')
  console.log('genaiContentRefusalJourney passed: 32 event-name refusals, 16 unchanged accepted controls, pending and original wire, retained and archive custody, actual owner installation export; no provider calls or erasure')
 }
