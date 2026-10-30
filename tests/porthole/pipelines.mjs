@@ -19,7 +19,7 @@ export async function pipelineJourney({origin,freshOwner,sql,restartWorker,withE
  const at=BigInt(Date.now())*1000000n-5000000000n
  const planted=['123'+'-45-'+'6789','4111'+'1111'+'1111'+'1111','+1 (415) 555'+'-0123',['synthetic-porthole-12002','example.invalid'].join(String.fromCharCode(64)),'192'+'.0.2.6','private-1234','synthetic-porthole-12006',Buffer.from('{"alg":"none"}').toString('base64url')+'.'+Buffer.from('{"private":"synthetic-porthole-12007"}').toString('base64url')+'.synthetic-porthole-12008','2001'+':db8:abcd:12::7','987'+'654'+'321','synthetic-porthole-12009','synthetic-porthole-12010','synthetic-porthole-12011','synthetic-porthole-12012']
  const ruleText=planted.slice(0,6).concat(planted.slice(7,10),['Bearer '+planted[10],'Basic '+Buffer.from(planted[11]).toString('base64'),['api_key',planted[12]].join('=')]).join(' ')
- const bodies=[JSON.stringify({message:'Checkout accepted',level:'info',sensitive:ruleText,client_secret:planted[13],api_key:planted[12],exception:'private-0000',authorization:planted[6],jwt:planted[7]}),'{\n"message":"Payment failed",\n"level":"error", "value":'+JSON.stringify(planted[0])+'\n}','{ malformed '+ruleText+' client_secret='+planted[13]+' authorization='+planted[6]+' '+planted[7]+' }']
+ const bodies=[JSON.stringify({message:'Checkout accepted',level:'info',sensitive:ruleText,client_secret:planted[13],api_key:planted[12],exception:'private-0000',authorization:planted[6],jwt:planted[7],numericIdentifier:Number(planted[9]),numericCard:Number(planted[1]),'http.request.header.x-api-key':planted[10],'db.password':planted[11],ssn:42,innocuousCounter:42}),'{\n"message":"Payment failed",\n"level":"error", "value":'+JSON.stringify(planted[0])+'\n}','{ malformed '+ruleText+' client_secret='+planted[13]+' authorization='+planted[6]+' '+planted[7]+' }']
  const send=async(bodies,id,time=at)=>{
   const packet=otlpLogBatch(bodies.map((_,i)=>time+BigInt(i)))
   const resource=packet.resourceLogs[0];resource.resource.attributes=[{key:'service.name',value:{stringValue:d.service}},{key:'team.name',value:{stringValue:d.team}},{key:'deployment.environment.name',value:{stringValue:d.environment}},{key:'nested-private',value:{stringValue:planted[0]}}]
@@ -51,6 +51,11 @@ export async function pipelineJourney({origin,freshOwner,sql,restartWorker,withE
  assert.equal(p.results.length,3);assert.equal(p.results[0].attributes.status,'info');assert.equal(p.results[1].attributes.status,'error');assert.equal(p.results[2].status,'error');assert.ok(p.results[2].errors.some(e=>e.code==='json_parse_failed'))
  for(const secret of [...planted,Buffer.from(planted[11]).toString('base64')])assert.ok(!JSON.stringify(p).includes(secret),'preview masks '+planted.indexOf(secret))
  assert.ok(JSON.stringify(p).includes('private-0000'),'exact custom exception survives')
+ const structured=JSON.parse(p.results[0].body.stringValue)
+ assert.equal(structured.numericIdentifier,'[REDACTED]');assert.equal(structured.numericCard,'[REDACTED]')
+ assert.equal(structured['http.request.header.x-api-key'],'[REDACTED]');assert.equal(structured['db.password'],'[REDACTED]')
+ assert.equal(structured.ssn,'[REDACTED]','sensitive fields mask even when leading zeroes were lost in numeric input')
+ assert.equal(structured.innocuousCounter,42,'ordinary numeric attributes keep their type and value')
  assert.equal((await post(api+'/activate',{previewId:p.id,digest:'0'.repeat(64),confirm:'activate-pipeline'})).status,409)
  const otherSession=await freshOwner({force:true})
  assert.equal((await post(api+'/activate',{previewId:p.id,digest:p.digest,confirm:'activate-pipeline'},otherSession)).status,409,'a second native session cannot spend the first session preview')

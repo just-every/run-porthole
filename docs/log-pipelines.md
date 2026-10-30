@@ -40,7 +40,11 @@ Processor errors retain sanitized input and diagnostic codes. Errors, critical
 statuses, severe source logs and malformed records are protected from exclusion.
 
 Mandatory US SSN, card and phone masks apply to newly accepted logs and spans before the durable envelope write,
-including failed parsing. Conservative key and token masks also apply.
+including failed parsing and numeric structured values. Explicit sensitive field
+names remain masked when a numeric input has lost leading zeroes. Credential
+fields keep their protection under qualified attribute and header names, such as
+`http.request.header.x-api-key` and `db.password`. Ordinary numeric values retain
+their original type. Conservative key and token masks also apply.
 Activating the reviewed pipeline adds address and network identifier masks
 within its exact scope; before approval, those identifiers remain available to
 the existing subject-erasure flow. Custom `redaction` rules accept exact-width
