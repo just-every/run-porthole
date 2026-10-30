@@ -38,6 +38,7 @@ export interface Bindings {
  /** Local runtimes only: the checkout's key gate and dev identity switch. Deploy refuses both. */
  RER_MODELS_SERVICE?: string
  RER_MODELS_KEY?: string
+ RER_BUSINESS_TRUST?: string
  RER_DEMO?: string
  RER_OWNER_CLAIM_ISSUER?: string
  RER_OWNER_CLAIM_INSTALLATION_ID?: string
@@ -77,10 +78,9 @@ async function handleAuthResponse(request: Request, original: Bindings): Promise
   if (linked) return linked
  }
  if (url.pathname === '/auth/owner-claim') {
-  // Only the demo runtime supplies these per-visitor signing keys and installation.
-  // Installed apps continue to require their linked identity provider's owner grant.
-  // Its confirmation page wears the frame the other sign-in documents wear.
-  if (env.RER_DEMO === '1' && env.RER_OWNER_CLAIM_PUBLIC_KEYS) {
+  // Managed installations and disposable verification share the signed owner
+  // claim lifecycle. Unpaired installations retain identity-provider admission.
+  if (env.RER_OWNER_CLAIM_PUBLIC_KEYS) {
    const claim = await createOwnerClaimHandler({
     db: env.DB, authConfig: authConfig(env), clientIp: req => req.headers.get('CF-Connecting-IP') ?? '',
     issuer: env.RER_OWNER_CLAIM_ISSUER ?? '', installationId: env.RER_OWNER_CLAIM_INSTALLATION_ID ?? '',

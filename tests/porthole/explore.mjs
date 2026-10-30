@@ -1,3 +1,4 @@
+import {localAgentPolicy,refusal} from '../agent-door/local-policy.mjs'
 import assert from 'node:assert/strict'
 
 /** Runs after the dashboard journey has ingested its three real signals. */
@@ -62,7 +63,7 @@ export async function explorationJourney({origin,cookie}) {
 export async function observabilityAgentJourney({origin,cookie,freshOwner}) {
  cookie=await freshOwner()
  const query={service:'checkout',environment:'production',team:'commerce'}
- const post=(path,body,extra={})=>fetch(origin+path,{method:'POST',headers:{origin,cookie,'content-type':'application/json',...extra},body:JSON.stringify(body)})
+ const post=(path,body,extra={})=>fetch(origin+path,{method:'POST',headers:{origin,cookie,'content-type':'application/json',...(path.endsWith('/mcp')?{'mcp-protocol-version':'2025-11-25'}:{}),...extra},body:JSON.stringify(body)})
  const mint=await post('/app/settings/credentials/mint',{name:'Checkout coding agent',class:'read',scope:{services:['checkout'],environments:['production'],teams:['commerce'],signals:['logs','traces'],actions:['telemetry.read']}})
  assert.equal(mint.status,201)
  const key=await mint.json(),headers={authorization:`Bearer ${key.secret}`}
@@ -75,7 +76,8 @@ export async function observabilityAgentJourney({origin,cookie,freshOwner}) {
  assert.equal(cli.code,0,cli.stderr)
  const pages=cli.stdout.trim().split('\n').map(line=>JSON.parse(line)),logs=pages.flatMap(page=>page.records)
  assert.equal(logs.length,2);assert.ok(pages.length>1)
- const rpc=async args=>post('/api/porthole/v1/mcp',{jsonrpc:'2.0',id:1,method:'tools/call',params:{name:'query_telemetry',arguments:args}},headers)
+ await localAgentPolicy(origin,cookie)
+ const rpc=async args=>post('/api/porthole/v1/mcp',{jsonrpc:'2.0',id:1,method:'tools/call',params:{name:'porthole.telemetry.query',arguments:args}},headers)
  const spansResponse=await rpc({...query,signal:'traces'});assert.equal(spansResponse.status,200)
  const spans=(await spansResponse.json()).result.structuredContent
  const logResponse=await rpc({...query,signal:'logs',snapshot:pages[0].snapshot});assert.equal(logResponse.status,200)
@@ -84,7 +86,7 @@ export async function observabilityAgentJourney({origin,cookie,freshOwner}) {
  const duration=Math.max(...spans.records.map(row=>Number(BigInt(row.payload.record.endTimeUnixNano)-BigInt(row.payload.record.startTimeUnixNano))/1e6))
  assert.equal(duration,400);assert.ok(logs.some(row=>row.payload.record.body.stringValue.includes('dependency waiting')))
  for(const reference of [spans.queryRef,citedLogs.queryRef])assert.match(reference,/^[a-f0-9-]{36}$/)
- assert.equal((await rpc({...query,signal:'logs',team:'payments'})).status,403)
+ assert.equal(refusal(await (await rpc({...query,signal:'logs',team:'payments'})).json()),'scope_forbidden')
  assert.equal((await post('/api/porthole/v1/approvals',{id:'synthetic-porthole-230',confirm:'approve'},headers)).status,403)
  const observations={hypothesis:'Dependency wait accompanies slow checkout spans',maxObservedDurationMs:duration,citations:[spans.queryRef,citedLogs.queryRef]}
  console.log('Read-only coding-agent observation '+JSON.stringify(observations))
