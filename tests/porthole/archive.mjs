@@ -826,14 +826,14 @@ async function run(source) {
   await fetch(origin+'/setup',{method:'POST',redirect:'manual',headers:{origin,cookie,'content-type':'application/x-www-form-urlencoded'},body:new URLSearchParams({confirm:'yes'})})
   if(contentRefusalOnly) {
    const {genaiContentRefusalJourney}=await import('./genai.mjs')
-   await genaiContentRefusalJourney({origin,cookie,sql:statement=>sql(source,statement),
+   await genaiContentRefusalJourney({origin,cookie,sql:statement=>sql(source,statement),runtimeDiagnostics:()=>output,
     saveArchive:async()=>savedExport(origin,cookie,await post(origin,cookie,archive+'/exports',{})),
     exportInstallation:async()=>{
      await stop()
      const path=join(source,'exports','content-refusal.rer')
      await command(source,['export','--output',path])
      // The native reader verifies every manifest, part and closing checksum.
-     const {fileRecords}=await import(join(root,'node_modules/@runeditrun/rer/modules/portability/files.mjs'))
+     const {fileRecords}=await import('@runeditrun/rer/modules/portability/files')
      const records=[]
      for await(const record of fileRecords(path))records.push(record)
      return records

@@ -204,7 +204,7 @@ export async function genaiAnalyticalJourney(){
 /** Complete event-name boundary through public intake and native installation
  * export. The independent wire schema below uses official OTLP field numbers;
  * neither admission nor the product's archive validator is used as an oracle. */
-export async function genaiContentRefusalJourney({origin,cookie,sql,saveArchive,exportInstallation}) {
+export async function genaiContentRefusalJourney({origin,cookie,sql,saveArchive,exportInstallation,runtimeDiagnostics}) {
  const {createRequire}=await import('node:module'),{gunzipSync}=await import('node:zlib')
  const grpc=createRequire(import.meta.resolve('@grpc/grpc-js'))
  const {parse}=createRequire(grpc.resolve('@grpc/proto-loader'))('protobufjs')
@@ -327,9 +327,14 @@ export async function genaiContentRefusalJourney({origin,cookie,sql,saveArchive,
  const again=await read('/api/porthole/v1/ingest/records?signal=traces&trace='+traceId+'&limit=200')
  assert.deepEqual(again.records,beforeTraces,'owner export leaves accepted control traces unchanged')
  console.log('PROBE PORT-098 retained: owner retained-trace read and frozen archive -> 8 unchanged control spans, 16 retained and 16 archive records, decoded content-free wire')
+ clean(runtimeDiagnostics())
  const beforeExportDecoded=decoded,records=await exportInstallation();inspect(records)
  const items=records.filter(record=>record.kind==='part').flatMap(record=>record.items)
  for(const table of ['porthole_ingest_batches','porthole_telemetry_records','porthole_telemetry_archive'])assert.equal(items.filter(item=>item.kind==='row'&&item.table===table).length,16,'actual installation export includes populated '+table)
+ for(const [table,rows]of [['porthole_telemetry_records',retained.retained],['porthole_telemetry_archive',retained.archive]]) {
+  const exported=items.filter(item=>item.table===table).map(item=>({id:item.row.id,payload:item.row.payload})).sort((a,b)=>a.id.localeCompare(b.id))
+  assert.deepEqual(exported,rows,'native installation export preserves every accepted control payload')
+ }
  for(const batch of items.filter(item=>item.table==='porthole_ingest_batches')) {
   const before=retained.batches.find(row=>row.id===batch.row.id)
   assert.ok(before);assert.equal(batch.row.wire_base64,before.wire_base64);assert.equal(batch.row.records,before.records)
