@@ -5,7 +5,7 @@ import {otlpLogBatch} from './ingest.mjs'
 import {pipelineBrowser} from './pipelines-browser.mjs'
 import {pipelineCustody} from './pipelines-custody.mjs'
 const api='/api/porthole/v1/pipelines',intake='/api/porthole/v1/ingest'
-export async function pipelineJourney({origin,freshOwner,sql,restartWorker,withEmptyDestination,signIn}) {
+export async function pipelineJourney({origin,freshOwner,sql,restartWorker,withEmptyDestination,signIn,withPinnedClock}) {
  let cookie=await freshOwner()
  const post=(path,data,who=cookie)=>fetch(origin+path,form(origin,who,data))
  const value=async(response,status=200)=>{assert.equal(response.status,status,await response.clone().text());return response.json()}
@@ -52,7 +52,10 @@ export async function pipelineJourney({origin,freshOwner,sql,restartWorker,withE
  for(const secret of [...planted,Buffer.from(planted[11]).toString('base64')])assert.ok(!JSON.stringify(p).includes(secret),'preview masks '+planted.indexOf(secret))
  assert.ok(JSON.stringify(p).includes('private-0000'),'exact custom exception survives')
  assert.equal((await post(api+'/activate',{previewId:p.id,digest:'0'.repeat(64),confirm:'activate-pipeline'})).status,409)
+ const otherSession=await freshOwner({force:true})
+ assert.equal((await post(api+'/activate',{previewId:p.id,digest:p.digest,confirm:'activate-pipeline'},otherSession)).status,409,'a second native session cannot spend the first session preview')
  assert.equal((await activate(p)).revision,1)
+ assert.equal((await post(api+'/activate',{previewId:p.id,digest:p.digest,confirm:'activate-pipeline'})).status,409,'approval is single use')
  await value(await post(intake+'/control',{paused:true}))
  const first=await send(bodies,'synthetic-porthole-12003')
  const queued=(await sql(`SELECT * FROM porthole_ingest_batches WHERE id=${literal(first.id)}`))[0]
@@ -84,9 +87,11 @@ export async function pipelineJourney({origin,freshOwner,sql,restartWorker,withE
  await pipelineSpanPrivacy({origin,cookie,sql,definition:d,post,value,planted,at})
  await pipelineCustody({origin,cookie,sql,restartWorker,withEmptyDestination,planted,source,definition:d,from:query.from,through:query.through,post,value})
  const {pipelineExclusion}=await import('./pipelines-exclusion.mjs')
+ cookie=await freshOwner()
  await pipelineExclusion({post,value,get,preview,activate,send,d,sql,at:at+1000000n,count:process.env.PORTHOLE_PIPELINE_SCALE==='1'?10000:10})
  // Existing exact-subject erasure also removes counted projections; a raw
  // retry after restart must not recreate either the payload or its count.
+ cookie=await freshOwner()
  const identifier='synthetic-porthole-12060',eraseId='synthetic-porthole-12061'
  const eraseInput=await send([JSON.stringify({message:identifier,level:'info'})],eraseId,at+2000000n)
  await value(await post(intake+'/drain',{}))
@@ -102,6 +107,40 @@ export async function pipelineJourney({origin,freshOwner,sql,restartWorker,withE
  assert.equal(await countLogs(),countedBefore-1)
  const {pipelineProcessors}=await import('./pipelines-processors.mjs')
  await pipelineProcessors({post,value,preview,activate,send,get,d,at:at+4000000n})
+ cookie=await freshOwner()
+ const pending=await preview(d,[]),beforeAuthority=await get(api)
+ assert.equal((await post(api+'/activate',{previewId:pending.id,digest:pending.digest,confirm:'activate-pipeline'},memberCookie)).status,403,'a maintainer cannot approve an owner preview')
+ assert.equal((await get(api)).revision,beforeAuthority.revision)
+ const batchBeforeExpiry=await sql('SELECT id,digest,records FROM porthole_ingest_batches ORDER BY id')
+ const deniedAt=pending.expiresAt+1
+ await withPinnedClock(deniedAt,async()=>{
+  const response=await post(api+'/activate',{previewId:pending.id,digest:pending.digest,confirm:'activate-pipeline'})
+  assert.equal(response.status,403,'expired authority cannot activate an earlier preview')
+  assert.deepEqual(await response.json(),{error:'step_up_required'})
+ })
+ assert.equal((await get(api)).revision,beforeAuthority.revision)
+ assert.deepEqual(await sql('SELECT id,digest,records FROM porthole_ingest_batches ORDER BY id'),batchBeforeExpiry,'refused approval leaves accepted source identities and payloads unchanged')
+ const [firstReview,secondReview]=await Promise.all([preview(d,[]),preview(d,[])])
+ const revisions=await Promise.all([firstReview,secondReview].map(review=>post(api+'/activate',{previewId:review.id,digest:review.digest,confirm:'activate-pipeline'})))
+ assert.deepEqual(revisions.map(response=>response.status).sort(),[201,409],'only one concurrent activation can consume a revision')
+ assert.equal((await get(api)).revision,beforeAuthority.revision+1)
+ assert.deepEqual(await sql('SELECT id,digest,records FROM porthole_ingest_batches ORDER BY id'),batchBeforeExpiry,'revision racing cannot rewrite accepted data')
+ const largeBody='synthetic-porthole-12400 '+ 'x'.repeat(300000)+' '+planted[0]+' '+planted[1]
+ const large=await send([largeBody],'synthetic-porthole-12401',at+6000000n)
+ const largeStored=(await sql(`SELECT records,wire_base64 FROM porthole_ingest_batches WHERE id=${literal(large.id)}`))[0]
+ const cleanLarge='synthetic-porthole-12400 '+ 'x'.repeat(300000)+' [REDACTED] [REDACTED]'
+ const largeWire=JSON.parse(Buffer.from(largeStored.wire_base64,'base64').toString())
+ assert.equal(largeWire.records[0].payload.record.body.stringValue,cleanLarge,'masking a large accepted body preserves every harmless byte')
+ assert.deepEqual(largeWire.records,JSON.parse(largeStored.records))
+ for(const secret of planted.slice(0,2))assert.ok(!JSON.stringify(largeWire).includes(secret),'large bodies mask sensitive values at their tail before queue persistence')
+ await value(await post(intake+'/drain',{}))
+ const queriedLarge=await value(await post('/api/porthole/v1/query',{signal:'logs',service:d.service,environment:d.environment,team:d.team,from:String(at+6000000n),through:String(at+6000001n)}))
+ assert.equal(queriedLarge.records.length,1)
+ assert.equal(queriedLarge.records[0].payload.record.body.stringValue,cleanLarge)
+ assert.ok(queriedLarge.records[0].payload.pipeline.errors.some(error=>error.code==='source_too_large'),'parser refusal remains diagnosable without discarding the sanitized body')
+ const largeCopies=await sql(`SELECT payload FROM porthole_telemetry_records WHERE batch_id=${literal(large.id)} UNION ALL SELECT payload FROM porthole_telemetry_archive WHERE batch_id=${literal(large.id)}`)
+ assert.equal(largeCopies.length,2)
+ for(const copy of largeCopies)assert.equal(JSON.parse(copy.payload).record.body.stringValue,cleanLarge)
  await value(await post('/app/settings/credentials/revoke',{id:source.credential.id,revision:source.credential.revision}))
  const denied=await fetch(origin+'/v1/logs',{method:'POST',headers:{authorization:'Bearer '+source.secret,'content-type':'application/json'},body:'{}'})
  assert.equal(denied.status,401,'revoked source cannot resurrect accepted data')

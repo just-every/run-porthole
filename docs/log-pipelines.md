@@ -3,7 +3,9 @@
 An installation owner opens `/app/settings/pipelines`, edits a definition,
 previews sanitized samples and approves that exact preview. A preview expires
 in five minutes and belongs to its native session. Activation requires fresh
-proof and the same current revision. A rollback previews an earlier definition
+proof and the same current revision. Another session cannot use the preview.
+Concurrent activations consume the same revision at most once; refusals leave
+accepted telemetry unchanged. A rollback previews an earlier definition
 and activates it as a new revision. It never rewrites accepted telemetry.
 
 The API is `/api/porthole/v1/pipelines`: GET reads versions; POST to `/preview`
