@@ -41,7 +41,7 @@
 
 These are contract statuses, not a claim that a partial or missing capability is complete. Read the [product contract](/docs/contract) for requirements, named journeys and remaining work.
 
-10 done, 17 partial, 70 missing; 97 total.
+10 done, 18 partial, 69 missing; 97 total.
 
 | Clause | Capability | Status |
 | --- | --- | --- |
@@ -87,7 +87,7 @@ These are contract statuses, not a claim that a partial or missing capability is
 | PORT-024 | Migration from incumbents | missing |
 | PORT-025 | Access audit and compliance | missing |
 | PORT-026 | Observability as code and agent access | partial |
-| PORT-027 | LLM and agent observability | missing |
+| PORT-027 | LLM and agent observability | partial |
 | PORT-039 | Datadog complete account migration | missing |
 | PORT-040 | New Relic complete account migration | missing |
 | PORT-041 | Grafana and open-stack migration | missing |

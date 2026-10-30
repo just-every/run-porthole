@@ -75,7 +75,7 @@ current native authority govern them. A local owner may configure policy on
 an independently operated installation. No native cookie, tool argument or
 returned log text grants agent authority. Events, resources, prompts and
 subscriptions are undeclared; no mutation, credential minting or repair
-execution tool is exposed. Read the [company agent guide](/docs/v1/agents).
+execution tool is exposed. Read the [company agent guide](/docs/v1/company-agents).
 
 REST, CLI and MCP share one quota ledger, including daily selected-payload byte
 reservations, and next-request revocation. Their audit records contain opaque

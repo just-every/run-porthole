@@ -960,3 +960,44 @@ export async function hostHeartbeatArchiveJourney({origin,freshOwner,withEmptyDe
   assert.deepEqual(again.rows.filter(row=>row.table==='porthole_archive_health_history'&&String(row.row.table_name).startsWith('porthole_host_')),inert,'inert source and pending history re-exports exactly')
  })
 }
+
+/** GenAI is a projection of existing telemetry custody, never an active provider grant. */
+export async function genaiArchiveJourney({origin,cookie,withEmptyDestination,traceId,expected,marker}) {
+ const saved=await savedExport(origin,cookie,await post(origin,cookie,api+'/exports',{}))
+ assert.ok(saved.rows.some(row=>row.table==='porthole_telemetry_records'))
+ assert.ok(!JSON.stringify(saved).includes(marker),'default archive has no planted model or tool content')
+ for(const row of saved.rows.filter(r=>r.table==='porthole_ingest_batches'))assert.ok(!Buffer.from(row.row.wire_base64,'base64').includes(Buffer.from(marker)),'portable original wire is metadata only')
+ await withEmptyDestination(async destination=>{
+  const acting=await destination.freshOwner()
+  // An older or untrusted archive cannot stage content that current intake
+  // would refuse. Rehash the actual supported archive, not a fake backend.
+  for(const eventOnly of [false,true]){
+  const unsafe=structuredClone(saved),changed=unsafe.chunks.find(chunk=>chunk.rows.some(row=>row.table==='porthole_telemetry_records'))
+  const planted=changed.rows.find(row=>row.table==='porthole_telemetry_records'),payload=JSON.parse(planted.row.payload)
+  if(eventOnly){planted.row.signal='logs';payload.record={eventName:'gen_ai.user.message',body:{stringValue:marker}}}
+  else payload.record.attributes.push({key:'gen_ai.input.messages',value:{stringValue:marker}})
+  planted.row.payload=JSON.stringify(payload)
+  let chain=unsafe.chunks[0].previousHash
+  for(const chunk of unsafe.chunks){chunk.previousHash=chain;chunk.digest=hash(JSON.stringify({version:chunk.version,index:chunk.index,previousHash:chunk.previousHash,rows:chunk.rows}));chain=chunk.digest}
+  unsafe.manifest.rootHash=chain
+  const rejected=await value(await post(destination.origin,acting,api+'/restores',{manifest:unsafe.manifest}),201)
+  for(const chunk of unsafe.chunks){
+   const response=await post(destination.origin,acting,`${api}/restores/${rejected.id}/chunks`,{chunk})
+   if(chunk.index===changed.index){assert.equal(response.status,422);assert.equal((await response.json()).error,'archive_genai_content_not_authorized');break}
+   await value(response)
+  }
+  assert.equal((await destination.sql("SELECT COUNT(*) AS n FROM porthole_archive_rows WHERE instr(payload,'"+marker+"')>0"))[0].n,0,'refused model content never enters archive staging')
+  }
+  const start=await value(await post(destination.origin,acting,api+'/restores',{manifest:saved.manifest}),201)
+  for(const chunk of saved.chunks)await value(await post(destination.origin,acting,`${api}/restores/${start.id}/chunks`,{chunk}))
+  await value(await post(destination.origin,acting,`${api}/restores/${start.id}/commit`,{confirm:saved.manifest.rootHash}))
+  const restored=await value(await get(destination.origin,acting,'/api/porthole/v1/genai?trace='+traceId))
+  assert.deepEqual(restored,expected,'metadata, observed counters, relationships and unavailable money survive inactive restore')
+  assert.equal((await destination.sql('SELECT paused FROM porthole_ingest_control'))[0].paused,1)
+  assert.equal((await destination.sql('SELECT COUNT(*) AS n FROM porthole_credentials'))[0].n,0)
+  assert.equal((await get(destination.origin,cookie,'/api/porthole/v1/genai?trace='+traceId)).status,401)
+  const again=await savedExport(destination.origin,acting,await post(destination.origin,acting,api+'/exports',{}))
+  assert.ok(!JSON.stringify(again).includes(marker),'independent re-export remains content free')
+ })
+ console.log('genaiArchiveJourney passed: complete metadata-only wire and retained custody, independent inactive restore and re-export, no inherited sessions or credentials')
+}

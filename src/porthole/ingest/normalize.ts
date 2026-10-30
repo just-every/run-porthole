@@ -1,3 +1,4 @@
+import {assertGenAIMetadata} from '../genai/privacy'
 import { profileDictionary, validateProfile, isolateProfile } from './profiles'
 import type { CredentialScope } from '../credentials/policy'
 import { array, canonical, invalid, nano, object, type Signal, type TelemetryRecord } from './model'
@@ -31,6 +32,7 @@ export function record(payload: Record<string, unknown>, attr: Record<string, un
   late: BigInt(eventTimeNs) < now - 10n * 60n * 1000000000n ? 1 : 0, outOfOrder: 0 }
 }
 export function otlpRecords(data: Record<string, unknown>, signal: Signal, headers: Headers): TelemetryRecord[] {
+ assertGenAIMetadata(data)
  const capital = signal === 'traces' ? 'Spans' : signal === 'logs' ? 'Logs' : signal === 'profiles' ? 'Profiles' : 'Metrics'
  const resources = data[`resource${capital}`]
  if (resources === undefined) {
