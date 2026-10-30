@@ -18,8 +18,8 @@ export async function pipelineJourney({origin,freshOwner,sql,restartWorker,withE
  const activate=async p=>value(await post(api+'/activate',{previewId:p.id,digest:p.digest,confirm:'activate-pipeline'}),201)
  const at=BigInt(Date.now())*1000000n-5000000000n
  const planted=['123'+'-45-'+'6789','4111'+'1111'+'1111'+'1111','+1 (415) 555'+'-0123',['synthetic-porthole-12002','example.invalid'].join(String.fromCharCode(64)),'192'+'.0.2.6','private-1234','synthetic-porthole-12006',Buffer.from('{"alg":"none"}').toString('base64url')+'.'+Buffer.from('{"private":"synthetic-porthole-12007"}').toString('base64url')+'.synthetic-porthole-12008','2001'+':db8:abcd:12::7','987'+'654'+'321','synthetic-porthole-12009','synthetic-porthole-12010','synthetic-porthole-12011','synthetic-porthole-12012']
- const ruleText=planted.slice(0,6).concat(planted.slice(7,10),['Bearer '+planted[10],'Basic '+Buffer.from(planted[11]).toString('base64'),['api_key',planted[12]].join('=')]).join(' ')
- const bodies=[JSON.stringify({message:'Checkout accepted',level:'info',sensitive:ruleText,client_secret:planted[13],api_key:planted[12],exception:'private-0000',authorization:planted[6],jwt:planted[7],numericIdentifier:Number(planted[9]),numericCard:Number(planted[1]),'http.request.header.x-api-key':planted[10],'db.password':planted[11],ssn:42,innocuousCounter:42}),'{\n"message":"Payment failed",\n"level":"error", "value":'+JSON.stringify(planted[0])+'\n}','{ malformed '+ruleText+' client_secret='+planted[13]+' authorization='+planted[6]+' '+planted[7]+' }']
+ const ruleText=planted.slice(0,6).concat(planted.slice(7,10),['Bearer '+planted[10],'Basic '+Buffer.from(planted[11]).toString('base64'),['api_key',planted[12]].join('='),['Ocp-Apim-Subscription-Key',planted[13]].join('=')]).join(' ')
+ const bodies=[JSON.stringify({message:'Checkout accepted',level:'info',sensitive:ruleText,client_secret:planted[13],api_key:planted[12],exception:'private-0000',authorization:planted[6],jwt:planted[7],numericIdentifier:Number(planted[9]),numericCard:Number(planted[1]),'http.request.header.x-api-key':planted[10],'db.password':planted[11],'aws.secret_access_key':planted[13],'http.request.header.x-amz-security-token':planted[10],'http.request.header.x-goog-api-key':planted[12],'http.request.header.ocp-apim-subscription-key':planted[11],ssn:42,innocuousCounter:42}),'{\n"message":"Payment failed",\n"level":"error", "value":'+JSON.stringify(planted[0])+'\n}','{ malformed '+ruleText+' client_secret='+planted[13]+' authorization='+planted[6]+' '+planted[7]+' }']
  const send=async(bodies,id,time=at)=>{
   const packet=otlpLogBatch(bodies.map((_,i)=>time+BigInt(i)))
   const resource=packet.resourceLogs[0];resource.resource.attributes=[{key:'service.name',value:{stringValue:d.service}},{key:'team.name',value:{stringValue:d.team}},{key:'deployment.environment.name',value:{stringValue:d.environment}},{key:'nested-private',value:{stringValue:planted[0]}}]
@@ -42,6 +42,8 @@ export async function pipelineJourney({origin,freshOwner,sql,restartWorker,withE
  }
  assert.deepEqual(await sql('SELECT COUNT(*) AS n FROM porthole_pipeline_previews'),stateBeforeInvalid,'invalid and expensive rules persist no preview or mutation')
  assert.equal((await get(api)).revision,nonOwnerBefore)
+ assert.equal((await post(api+'/preview',{definition:{...d,processors:[{type:'enrich',values:{'aws.secret_access_key':planted[13]}}]},samples:[],revision:0})).status,400,'credential values cannot enter persisted definitions or preview history')
+ assert.deepEqual(await sql('SELECT COUNT(*) AS n FROM porthole_pipeline_previews'),stateBeforeInvalid)
  const grok=await preview({...d,processors:[catalog.processors.find(p=>p.type==='grok').example,{type:'status',source:'level'}]},['info Checkout order 1042'])
  assert.equal(grok.results[0].attributes.message,'Checkout order 1042');assert.equal(grok.results[0].attributes.status,'info')
  const multiline=JSON.stringify({level:'info',message:'Checkout unchanged'},null,2)
@@ -54,6 +56,7 @@ export async function pipelineJourney({origin,freshOwner,sql,restartWorker,withE
  const structured=JSON.parse(p.results[0].body.stringValue)
  assert.equal(structured.numericIdentifier,'[REDACTED]');assert.equal(structured.numericCard,'[REDACTED]')
  assert.equal(structured['http.request.header.x-api-key'],'[REDACTED]');assert.equal(structured['db.password'],'[REDACTED]')
+ for(const key of ['aws.secret_access_key','http.request.header.x-amz-security-token','http.request.header.x-goog-api-key','http.request.header.ocp-apim-subscription-key'])assert.equal(structured[key],'[REDACTED]','provider credential fields remain masked under qualified names')
  assert.equal(structured.ssn,'[REDACTED]','sensitive fields mask even when leading zeroes were lost in numeric input')
  assert.equal(structured.innocuousCounter,42,'ordinary numeric attributes keep their type and value')
  assert.equal((await post(api+'/activate',{previewId:p.id,digest:'0'.repeat(64),confirm:'activate-pipeline'})).status,409)
