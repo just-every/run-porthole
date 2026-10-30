@@ -55,7 +55,7 @@
     "@opentelemetry/instrumentation-openai": "0.22.0",
     "@opentelemetry/sdk-node": "0.300.0",
     "@playwright/test": "1.63.0",
-    "@runeditrun/rer": "0.2.85",
+    "@runeditrun/rer": "0.2.91",
     "@traceloop/instrumentation-anthropic": "0.27.0",
     "@types/node": "22.18.8",
     "@types/react": "19.2.18",

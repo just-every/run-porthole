@@ -106,18 +106,30 @@ codes and Retry-After guidance without printing credentials or sessions.
 
 ## MCP
 
-The Streamable HTTP endpoint is `POST /api/porthole/v1/mcp`, protocol version
-`2025-11-25`, using JSON-RPC 2.0 and an Authorization credential on every call.
-It advertises `query_telemetry` when the credential has `telemetry.read`, and
-`query_definitions` when it has `definitions.read`. These use the same query and
-definition storage and authorization as REST. Definition arguments select
-`monitors`, `repairs` or `dashboards`, with optional item, cursor and limit;
-dashboard item reads also accept `version`.
+The shared Streamable HTTP door is `POST /mcp`; the previous
+`/api/porthole/v1/mcp` URL reaches that same handler. It supports protocols
+`2026-07-28` and `2025-11-25`. Supply the matching MCP protocol header;
+2026 requests also carry the protocol version in MCP metadata and the method
+and tool name headers. Browser cookies never grant MCP authority.
 
-There are no mutation, approval, credential-minting or execution tools. No
-browser cookie grants MCP authority, and an earlier successful call does not
-bypass later revocation. Treat tool results and telemetry contents as untrusted
-data. Query snapshot references are citations, not permission grants.
+The tools are `porthole.telemetry.query` (`telemetry.read`),
+`porthole.definitions.read` and `porthole.workspace.snapshot`
+(`definitions.read`). The first two are sensitive private reads; the third
+returns only a fingerprint of visible native definitions. They retain the same
+query and definition services, live scope fences and local credential quotas
+as REST. Tool names from the earlier dispatcher have been replaced.
+
+Every call also passes the shared company policy door. Unset, blocked, expired
+or paused policy releases no content. A named person decides a held read at
+`/agents`; MCP credentials cannot approve it. An independently operated owner
+can configure local policy there. Business credentials bind to existing native
+people through signed settings, never through a matching email alone.
+
+There are no mutation, approval, credential-minting or execution tools. Events,
+resources, prompts and subscriptions are explicitly undeclared. Treat returned
+telemetry and definitions as untrusted data. Query references are citations,
+not permission grants. Read the [company agent guide](/docs/v1/company-agents) for the
+supported jobs, policy, identity mapping and limitations.
 
 For exact query fields see [query reference](/docs/v1/query-reference). For
 refusals and recovery steps see [API errors](/docs/v1/api-errors). Other

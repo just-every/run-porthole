@@ -1,3 +1,4 @@
+import {agentReadAuthority,agentCredential,type ReadPrincipal} from '../security/agent-read'
 import {configuration as analyticalConfiguration,selected as analyticalSelected} from '../analytical/client'
 import {readAnalytical} from '../analytical/read'
 import {compileLogSearch,LogSearchError,type LogSearchPlan} from '../../../workers/analytics/log-search.mjs'
@@ -17,8 +18,9 @@ export function scopeWhere(scope: Scope, alias = 'r') {
  return { sql:parts.join(' AND '),args }
 }
 const json = (value:unknown,status=200,headers:Record<string,string>={}) => Response.json(value,{status,headers:{...privateHeaders,...headers}})
-export async function readTelemetry(request: Request, env: Bindings, options: {archive?:boolean;logSearch?:LogSearchPlan;source?:{dialect:string;text:string}} = {}): Promise<Response> {
+export async function readTelemetry(request: Request, env: Bindings, options: {principal?:ReadPrincipal;archive?:boolean;logSearch?:LogSearchPlan;source?:{dialect:string;text:string}} = {}): Promise<Response> {
  try {
+  const credential=(use:Parameters<typeof verifyCredential>[2])=>options.principal?.clientId?agentCredential(request,env,options.principal,use!):verifyCredential(request,env,use)
   const url = new URL(request.url), params = url.searchParams, archive = !!options.archive
   if ([...params.keys()].some(key => !['signal','service','environment','team','from','through','cursor','limit','snapshot','trace','metric'].includes(key))) fail('invalid_query',400)
   const limit = Number(params.get('limit') ?? 100)
@@ -26,15 +28,15 @@ export async function readTelemetry(request: Request, env: Bindings, options: {a
   const signal = params.get('signal')
   if (!signal || !['logs','traces','metrics','profiles'].includes(signal)) fail('signal_required',400)
   let scope: Scope, fence: {sql:string;args:unknown[]},actorRef:string,actorRevision:number
-  if (request.headers.has('authorization')) {
-   const auth = await verifyCredential(request,env,{action:'telemetry.read',scope:emptyScope,dataScope:allScope,inspectOnly:true})
+  if (options.principal?.clientId || request.headers.has('authorization')) {
+   const auth = await credential({action:'telemetry.read',scope:emptyScope,dataScope:allScope,inspectOnly:true})
    if (!auth.credential.scope.signals.includes(signal)) fail('credential_scope_forbidden')
    scope=auth.credential.scope;actorRef=auth.credential.id;actorRevision=auth.credential.revision
    // Final verification below reserves exact selected payload bytes and reads
    // inside its live transaction; this first check never releases contents.
    fence={sql:'1',args:[]}
   } else {
-   const actor=await authority(request,env)
+   const actor=options.principal?await agentReadAuthority(env,options.principal):await authority(request,env)
    if (!['owner','admin','maintainer','responder','read-only analyst','restricted contractor'].includes(actor.member.role)) fail('telemetry_forbidden')
    scope=actor.member.scope;actorRef=actor.member.operatorId;actorRevision=actor.member.revision; fence={sql:actor.fence,args:actor.args}
   }
@@ -78,13 +80,13 @@ export async function readTelemetry(request: Request, env: Bindings, options: {a
   const select=`SELECT r.* FROM ${table} r JOIN porthole_ingest_batches b ON b.id=r.batch_id WHERE ${clauses.join(' AND ')} AND `
   const queryRef=crypto.randomUUID(),queryScope=JSON.stringify({...Object.fromEntries([...params].filter(([key])=>['service','environment','team','cursor','limit','trace','metric'].includes(key))),...(options.source?{dialect:options.source.dialect,expression:options.source.text}:{})})
   const analytical=await analyticalConfiguration(env)
-  if(analyticalSelected(env,analytical))return await readAnalytical(request,env,analytical,{scope,actorRef,actorRevision,fence,snapshot,queryRef,queryScope,from,through,signal,limit,archive,logSearch:options.logSearch})
+  if(analyticalSelected(env,analytical))return await readAnalytical(request,env,analytical,{principal:options.principal,scope,actorRef,actorRevision,fence,snapshot,queryRef,queryScope,from,through,signal,limit,archive,logSearch:options.logSearch})
   const snapshotInsert=(live:{sql:string;args:unknown[]})=>env.DB.prepare(`INSERT INTO porthole_query_snapshots SELECT ?,?,?,?,?,?,?,? WHERE ${live.sql}`).bind(queryRef,actorRef,queryScope,signal,from,through,snapshot,Date.now(),...live.args)
   let rows: Record<string,unknown>[]
-  if (request.headers.has('authorization')) {
+  if (options.principal?.clientId || request.headers.has('authorization')) {
    const estimate=(await env.DB.prepare(`${select}1 ORDER BY r.event_time_ns,r.id LIMIT ?`).bind(...args,limit+1).all<Record<string,unknown>>()).results
    const scanned=estimate.reduce((sum,row) => sum+new TextEncoder().encode(String(row.payload)).length,0)
-   const auth=await verifyCredential(request,env,{action:'telemetry.read',scope:emptyScope,dataScope:allScope,scannedBytes:scanned,writes(live,latest) {
+   const auth=await credential({action:'telemetry.read',scope:emptyScope,dataScope:allScope,scannedBytes:scanned,writes(live,latest) {
     if (!latest.signals.includes(signal) || JSON.stringify(scope)!==JSON.stringify(latest)) fail('authority_changed',409)
     return [env.DB.prepare(`${select}${live.sql} ORDER BY r.event_time_ns,r.id LIMIT ?`).bind(...args,...live.args,limit+1),snapshotInsert(live)]
    }})

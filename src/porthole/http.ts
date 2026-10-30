@@ -23,7 +23,6 @@ import { baggageResponse } from './traces/policy'
 import { traceResponse } from './traces/http'
 import { signalExportResponse } from './exports'
 import { queryResponse } from './query/http'
-import { mcpResponse } from './agents/mcp'
 import { objectsResponse } from './objects/http'
 import { erasureResponse } from './privacy/actor-erasure/http'
 import { bucketHistoryResponse } from './storage/http'
@@ -32,7 +31,7 @@ import { healthResponse } from './health/http'
 export async function portholeResponse(request: Request, bindings: Bindings): Promise<Response | null> {
  const env = runtimeBindings(bindings), url = new URL(request.url)
  if(url.pathname==='/api/porthole/v1/session') return personalTokenResponse(request,env)
- const product=await monitorsResponse(request,env) ?? await genaiResponse(request,env) ?? await notebookResponse(request,env) ?? await metricRuleResponse(request,env) ?? await sloResponse(request,env) ?? await followUpResponse(request,env) ?? await retentionResponse(request,env) ?? await subjectErasureResponse(request,env) ?? await integrationRegistryResponse(request,env) ?? await baggageResponse(request,env) ?? await publicationResponse(request,env) ?? await apiResponse(request,env) ?? await dashboardResponse(request,env) ?? await signalExportResponse(request,env) ?? await migrationResponse(request,env) ?? await analyticalResponse(request,env) ?? await traceResponse(request,env) ?? await bucketHistoryResponse(request,env) ?? await ingestResponse(request,env) ?? await archiveResponse(request,env) ?? await queryResponse(request,env) ?? await mcpResponse(request,env) ?? await objectsResponse(request,env) ?? await erasureResponse(request,env)
+ const product=await monitorsResponse(request,env) ?? await genaiResponse(request,env) ?? await notebookResponse(request,env) ?? await metricRuleResponse(request,env) ?? await sloResponse(request,env) ?? await followUpResponse(request,env) ?? await retentionResponse(request,env) ?? await subjectErasureResponse(request,env) ?? await integrationRegistryResponse(request,env) ?? await baggageResponse(request,env) ?? await publicationResponse(request,env) ?? await apiResponse(request,env) ?? await dashboardResponse(request,env) ?? await signalExportResponse(request,env) ?? await migrationResponse(request,env) ?? await analyticalResponse(request,env) ?? await traceResponse(request,env) ?? await bucketHistoryResponse(request,env) ?? await ingestResponse(request,env) ?? await archiveResponse(request,env) ?? await queryResponse(request,env) ?? await objectsResponse(request,env) ?? await erasureResponse(request,env)
  if(product)return product
  if (url.pathname.startsWith('/app/settings') || url.pathname==='/api/porthole/v1/credential') return await membershipResponse(request,env) ?? await credentialResponse(request,env)
  if(url.pathname.startsWith('/api/v1/health') || url.pathname.startsWith('/app/health'))return healthResponse(request,env)
