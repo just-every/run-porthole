@@ -1003,6 +1003,7 @@ export async function genaiArchiveJourney({origin,cookie,withEmptyDestination,tr
    const raw=encoding.endsWith('protobuf')?otlpProtoBatch('traces',BigInt(record.eventTimeNs),[['gen_ai.input.messages',marker]]):Buffer.from(JSON.stringify(packet))
    const wire=encoding.startsWith('gzip-')?gzipSync(raw):raw
    batch.row.wire_base64=wire.toString('base64')
+   batch.row.protocol=String(batch.row.protocol).split(';stored=')[0]
    let chain=unsafeWire.chunks[0].previousHash
    for(const chunk of unsafeWire.chunks){chunk.previousHash=chain;chunk.digest=hash(JSON.stringify({version:chunk.version,index:chunk.index,previousHash:chunk.previousHash,rows:chunk.rows}));chain=chunk.digest}
    unsafeWire.manifest.rootHash=chain
@@ -1033,6 +1034,23 @@ export async function genaiArchiveJourney({origin,cookie,withEmptyDestination,tr
    const packet={resourceSpans:records.map(({payload})=>({resource:payload.resource,scopeSpans:[{scope:payload.scope,spans:[payload.record]}]}))}
    row.wire_base64=gzipSync(Buffer.from(JSON.stringify(packet))).toString('base64')
   }
+  // A source packet cannot silently occupy the labeled sanitized envelope.
+  // Keep that refusal beside the valid legacy-wire restore below.
+  const mislabeled=structuredClone(compressed)
+  let mismatchChain=mislabeled.chunks[0].previousHash
+  for(const chunk of mislabeled.chunks){chunk.previousHash=mismatchChain;chunk.digest=hash(JSON.stringify({version:chunk.version,index:chunk.index,previousHash:chunk.previousHash,rows:chunk.rows}));mismatchChain=chunk.digest}
+  mislabeled.manifest.rootHash=mismatchChain
+  const wrongFormat=await value(await post(destination.origin,acting,api+'/restores',{manifest:mislabeled.manifest}),201)
+  const wrongChunk=mislabeled.chunks.find(chunk=>chunk.rows.some(row=>row.table==='porthole_ingest_batches'))
+  for(const chunk of mislabeled.chunks){
+   const response=await post(destination.origin,acting,`${api}/restores/${wrongFormat.id}/chunks`,{chunk})
+   if(chunk.index===wrongChunk.index){assert.equal(response.status,422);assert.equal((await response.json()).error,'archive_semantics_invalid');break}
+   await value(response)
+  }
+  assert.equal((await destination.sql('SELECT COUNT(*) AS n FROM porthole_archive_rows WHERE job_id='+literal(wrongFormat.id)+" AND table_name='porthole_ingest_batches'"))[0].n,0,'a mislabeled source packet never enters durable staging')
+  // This probe constructs legacy OTLP wire, rather than the labeled sanitized
+  // custody envelope. Its protocol must describe the bytes being restored.
+  for(const chunk of compressed.chunks)for(const {table,row}of chunk.rows)if(table==='porthole_ingest_batches')row.protocol=String(row.protocol).split(';stored=')[0]
   let chain=compressed.chunks[0].previousHash
   for(const chunk of compressed.chunks){chunk.previousHash=chain;chunk.digest=hash(JSON.stringify({version:chunk.version,index:chunk.index,previousHash:chunk.previousHash,rows:chunk.rows}));chain=chunk.digest}
   compressed.manifest.rootHash=chain
