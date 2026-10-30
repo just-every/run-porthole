@@ -200,3 +200,139 @@ export async function genaiAnalyticalJourney(){
  }})}finally{await estate.dispose()}
  console.log('genaiAnalyticalJourney passed: exact stock-emitted spans and metadata-only custody on both real analytical workers, cold restart and unavailable selected worker')
 }
+
+/** Complete event-name boundary through public intake and native installation
+ * export. The independent wire schema below uses official OTLP field numbers;
+ * neither admission nor the product's archive validator is used as an oracle. */
+export async function genaiContentRefusalJourney({origin,cookie,sql,saveArchive,exportInstallation}) {
+ const {createRequire}=await import('node:module'),{gunzipSync}=await import('node:zlib')
+ const grpc=createRequire(import.meta.resolve('@grpc/grpc-js'))
+ const {parse}=createRequire(grpc.resolve('@grpc/proto-loader'))('protobufjs')
+ const schema=parse(`syntax = "proto3";
+  message AnyValue { string stringValue = 1; }
+  message KeyValue { string key = 1; AnyValue value = 2; }
+  message Resource { repeated KeyValue attributes = 1; }
+  message Event { fixed64 timeUnixNano = 1; string name = 2; repeated KeyValue attributes = 3; }
+  message Status { uint32 code = 3; }
+  message Span { bytes traceId = 1; bytes spanId = 2; string name = 5; uint32 kind = 6;
+   fixed64 startTimeUnixNano = 7; fixed64 endTimeUnixNano = 8; repeated KeyValue attributes = 9;
+   repeated Event events = 11; Status status = 15; }
+  message LogRecord { fixed64 timeUnixNano = 1; AnyValue body = 5; repeated KeyValue attributes = 6; string eventName = 12; }
+  message ScopeSpans { repeated Span spans = 2; }
+  message ScopeLogs { repeated LogRecord logRecords = 2; }
+  message ResourceSpans { Resource resource = 1; repeated ScopeSpans scopeSpans = 2; }
+  message ResourceLogs { Resource resource = 1; repeated ScopeLogs scopeLogs = 2; }
+  message Traces { repeated ResourceSpans resourceSpans = 1; }
+  message Logs { repeated ResourceLogs resourceLogs = 1; }`).root
+ const attr=(key,stringValue)=>({key,value:{stringValue}})
+ const scope={services:['synthetic-porthole-9801'],environments:['production'],teams:['synthetic-porthole-9802']}
+ const resource={attributes:[attr('service.name',scope.services[0]),attr('deployment.environment.name','production'),attr('team.name',scope.teams[0])]}
+ const traceId='98000000000000000000000000000001',time=1793361600000000000n
+ const markers=['synthetic-porthole-9803-prompt-content','synthetic-porthole-9804-response-content']
+ const post=async(path,data,status=200)=>{
+  const response=await fetch(origin+path,form(origin,cookie,data))
+  assert.equal(response.status,status,await response.clone().text());return response.json()
+ }
+ const source=await post('/app/settings/credentials/mint',{name:'synthetic-porthole-9805',class:'ingest',scope:{...scope,signals:['logs','traces'],actions:['telemetry.write']}},201)
+ const packet=(signal,provider,index,eventName,content)=>{
+  const attributes=provider?[attr('gen_ai.provider.name','openai')]:[]
+  const record=signal==='logs'
+   ?{timeUnixNano:String(time+BigInt(index)),eventName:eventName??'synthetic-porthole-9806',...(content?{body:{stringValue:content}}:provider?{}:{body:{stringValue:'synthetic-porthole-9807'}}),attributes}
+   :{traceId,spanId:(index+1).toString(16).padStart(16,'0'),name:'synthetic-porthole-9808',kind:2,startTimeUnixNano:String(time),endTimeUnixNano:String(time+1000000n),status:{code:1},attributes,...(eventName?{events:[{name:eventName,timeUnixNano:String(time),attributes:[attr('content',content)]}]}:{})}
+  return signal==='logs'?{resourceLogs:[{resource,scopeLogs:[{logRecords:[record]}]}]}:{resourceSpans:[{resource,scopeSpans:[{spans:[record]}]}]}
+ }
+ const types={logs:schema.lookupType('Logs'),traces:schema.lookupType('Traces')}
+ const encode=(signal,data,encoding)=>{
+  if(encoding==='json')return Buffer.from(JSON.stringify(data))
+  const copy=structuredClone(data)
+  if(signal==='traces')for(const group of copy.resourceSpans)for(const scope of group.scopeSpans)for(const span of scope.spans){span.traceId=Buffer.from(span.traceId,'hex');span.spanId=Buffer.from(span.spanId,'hex')}
+  return Buffer.from(types[signal].encode(types[signal].fromObject(copy)).finish())
+ }
+ const send=(signal,data,encoding,gzip)=>{
+  const bytes=encode(signal,data,encoding)
+  return fetch(origin+'/v1/'+signal,{method:'POST',headers:{authorization:'Bearer '+source.secret,'content-type':encoding==='json'?'application/json':'application/x-protobuf',...(gzip?{'content-encoding':'gzip'}:{})},body:gzip?gzipSync(bytes):bytes})
+ }
+ const clean=value=>{const text=typeof value==='string'?value:JSON.stringify(value);for(const marker of markers)assert.ok(!text.includes(marker),'no planted prompt or response content in custody or diagnostics')}
+ let decoded=0
+ function inspect(value) {
+  clean(value)
+  if(typeof value==='string'&&/^[\[{]/.test(value.trim())){inspect(JSON.parse(value));return}
+  if(!value||typeof value!=='object')return
+  if(value.wire_base64){
+   let bytes=Buffer.from(value.wire_base64,'base64')
+   if(bytes[0]===31&&bytes[1]===139)bytes=gunzipSync(bytes)
+   clean(bytes.toString('utf8'))
+   const wire=bytes[0]===123?JSON.parse(bytes.toString('utf8')):types[value.signal].toObject(types[value.signal].decode(bytes),{longs:String,bytes:String})
+   clean(wire);decoded++
+   const groups=wire.resourceSpans??wire.resourceLogs
+   assert.equal(groups.length,1,'decode a real accepted control envelope')
+   assert.ok(groups[0].resource.attributes.some(a=>a.key==='service.name'&&a.value.stringValue==='synthetic-porthole-9801'))
+   const record=value.signal==='traces'?groups[0].scopeSpans[0].spans[0]:groups[0].scopeLogs[0].logRecords[0]
+   assert.equal(record.name??record.eventName,value.signal==='traces'?'synthetic-porthole-9808':'synthetic-porthole-9806')
+   assert.ok(!record.events?.length,'retained wire contains only the accepted control')
+  }
+  for(const child of Object.values(value))inspect(child)
+ }
+ const snapshot=async()=>({
+  batches:await sql('SELECT id,state,signal,records,wire_base64,record_count FROM porthole_ingest_batches ORDER BY id'),
+  retained:await sql('SELECT id,payload FROM porthole_telemetry_records ORDER BY id'),
+  archive:await sql('SELECT id,payload FROM porthole_telemetry_archive ORDER BY id'),
+ })
+ await post('/api/porthole/v1/ingest/control',{paused:true})
+ const controls=[]
+ for(const signal of ['logs','traces'])for(const provider of [false,true])for(const encoding of ['json','protobuf'])for(const gzip of [false,true]){
+  const response=await send(signal,packet(signal,provider,controls.length),encoding,gzip)
+  assert.equal(response.status,200,await response.clone().text());assert.equal(response.headers.get('x-porthole-accepted'),'1')
+  await response.arrayBuffer();controls.push(response.headers.get('x-porthole-batch'))
+ }
+ const pending=await snapshot()
+ assert.equal(pending.batches.length,16);assert.ok(pending.batches.every(row=>row.state==='pending'))
+ assert.equal(pending.retained.length,0);assert.equal(pending.archive.length,0);inspect(pending)
+ const frozenPending=await saveArchive();assert.ok(frozenPending.rows.some(row=>row.table==='porthole_ingest_batches'));inspect(frozenPending)
+ let refused=0
+ for(const signal of ['logs','traces'])for(const [index,eventName]of ['gen_ai.user.message','gen_ai.assistant.message'].entries())for(const provider of [false,true])for(const encoding of ['json','protobuf'])for(const gzip of [false,true]){
+  // Put the valid control first in the same envelope: refusing the content
+  // must not partially accept the innocuous prefix either.
+  const data=packet(signal,provider,100+refused,eventName,markers[index]),control=packet(signal,provider,200+refused)
+  if(signal==='logs')data.resourceLogs[0].scopeLogs[0].logRecords.unshift(control.resourceLogs[0].scopeLogs[0].logRecords[0])
+  else data.resourceSpans[0].scopeSpans[0].spans.unshift(control.resourceSpans[0].scopeSpans[0].spans[0])
+  const response=await send(signal,data,encoding,gzip)
+  assert.equal(response.status,400,`${signal} ${eventName} provider=${provider} ${encoding} gzip=${gzip}`)
+  const body=Buffer.from(await response.arrayBuffer());clean(body.toString('utf8'));clean(Object.fromEntries(response.headers))
+  if(encoding==='json')assert.deepEqual(JSON.parse(body.toString()),{code:3,message:'genai_content_not_authorized'})
+  else{assert.equal(response.headers.get('x-porthole-error'),'genai_content_not_authorized');assert.ok(body.includes(Buffer.from('genai_content_not_authorized')))}
+  refused++
+ }
+ assert.equal(refused,32)
+ assert.deepEqual(await snapshot(),pending,'all unsafe envelopes refuse before pending, original-wire, retained or archive writes; accepted controls are unchanged')
+ const diagnostics=await sql('SELECT * FROM porthole_ingest_events ORDER BY rowid')
+ assert.ok(diagnostics.length>=32);inspect(diagnostics)
+ assert.equal(diagnostics.filter(row=>row.reason==='genai_content_not_authorized').length,32)
+ console.log('PROBE PORT-098 refusal: both message names, both routes, provider present and absent, JSON and protobuf, plain and gzip -> 32 refusals, value-free diagnostics, zero custody changes')
+ await post('/api/porthole/v1/ingest/control',{paused:false})
+ await post('/api/porthole/v1/ingest/drain',{})
+ const retained=await snapshot();inspect(retained)
+ assert.equal(retained.retained.length,16);assert.equal(retained.archive.length,16)
+ assert.ok(retained.batches.every(row=>row.state==='complete'))
+ for(const batch of retained.batches){const before=pending.batches.find(row=>row.id===batch.id);assert.equal(batch.records,before.records);assert.equal(batch.wire_base64,before.wire_base64)}
+ const read=async path=>{const response=await fetch(origin+path,{headers:{cookie}});assert.equal(response.status,200,await response.clone().text());return response.json()}
+ const traces=await read('/api/porthole/v1/ingest/records?signal=traces&trace='+traceId+'&limit=200')
+ assert.equal(traces.records.length,8)
+ assert.ok(traces.records.every(row=>row.payload.record.name==='synthetic-porthole-9808'&&row.payload.record.endTimeUnixNano==='1793361600001000000'))
+ const beforeTraces=structuredClone(traces.records)
+ const frozen=await saveArchive();inspect(frozen)
+ for(const table of ['porthole_ingest_batches','porthole_telemetry_records','porthole_telemetry_archive'])assert.equal(frozen.rows.filter(row=>row.table===table).length,16)
+ inspect(await sql('SELECT payload FROM porthole_archive_rows'))
+ inspect(await sql('SELECT packet FROM porthole_archive_chunks'))
+ const again=await read('/api/porthole/v1/ingest/records?signal=traces&trace='+traceId+'&limit=200')
+ assert.deepEqual(again.records,beforeTraces,'owner export leaves accepted control traces unchanged')
+ console.log('PROBE PORT-098 retained: owner retained-trace read and frozen archive -> 8 unchanged control spans, 16 retained and 16 archive records, decoded content-free wire')
+ const records=await exportInstallation();inspect(records)
+ const items=records.filter(record=>record.kind==='part').flatMap(record=>record.items)
+ for(const table of ['porthole_ingest_batches','porthole_telemetry_records','porthole_telemetry_archive'])assert.equal(items.filter(item=>item.kind==='row'&&item.table===table).length,16,'actual installation export includes populated '+table)
+ assert.ok(items.some(item=>item.table==='porthole_archive_rows'))
+ assert.ok(items.some(item=>item.table==='porthole_archive_chunks'))
+ assert.ok(decoded>=64,'pending, retained, frozen and native exported wire were actually decoded')
+ console.log('PROBE PORT-098 export: actual rer export and verified native archive reader -> populated retained and frozen custody decoded, no planted prompt or response content')
+ console.log('genaiContentRefusalJourney passed: 32 event-name refusals, 16 unchanged accepted controls, pending and original wire, retained and archive custody, actual owner installation export; no provider calls or erasure')
+}
