@@ -18,7 +18,10 @@ const principal=(ctx:ToolContext)=>({personId:ctx.person.id,...(ctx.clientId?.st
 async function nativeResult(response:Response|null) {
  if(!response)throw new ToolRefusal('tool_unavailable')
  const value=await response.json() as Record<string,unknown>
- if(!response.ok)throw new ToolRefusal(typeof value.error==='string'?value.error:'native_refusal')
+ if(!response.ok) {
+  const retryAfter=Number(response.headers.get('retry-after'))
+  throw new ToolRefusal(typeof value.error==='string'?value.error:'native_refusal',undefined,Number.isSafeInteger(retryAfter)&&retryAfter>0?{retryAfter}:{})
+ }
  return {result:value}
 }
 export function readTools(env:Bindings):ToolDefinition[] {
@@ -65,5 +68,5 @@ export function readTools(env:Bindings):ToolDefinition[] {
    return {result:{definitions}}
   },
  }]
- return tools.map(tool=>({...tool,async run(args:Record<string,unknown>,ctx:ToolContext){try{return await tool.run(args,ctx)}catch(error){if(error instanceof AuthError||error instanceof CredentialLimit)throw new ToolRefusal(error.code);throw error}}}))
+ return tools.map(tool=>({...tool,async run(args:Record<string,unknown>,ctx:ToolContext){try{return await tool.run(args,ctx)}catch(error){if(error instanceof CredentialLimit)throw new ToolRefusal(error.code,undefined,{retryAfter:error.retryAfter});if(error instanceof AuthError)throw new ToolRefusal(error.code);throw error}}}))
 }

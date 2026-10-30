@@ -45,6 +45,15 @@ export async function agentResponse(request:Request,env:Bindings):Promise<Respon
  if(path!=='/mcp'&&path!=='/api/porthole/v1/mcp'&&path!=='/api/rer/agent-policy'&&!path.startsWith('/agents')&&!path.startsWith('/.well-known/oauth-protected-resource'))return null
  try {sameOrigin(request,env)}catch(error){return Response.json({code:error instanceof AuthError?error.code:'invalid_origin'},{status:403,headers:privateHeaders})}
  const response=await portholeAgentDoor(env).handle(request)
+ // Native credentials keep the existing transport quota contract while the
+ // shared door still performs policy, live metering and durable attribution.
+ if(response?.status===200&&(path==='/mcp'||path==='/api/porthole/v1/mcp')&&request.headers.get('authorization')?.startsWith('Bearer ph_')) {
+  const body=await response.clone().json() as {jsonrpc:string;id:unknown;result?:{_meta?:Record<string,unknown>}}
+  const refusal=body.result?._meta?.['com.runeditrun/error'] as {code?:string;retryAfter?:number}|undefined
+  if(refusal?.code==='credential_quota_exceeded'&&Number.isSafeInteger(refusal.retryAfter)&&refusal.retryAfter!>0) {
+   return Response.json({jsonrpc:body.jsonrpc,id:body.id,error:{code:-32000,message:refusal.code,data:refusal}},{status:429,headers:{...privateHeaders,'retry-after':String(refusal.retryAfter)}})
+  }
+ }
  if(response)for(const [name,value]of Object.entries(privateHeaders))response.headers.set(name,value)
  return response
 }
