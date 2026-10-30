@@ -298,7 +298,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "28cffa27a509faa9dd93fb31967c66da28cf5acb959faf241bbd0588834117af",
+      "sha256": "fe4ed2318a2193c09d6131638e104d28c70c945e5bc3683acd614522a2261ab3",
       "executable": false
     },
     "AGENTS.md": {
@@ -350,7 +350,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "7855393aede0878e04ebb0b8b20a3bab7621fb27ef82de0e3bdfc5642a0a6f1e",
+      "sha256": "fad2d26dde06303ea6484465ebfb3a878aa82e3dc459e517b7258979ce42299f",
       "executable": false
     },
     "DEMO.md": {
@@ -394,7 +394,7 @@
       "executable": false
     },
     "docs/genai.md": {
-      "sha256": "f578adf13de99dbd0d45eecff396d86f6846633f7d780fb35efcdd3750e708f7",
+      "sha256": "f92717be818fa4b5fc126ff12bd31c9905cf5fca03a09f7377e85ccb24ea1b82",
       "executable": false
     },
     "docs/instrumentation.md": {
@@ -4130,7 +4130,11 @@
       "executable": false
     },
     "src/porthole/genai/privacy.ts": {
-      "sha256": "0587f1559d9fa3c20c0636be32a34d4c0e0def8e3aa0340d441b9d4a09dece2c",
+      "sha256": "ac2d2dd5b027d60744d60ca3761efa106056810b8968bbeb288381e9dab02186",
+      "executable": false
+    },
+    "src/porthole/genai/wire.ts": {
+      "sha256": "d59aab3af03e7825e0af6da8b998fb9b3758c897036d7a8c7f10bf3d1615a513",
       "executable": false
     },
     "src/porthole/health/access.ts": {
@@ -4498,7 +4502,7 @@
       "executable": false
     },
     "src/porthole/portability/format.ts": {
-      "sha256": "bdddead5d62b5b7408446e959cbd7c29c44df8739a3eb808191a9402e814ed4a",
+      "sha256": "440985da3a45c47d987fe2472e742ef256675bb25e43d9b4de3e776c037ea3bb",
       "executable": false
     },
     "src/porthole/portability/health-history.ts": {
@@ -4922,7 +4926,7 @@
       "executable": false
     },
     "tests/porthole/archive.mjs": {
-      "sha256": "1931d68ec96dc65caacc1fb88587648cf76a73d257e7cbd924e8d71cea1724d8",
+      "sha256": "adcd945c9f3732dcf419f04307eb7bd12fd5c65cae32f14fcdb5ef7bfc22a14e",
       "executable": false
     },
     "tests/porthole/audit.mjs": {
@@ -4970,7 +4974,7 @@
       "executable": false
     },
     "tests/porthole/genai.mjs": {
-      "sha256": "07f9b19f6fb465c34726485e41f93c13c1989a0b5776a1611b60c0dcb52c48b7",
+      "sha256": "5d61aeafbae19070ecb66f3250e98c3f73c84040718b0311971e99ac908f88b1",
       "executable": false
     },
     "tests/porthole/genai/edge.cjs": {
@@ -4986,7 +4990,7 @@
       "executable": false
     },
     "tests/porthole/ingest.mjs": {
-      "sha256": "45b7f65bb1e8ee306946c8628841c6900c9c00e8d71a751c8f9a7d745427aae3",
+      "sha256": "6b17db17d9f422ea7f3fe748bbe99bc6d3ab63a70dbaf45b3873a3041cc0e71d",
       "executable": false
     },
     "tests/porthole/intake-interrupt.mjs": {

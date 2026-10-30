@@ -113,6 +113,13 @@ export async function genaiJourney({origin,freshOwner,restartWorker,sql,withEmpt
  const eventPacket=base(),eventSpan=eventPacket.resourceSpans[0].scopeSpans[0].spans[0]
  delete eventSpan.attributes;eventSpan.events=[{name:'gen_ai.user.message',attributes:[{key:'content',value:{stringValue:marker}}]}]
  assert.equal((await call('/v1/traces',{method:'POST',headers:{authorization:'Bearer '+source.secret,'content-type':'application/json'},body:JSON.stringify(eventPacket)})).status,400,'GenAI span event names protect content without provider metadata')
+ // Correlation links are part of the same metadata-only record. A content key
+ // does not become consented by moving it off the span's own attributes.
+ const linked=base()
+ linked.resourceSpans[0].scopeSpans[0].spans[0].links=[{traceId:receipt.traceId,spanId:receipt.rootId,attributes:[{key:'prompt',value:{stringValue:marker}}]}]
+ const linkedResponse=await call('/v1/traces',{method:'POST',headers:{authorization:'Bearer '+source.secret,'content-type':'application/json'},body:JSON.stringify(linked)})
+ assert.equal(linkedResponse.status,400,'GenAI link content refuses before original-wire persistence')
+ assert.equal((await linkedResponse.json()).message,'genai_content_not_authorized')
  assert.deepEqual(await count(),before,'content refusal creates no pending or original-wire envelope')
  const stored=await sql("SELECT records||wire_base64 AS value FROM porthole_ingest_batches UNION ALL SELECT payload FROM porthole_telemetry_records UNION ALL SELECT payload FROM porthole_telemetry_archive UNION ALL SELECT reason FROM porthole_ingest_events")
  assert.ok(stored.length>20);assert.ok(stored.every(row=>!row.value.includes(marker)))

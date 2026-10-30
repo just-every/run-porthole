@@ -80,11 +80,17 @@ provider exception messages and stacks before exporting spans because errors
 can echo request or response contents. Failure type and status remain.
 
 Intake rejects content-bearing GenAI attributes, message bodies and unsafe
-span events or status descriptions before creating a durable envelope. The
+span events, correlation-link attributes or status descriptions before creating a
+durable envelope. The
 refusal is `genai_content_not_authorized`, without a key, value or payload in its
 diagnostic. Gzip and protobuf intake follow the same admission guard. Ordinary
 retained telemetry, pending envelopes, analytical copies and installation
 archives therefore contain only admitted metadata from this registration.
+Archive admission checks both normalized records and the separate original OTLP
+wire, including JSON, protobuf and gzip, before staging rows or chunks. A clean
+normalized copy cannot authorize prohibited content in the original wire. Valid
+metadata-only compressed wire remains restorable.
+
 Existing owner-directed erasure and replay fences still apply. Independent
 archive restore keeps collection paused and transfers no source credential,
 provider secret, source session or consent authority.
