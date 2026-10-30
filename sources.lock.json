@@ -828,6 +828,10 @@
       "sha256": "c7afa66fcb1bc8fdabc6be7ce28b21c93d209aaa341bc19f8629f1b7e2efb49d",
       "executable": false
     },
+    "migrations/core/0059_porthole_pipelines.sql": {
+      "sha256": "4c29df9b94811714e649393cb7e6167c894824d117c1f5bf67674fca1fd4b9b2",
+      "executable": false
+    },
     "ONBOARDING.md": {
       "sha256": "3bfe0cb88ac22d51ebe29ff54d0143219096c0ac07eb3b2b81c574c5baf57332",
       "executable": false
