@@ -741,7 +741,12 @@ export async function sloArchiveJourney({origin,freshOwner,withEmptyDestination,
 
 /** Native backup and subject erasure use real commands and the emitted Worker.
  * This entry is independent of the existing native installation assertions. */
-export async function nativeBackupErasureJourney() {
+export async function nativeBackupErasureJourney() {await nativeBackupJourney(false)}
+
+/** Isolated event-name refusal proof; no provider calls or erasure operations. */
+export async function nativeGenaiContentRefusalJourney() {await nativeBackupJourney(true)}
+
+async function nativeBackupJourney(contentRefusalOnly) {
  const {spawn}=await import('node:child_process')
  const {createServer}=await import('node:net')
  const {symlink}=await import('node:fs/promises')
@@ -819,6 +824,23 @@ async function run(source) {
  try {
   await start();cookie=await helpers.freshOwner()
   await fetch(origin+'/setup',{method:'POST',redirect:'manual',headers:{origin,cookie,'content-type':'application/x-www-form-urlencoded'},body:new URLSearchParams({confirm:'yes'})})
+  if(contentRefusalOnly) {
+   const {genaiContentRefusalJourney}=await import('./genai.mjs')
+   await genaiContentRefusalJourney({origin,cookie,sql:statement=>sql(source,statement),runtimeDiagnostics:()=>output,
+    saveArchive:async()=>savedExport(origin,cookie,await post(origin,cookie,archive+'/exports',{})),
+    exportInstallation:async()=>{
+     await stop()
+     const path=join(source,'exports','content-refusal.rer')
+     await command(source,['export','--output',path])
+     // The native reader verifies every manifest, part and closing checksum.
+     const {fileRecords}=await import('@runeditrun/rer/modules/portability/files')
+     const records=[]
+     for await(const record of fileRecords(path))records.push(record)
+     return records
+    },
+   })
+   return
+  }
   credential=await value(send('/app/settings/credentials/mint',{name:'synthetic-porthole-9705',class:'ingest',scope:{...scope,signals:['logs','traces'],actions:['telemetry.write']}}),201)
   const targetBatches=[]
   for(const offset of [0,1]) {

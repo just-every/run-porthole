@@ -59,7 +59,8 @@
         "pnpm run build",
         "PORTHOLE_TRACE_ONLY=1 pnpm run test:runtime",
         "PORTHOLE_GENAI_ONLY=1 pnpm run test:runtime",
-        "PORTHOLE_GENAI_ANALYTICAL_ONLY=1 pnpm run test:runtime"
+        "PORTHOLE_GENAI_ANALYTICAL_ONLY=1 pnpm run test:runtime",
+        "PORTHOLE_GENAI_CONTENT_ONLY=1 pnpm run test:runtime"
       ]
     },
     {
