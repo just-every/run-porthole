@@ -325,7 +325,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "fe4eec1e31768ef6a96c2960b3b131a43b3a552eeb821ba0e2d80c6905c66696",
+      "sha256": "e1850599a156f6bcb0d1b3235c0949d26f109dd8f46fea19fcc0ce7e58e90ebc",
       "executable": false
     },
     "agent-surface.json": {
@@ -449,7 +449,7 @@
       "executable": false
     },
     "docs/operations.md": {
-      "sha256": "745980d9b98b60f416e93395e88d1197189ac50944e16da6d081b51d1cb9a0ac",
+      "sha256": "5cc2d128d24ec4ba6eb95dc7488c0169b1879b88930f2c459034dc861880b9c5",
       "executable": false
     },
     "docs/otlp.md": {
@@ -4957,7 +4957,7 @@
       "executable": false
     },
     "src/porthole/monitors/types/host-heartbeat.ts": {
-      "sha256": "5677e347eb67e18aa356c1eeb9edd79fdcb9807d4b511d1a3a7c41d7474dd52f",
+      "sha256": "9f87f884e51a0103ea4f3900a6796c11b4028c7278e32e7798fbd43e45f2733f",
       "executable": false
     },
     "src/porthole/notebooks/http.ts": {
@@ -5021,7 +5021,7 @@
       "executable": false
     },
     "src/porthole/portability/format.ts": {
-      "sha256": "440985da3a45c47d987fe2472e742ef256675bb25e43d9b4de3e776c037ea3bb",
+      "sha256": "6594ae08ad19f6cfb52d9ec2a981ded63e01309959737dc1fe62c4436edcb787",
       "executable": false
     },
     "src/porthole/portability/health-history.ts": {
@@ -5465,7 +5465,7 @@
       "executable": false
     },
     "tests/porthole/archive.mjs": {
-      "sha256": "adcd945c9f3732dcf419f04307eb7bd12fd5c65cae32f14fcdb5ef7bfc22a14e",
+      "sha256": "6d1ac33e09a1efb74971d4bc8a62a503d294995d2ee040780967adc893c55fc0",
       "executable": false
     },
     "tests/porthole/audit.mjs": {
@@ -5525,7 +5525,7 @@
       "executable": false
     },
     "tests/porthole/health.mjs": {
-      "sha256": "ac32520cbf5e3aee8a62ae271aa0edeba0466bd55ef7f09f8502cda6f6223599",
+      "sha256": "b07c40533c34a5714d05598694e7e8fe5d408c74dd8ae2511afcbecb5df1b179",
       "executable": false
     },
     "tests/porthole/ingest.mjs": {
@@ -5649,7 +5649,7 @@
       "executable": false
     },
     "tests/runtime.mjs": {
-      "sha256": "c457bd06ffd462fd0e92b933456640b6f425d0ce99a7b330e27c649d1ca97853",
+      "sha256": "36fbf05ef7ae8a23015d0ba4af455913d489ffc31f6774cc8ff064e7c3c466e8",
       "executable": false
     },
     "tests/typecheck-checks.mjs": {
