@@ -161,7 +161,11 @@ function initial(record: TelemetryRecord): Attributes {
   for (const item of container.attributes.slice(0, 256)) {
    const attr = object(item), value = object(attr?.value)
    if (typeof attr?.key !== 'string' || !safeField(attr.key) || !value) continue
-   attrs[attr.key] = value.stringValue ?? value.intValue ?? value.doubleValue ?? value.boolValue ?? null
+   // Protobuf JSON encodes int64 as decimal text. Convert only exact safe
+   // integers; ordinary string attributes and out-of-range integers stay typed.
+   const integer = value.intValue
+   const numeric = typeof integer === 'string' && /^-?[0-9]+$/.test(integer) && Number.isSafeInteger(Number(integer)) ? Number(integer) : integer
+   attrs[attr.key] = value.stringValue ?? numeric ?? value.doubleValue ?? value.boolValue ?? null
   }
  }
  return attrs

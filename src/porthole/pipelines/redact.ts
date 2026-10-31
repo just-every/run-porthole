@@ -78,6 +78,27 @@ function string(value: string, custom: { regex:RegExp; exceptions:string[] }[], 
   .replace(/(?:[a-fA-F0-9]{0,4}:){2,7}[a-fA-F0-9]{0,4}(?:%[a-zA-Z0-9_.-]{1,32})?/g, mask)
 }
 
+// JSON.parse discards earlier values of repeated keys. Such source text must
+// never be returned merely because its surviving values needed no masking.
+function repeatedJsonKey(text: string): boolean {
+ const scopes: (Set<string> | null)[] = []
+ for (const token of text.matchAll(/"(?:[^"\\]|\\.)*"|[{}\[\]]/g)) {
+  const raw = token[0]
+  if (raw === '{' || raw === '[') scopes.push(raw === '{' ? new Set() : null)
+  else if (raw === '}' || raw === ']') scopes.pop()
+  else {
+   let end = token.index! + raw.length
+   while (/\s/.test(text[end] ?? '') && end < text.length) end++
+   const keys = scopes.at(-1)
+   if (text[end] !== ':' || !keys) continue
+   const key = JSON.parse(raw) as string
+   if (keys.has(key)) return true
+   keys.add(key)
+  }
+ }
+ return false
+}
+
 /** Clone and mask every nested value and key without retaining raw inputs. */
 export function sanitize<T>(input: T, rules: RedactionRule[] = [], identifiers = true): T {
  const custom = rules.map(rule => ({ regex:customPattern(rule.pattern), exceptions:rule.exceptions }))
@@ -89,7 +110,7 @@ export function sanitize<T>(input: T, rules: RedactionRule[] = [], identifiers =
    // JSON log bodies stay parseable while sensitive object keys and nested
    // values receive the same masks as structured OTLP attributes.
    if (/^\s*[\[{]/.test(value) && value.length <= maxBytes) {
-    try { const decoded = JSON.parse(value), masked = visit(decoded, depth + 1); return JSON.stringify(decoded) === JSON.stringify(masked) ? value : JSON.stringify(masked) } catch { /* malformed text is masked below */ }
+    try { const decoded = JSON.parse(value), masked = visit(decoded, depth + 1); return JSON.stringify(decoded) === JSON.stringify(masked) && !repeatedJsonKey(value) ? value : JSON.stringify(masked) } catch { /* malformed text is masked below */ }
    }
    return string(value, custom, identifiers)
   }
