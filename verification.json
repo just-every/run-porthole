@@ -48,6 +48,7 @@
       "commands": [
         "pnpm run build",
         "PORTHOLE_INGEST_ONLY=1 pnpm run test:runtime",
+        "PORTHOLE_PIPELINES_ONLY=1 pnpm run test:runtime",
         "PORTHOLE_METRIC_RULES_ONLY=1 pnpm run test:runtime"
       ]
     },
