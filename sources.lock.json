@@ -381,7 +381,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "85bbf90acc0c6b4e6dc8112d5142bbd57b3d8ddf2ab1e7dd171420b0fa39be4c",
+      "sha256": "45980654d593a86132690dd5b59561544c8b6dead67d860a0b4f129a14bb3fa1",
       "executable": false
     },
     "DEMO.md": {
@@ -5557,7 +5557,7 @@
       "executable": false
     },
     "tests/porthole/genai.mjs": {
-      "sha256": "c5b056a3e904c4397e491532bf90fda922a7a1065c81f4306ec24f8bbf657c58",
+      "sha256": "6c97aca64e9ec742268748d10dc40dcb87a6a795b436382f829388ff4195a497",
       "executable": false
     },
     "tests/porthole/genai/edge.cjs": {
