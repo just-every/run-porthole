@@ -264,7 +264,14 @@ export async function genaiContentRefusalJourney({origin,cookie,sql,saveArchive,
    clean(bytes.toString('utf8'))
    const wire=bytes[0]===123?JSON.parse(bytes.toString('utf8')):types[value.signal].toObject(types[value.signal].decode(bytes),{longs:String,bytes:String})
    clean(wire);decoded++
-   const groups=wire.resourceSpans??wire.resourceLogs
+   let groups=wire.resourceSpans??wire.resourceLogs
+   if(wire.format){
+    assert.equal(wire.format,value.signal==='traces'?'porthole.sanitized-trace-envelope.v1':'porthole.sanitized-log-envelope.v1')
+    // Sanitized custody stores each accepted OTLP resource and record in its
+    // normalized payload; inspect those same fields in either wire format.
+    groups=wire.records.map(({payload})=>({resource:payload.resource,...(value.signal==='traces'
+     ?{scopeSpans:[{spans:[payload.record]}]}:{scopeLogs:[{logRecords:[payload.record]}]})}))
+   }
    assert.equal(groups.length,1,'decode a real accepted control envelope')
    assert.ok(groups[0].resource.attributes.some(a=>a.key==='service.name'&&a.value.stringValue==='synthetic-porthole-9801'))
    const record=value.signal==='traces'?groups[0].scopeSpans[0].spans[0]:groups[0].scopeLogs[0].logRecords[0]
