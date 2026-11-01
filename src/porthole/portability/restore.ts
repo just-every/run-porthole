@@ -29,6 +29,8 @@ export async function startRestore(db:D1Database,actor:Authority,value:unknown):
 }
 function rowKey(table:string,row:Record<string,unknown>):string {
  if(table==='porthole_host_monitor_versions')return JSON.stringify([row.object_id,row.revision])
+ if(table==='porthole_pipeline_versions')return String(row.revision)
+ if(table==='porthole_log_metric_points')return JSON.stringify([row.batch_id,row.ordinal,row.name])
  if(table==='porthole_migration_erasure_fences')return String(row.receipt_id)
  if(table==='porthole_migration_custody')return JSON.stringify([row.stream,row.source_table,row.source_key])
  if(table==='porthole_migration_records')return JSON.stringify([row.kind,row.id])
@@ -96,12 +98,21 @@ export async function commitRestore(db:D1Database,actor:Authority,job:Job,confir
   if(item.table==='porthole_ingest_control') {
    statements.push(db.prepare(`UPDATE porthole_ingest_control SET paused=1,max_pending_bytes=COALESCE((SELECT json_extract(payload,'$.row.max_pending_bytes') FROM porthole_archive_rows WHERE job_id=? AND table_name='porthole_ingest_control'),max_pending_bytes),revision=revision+1,changed_at=?`).bind(job.id,Date.now()));continue
   }
-  const expressions=item.columns.map(column=>item.table==='porthole_retention_policies'&&column==='active'?'0':['porthole_notebook_publications','porthole_notebooks','porthole_metric_rules','porthole_slo_versions','porthole_objects','porthole_bucket_history','porthole_dashboards','porthole_dashboard_publications'].includes(item.table)&&column==='state'?"'quarantined'":`json_extract(payload,'$.row.${column}')`)
+  const expressions=item.columns.map(column=>item.table==='porthole_retention_policies'&&column==='active'?'0':['porthole_pipeline_versions','porthole_notebook_publications','porthole_notebooks','porthole_metric_rules','porthole_slo_versions','porthole_objects','porthole_bucket_history','porthole_dashboards','porthole_dashboard_publications'].includes(item.table)&&column==='state'?"'quarantined'":`json_extract(payload,'$.row.${column}')`)
   statements.push(db.prepare(`INSERT INTO ${item.table}(${item.columns.join(',')}) SELECT ${expressions.join(',')} FROM porthole_archive_rows WHERE job_id=? AND table_name=? ORDER BY ordinal`).bind(job.id,item.table))
  }
  statements.push(db.prepare(`INSERT INTO porthole_archive_quarantine(object_id,source_state,archive_id,restored_at) SELECT json_extract(payload,'$.row.id'),json_extract(payload,'$.row.state'),?,? FROM porthole_archive_rows WHERE job_id=? AND table_name='porthole_objects' AND NOT EXISTS(SELECT 1 FROM porthole_archive_quarantine q WHERE q.object_id=json_extract(payload,'$.row.id'))`).bind(manifest.id,Date.now(),job.id))
  // FK constraints plus this relational guard reject dangling, cross-source and
  // impossible ordinal relationships inside the same rollback boundary.
+ statements.push(guard(db,actor,`NOT EXISTS(SELECT 1 FROM porthole_log_metric_points p
+ LEFT JOIN porthole_pipeline_versions v ON v.revision=p.revision
+ LEFT JOIN porthole_ingest_batches b ON b.id=p.batch_id
+ WHERE v.revision IS NULL OR b.id IS NULL OR b.signal!='logs' OR b.state!='complete' OR p.ordinal>=b.record_count
+ OR p.revision IS NOT json_extract(b.records,'$['||p.ordinal||'].payload.pipeline.revision')
+ OR p.event_time_ns IS NOT json_extract(b.records,'$['||p.ordinal||'].eventTimeNs')
+ OR p.team IS NOT json_extract(b.records,'$['||p.ordinal||'].team')
+ OR p.service IS NOT json_extract(b.records,'$['||p.ordinal||'].service')
+ OR p.environment IS NOT json_extract(b.records,'$['||p.ordinal||'].environment'))`))
  statements.push(guard(db,actor,`NOT EXISTS(SELECT 1 FROM porthole_telemetry_records r LEFT JOIN porthole_ingest_batches b ON b.id=r.batch_id WHERE b.id IS NULL OR b.source_id!=r.source_id OR b.signal!=r.signal OR r.ordinal>=b.record_count) AND NOT EXISTS(SELECT 1 FROM porthole_telemetry_archive r LEFT JOIN porthole_ingest_batches b ON b.id=r.batch_id WHERE b.id IS NULL OR b.source_id!=r.source_id OR b.signal!=r.signal OR r.ordinal>=b.record_count)`))
  statements.push(...eraseJournaledBatches(db))
  statements.push(db.prepare('DELETE FROM porthole_archive_chunks WHERE job_id=?').bind(job.id),db.prepare('DELETE FROM porthole_archive_rows WHERE job_id=?').bind(job.id))
