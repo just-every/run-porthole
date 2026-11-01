@@ -58,7 +58,7 @@ export async function pipelineProcessors({post,value,preview,activate,send,get,d
  })
  const compare=(result,index,accepted=false)=>{
   const e=expected[index%cases.length]
-  const attributes=accepted?{...e.attributes,'service.name':d.service,'team.name':d.team,'deployment.environment.name':d.environment,'nested-private':'[REDACTED]','synthetic-porthole-207':String(index)}:e.attributes
+  const attributes=accepted?{...e.attributes,'service.name':d.service,'team.name':d.team,'deployment.environment.name':d.environment,'nested-private':'[REDACTED]','synthetic-porthole-207':index}:e.attributes
   assert.deepEqual(result.attributes,attributes,'native processor values and types at record '+index)
   assert.deepEqual(result.errors,e.errors,'native diagnostic policy at record '+index)
   assert.equal(result.status,e.status)
@@ -84,5 +84,32 @@ export async function pipelineProcessors({post,value,preview,activate,send,get,d
  }while(cursor)
  assert.equal(selected.length,samples.length)
  selected.forEach((record,index)=>compare(record.payload.pipeline,Number(record.payload.pipeline.attributes['synthetic-porthole-207']),true))
+ // Exercise both arithmetic forms on the actual OTLP typed-attribute door.
+ const numericDefinition={...d,exclude:undefined,processors:[
+  {type:'arithmetic',target:'expression.result',expression:'operand * 2'},
+  {type:'arithmetic',target:'binary.result',left:'operand',operator:'*',right:2}
+ ]}
+ await activate(await preview(numericDefinition,[]))
+ const typed=[{intValue:'4'},{doubleValue:4},{intValue:'-4'},{intValue:'0'},{stringValue:'4'},{boolValue:true},{intValue:'4.5'}]
+ const numericAt=at+2000n
+ await send(typed.map(()=>'synthetic-porthole-12410'),'synthetic-porthole-12411',numericAt,typed.map(v=>[{key:'operand',value:v}]))
+ await value(await post('/api/porthole/v1/ingest/drain',{}))
+ const numericRecords=(await value(await post('/api/porthole/v1/query',{...query,from:String(numericAt),through:String(numericAt+1000n)}))).records
+ assert.equal(numericRecords.length,typed.length)
+ for(const record of numericRecords) {
+  const result=record.payload.pipeline,index=result.attributes['synthetic-porthole-207']
+  if(index<4) {
+   const expected=[8,8,-8,0][index]
+   assert.equal(result.attributes['expression.result'],expected)
+   assert.equal(result.attributes['binary.result'],expected)
+   assert.equal(typeof result.attributes.operand,'number')
+   assert.equal(result.status,'ok');assert.deepEqual(result.errors,[])
+  } else {
+   assert.equal(Object.hasOwn(result.attributes,'expression.result'),false)
+   assert.equal(Object.hasOwn(result.attributes,'binary.result'),false)
+   assert.deepEqual(result.errors,[{processor:0,code:'arithmetic_operand_type'},{processor:1,code:'arithmetic_operand_type'}])
+  }
+ }
+ console.log('PROBE PORT-012 A: OTLP intValue 4 and doubleValue 4 through intake and query -> both arithmetic forms return numeric 8; strings, booleans and malformed integers refuse')
  console.log('pipelineProcessors passed: 120 native inputs through preview, activation, intake and paginated query; source comparison remains unqualified')
 }
