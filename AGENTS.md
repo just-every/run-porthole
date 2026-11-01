@@ -184,8 +184,8 @@ judged conversion, preserve that source and its untouched acceptance journeys.
 Refresh touched clauses and derived counts with the seed adapter:
 
 ```sh
-node scripts/porthole/contract-docs.mjs write --clauses PORT-049
-node scripts/porthole/contract-docs.mjs check --clauses PORT-049
+node scripts/porthole/contract-docs.mjs write PORT-075
+node scripts/porthole/contract-docs.mjs check PORT-075
 ```
 
 Supply the touched clause IDs separated by commas. Regenerate the edition
