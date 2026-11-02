@@ -5,7 +5,9 @@ export interface RedactionRule { pattern: string; exceptions: string[] }
 const mask = '[REDACTED]'
 // Attribute names may carry an OTLP semantic-convention or header prefix.
 // A sensitive leaf remains sensitive when qualified, including numeric values.
-const secretKey = /(?:^|\.)(?:authorization|proxy[-_]?authorization|cookie|set[-_]?cookie|password|passwd|secret|client[-_]?secret|api[-_]?key|x[-_](?:api[-_]?key|auth[-_]?token)|access[-_]?key|private[-_]?key|session[-_]?(?:id|token)|(?:access|refresh|auth|bearer|id)[-_]?token|token|ssn|social[-_]?security[-_]?(?:number|no)|(?:credit[-_]?card|card|cc)[-_]?(?:number|no)|phone(?:[-_]?number)?|telephone)$/i
+const sensitiveName = 'authorization|proxy[-_]?authorization|cookie|set[-_]?cookie|password|passwd|secret|client[-_]?secret|api[-_]?key|x[-_](?:api[-_]?key|auth[-_]?token|amz[-_]security[-_]token|goog[-_]api[-_]key)|ocp[-_]apim[-_]subscription[-_]key|secret[-_]?access[-_]?key|access[-_]?key|private[-_]?key|session[-_]?(?:id|token)|(?:access|refresh|auth|bearer|id)[-_]?token|token|ssn|social[-_]?security[-_]?(?:number|no)|(?:credit[-_]?card|card|cc)[-_]?(?:number|no)|phone(?:[-_]?number)?|telephone'
+const secretKey = new RegExp('(?:^|\\.)(?:'+sensitiveName+')$', 'i')
+const contextualSecret = new RegExp('(\\b(?:'+sensitiveName+')[\"\']?\\s*[=:]\\s*[\"\']?)[^\\s,\"\';}]{1,2048}', 'gi')
 
 // Exact-width atoms make matching linear; no groups, alternatives or variable repeats.
 export function customPattern(pattern: string): RegExp {
@@ -62,7 +64,7 @@ function string(value: string, custom: { regex:RegExp; exceptions:string[] }[], 
   .replace(/\b(?:sk|pk|rk)[-_](?:(?:live|test|proj)[-_])?[A-Za-z0-9_-]{8,256}\b/g, mask)
   .replace(/\b(?:AKIA|ASIA)[A-Z0-9]{16}\b/g, mask)
   .replace(/\b(?:gh[pousr]_[A-Za-z0-9_]{12,255}|github_pat_[A-Za-z0-9_]{12,255}|xox[baprs]-[A-Za-z0-9-]{8,255}|AIza[A-Za-z0-9_-]{20,100})\b/g, mask)
-  .replace(/(\b(?:authorization|api[-_]?key|access[-_]?token|client[-_]?secret|password|secret|token)["']?\s*[=:]\s*["']?)[^\s,"';}]{1,2048}/gi, (_all, prefix: string) => prefix + mask)
+  .replace(contextualSecret, (_all, prefix: string) => prefix + mask)
   .replace(/(^|[^0-9])\d{3}[- ]\d{2}[- ]\d{4}(?![0-9])/g, (_all, prefix: string) => prefix + mask)
   .replace(/(^|[^0-9])(?:[0-9][ -]?){12,18}[0-9](?![0-9])/g, (_all, prefix: string) => prefix + mask)
   .replace(/(^|[^0-9])(?:\+?1[ .-]?)?(?:\([0-9]{3}\)|[0-9]{3})[ .-]?[0-9]{3}[ .-]?[0-9]{4}(?![0-9])/g, (_all, prefix: string) => prefix + mask)
@@ -124,6 +126,22 @@ export function sanitizePayload(input: Record<string, unknown>, rules: Redaction
   for (const key of ['timeUnixNano','observedTimeUnixNano','startTimeUnixNano','endTimeUnixNano']) {
    const value = source[key]
    if (typeof value === 'string' && /^[0-9]{1,20}$/.test(value) && BigInt(value) <= 18446744073709551615n) target[key] = value
+  }
+  if (Array.isArray(source.events) && Array.isArray(target.events)) {
+   for (let index=0;index<source.events.length;index++) {
+    const event=object(source.events[index]),cleanEvent=object(target.events[index]),value=event?.timeUnixNano
+    if (cleanEvent && typeof value === 'string' && /^[0-9]{1,20}$/.test(value) && BigInt(value) <= 18446744073709551615n) cleanEvent.timeUnixNano=value
+   }
+  }
+  if (Array.isArray(source.links) && Array.isArray(target.links)) {
+   for (let index=0;index<source.links.length;index++) {
+    const link=object(source.links[index]),cleanLink=object(target.links[index])
+    if (!link || !cleanLink) continue
+    for (const [key,length] of [['traceId',32],['spanId',16]] as const) {
+     const value=link[key]
+     if (typeof value === 'string' && value.length === length && /^[a-fA-F0-9]+$/.test(value) && !/^0+$/.test(value)) cleanLink[key]=value
+    }
+   }
   }
  }
  const delivery = object(input.delivery), cleanDelivery = object(result.delivery)
