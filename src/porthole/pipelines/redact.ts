@@ -3,7 +3,9 @@ import { maxBytes } from '../ingest/wire'
 
 export interface RedactionRule { pattern: string; exceptions: string[] }
 const mask = '[REDACTED]'
-const secretKey = /^(?:authorization|proxy[-_]?authorization|cookie|set[-_]?cookie|password|passwd|secret|client[-_]?secret|api[-_]?key|access[-_]?key|private[-_]?key|session[-_]?(?:id|token)|(?:access|refresh|auth|bearer|id)[-_]?token|token)$/i
+// Attribute names may carry an OTLP semantic-convention or header prefix.
+// A sensitive leaf remains sensitive when qualified, including numeric values.
+const secretKey = /(?:^|\.)(?:authorization|proxy[-_]?authorization|cookie|set[-_]?cookie|password|passwd|secret|client[-_]?secret|api[-_]?key|x[-_](?:api[-_]?key|auth[-_]?token)|access[-_]?key|private[-_]?key|session[-_]?(?:id|token)|(?:access|refresh|auth|bearer|id)[-_]?token|token|ssn|social[-_]?security[-_]?(?:number|no)|(?:credit[-_]?card|card|cc)[-_]?(?:number|no)|phone(?:[-_]?number)?|telephone)$/i
 
 // Exact-width atoms make matching linear; no groups, alternatives or variable repeats.
 export function customPattern(pattern: string): RegExp {
@@ -89,7 +91,7 @@ export function sanitize<T>(input: T, rules: RedactionRule[] = [], identifiers =
    }
    return string(value, custom, identifiers)
   }
-  if (typeof value === 'number' && Number.isInteger(value) && value >= 1000000000 && value <= 9999999999999999999) return string(String(value), custom, identifiers) === String(value) ? value : mask
+  if (typeof value === 'number' && Number.isInteger(value) && value >= 100000000 && value <= 9999999999999999999) return string(String(value), custom, identifiers) === String(value) ? value : mask
   if (!value || typeof value !== 'object') return value
   if (seen.has(value)) return seen.get(value)
   if (Array.isArray(value)) {
