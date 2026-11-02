@@ -60,7 +60,7 @@ let persist = await mkdtemp(join(tmpdir(), 'foundation-runtime-'))
 const stores=[persist]
 const migrationEnv={...process.env,CI:'1',WRANGLER_SEND_METRICS:'false'}
 const migrate=config=>execFileSync(process.execPath,['node_modules/wrangler/bin/wrangler.js','d1','migrations','apply','foundation','--local','--persist-to',persist,'--config',config],{stdio:'pipe',env:migrationEnv})
-const sql=async command=>JSON.parse((await execute(process.execPath,['node_modules/wrangler/bin/wrangler.js','d1','execute','foundation','--local','--persist-to',persist,'--config','dist/server/wrangler.json','--json','--command',command],{encoding:'utf8',env:migrationEnv})).stdout).flatMap(result=>result.results??[])
+const sql=async command=>JSON.parse((await execute(process.execPath,['node_modules/wrangler/bin/wrangler.js','d1','execute','foundation','--local','--persist-to',persist,'--config','dist/server/wrangler.json','--json','--command',command],{encoding:'utf8',env:migrationEnv,maxBuffer:128*1024*1024})).stdout).flatMap(result=>result.results??[])
 // Upgrade a real prior installation: Base first, then existing members, then
 // the shipped product migrations through Wrangler's actual migration command.
 const oldMigrations=join(persist,'previous-migrations');await mkdir(oldMigrations)
@@ -135,7 +135,7 @@ try {
   const setupPage=await fetch(`${origin}/setup`, { headers: { cookie } })
   assert.equal(setupPage.status,200)
   assert.match(await setupPage.text(),/Independent notices off — incomplete coverage/)
-  if(!process.env.PORTHOLE_GENAI_ONLY && !process.env.PORTHOLE_NOTEBOOKS_ONLY && !process.env.PORTHOLE_METRIC_RULES_ONLY && !process.env.PORTHOLE_SLO_ONLY && !process.env.PORTHOLE_ERASURE_ONLY && !process.env.PORTHOLE_API_ONLY && !process.env.PORTHOLE_DASHBOARD_ONLY && !process.env.PORTHOLE_EXPORT_ONLY && !process.env.PORTHOLE_MIGRATION_ONLY && !process.env.PORTHOLE_PROTOCOL_ONLY && !process.env.PORTHOLE_INGEST_ONLY && !process.env.PORTHOLE_ACCESS_ONLY && !process.env.PORTHOLE_TRACE_ONLY && (process.env.PORTHOLE_HEALTH_ONLY==='1' || !process.env.PORTHOLE_AUDIT_ONLY && !process.env.PORTHOLE_STOCK_ONLY)) {
+  if(!process.env.PORTHOLE_PIPELINES_ONLY && !process.env.PORTHOLE_GENAI_ONLY && !process.env.PORTHOLE_NOTEBOOKS_ONLY && !process.env.PORTHOLE_METRIC_RULES_ONLY && !process.env.PORTHOLE_SLO_ONLY && !process.env.PORTHOLE_ERASURE_ONLY && !process.env.PORTHOLE_API_ONLY && !process.env.PORTHOLE_DASHBOARD_ONLY && !process.env.PORTHOLE_EXPORT_ONLY && !process.env.PORTHOLE_MIGRATION_ONLY && !process.env.PORTHOLE_PROTOCOL_ONLY && !process.env.PORTHOLE_INGEST_ONLY && !process.env.PORTHOLE_ACCESS_ONLY && !process.env.PORTHOLE_TRACE_ONLY && (process.env.PORTHOLE_HEALTH_ONLY==='1' || !process.env.PORTHOLE_AUDIT_ONLY && !process.env.PORTHOLE_STOCK_ONLY)) {
    const {healthBrowser}=await import('./porthole/health.mjs')
    await healthBrowser({origin,cookie,name:'setup-notices-off',path:'/setup',contains:'Independent notices off — incomplete coverage'})
   }
@@ -179,7 +179,12 @@ try {
     return await run({origin,cookie:destinationCookie,persist,...destinationHelpers,restartWorker})
    } finally {await restartWorker(()=>{persist=savedStore;ownerEmail=savedOwner})}
   }
-  if(process.env.PORTHOLE_HOST_HEARTBEAT_ONLY==='1') {
+  if(process.env.PORTHOLE_PIPELINES_ONLY==='1') {
+   const {pipelineJourney}=await import('./porthole/pipelines.mjs')
+   await pipelineJourney({origin,cookie,restartWorker,withEmptyDestination,withPinnedClock,...helpers})
+   const {pipelineAnalyticalJourney}=await import('./porthole/pipelines-analytical.mjs')
+   await pipelineAnalyticalJourney()
+  } else if(process.env.PORTHOLE_HOST_HEARTBEAT_ONLY==='1') {
    const {hostHeartbeatJourney}=await import('./porthole/health.mjs')
    await hostHeartbeatJourney({origin,restartWorker,withPinnedClock,withEmptyDestination,...helpers})
   } else if(process.env.PORTHOLE_GENAI_ONLY==='1') {

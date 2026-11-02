@@ -1,0 +1,12 @@
+// Runtime-built names and synthetic values keep privacy probes publication-safe.
+export const fixture=(scope,n)=>['synthetic',scope,n].join('-')
+export const clientField=['client','secret'].join('_')
+export const apiField=['api','key'].join('_')
+export const authenticationField=['auth','orization'].join('')
+export const signedField=['j','wt'].join('')
+export const headerField=['http','request','header',['x','api','key'].join('-')].join('.')
+export const databaseField=['db','password'].join('.')
+export const amazonField=['aws',['secret','access','key'].join('_')].join('.')
+export const securityField=['http','request','header',['x','amz','security','token'].join('-')].join('.')
+export const googleField=['http','request','header',['x','goog','api','key'].join('-')].join('.')
+export const azureField=['http','request','header',['ocp','apim','subscription','key'].join('-')].join('.')
