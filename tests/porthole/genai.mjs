@@ -265,12 +265,15 @@ export async function genaiContentRefusalJourney({origin,cookie,sql,saveArchive,
    const wire=bytes[0]===123?JSON.parse(bytes.toString('utf8')):types[value.signal].toObject(types[value.signal].decode(bytes),{longs:String,bytes:String})
    clean(wire);decoded++
    let groups=wire.resourceSpans??wire.resourceLogs
-   if(wire.format){
-    assert.equal(wire.format,value.signal==='traces'?'porthole.sanitized-trace-envelope.v1':'porthole.sanitized-log-envelope.v1')
-    // Sanitized custody stores each accepted OTLP resource and record in its
-    // normalized payload; inspect those same fields in either wire format.
-    groups=wire.records.map(({payload})=>({resource:payload.resource,...(value.signal==='traces'
-     ?{scopeSpans:[{spans:[payload.record]}]}:{scopeLogs:[{logRecords:[payload.record]}]})}))
+   if(String(value.protocol).includes(';stored=')) {
+    const format=value.signal==='traces'?'porthole.sanitized-trace-envelope.v1':'porthole.sanitized-log-envelope.v1'
+    assert.ok(value.protocol.endsWith(';stored='+format),'stored protocol names the actual custody format')
+    assert.equal(wire.format,format,'decode the labeled sanitized control envelope')
+    assert.ok(Array.isArray(wire.records),'sanitized wire has a record inventory')
+    assert.equal(wire.records.length,1,'sanitized wire retains exactly one accepted control')
+    if(value.records)assert.deepEqual(wire.records,typeof value.records==='string'?JSON.parse(value.records):value.records,'wire and durable record custody agree')
+    const payload=wire.records[0].payload
+    groups=[{resource:payload.resource,...(value.signal==='traces'?{scopeSpans:[{spans:[payload.record]}]}:{scopeLogs:[{logRecords:[payload.record]}]})}]
    }
    assert.equal(groups.length,1,'decode a real accepted control envelope')
    assert.ok(groups[0].resource.attributes.some(a=>a.key==='service.name'&&a.value.stringValue==='synthetic-porthole-9801'))
@@ -281,7 +284,7 @@ export async function genaiContentRefusalJourney({origin,cookie,sql,saveArchive,
   for(const child of Object.values(value))inspect(child)
  }
  const snapshot=async()=>({
-  batches:await sql('SELECT id,state,signal,records,wire_base64,record_count FROM porthole_ingest_batches ORDER BY id'),
+  batches:await sql('SELECT id,state,signal,protocol,records,wire_base64,record_count FROM porthole_ingest_batches ORDER BY id'),
   retained:await sql('SELECT id,payload FROM porthole_telemetry_records ORDER BY id'),
   archive:await sql('SELECT id,payload FROM porthole_telemetry_archive ORDER BY id'),
  })
