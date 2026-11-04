@@ -4709,7 +4709,7 @@
       "executable": false
     },
     "src/porthole/ingest/http.ts": {
-      "sha256": "f8e5e6fa51882f4379d0af09b9caaf862623ec5c2177e4d61e0bed75c8704757",
+      "sha256": "fe01df07c3aecbd203890550a798de69079d27f636cda9fdf3c0b9ea80b9df96",
       "executable": false
     },
     "src/porthole/ingest/model.ts": {
@@ -4745,7 +4745,7 @@
       "executable": false
     },
     "src/porthole/ingest/vendor.ts": {
-      "sha256": "4a7eaefa50e121996b4d0e177588e3d34cd155ead33df0ce5e0af5f0eefb2777",
+      "sha256": "71c9c2937b4a4f95fc906ba3617ea6780565d04dc516d37cc1c7798eea7316ff",
       "executable": false
     },
     "src/porthole/ingest/wire.ts": {
@@ -5573,7 +5573,7 @@
       "executable": false
     },
     "tests/porthole/ingest.mjs": {
-      "sha256": "6b17db17d9f422ea7f3fe748bbe99bc6d3ab63a70dbaf45b3873a3041cc0e71d",
+      "sha256": "dd4cde25d26dc850344d8218951c124f6245694d8cf8f0e079e9789fb3416c2a",
       "executable": false
     },
     "tests/porthole/intake-interrupt.mjs": {
@@ -5586,6 +5586,10 @@
     },
     "tests/porthole/log-search-corpus.mjs": {
       "sha256": "58dc2dad878e7c161633abfe67a0dfe6019308daaf30464fcc1edab3a9a7d250",
+      "executable": false
+    },
+    "tests/porthole/loki-shippers.mjs": {
+      "sha256": "ca5c61f96f34d2fc3aa1724d66bdb8043ce1d337cd288ea81b8146ef09dac5cc",
       "executable": false
     },
     "tests/porthole/membership.mjs": {

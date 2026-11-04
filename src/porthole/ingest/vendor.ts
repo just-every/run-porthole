@@ -57,8 +57,11 @@ export function lokiProto(input: Uint8Array): Record<string,unknown> {
    const metadata: Record<string,string> = Object.create(null)
    for (const part of parts.filter(p => p.number === 3)) {
     const pair = fields(bytes(part)), key = pair.find(p => p.number === 1), value = pair.find(p => p.number === 2)
-    if (!key || !value) return invalid('invalid_loki_metadata')
-    metadata[utf8(bytes(key))] = utf8(bytes(value))
+    if (!key) return invalid('invalid_loki_metadata')
+    const name = utf8(bytes(key))
+    if (Object.hasOwn(metadata,name)) return invalid('duplicate_loki_metadata')
+    // Proto3 omits the default empty string on the wire.
+    metadata[name] = value ? utf8(bytes(value)) : ''
    }
    if (parts.some(p => p.number === 4)) return invalid('unsupported_loki_parsed_fields',415)
    values.push([(ns + fraction).toString(), lineField ? utf8(bytes(lineField)) : '', metadata])

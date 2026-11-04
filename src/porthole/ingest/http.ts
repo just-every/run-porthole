@@ -72,6 +72,7 @@ export async function ingestResponse(request: Request,env: Bindings):Promise<Res
     if(type!=='application/x-protobuf'||encoding!=='snappy'||request.headers.get('x-prometheus-remote-write-version')!=='0.1.0'||request.headers.get('content-type')?.includes('proto=io.prometheus'))invalid('unsupported_remote_write_version_or_encoding',415)
     records=remoteWrite(unsnappy(body),request.headers);protocol='prometheus.WriteRequest/v1'
    }else if(path==='/loki/api/v1/push'){
+    if(type==='application/json'&&encoding==='snappy'||type!=='application/json'&&encoding==='gzip')invalid('unsupported_loki_encoding',415)
     const data=type==='application/json'?object(JSON.parse(utf8(body))):type==='application/x-protobuf'||!type?lokiProto(unsnappy(body)):invalid('unsupported_loki_encoding',415)
     records=lokiRecords(data,request.headers);protocol='loki.PushRequest/v3.5'
    }else{

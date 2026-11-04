@@ -183,13 +183,15 @@ export async function ingestJourney({origin,cookie,sql,restartWorker,freshOwner,
  await post('/app/settings/credentials/revoke',{id:source.credential.id})
  assert.equal((await send('/v1/logs',first,'synthetic-porthole-241')).status,401,'next request sees revocation')
  assert.equal((await fetch(origin+root+'/records?signal=logs',{headers:{authorization:`Bearer ${quota.secret}`}})).status,403,'ingest credential cannot read')
+ const {lokiSchemaJourney}=await import('./loki-shippers.mjs')
+ await lokiSchemaJourney({origin,freshOwner,restartWorker})
  console.log('Porthole ingest journey passed: durable protocol intake, scoped auth, exact delivery/archive accounting, retry identity, original ns/reorder, quota/pressure refusals, storage/queue failure and restart recovery')
  return {cookie,sourceId:source.credential.id,scope:ingestScope,traceId,spanId}
 }
 
 export async function ingestBrowserJourney({origin,cookie,profile}) {
  const {chromium}=await import('@playwright/test')
- const browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']})
+ const browser=await chromium.launch({headless:true,...(process.env.PORTHOLE_CHROMIUM_PATH?{executablePath:process.env.PORTHOLE_CHROMIUM_PATH}:{}),args:['--no-sandbox','--use-mock-keychain','--password-store=basic']})
  try {
   for(const width of [1440,390]){
    const context=await browser.newContext({viewport:{width,height:width===1440?900:844}})
