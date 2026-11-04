@@ -156,7 +156,6 @@ export async function otlpLanguagesJourney({origin,freshOwner,restartWorker,with
  outcomes(expected,requests)
  const actual={};for(const signal of signals)actual[signal]=await pages(origin,cookie,signal)
  reconcile(expected,actual,source.credential.id)
- await stockRefusals({origin,cookie,post,source,captures:allCaptures,actual})
  await post(api+'/control',{paused:true})
  for(const signal of signals){
   const malformed=await fetch(origin+'/v1/'+signal,{method:'POST',headers:{authorization:'Bearer '+source.secret,'content-type':'application/x-protobuf'},body:Buffer.from([255])})
@@ -173,6 +172,7 @@ export async function otlpLanguagesJourney({origin,freshOwner,restartWorker,with
  assert.equal((await fetch(origin+api+'/records?'+new URLSearchParams({signal:'logs',limit:'1',snapshot:String(firstRead.snapshot),cursor:firstRead.cursor}),{headers:{authorization:'Bearer '+reader.secret}})).status,401,'next page cannot reuse revoked read authority')
  const wrongEnvelope=await fetch(origin+'/v1/metrics',{method:'POST',headers:{authorization:'Bearer '+source.secret,...trace.headers},body:trace.wire})
  assert.equal(wrongEnvelope.status,400,'trace message cannot enter a metric endpoint')
+ await stockRefusals({origin,cookie,post,source,captures:allCaptures,actual})
  await post('/app/settings/credentials/revoke',{id:source.credential.id})
  assert.equal((await fetch(origin+'/v1/traces',{method:'POST',headers:{authorization:'Bearer '+source.secret,...trace.headers},body:trace.wire})).status,401,'next request source revocation')
  await post(api+'/control',{paused:false})
@@ -265,11 +265,13 @@ async function stockRefusals({origin,cookie,post,source,captures,actual}){
    const current=(await totals())[signal]
    for(const key of ['accepted','queryable','archived'])assert.equal(current[key],before[signal][key])
   }
+  await post('/app/settings/credentials/revoke',{id:source.credential.id})
+  for(const signal of signals)await deniedRpc(signal,packet(signal).wire,grpc.status.UNAUTHENTICATED)
  }finally{
   for(const client of clients.values())client.close()
   await running.close()
  }
- console.log('PROBE PORT-001 stock refusal boundary: captured three-signal exports over HTTP and gRPC -> exact pressure accounting, wrong-signal and malformed refusal, current service, environment, team and signal scope on retry and paginated reads; accepted records unchanged')
+ console.log('PROBE PORT-001 stock refusal boundary: captured three-signal exports over HTTP and gRPC -> exact pressure accounting, wrong-signal and malformed refusal, current service, environment, team and signal scope on retry and paginated reads, revoked source refusal; accepted records unchanged')
 }
 export async function otlpLanguagesAnalyticalJourney({captures,expected}){
  const {analyticalEstate}=await import('./analytics.mjs'),{recipientMailJourney}=await import('./health.mjs')
@@ -304,7 +306,8 @@ export async function otlpLanguagesAnalyticalJourney({captures,expected}){
 }
 async function languageScreens({origin,cookie}){
  const {chromium}=await import('@playwright/test')
- const browser=await chromium.launch({headless:true,...(process.env.PORTHOLE_CHROMIUM?{executablePath:process.env.PORTHOLE_CHROMIUM}:{}),args:['--no-sandbox']})
+ const executablePath=process.env.PORTHOLE_CHROMIUM_PATH??process.env.PORTHOLE_CHROMIUM
+ const browser=await chromium.launch({headless:true,...(executablePath?{executablePath}:{}),args:['--no-sandbox']})
  try{for(const width of [1440,390]){
   const context=await browser.newContext({viewport:{width,height:900}})
   await context.addCookies(cookie.split('; ').map(item=>({name:item.slice(0,item.indexOf('=')),value:item.slice(item.indexOf('=')+1),url:origin})))
