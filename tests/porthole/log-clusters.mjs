@@ -104,6 +104,8 @@ export async function logClusterJourney({origin,cookie,call=(path,options)=>fetc
   assert.equal(original.records.length,1);assert.equal(original.records[0].id,row.id);assert.deepEqual(original.records[0].payload,row.payload);assert.equal(original.snapshot,snapshot)
  }))
  const reader=await value(await post('/app/settings/credentials/mint',{name:'Pattern reader',class:'read',scope}),201)
+ const quotaReader=await value(await post('/app/settings/credentials/mint',{name:'Bounded pattern reader',class:'read',scope,scannedBytesPerDay:1}),201)
+ const limited=await search({},{authorization:'Bearer '+quotaReader.secret});assert.equal(limited.status,429);assert.ok(Number(limited.headers.get('retry-after'))>0);assert.deepEqual(await limited.json(),{error:'credential_quota_exceeded'})
  const auth={authorization:'Bearer '+reader.secret}
  assert.equal((await value(await search({},auth))).totalRecords,236)
  await value(await search({service:'synthetic-porthole-11099'},auth),403)
@@ -127,8 +129,18 @@ export async function logClusterJourney({origin,cookie,call=(path,options)=>fetc
   await clusterBrowser({origin,call,path,name:'patterns-unauthorized',status:401,contains:'unauthenticated'})
  }
  if(archive)await archive({query:{...query,snapshot},all,members,first,source,wire,subject,search})
+ const replay=await call('/v1/logs',{method:'POST',headers:{authorization:'Bearer '+source.secret,'content-type':'application/json'},body:wire[0]})
+ assert.equal(replay.status,200);assert.equal(replay.headers.get('x-porthole-duplicate'),'true')
+ // A new explicit producer envelope completes between requests, in the same
+ // search window. Its bytes were emitted by the stock exporter above.
+ const later=await call('/v1/logs',{method:'POST',headers:{authorization:'Bearer '+source.secret,'content-type':'application/json','x-porthole-batch-id':'synthetic-porthole-11999'},body:wire[0]})
+ assert.equal(later.status,200)
+ await value(await post('/api/porthole/v1/ingest/drain',{}))
+ const laterCount=JSON.parse(wire[0]).resourceLogs.reduce((n,resource)=>n+resource.scopeLogs.reduce((m,scope)=>m+scope.logRecords.length,0),0)
+ const frozen=await value(await search({snapshot,cursor:first.cursor}));assert.equal(frozen.totalRecords,236);assert.deepEqual(frozen.clusters,second.clusters)
+ const current=await value(await search());assert.ok(current.snapshot>snapshot);assert.equal(current.totalRecords,236+laterCount,'later completions do not enter the original watermark')
  console.log('PROBE PORT-011 clustering: stock OTel logger -> actual intake -> '+backend+' pattern API: 236 source identities, counts 225 and 11, all original pivots reconciled, complete and partial states, scoped and revoked refusals')
- return {query:{...query,snapshot},all,members,first,source,wire,subject,search,post,value}
+ return {query:{...query,snapshot},all,members,first,source,wire,subject,search,post,value,retainedTotal:236+laterCount}
 }
 
 export async function logClusterNativeJourney(context){
@@ -137,7 +149,7 @@ export async function logClusterNativeJourney(context){
   const {clusterArchiveJourney}=await import('./archive.mjs')
   await clusterArchiveJourney({origin,freshOwner,withEmptyDestination,...proof})
  }})
- const {query,first,search,post,value,subject,source,wire,members}=result
+ const {query,first,search,post,value,subject,source,wire,members,retainedTotal}=result
  await restartWorker(()=>sql('ALTER TABLE porthole_telemetry_records RENAME TO porthole_cluster_unavailable'))
  try{
   await value(await search(),503)
@@ -147,8 +159,8 @@ export async function logClusterNativeJourney(context){
  // pattern feature neither widens it nor invents analytical deletion authority.
  const acting=await freshOwner(),headers={cookie:acting},erasure='/api/porthole/v1/subject-erasure'
  const preview=await value(await post(erasure,{identifier:subject},headers))
- assert.equal(preview.records,236);assert.equal(preview.canApply,true)
- const erased=await value(await post(erasure+'/apply',{identifier:subject,digest:preview.digest,confirm:'erase-exact-batches'},headers));assert.equal(erased.erasedRecords,236)
+ assert.equal(preview.records,retainedTotal);assert.equal(preview.canApply,true)
+ const erased=await value(await post(erasure+'/apply',{identifier:subject,digest:preview.digest,confirm:'erase-exact-batches'},headers));assert.equal(erased.erasedRecords,retainedTotal)
  const now=await value(await search({snapshot:query.snapshot}));assert.equal(now.totalRecords,0);assert.equal(now.totalClusters,0)
  await value(await search({snapshot:query.snapshot,cursor:first.cursor}),400)
  await value(await search({snapshot:query.snapshot,cluster:first.clusters[0].id}),404)
@@ -177,14 +189,16 @@ export async function logClusterAnalyticalProof({context,estate,cookie}){
  const reader=await value(await post('/app/settings/credentials/mint',{name:'Mid-scan pattern reader',class:'read',scope}),201)
  // Intercept only after a real analytical page has returned. The authority
  // mutation uses the public revoke door; no query response is fabricated.
- estate.afterQuery(async response=>{assert.equal(response.status,200);await value(await post('/app/settings/credentials/revoke',{id:reader.credential.id}))})
+ const revokeAfterLast=async response=>{assert.equal(response.status,200);const page=await response.json();if(page.cursor)estate.afterQuery(revokeAfterLast);else await value(await post('/app/settings/credentials/revoke',{id:reader.credential.id}))}
+ estate.afterQuery(revokeAfterLast)
  const revoked=await search({snapshot:query.snapshot},{authorization:'Bearer '+reader.secret})
  assert.equal(revoked.status,401);assert.ok(!JSON.stringify(await revoked.json()).includes('Checkout accepted'),'accumulated first-page bodies are never released after revocation')
  // Physical custody loss is a fault injection, not a newly authorized
  // analytical-erasure operation. The endpoint must consult retained custody
  // after accumulating an actual last page, before returning even its counts.
  const row=members[0],stored=await getDb().prepare('SELECT * FROM porthole_telemetry_records WHERE id=?').bind(row.id).first()
- estate.afterQuery(async()=>{await getDb().prepare('DELETE FROM porthole_telemetry_records WHERE id=?').bind(row.id).run()})
+ const removeAfterLast=async response=>{const page=await response.json();if(page.cursor)estate.afterQuery(removeAfterLast);else await getDb().prepare('DELETE FROM porthole_telemetry_records WHERE id=?').bind(row.id).run()}
+ estate.afterQuery(removeAfterLast)
  const changed=await search({snapshot:query.snapshot})
  assert.equal(changed.status,409);assert.deepEqual(await changed.json(),{error:'cluster_custody_changed'})
  const columns=Object.keys(stored)
@@ -192,7 +206,7 @@ export async function logClusterAnalyticalProof({context,estate,cookie}){
  await estate.stop('standby')
  try{
   const outage=await value(await search({snapshot:query.snapshot}),503)
-  assert.ok(['analytics_unreachable','analytics_unavailable'].includes(outage.error),JSON.stringify(outage))
+  assert.ok(['analytics_unreachable','analytics_unavailable','analytics_invalid_response'].includes(outage.error),JSON.stringify(outage))
   await clusterBrowser({origin,cookie,call,path:'/app/explore/clusters?'+new URLSearchParams(query),name:'patterns-analytical-unavailable',status:503,contains:outage.error.replaceAll('_',' ')})
  }finally{await estate.start('standby')}
  assert.equal((await value(await search({snapshot:query.snapshot}))).totalRecords,236)
