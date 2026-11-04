@@ -22,7 +22,7 @@ export async function readTelemetry(request: Request, env: Bindings, options: {p
  try {
   const credential=(use:Parameters<typeof verifyCredential>[2])=>options.principal?.clientId?agentCredential(request,env,options.principal,use!):verifyCredential(request,env,use)
   const url = new URL(request.url), params = url.searchParams, archive = !!options.archive
-  if ([...params.keys()].some(key => !['signal','service','environment','team','from','through','cursor','limit','snapshot','trace','metric'].includes(key))) fail('invalid_query',400)
+  if ([...params.keys()].some(key => !['signal','service','environment','team','from','through','cursor','limit','snapshot','trace','metric','record'].includes(key))) fail('invalid_query',400)
   const limit = Number(params.get('limit') ?? 100)
   if (!Number.isSafeInteger(limit) || limit < 1 || limit > (params.has('trace')?2000:200)) fail('invalid_query_limit',400)
   const signal = params.get('signal')
@@ -58,6 +58,8 @@ export async function readTelemetry(request: Request, env: Bindings, options: {p
    if(signal!=='traces'||!/^[a-f0-9]{32}$/.test(trace)||/^0+$/.test(trace))fail('invalid_trace_id',400)
    clauses.push('r.trace_id=?');args.push(trace)
   }
+  const record=params.get('record')
+  if(record!==null){if(!/^[a-f0-9-]{36}:[0-9]+$/.test(record))fail('invalid_record_id',400);clauses.push('r.id=?');args.push(record)}
   const metric=params.get('metric')
   if(metric!==null) {
    if(signal!=='metrics'||!metric.trim().length||metric.length>120||/[\u0000-\u001f\u007f-\u009f]/u.test(metric)||params.getAll('metric').length!==1)fail('invalid_metric_name',400)
@@ -78,7 +80,7 @@ export async function readTelemetry(request: Request, env: Bindings, options: {p
   }
   const table=archive ? 'porthole_telemetry_archive' : 'porthole_telemetry_records'
   const select=`SELECT r.* FROM ${table} r JOIN porthole_ingest_batches b ON b.id=r.batch_id WHERE ${clauses.join(' AND ')} AND `
-  const queryRef=crypto.randomUUID(),queryScope=JSON.stringify({...Object.fromEntries([...params].filter(([key])=>['service','environment','team','cursor','limit','trace','metric'].includes(key))),...(options.source?{dialect:options.source.dialect,expression:options.source.text}:{})})
+  const queryRef=crypto.randomUUID(),queryScope=JSON.stringify({...Object.fromEntries([...params].filter(([key])=>['service','environment','team','cursor','limit','trace','metric','record'].includes(key))),...(options.source?{dialect:options.source.dialect,expression:options.source.text}:{})})
   const analytical=await analyticalConfiguration(env)
   if(analyticalSelected(env,analytical))return await readAnalytical(request,env,analytical,{principal:options.principal,scope,actorRef,actorRevision,fence,snapshot,queryRef,queryScope,from,through,signal,limit,archive,logSearch:options.logSearch})
   const snapshotInsert=(live:{sql:string;args:unknown[]})=>env.DB.prepare(`INSERT INTO porthole_query_snapshots SELECT ?,?,?,?,?,?,?,? WHERE ${live.sql}`).bind(queryRef,actorRef,queryScope,signal,from,through,snapshot,Date.now(),...live.args)
