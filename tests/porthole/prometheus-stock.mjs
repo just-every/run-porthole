@@ -149,8 +149,18 @@ async function nativePages(context,extra={},headers={cookie:context.cookie},path
  const records=[];let cursor,snapshot,pages=0
  do {
   const params=new URLSearchParams({signal:'metrics',service:scope.services[0],limit:'47',...extra,...(cursor?{cursor,snapshot:String(snapshot)}:{})})
-  const response=await context.call(path+'?'+params,{headers});assert.equal(response.status,200,await response.clone().text())
-  const page=await response.json();snapshot??=page.snapshot;assert.equal(page.snapshot,snapshot)
+  const response=path==='/api/porthole/v1/query'
+   ?await context.post(path,Object.fromEntries(params))
+   :await context.call(path+'?'+params,{headers})
+  assert.equal(response.status,200,await response.clone().text())
+  let page
+  if(path==='/app/explore'){
+   const html=await response.text(),content=html.match(/<pre>([\s\S]*?)<\/pre>/)?.[1]
+   assert.ok(content,'native Explore renders the actual query result')
+   page=JSON.parse(content.replace(/&#(\d+);/g,(_,code)=>String.fromCodePoint(Number(code))))
+   assert.equal(html.includes('>Next page</a>'),!!page.cursor,'Explore continuation agrees with the rendered result')
+  }else page=await response.json()
+  snapshot??=page.snapshot;assert.equal(page.snapshot,snapshot)
   records.push(...page.records);cursor=page.cursor;pages++;assert.ok(pages<100)
  }while(cursor)
  return {records,pages,snapshot}
@@ -202,6 +212,13 @@ export async function prometheusStockJourney() {
    await post(root+'/control',{paused:true,maxPendingBytes:33554432})
    await until(()=>attempts.some(a=>a.duplicate==='true'),'stock sender retries after its durable acknowledgement is interrupted')
    await until(()=>emitter.scrapes>=10&&[...captures.values()].flatMap(c=>decodeWrite(c.wire).samples).length>250,'more than 200 real stock samples accepted')
+   // Restart the unmodified sender against its existing TSDB and WAL, keeping
+   // both destinations and queue settings. Reconciliation below includes all
+   // pre-restart and post-restart source samples and refused attempts.
+   await sender.stop()
+   const scrapesBeforeRestart=emitter.scrapes
+   sender=await launch(binary,scratch,'sender',config)
+   await until(()=>emitter.scrapes>=scrapesBeforeRestart+2,'stock sender resumes the existing TSDB and WAL')
    sourceMetadata=(await (await fetch(sender.origin+'/api/v1/metadata')).json()).data
    // Stop collection by reloading only the scrape target list. Both stock
    // destination queues retain their existing settings and drain the same WAL.
@@ -239,8 +256,11 @@ export async function prometheusStockJourney() {
    assert.ok(retainedMetadata.every(r=>!Object.hasOwn(r.payload.record,'value')&&!Object.hasOwn(r.payload.record,'timestamp')))
    const archived=await nativePages(context,{},undefined,root+'/archive')
    assert.deepEqual(archived.records.map(r=>r.payload),page.records.map(r=>r.payload),'native retained and archived payloads agree')
-   const query=await (await post('/api/porthole/v1/query',{signal:'metrics',service:scope.services[0],environment:scope.environments[0],team:scope.teams[0],limit:47})).json()
-   assert.equal(query.records.length,47)
+   for(const door of ['/api/porthole/v1/query','/app/explore']){
+    const query=await nativePages(context,{},undefined,door)
+    assert.ok(query.pages>4,'native query and Explore really paginate')
+    assert.deepEqual(query.records.map(row=>row.payload),page.records.map(row=>row.payload),'every native query and Explore record matches public retained custody')
+   }
    const status=await (await call(root+'/status',{headers:{cookie}})).json(),totals=status.sources.filter(s=>s.sourceId===source.credential.id)
    for(const key of ['accepted','queryable','archived'])assert.equal(totals.reduce((n,s)=>n+s[key],0),page.records.length,key+' accounts for samples and metadata descriptors')
    assert.ok(totals.some(s=>s.reasons.some(r=>r.reason==='queue_pressure')),'pressure remains visible in delivery accounting')
@@ -266,6 +286,10 @@ export async function prometheusStockJourney() {
     reconcile(page.records.filter(r=>r.payload.metricKind!=='metadata'&&r.payload.metric.name.startsWith('synthetic_porthole_')),expected)
     assert.deepEqual(page.records.filter(r=>r.payload.metricKind==='metadata').map(r=>canonical(r.payload.metadata)).sort(),metadata.map(canonical).sort())
     const archive=await nativePages(context,{},undefined,root+'/archive');assert.deepEqual(archive.records.map(r=>r.payload),page.records.map(r=>r.payload))
+    for(const door of ['/api/porthole/v1/query','/app/explore']){
+     const query=await nativePages(context,{},undefined,door)
+     assert.deepEqual(query.records.map(row=>row.payload),page.records.map(row=>row.payload),'every query and Explore page uses the selected analytical configuration')
+    }
     if(first)assert.deepEqual(page.records.map(r=>r.payload),first);else first=page.records.map(r=>r.payload)
     console.log('PROBE PORT-002 '+role+': stock wire replay through public intake -> '+expected.length+' exact reference samples and complete metadata across '+page.pages+' native pages')
    }
