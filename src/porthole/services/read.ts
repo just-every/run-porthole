@@ -52,6 +52,6 @@ export async function serviceRead(request:Request,env:Bindings,actor:Authority) 
  if(!release)fail('authority_changed',409)
  if(release.n!==ids.length)fail('service_evidence_changed',409)
  const keyToId=new Map(services.map(s=>[s.key,s.id]))
- return {...view,services:services.map(s=>({...s,metadata:latestMetadata.get(s.id)??null,history:metadata.filter(m=>m.id===s.id)})),edges:view.edges.map(e=>({...e,from:keyToId.get(e.from)!,to:e.to?keyToId.get(e.to)??null:null})),names,snapshot,from,through,backend,checkedAt:now}
+ return {...view,services:services.map(s=>({...s,metadata:latestMetadata.get(s.id)??null,history:metadata.filter(m=>m.id===s.id)})),edges:view.edges.map(e=>({...e,from:keyToId.get(e.from)!,to:e.to?keyToId.get(e.to)??null:null})),names,snapshot,from,through,budget,backend,checkedAt:now}
 }
 export type ServiceView=Awaited<ReturnType<typeof serviceRead>>
