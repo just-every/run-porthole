@@ -37,3 +37,29 @@ export async function pipelineBrowser({origin,cookie,definition,planted,empty=fa
   }
  }finally{await browser.close()}
 }
+
+export async function pipelineHistoryBrowser({origin,cookie,current,oldest}) {
+ const {chromium}=await import('@playwright/test')
+ const browser=await chromium.launch({headless:true,...(process.env.PORTHOLE_CHROMIUM_PATH?{executablePath:process.env.PORTHOLE_CHROMIUM_PATH}:{}),args:['--no-sandbox','--use-mock-keychain','--password-store=basic']})
+ try {
+  for(const width of [1440,390]) {
+   const context=await browser.newContext({viewport:{width,height:width===1440?900:844}})
+   await context.addCookies(cookie.split('; ').map(pair=>({name:pair.slice(0,pair.indexOf('=')),value:pair.slice(pair.indexOf('=')+1),url:origin})))
+   const page=await context.newPage()
+   await page.goto(origin+'/app/settings/pipelines')
+   await page.getByRole('heading',{name:'Version history',exact:true}).waitFor()
+   await page.getByText('Active definition',{exact:true}).click()
+   assert.deepEqual(JSON.parse(await page.locator('details').first().locator('pre').innerText()),current.definition)
+   await page.getByRole('link',{name:'Older revisions',exact:true}).click()
+   await page.getByRole('heading',{name:'Version history',exact:true}).waitFor()
+   await page.getByText('Review revision '+oldest.revision,{exact:true}).click()
+   assert.deepEqual(JSON.parse(await page.locator('details').filter({has:page.getByText('Review revision '+oldest.revision,{exact:true})}).locator('pre').innerText()),oldest.definition)
+   const directory=process.env.PORTHOLE_EVIDENCE_DIR
+   if(directory){await mkdir(directory,{recursive:true});await page.screenshot({path:join(directory,`pipelines-history-${width}.png`),fullPage:true})}
+   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth))
+   assert.equal(await page.locator('button').filter({hasText:/^\s*$/}).count(),0,'all controls use visible word labels')
+   assert.ok(await page.locator('main').evaluate(root=>[...root.querySelectorAll('p,label,button,a,summary,pre')].every(el=>parseFloat(getComputedStyle(el).fontSize)>=13)))
+   await context.close()
+  }
+ }finally{await browser.close()}
+}

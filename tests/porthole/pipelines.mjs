@@ -183,3 +183,115 @@ export async function pipelineJourney({origin,freshOwner,sql,restartWorker,withE
  assert.equal(denied.status,401,'revoked source cannot resurrect accepted data')
  console.log('pipelineJourney passed: native preview, activation, bounded refusal, original-wire identity, sanitized custody, counted metrics, restart rollback and exclusion')
 }
+
+/** Native owner REST and spawned CLI exercise the same immutable history. */
+export async function pipelineReadJourney({origin,freshOwner,sql,restartWorker,signIn,mutate}) {
+ const {spawnCli}=await import('./api.mjs')
+ let cookie=await freshOwner()
+ const read=(path,who=cookie,extra={})=>fetch(origin+path,{headers:{cookie:who,...extra}})
+ const value=async(response,status=200)=>{assert.equal(response.status,status,await response.clone().text());return response.json()}
+ const get=async path=>value(await read(path))
+ const post=(path,data,who=cookie)=>fetch(origin+path,form(origin,who,data))
+ const cli=(args,auth={session:cookie})=>spawnCli({origin,args,...auth})
+ const emitted=result=>{assert.equal(result.code,0,result.stderr);return result.stdout.trim().split('\n').map(line=>JSON.parse(line))}
+ const base=(await get(api)).revision
+ const d={service:'synthetic-porthole-12600',environment:'review',team:'synthetic-porthole-12601',processors:[{type:'json'},{type:'enrich',values:{edition:0}}],metrics:[]}
+ const expected=new Map()
+ const activate=async index=>{
+  const definition={...d,processors:[{type:'json'},{type:'enrich',values:{edition:index}}]}
+  const revision=(await get(api)).revision
+  const preview=await value(await post(api+'/preview',{definition,revision,samples:[JSON.stringify({message:'synthetic-porthole-12602'})]}),201)
+  const result=await value(await post(api+'/activate',{previewId:preview.id,digest:preview.digest,confirm:'activate-pipeline'}),201)
+  expected.set(result.revision,definition);return result
+ }
+ // Every revision is produced through real owner review and activation.
+ for(let index=1;index<=53;index++)await activate(index)
+ const current=await get(api)
+ assert.equal(current.revision,base+53);assert.deepEqual(current.definition,expected.get(base+53))
+ assert.equal(current.history.length,50);assert.ok(current.cursor,'default page must disclose a continuation beyond fifty')
+ const first=await get(api+'/revisions?limit=7'),snapshot=first.snapshot
+ assert.equal(snapshot,base+53);assert.equal(first.history.length,7)
+ const reference=emitted(await cli(['get','pipelines',String(base+1)]))[0]
+ assert.deepEqual(reference.definition,expected.get(base+1))
+ assert.deepEqual(emitted(await cli(['get','pipelines','current']))[0],current)
+ assert.deepEqual(emitted(await cli(['get','pipelines','catalog']))[0],await get(api+'/catalog'))
+ const schema=await get('/api/porthole/v1/openapi.json')
+ for(const suffix of ['', '/catalog','/revisions','/revisions/{revision}'])assert.ok(schema.paths[api+suffix]?.get,'documented runtime read door')
+ const source=await value(await post('/app/settings/credentials/mint',{name:'synthetic-porthole-12603',class:'ingest',scope:{services:[d.service],environments:[d.environment],teams:[d.team],signals:['logs'],actions:['telemetry.write']}}),201)
+ const at=BigInt(Date.now())*1000000n-1000000n,packet=otlpLogBatch([at])
+ packet.resourceLogs[0].resource.attributes=[{key:'service.name',value:{stringValue:d.service}},{key:'deployment.environment.name',value:{stringValue:d.environment}},{key:'team.name',value:{stringValue:d.team}}]
+ packet.resourceLogs[0].scopeLogs[0].logRecords[0].body={stringValue:JSON.stringify({message:'synthetic-porthole-12604'})}
+ await value(await fetch(origin+'/v1/logs',{method:'POST',headers:{authorization:'Bearer '+source.secret,'content-type':'application/json','x-porthole-batch-id':'synthetic-porthole-12605'},body:JSON.stringify(packet)}))
+ await value(await post('/api/porthole/v1/ingest/drain',{}))
+ const logs=await value(await post('/api/porthole/v1/query',{signal:'logs',service:d.service,environment:d.environment,team:d.team,from:String(at-1n),through:String(at+1n)}))
+ assert.equal(logs.records.length,1);assert.equal(logs.records[0].payload.pipeline.revision,snapshot)
+ assert.equal(logs.records[0].payload.pipeline.attributes.edition,53)
+ // One traversal is frozen while the active definition advances, including a cold resume.
+ await activate(54);await restartWorker();cookie=await freshOwner()
+ const pages=[first];let cursor=first.cursor
+ while(cursor) {
+  const page=await get(api+'/revisions?'+new URLSearchParams({limit:'7',cursor}))
+  assert.equal(page.snapshot,snapshot);assert.ok(page.history.length<=7)
+  pages.push(page);cursor=page.cursor
+ }
+ const revisions=pages.flatMap(page=>page.history),ids=revisions.map(row=>row.revision)
+ assert.deepEqual(ids,Array.from({length:snapshot},(_,index)=>snapshot-index),'restart and activation neither omit nor duplicate snapshot history')
+ assert.equal(new Set(ids).size,ids.length)
+ for(const [revision,definition]of expected)if(revision<=snapshot)assert.deepEqual(revisions.find(row=>row.revision===revision).definition,definition)
+ assert.deepEqual(await get(api+'/revisions/'+reference.revision),reference,'exact historical reads never change after activation')
+ const resumed=emitted(await cli(['list','pipelines','--all','--limit','7','--cursor',first.cursor]))
+ assert.deepEqual(resumed.flatMap(page=>page.history),revisions.slice(7),'spawned CLI resumes the same signed snapshot')
+ const latest=emitted(await cli(['list','pipelines','--all','--limit','13']))
+ assert.deepEqual(latest.flatMap(page=>page.history).map(row=>row.revision),Array.from({length:snapshot+1},(_,index)=>snapshot+1-index))
+ const {pipelineHistoryBrowser}=await import('./pipelines-browser.mjs')
+ await pipelineHistoryBrowser({origin,cookie,current:await get(api),oldest:reference})
+ const before=await sql('SELECT * FROM porthole_pipeline_versions ORDER BY revision')
+ const previews=await sql('SELECT * FROM porthole_pipeline_previews ORDER BY id')
+ const unchanged=async()=>{assert.deepEqual(await sql('SELECT * FROM porthole_pipeline_versions ORDER BY revision'),before);assert.deepEqual(await sql('SELECT * FROM porthole_pipeline_previews ORDER BY id'),previews)}
+ for(const path of ['/revisions?limit=0','/revisions?limit=201','/revisions?limit=1.5','/revisions?limit=1&limit=2','/revisions?other=1','/revisions?cursor=','/revisions?cursor=bad','/revisions?limit=8&cursor='+first.cursor,'/revisions/0','/revisions/1.5','/revisions/-1'])assert.equal((await read(api+path)).status,400,path)
+ const tampered=first.cursor.slice(0,-1)+(first.cursor.endsWith('0')?'1':'0')
+ assert.deepEqual(await value(await read(api+'/revisions?limit=7&cursor='+tampered),400),{error:'invalid_pipeline_cursor'})
+ assert.deepEqual(await value(await read(api+'/revisions/'+(snapshot+100)),404),{error:'pipeline_revision_not_found'})
+ assert.equal((await read(api+'/missing')).status,404)
+ assert.equal((await fetch(origin+api+'/revisions',{method:'PUT',headers:{cookie,origin}})).status,405)
+ for(const args of [['get','pipelines','0'],['list','pipelines','--limit'],['create','pipelines'],['get','pipelines',String(snapshot+100)]])assert.equal((await cli(args)).code,1)
+ for(const suffix of ['', '/catalog','/revisions','/revisions/'+reference.revision]) {
+  assert.equal((await read(api+suffix,'')).status,401)
+  for(const who of ['',cookie])assert.deepEqual(await value(await read(api+suffix,who,{authorization:'Bearer '+source.secret}),403),{error:'native_session_required'})
+ }
+ const denied=await cli(['get','pipelines','catalog'],{credential:source.secret,session:cookie})
+ assert.equal(denied.code,1);assert.match(denied.stderr,/403 native_session_required/);assert.ok(!denied.stderr.includes(source.secret));assert.equal(denied.stdout,'')
+ await unchanged()
+ const email=['synthetic-porthole-12610','example.invalid'].join(String.fromCharCode(64))
+ await value(await post('/app/settings/members/invite',{email,displayName:'Pipeline reader',role:'maintainer',scope:{services:[d.service],environments:[d.environment],teams:[d.team]}}),202)
+ let secondary=await signIn(email)
+ const member=(await sql(`SELECT id FROM oa_operators WHERE email=${literal(email)}`))[0]
+ for(const suffix of ['', '/catalog','/revisions','/revisions/'+reference.revision])assert.deepEqual(await value(await read(api+suffix,secondary),403),{error:'owner_required'})
+ cookie=await freshOwner()
+ await value(await post('/app/settings/members/change',{operatorId:member.id,role:'owner',confirmEmail:email}))
+ secondary=await signIn(email)
+ assert.equal((await read(api,secondary)).status,200)
+ assert.equal((await read(api+'/revisions?limit=7&cursor='+first.cursor,secondary)).status,400,'a different owner cannot spend the cursor')
+ // Scope fixtures change only membership; all pipeline data still comes from the public doors.
+ for(const dimension of ['services','environments','teams']) {
+  const scope={services:['*'],environments:['*'],teams:['*'],[dimension]:['synthetic-porthole-12611']}
+  await mutate(`UPDATE porthole_members SET scope=${literal(JSON.stringify(scope))},revision=revision+1 WHERE operator_id=${literal(member.id)}`)
+  secondary=await signIn(email)
+  const scoped=await value(await read(api,secondary))
+  assert.equal(scoped.definition,null);assert.ok(!scoped.history.some(row=>expected.has(row.revision)))
+  assert.equal((await read(api+'/revisions/'+reference.revision,secondary)).status,404)
+ }
+ await mutate(`UPDATE porthole_members SET scope=${literal(JSON.stringify({services:[d.service],environments:[d.environment],teams:[d.team]}))},revision=revision+1 WHERE operator_id=${literal(member.id)}`)
+ secondary=await signIn(email)
+ const scoped=await value(await read(api+'/revisions?limit=200',secondary))
+ assert.deepEqual(scoped.history.map(row=>row.revision),[...expected.keys()].reverse(),'scope filtering happens before the page bound')
+ const secondCursor=(await value(await read(api+'/revisions?limit=7',secondary))).cursor
+ cookie=await freshOwner()
+ await value(await post('/app/settings/members/change',{operatorId:member.id,role:'maintainer',scope:{services:[d.service],environments:[d.environment],teams:[d.team]}}))
+ for(const suffix of ['', '/catalog','/revisions?limit=7&cursor='+secondCursor,'/revisions/'+reference.revision])assert.ok([401,403].includes((await read(api+suffix,secondary)).status),'revoked owner refuses on next request')
+ const revoked=await cli(['list','pipelines','--all'],{session:secondary});assert.equal(revoked.code,1);assert.equal(revoked.stdout,'')
+ await unchanged()
+ console.log('PROBE PORT-026 current and catalog: native owner REST and spawned CLI -> identical current definition and processor catalog; actual ingested log records revision and edition 53')
+ console.log('PROBE PORT-026 immutable history: 54 reviewed activations, seven-row snapshot pages, Worker restart and newer activation -> complete descending history without omissions or duplicates; exact revision unchanged; CLI resume matches')
+ console.log('PROBE PORT-026 refusal: invalid cursors, foreign scopes, non-owner, bearer beside owner cookie and next-request owner revocation -> explicit refusals and unchanged pipeline versions and previews')
+}
