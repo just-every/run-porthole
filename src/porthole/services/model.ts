@@ -33,7 +33,7 @@ export function catalog(records:TraceRecord[],from:string,through:string,truncat
  const variants=new Map<string,Map<string,TraceRecord>>()
  for(const row of records){
   const key=row.trace_id+':'+row.span_id,group=variants.get(key)??new Map<string,TraceRecord>()
-  group.set(canonical({service:row.service,environment:row.environment,team:row.team,payload:row.payload}),row);variants.set(key,group)
+  group.set(canonical({service:row.service,environment:row.environment,team:row.team,record:row.payload.record,resource:row.payload.resource??{},scope:row.payload.scope??{}}),row);variants.set(key,group)
  }
  const unique=new Map([...variants].filter(([,v])=>v.size===1).map(([k,v])=>[k,[...v.values()][0]]))
  const edges=new Map<string,{from:string;to:string|null;kind:string;observations:number}>()

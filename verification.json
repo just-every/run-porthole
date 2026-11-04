@@ -12,13 +12,14 @@
     },
     {
       "name": "typecheck",
-      "browser": false,
+      "browser": true,
       "hosted": false,
       "commands": [
         "pnpm run build",
         "pnpm run typecheck",
         "pnpm run test:typecheck",
-        "node --input-type=module -e 'import {nativeBackupErasureJourney} from \"./tests/porthole/archive.mjs\"; await nativeBackupErasureJourney()'"
+        "node --input-type=module -e 'import {nativeBackupErasureJourney} from \"./tests/porthole/archive.mjs\"; await nativeBackupErasureJourney()'",
+        "PORTHOLE_SERVICES_ONLY=1 pnpm run test:runtime"
       ]
     },
     {

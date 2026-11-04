@@ -299,3 +299,36 @@ export async function analyticalConnectionJourney() {
  }finally{if(collector?.exitCode===null&&collector.signalCode===null){const stopped=new Promise(resolve=>collector.once('exit',resolve));collector.kill('SIGTERM');await stopped}await estate.dispose()}
 }
 if(process.argv[1]===new URL(import.meta.url).pathname)await analyticalKernelJourney()
+
+/** The same stock estate is read through actual primary and standby Workers. */
+export async function servicesAnalyticalJourney() {
+ const estate=await analyticalEstate()
+ try{
+  const {recipientMailJourney}=await import('./health.mjs'),{fixture}=await import('./fixture.mjs')
+  await recipientMailJourney({bindings:estate.bindings,services:estate.services,run:async context=>{
+   const {origin,call,post,getDb,restart,sessionSecret,ownerEmail}=context
+   const sql=async statement=>(await getDb().prepare(statement).all()).results
+   const restartWorker=async change=>{await change?.();await restart()}
+   const helpers=fixture({origin,sql,restartWorker,sessionSecret,ownerEmail,call})
+   let cookie=await helpers.freshOwner()
+   const read=async path=>{const response=await call(path,{headers:{cookie}});assert.equal(response.status,200,await response.clone().text());return response.json()}
+   const configure=async role=>{const c=await read('/api/porthole/v1/analytics/configuration');await post('/api/porthole/v1/analytics/configuration',{revision:c.revision,role,enabled:true,confirm:'connect-analytical-workers'})}
+   await configure('primary')
+   await post('/api/porthole/v1/analytics/reconcile',{})
+   const {servicesJourney,servicesBrowser}=await import('./services.mjs')
+   const result=await servicesJourney({origin,call,sql,restartWorker,...helpers,analytical:true,browserDispatch:(url,options)=>call(new URL(url).pathname+new URL(url).search,options)})
+   cookie=await helpers.freshOwner()
+   const primary=await read('/api/porthole/v1/services'+result.query)
+   assert.equal(primary.backend.role,'primary')
+   await configure('standby')
+   const standby=await read('/api/porthole/v1/services'+result.query)
+   assert.equal(standby.backend.role,'standby');assert.deepEqual(standby.services,primary.services);assert.deepEqual(standby.edges,primary.edges)
+   await estate.stop('standby')
+   assert.equal((await call('/api/porthole/v1/services'+result.query,{headers:{cookie}})).status,503,'no fabricated local fallback when selected analytical process is stopped')
+   await servicesBrowser({origin,cookie,path:'/app/services'+result.query,contains:'analytics',status:503,name:'services-storage-unavailable',dispatch:(url,options)=>call(new URL(url).pathname+new URL(url).search,options)})
+   await estate.start('standby')
+   assert.deepEqual((await read('/api/porthole/v1/services'+result.query)).services,primary.services)
+   console.log('PROBE PORT-008 backends: selected real primary and standby -> identical source-checked catalog; stopped selected process -> 503; restart -> exact history and counters')
+  }})
+ }finally{await estate.dispose()}
+}
