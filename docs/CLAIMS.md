@@ -41,7 +41,7 @@
 
 These are contract statuses, not a claim that a partial or missing capability is complete. Read the [product contract](/docs/contract) for requirements, named journeys and remaining work.
 
-10 done, 19 partial, 69 missing; 98 total.
+10 done, 19 partial, 70 missing; 99 total.
 
 | Clause | Capability | Status |
 | --- | --- | --- |
@@ -74,6 +74,7 @@ These are contract statuses, not a claim that a partial or missing capability is
 | PORT-012 | Log pipelines | missing |
 | PORT-013 | Tiered storage and archives | missing |
 | PORT-014 | Metrics engine | missing |
+| PORT-099 | Range-wide metric unit semantics | missing |
 | PORT-015 | Continuous profiling | missing |
 | PORT-016 | Database monitoring | missing |
 | PORT-017 | Frontend and mobile performance | missing |
