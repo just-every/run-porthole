@@ -53,12 +53,13 @@ export async function logClusterJourney({origin,cookie,call=(path,options)=>fetc
  const logger=provider.getLogger('synthetic-porthole-11004'),at=BigInt(Date.now()-2000)*1000000n
  const subject='synthetic-porthole-11005'
  try{
+  // Both shapes share severity: grouping by severity alone must fail.
   for(let index=0;index<236;index++){
    const id='synthetic-porthole-'+(11100+index),distinct=index>=225
    const body=distinct?'Checkout failed: database unavailable request '+(70000+index):'Checkout accepted order '+(80000+index)+' request '+(90000+index)
    expected.set(id,{body,distinct})
    const timestamp=at+BigInt(index)
-   logger.emit({body,severityNumber:distinct?17:9,severityText:distinct?'ERROR':'INFO',timestamp:[Number(timestamp/1000000000n),Number(timestamp%1000000000n)],attributes:{'producer.id':id,'cluster.subject':subject}})
+   logger.emit({body,severityNumber:17,severityText:'ERROR',timestamp:[Number(timestamp/1000000000n),Number(timestamp%1000000000n)],attributes:{'producer.id':id,'cluster.subject':subject}})
   }
   await provider.forceFlush()
  }finally{await provider.shutdown();await new Promise(resolve=>relay.close(resolve))}
