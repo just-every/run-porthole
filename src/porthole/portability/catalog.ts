@@ -29,6 +29,7 @@ export const catalog: TableSpec[] = [
  spec('porthole_dashboard_publications',['id','dashboard_id','source_revision','owner_id','owner_revision','operator_version','projection','source_review','allowed_origins','expires_at','digest','state','revision','created_at','updated_at','approved_at','revoked_at'],'id'),
  spec('porthole_dashboard_versions',['id','name','scope','body','revision','state','created_at','updated_at'],'id,revision'),
  spec('porthole_dashboards',['id','name','scope','body','revision','state','created_at','updated_at'],'id'),
+ {table:'porthole_dashboard_policies',columns:['dashboard_id','revision','entries','state','updated_at'],order:'dashboard_id',query:"SELECT dashboard_id,revision,'[]' AS entries,'quarantined' AS state,updated_at FROM porthole_dashboard_policies"},
  spec('porthole_objects',['id','kind','name','scope','body','revision','state','created_at','updated_at'],'id'),
  spec('porthole_host_monitor_evaluations',['id','object_id','revision','host_id','evaluated_at','evidence'],'evaluated_at,id'),
  spec('porthole_host_monitor_versions',['object_id','revision','name','scope','body','created_at'],'object_id,revision'),

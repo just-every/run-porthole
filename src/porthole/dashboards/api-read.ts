@@ -1,3 +1,4 @@
+import {dashboardPolicy,releaseDashboards,dashboardReleaseResponse} from '../authorization/dashboard-policy'
 import {agentReadAuthority,agentCredential,type ReadPrincipal} from '../security/agent-read'
 import type {Bindings} from '../../auth.server'
 import {AuthError} from '../../modules/operator-auth/index.mjs'
@@ -32,15 +33,15 @@ export async function dashboardReadResponse(request:Request,env:Bindings,princip
  const credential=(use:Parameters<typeof verifyCredential>[2])=>principal?.clientId?agentCredential(request,env,principal,use!):verifyCredential(request,env,use)
  const requestId=crypto.randomUUID()
  try {
-  let scope:Scope,signals:string[]|null=null,actorRef:string,actorRevision:number,live:{sql:string;args:unknown[]}
+  let scope:Scope,signals:string[]|null=null,actorRef:string,actorRevision:number,person:string,live:{sql:string;args:unknown[]}
   const bearer=!!principal?.clientId||request.headers.has('authorization')
   if(bearer) {
    const auth=await credential({action:'definitions.read',scope:emptyScope,dataScope:allScope,inspectOnly:true})
-   scope=auth.credential.scope;signals=auth.credential.scope.signals;actorRef=auth.credential.id;actorRevision=auth.credential.revision;live=auth.fence
+   person=auth.credential.custodianId;scope=auth.credential.scope;signals=auth.credential.scope.signals;actorRef=auth.credential.id;actorRevision=auth.credential.revision;live=auth.fence
   } else {
    const actor=principal?await agentReadAuthority(env,principal):await authority(request,env)
    if(actor.member.role==='finance reader')fail('dashboards_forbidden')
-   scope=actor.member.scope;actorRef=actor.member.operatorId;actorRevision=actor.member.revision;live={sql:actor.fence,args:actor.args}
+   person=actor.member.operatorId;scope=actor.member.scope;actorRef=actor.member.operatorId;actorRevision=actor.member.revision;live={sql:actor.fence,args:actor.args}
   }
   if(request.method!=='GET')fail('method_not_allowed',405)
   const url=new URL(request.url),id=url.pathname===root?undefined:url.pathname.slice(root.length+1)
@@ -51,7 +52,7 @@ export async function dashboardReadResponse(request:Request,env:Bindings,princip
   const version=url.searchParams.has('version')?Number(url.searchParams.get('version')):undefined
   if(!Number.isSafeInteger(limit)||limit<1||limit>200||cursor&&!uuid.test(cursor))fail('invalid_pagination',400)
   if(version!==undefined&&(!/^[1-9][0-9]*$/.test(url.searchParams.get('version')!)||!Number.isSafeInteger(version)))fail('invalid_dashboard_version',400)
-  const current=permitted('d',scope,signals),history=permitted('h',scope,signals)
+  const policy=dashboardPolicy('d',person),base=permitted('d',scope,signals),current={sql:`${base.sql} AND ${policy.sql}`,args:[...base.args,...policy.args]},history=permitted('h',scope,signals)
   const statements=(fence:{sql:string;args:unknown[]})=>{
    const select=env.DB.prepare(`SELECT d.* FROM porthole_dashboards d WHERE d.id${id?'=':'>'}? AND ${current.sql} AND ${fence.sql} ORDER BY d.id LIMIT ?`).bind(id??cursor,...current.args,...fence.args,id?1:limit+1)
    if(!id)return [select]
@@ -67,19 +68,23 @@ export async function dashboardReadResponse(request:Request,env:Bindings,princip
     return statements(fence)
    }})
    results=auth.results
+   const released=(await credential({action:'definitions.read',scope:emptyScope,dataScope:allScope,inspectOnly:true})).fence
+   live={sql:`(${live.sql}) AND (${released.sql})`,args:[...live.args,...released.args]}
   } else results=await env.DB.batch(statements(live))
   const rows=results[0].results as unknown as DashboardRow[],headers={'x-porthole-actor':actorRef,'x-porthole-actor-revision':String(actorRevision)}
-  if(!id)return json({objects:rows.slice(0,limit).map(row=>representation(row,scope,signals)),cursor:rows.length>limit?rows[limit-1].id:null},200,headers)
+  const release=()=>releaseDashboards(env,live,person,rows.slice(0,id?1:limit))
+  await release()
+  if(!id)return dashboardReleaseResponse(json({objects:rows.slice(0,limit).map(row=>representation(row,scope,signals)),cursor:rows.length>limit?rows[limit-1].id:null},200,headers),release)
   if(!rows.length) {
    // Preserve the native app's explicit scope refusal. Bearer reads never
    // reveal whether an inaccessible definition exists.
-   if(!principal&&!bearer&&await env.DB.prepare(`SELECT 1 AS present FROM porthole_dashboards WHERE id=? AND ${live.sql}`).bind(id,...live.args).first())fail('scope_forbidden')
+   if(!principal&&!bearer&&await env.DB.prepare(`SELECT 1 AS present FROM porthole_dashboards d WHERE id=? AND ${live.sql} AND ${policy.sql}`).bind(id,...live.args,...policy.args).first())fail('scope_forbidden')
    fail('dashboard_not_found',404)
   }
   const selected=version===undefined?rows[0]:(results[2].results as unknown as DashboardRow[])[0]
   if(!selected)fail('dashboard_version_not_found',404)
   const row=rows[0].state==='quarantined'?{...selected,state:'quarantined'}:selected
-  return json({...representation(row,scope,signals),versions:results[1].results.map(row=>(row as {revision:number}).revision)},200,{...headers,etag:`"${row.revision}"`,'x-porthole-entity':id})
+  return dashboardReleaseResponse(json({...representation(row,scope,signals),versions:results[1].results.map(row=>(row as {revision:number}).revision)},200,{...headers,etag:`"${row.revision}"`,'x-porthole-current-revision':String(rows[0].revision),'x-porthole-entity':id}),release)
  } catch(error) {
   const known=error instanceof AuthError||error instanceof CredentialLimit,status=known?error.status:503,code=known?error.code:'dashboards_unavailable'
   return json({error:code,details:{code,status,requestId}},status,error instanceof CredentialLimit?{'retry-after':String(error.retryAfter)}:{})

@@ -179,3 +179,21 @@ async function publicationBrowser({origin,cookie,dashboardId,allowed,labels,sour
   await anonymous.close();await context.close()
  }}finally{await browser.close()}
 }
+
+/** A policy revision withdraws every already-approved frozen public surface. */
+export async function policyPublicationFixture({origin,cookie,dashboard}) {
+ const post=(path,data)=>fetch(origin+path,form(origin,cookie,data))
+ const draft=await post(root+'/preview',{dashboardId:dashboard.id,sourceRevision:dashboard.revision,publicTitle:'Reviewed policy snapshot',labels:{logs:'Observed count'},allowedOrigins:['https://display.example.invalid'],expiresAt:Date.now()+3600000})
+ assert.equal(draft.status,303,await draft.clone().text())
+ const path=draft.headers.get('location'),response=await fetch(origin+path,{headers:{cookie}}),html=await response.text()
+ const values=Object.fromEntries([...html.matchAll(/<input type="hidden" name="([^"]+)" value="([^"]*)">/g)].map(([,name,value])=>[name,value.replaceAll('&#34;','"').replaceAll('&#38;','&').replaceAll('&#39;',"'")]))
+ assert.equal((await post(root+'/approve',{...values,confirm:'reviewed-public-snapshot',reviewTv:'reviewed',reviewEmbed:'reviewed',reviewImages:'reviewed'})).status,303)
+ const published=await (await fetch(origin+path,{headers:{cookie}})).text()
+ const paths=[...published.matchAll(/href="(\/published\/[^\"]+)"/g)].map(match=>match[1])
+ assert.equal(paths.length,3)
+ for(const path of paths)assert.equal((await fetch(origin+path,{headers:{origin:'https://display.example.invalid'}})).status,200)
+ return paths
+}
+export async function assertPolicyPublicationWithdrawn({origin,publication}) {
+ for(const path of publication)assert.equal((await fetch(origin+path,{headers:{origin:'https://display.example.invalid'}})).status,404,'policy changes cannot reuse previously reviewed public authority')
+}

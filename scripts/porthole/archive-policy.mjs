@@ -3,7 +3,7 @@
 // are omitted entirely, including hashes. Source ids remain audit references.
 const excluded=[
  'porthole_host_sources','porthole_host_heartbeats','porthole_host_monitor_state',
- 'porthole_pipeline_previews',
+ 'porthole_pipeline_previews','porthole_dashboard_policy_reviews',
  'porthole_metric_previews',
  'porthole_follow_up','porthole_follow_up_events',
  'porthole_analytical_configuration','rer_dependency_%','oc_%','porthole_members','porthole_credentials','porthole_object_approvals',
@@ -16,7 +16,9 @@ export default {
  includeTables:['porthole_membership_migration'],
  excludeTables:excluded,
  requiredConfiguration:['OWNER_EMAIL','SESSION_SECRET','SETUP_TOKEN','AUTH_ORIGIN','MAIL_PROVIDER','MAIL_FROM'],
+ exportRow(table,row) {return table==='porthole_dashboard_policies'?{...row,entries:'[]',state:'quarantined'}:row},
  importSafety:{
+  porthole_dashboard_policies:{entries:['[]'],state:['quarantined']},
   porthole_pipeline_versions:{state:['quarantined']},
   porthole_metric_rules:{state:['quarantined']},
   porthole_retention_policies:{active:[0]},
@@ -26,6 +28,7 @@ export default {
   porthole_monitor_state:{status:['Unknown']},
  },
  importRow(table,row) {
+  if(table==='porthole_dashboard_policies')return {...row,entries:'[]',state:'quarantined'}
   if(table==='porthole_pipeline_versions')return {...row,state:'quarantined'}
   if(table==='porthole_metric_rules')return {...row,state:'quarantined'}
   if(['porthole_objects','porthole_bucket_history'].includes(table))return {...row,state:'quarantined'}
@@ -46,6 +49,10 @@ export default {
   if(row.n!==0)return false
   // A present policy domain must still satisfy
   // the owner editor's shape and separate attribute permission before publish.
+  if(tables.porthole_dashboard_policies) {
+   const restrictions=await read('porthole_dashboard_policies')
+   if(restrictions.some(row=>row.entries!=='[]'||row.state!=='quarantined'))return false
+  }
   if(!tables.porthole_baggage_policy)return true
   const policies=await read('porthole_baggage_policy')
   if(policies.length!==1)return false

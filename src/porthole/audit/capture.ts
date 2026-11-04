@@ -1,3 +1,5 @@
+import {AuthError} from '../../modules/operator-auth/index.mjs'
+import {releaseDashboardResponse} from '../authorization/dashboard-policy'
 import { operatorAuth, type Bindings } from '../../auth.server'
 import { verifyCredential } from '../credentials/verify'
 import { transactionalAudit } from './transaction'
@@ -7,6 +9,7 @@ import { append, digest, type AuditInput } from './store'
 // Each existing administrative HTTP mutation has a fixed label. Future product
 // handlers must adopt this seam; this list does not claim to implement them.
 const actions: Record<string, string> = {
+ '/app/settings/dashboard-access/preview':'dashboards.policy-preview', '/app/settings/dashboard-access/apply':'dashboards.policy-change',
  '/api/porthole/v1/pipelines/preview':'pipeline.preview','/api/porthole/v1/pipelines/activate':'pipeline.activate',
  '/app/settings/pipelines/preview':'pipeline.preview','/app/settings/pipelines/activate':'pipeline.activate',
  '/api/porthole/v1/pipelines/metrics':'pipeline.metrics','/api/porthole/v1/pipelines/accounting':'pipeline.accounting',
@@ -111,6 +114,14 @@ export async function capture(request: Request, env: Bindings, handle: (env: Bin
   await append(env.DB, { ...input, phase: outcome(response.status), status: response.status })
  }
  catch { return auditUnavailable(operationRef) }
+ // Audit projection and response inspection may await after the read handler.
+ // Recheck its original revisions only after every such step has finished.
+ try { await releaseDashboardResponse(response) }
+ catch(error) {
+  if(!(error instanceof AuthError))return auditUnavailable(operationRef)
+  try {await append(env.DB,{...input,phase:'denied',status:error.status})}catch{return auditUnavailable(operationRef)}
+  response=Response.json({error:error.code},{status:error.status,headers})
+ }
  const responseHeaders = new Headers(response.headers)
  responseHeaders.set('x-porthole-operation', operationRef)
  return new Response(response.body, { status: response.status, statusText: response.statusText, headers: responseHeaders })
