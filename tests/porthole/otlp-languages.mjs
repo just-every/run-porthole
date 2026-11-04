@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict'
 import {createHash,randomBytes} from 'node:crypto'
-import {execFile,spawn} from 'node:child_process'
-import {promisify} from 'node:util'
+import {spawn} from 'node:child_process'
 import {once} from 'node:events'
 import {gunzipSync} from 'node:zlib'
 import {setTimeout as delay} from 'node:timers/promises'
@@ -11,7 +10,7 @@ import {otlpLanguageEstate} from './polyglot/estate.mjs'
 
 const api='/api/porthole/v1/ingest',languages=['python','java','go','dotnet'],signals=['traces','logs','metrics']
 const scope={services:languages,environments:['production'],teams:['commerce'],signals,actions:['telemetry.write']}
-const execute=promisify(execFile),hash=value=>createHash('sha256').update(value).digest('hex')
+const hash=value=>createHash('sha256').update(value).digest('hex')
 const attrs=list=>Object.fromEntries((list??[]).map(item=>[item.key,item.value.stringValue??item.value.intValue??item.value.doubleValue??item.value.boolValue]))
 async function value(response,status=200){assert.equal(response.status,status,await response.clone().text());return response.json()}
 // Decode actual emitted protobuf using the pinned official Python SDK schema,
@@ -50,21 +49,20 @@ function comparable(payload){
  // explicitly present on the wire, including those defaults.
  const strip=value=>{
   if(Array.isArray(value))return value.map(strip)
-  if(value&&typeof value==='object')return Object.fromEntries(Object.entries(value).filter(([,v])=>v!==0&&v!==false&&v!==''&&v!=='0'&&!(Array.isArray(v)&&!v.length)).map(([k,v])=>[k,strip(v)]))
+  if(value&&typeof value==='object')return Object.fromEntries(Object.entries(value).filter(([k,v])=>!(Array.isArray(v)&&!v.length)&&!(v===''&&['name','version','schemaUrl','resourceSchemaUrl','scopeSchemaUrl','traceState','severityText','description'].includes(k))&&!((v===0||v==='0'||v===false)&&['droppedAttributesCount','droppedEventsCount','droppedLinksCount','flags','severityNumber','aggregationTemporality','isMonotonic','code'].includes(k))).map(([k,v])=>[k,strip(v)]))
   return value
  }
  return strip(result)
 }
-function identity(row){return JSON.stringify(comparable(row),Object.keys(comparable(row)).sort())}
 // Recursive key ordering makes full payload comparison independent of JSON
 // property order; attributes, events and exemplar arrays retain source order.
 const canonical=value=>Array.isArray(value)?value.map(canonical):value&&typeof value==='object'?Object.fromEntries(Object.keys(value).sort().map(key=>[key,canonical(value[key])])):value
 const fingerprint=payload=>JSON.stringify(canonical(comparable(payload)))
-async function pages(origin,cookie,signal,extra={}){
+async function pages(origin,cookie,signal,extra={},request=path=>fetch(origin+path,{headers:{cookie}})){
  let cursor,snapshot,rows=[],count=0
  do{
-  const query=new URLSearchParams({signal,limit:'7',...extra,...(cursor?{cursor,snapshot:String(snapshot)}:{})})
-  const result=await value(await fetch(origin+api+'/records?'+query,{headers:{cookie}}))
+  const query=new URLSearchParams({signal,limit:'31',...extra,...(cursor?{cursor,snapshot:String(snapshot)}:{})})
+  const result=await value(await request(api+'/records?'+query))
   if(snapshot!==undefined)assert.equal(result.snapshot,snapshot,'pagination keeps its completion watermark')
   snapshot=result.snapshot;rows.push(...result.records);cursor=result.cursor;assert.ok(++count<500,'bounded pagination')
  }while(cursor)
@@ -98,6 +96,7 @@ function outcomes(expected,requests){
    assert.ok(points.length>0,language+' actual metric exported for request')
    const latest=points.sort((a,b)=>BigInt(a.record.timeUnixNano)<BigInt(b.record.timeUnixNano)?-1:1).at(-1)
    assert.equal(Number(latest.record.asInt??latest.record.asDouble),1,language+' cumulative request count reconciles to one source request')
+   assert.ok(points.some(p=>(p.record.exemplars??[]).some(e=>e.traceId===request.traceId&&e.spanId===spans[0].record.spanId)),language+' stock metric exemplar retains request trace and span context')
    assert.equal(latest.metricKind,'sum');assert.equal(latest.metric.unit,'{request}');assert.equal(latest.metric.sum.isMonotonic,true);assert.equal(latest.metric.sum.aggregationTemporality,2)
   }
   assert.ok(traces.some(p=>resource(p)&&attrs(p.resource.attributes)['telemetry.sdk.version']),language+' emitted SDK version present')
@@ -118,6 +117,8 @@ export async function otlpLanguagesJourney({origin,freshOwner,restartWorker,with
     assert.equal(response.status,status,language+' real producer response');await response.text();requests.push({id,traceId,language,status})
    }
    await delay(1600);await estate.stopProducers()
+   assert.equal(estate.delivery.interrupted,1,'real stock Collector loses one acknowledgement after durable acceptance')
+   assert.ok(estate.delivery.duplicates>=1,'stock Collector retries unchanged bytes after interrupted acknowledgement')
    assert.deepEqual(estate.failures,[],'stock Collector exports are acknowledged by real intake')
    const captures=[...estate.captures.values()]
    assert.ok(captures.length>=12,'each language exports all three signals')
@@ -143,7 +144,7 @@ export async function otlpLanguagesJourney({origin,freshOwner,restartWorker,with
  outcomes(expected,requests)
  const actual={};for(const signal of signals)actual[signal]=await pages(origin,cookie,signal)
  reconcile(expected,actual,source.credential.id)
- const before=await post(api+'/control',{paused:true})
+ await post(api+'/control',{paused:true})
  for(const signal of signals){
   const malformed=await fetch(origin+'/v1/'+signal,{method:'POST',headers:{authorization:'Bearer '+source.secret,'content-type':'application/x-protobuf'},body:Buffer.from([255])})
   assert.equal(malformed.status,400);assert.ok(malformed.headers.get('x-porthole-error'))
@@ -152,6 +153,13 @@ export async function otlpLanguagesJourney({origin,freshOwner,restartWorker,with
  const trace=allCaptures.find(c=>c.signal==='traces')
  assert.equal((await fetch(origin+'/v1/traces',{method:'POST',headers:{authorization:'Bearer '+narrow.secret,...trace.headers},body:trace.wire})).status,403,'wrong signal grant refuses actual stock bytes')
  assert.equal((await fetch(origin+'/v1/traces',{method:'POST',headers:{authorization:'Bearer synthetic-porthole-1002',...trace.headers},body:trace.wire})).status,401,'foreign source refuses actual stock bytes')
+ const reader=await post('/app/settings/credentials/mint',{name:'Stock signal reader',class:'read',scope:{...scope,actions:['telemetry.read']}},201)
+ const firstRead=await value(await fetch(origin+api+'/records?signal=logs&limit=1',{headers:{authorization:'Bearer '+reader.secret}}))
+ assert.equal(firstRead.records.length,1);assert.ok(firstRead.cursor,'actual stock logs paginate')
+ await post('/app/settings/credentials/revoke',{id:reader.credential.id})
+ assert.equal((await fetch(origin+api+'/records?'+new URLSearchParams({signal:'logs',limit:'1',snapshot:String(firstRead.snapshot),cursor:firstRead.cursor}),{headers:{authorization:'Bearer '+reader.secret}})).status,401,'next page cannot reuse revoked read authority')
+ const wrongEnvelope=await fetch(origin+'/v1/metrics',{method:'POST',headers:{authorization:'Bearer '+source.secret,...trace.headers},body:trace.wire})
+ assert.equal(wrongEnvelope.status,400,'trace message cannot enter a metric endpoint')
  await post('/app/settings/credentials/revoke',{id:source.credential.id})
  assert.equal((await fetch(origin+'/v1/traces',{method:'POST',headers:{authorization:'Bearer '+source.secret,...trace.headers},body:trace.wire})).status,401,'next request source revocation')
  await post(api+'/control',{paused:false})
@@ -177,10 +185,10 @@ export async function otlpLanguagesAnalyticalJourney({captures,expected}){
   for(let i=0;i<100;i++){const drain=await send(api+'/drain',{});if(!drain.pendingBatches){assert.equal(drain.analytical.complete,true);break}}
   for(const role of ['primary','standby']){
    config=await read('/api/porthole/v1/analytics/configuration');await send('/api/porthole/v1/analytics/configuration',{revision:config.revision,enabled:true,role,confirm:'connect-analytical-workers'})
-   const actual={};for(const signal of signals)actual[signal]=await pages(origin,cookie,signal)
+   const actual={};for(const signal of signals)actual[signal]=await pages(origin,cookie,signal,{},path=>call(path,{headers:{cookie}}))
    reconcile(expected,actual,source.credential.id)
   }
-  await restart();const actual={};for(const signal of signals)actual[signal]=await pages(origin,cookie,signal);reconcile(expected,actual,source.credential.id)
+  await restart();const actual={};for(const signal of signals)actual[signal]=await pages(origin,cookie,signal,{},path=>call(path,{headers:{cookie}}));reconcile(expected,actual,source.credential.id)
   await estate.stop('standby');assert.equal((await call(api+'/records?signal=logs',{headers:{cookie}})).status,503,'unavailable analytical storage does not become an empty success')
  }})}finally{await estate.dispose()}
  console.log('PROBE PORT-001 analytical reads: actual captured stock exports -> every record reconciled through primary and standby paginated public reads, restart retained, stopped storage refused')

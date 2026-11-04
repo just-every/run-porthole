@@ -179,6 +179,57 @@ snapshot. Replaying an earlier empty snapshot will remain empty.
 See the [query reference](/docs/v1/query-reference) for filters and pagination,
 and [API errors](/docs/v1/api-errors) for actionable refusals.
 
+## Local stock language qualification
+
+The disposable estate in `instrumentation/polyglot/` uses ordinary HTTP request
+handlers, stock server tracing, standard application logging and standard OTel
+request counters. Applications send unchanged OTLP to an unmodified official
+OpenTelemetry Collector Contrib 0.135.0. The Collector image is pinned by digest
+in `tests/porthole/polyglot/estate.mjs`; it performs no attribute rewriting,
+sampling or application-specific decoding. Only local destinations and local
+authorization change between runs.
+
+| Runtime | Official instrumentation and exporters |
+| --- | --- |
+| Python 3.12 | OTel SDK and HTTP protobuf exporters 1.45.1; distro and Flask instrumentation 0.66b1 |
+| Java 21 | OTel Java agent 2.32.0 with API and SDK 1.66.0; standard logs and metric APIs |
+| Go 1.25 | OTel SDK, metric SDK and HTTP exporters 1.38.0; log SDK and HTTP exporter 0.14.0; HTTP instrumentation 0.63.0 |
+| .NET 8 | OTel hosting, ASP.NET Core, HTTP instrumentation and OTLP exporters 1.20.1 |
+
+`tests/porthole/otlp-languages.mjs` drives independently counted successful and
+failed real requests. The Python, Java and Go exporters use HTTP protobuf; .NET
+uses gRPC. Each runtime exports traces, request logs and cumulative request
+counters with request context. Both stock Collector output transports reach the
+same documented intake: HTTP protobuf directly, and gRPC through the receiver
+above. An interrupted acknowledgement exercises the Collector's actual retry.
+Original export bytes are decoded independently with the official Python schema,
+then reconciled against every permitted paginated native record, including
+resource and instrumentation versions, resource and scope schema URLs, original
+nanosecond timestamps, log trace and span IDs, metric units, kinds, temporality
+and exemplars. Periodic cumulative metric exports remain distinct observations;
+adding successive cumulative values would overcount requests.
+
+The journey also exercises exact-byte retry after Worker restart, malformed and
+wrong-signal refusals, revoked intake and paginated read credentials, accepted
+and queryable accounting, both separate analytical configurations and inactive
+installation restore and re-export. Browser proof opens delivery and actual
+request-log results at 1440 and 390 pixels. Run from an installed checkout with
+Docker available:
+
+```sh
+bash instrumentation/polyglot/build.sh python java go dotnet
+pnpm run build
+PORTHOLE_OTLP_LANGUAGES_ONLY=1 pnpm run test:runtime
+```
+
+This is a local functional three-signal qualification. It does not qualify
+Python, Java, Go or .NET profiles, Ruby logs or metrics, a complete six-language
+four-signal matrix, a stock profiler, a deployed TLS receiver, or queryability
+at the complete PORT-057 workload. Dedicated owner-authorized capacity and an
+approved USD ceiling remain required for that timing claim. Existing profile
+dictionary isolation, owner-only original-wire custody and profile standards
+maturity restrictions continue to apply.
+
 ## Current limits
 
 The implemented intake retains and queries the four signal types described

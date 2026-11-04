@@ -1,6 +1,8 @@
 package main
 import (
  "context"
+ "os/signal"
+ "syscall"
  "time"
  "go.opentelemetry.io/otel/attribute"
  "go.opentelemetry.io/otel/metric"
@@ -28,7 +30,7 @@ func main(){
  ctx:=context.Background()
  exporter,err:=otlptracehttp.New(ctx);if err!=nil{log.Fatal(err)}
  resources,err:=resource.New(ctx,resource.WithFromEnv(),resource.WithTelemetrySDK());if err!=nil{log.Fatal(err)}
- provider:=sdktrace.NewTracerProvider(sdktrace.WithBatcher(exporter),sdktrace.WithResource(resources))
+ provider:=sdktrace.NewTracerProvider(sdktrace.WithBatcher(exporter,sdktrace.WithBatchTimeout(100*time.Millisecond)),sdktrace.WithResource(resources))
  defer provider.Shutdown(ctx)
  logExporter,err:=otlploghttp.New(ctx);if err!=nil{log.Fatal(err)}
  logProvider:=sdklog.NewLoggerProvider(sdklog.WithProcessor(sdklog.NewBatchProcessor(logExporter,sdklog.WithExportInterval(100*time.Millisecond))),sdklog.WithResource(resources))
@@ -60,5 +62,8 @@ func main(){
   w.WriteHeader(status)
   w.Write([]byte("go completed\n"))
  })
- log.Fatal(http.ListenAndServe(":"+os.Getenv("PORT"),otelhttp.NewHandler(handler,"GET /work")))
+ server:=&http.Server{Addr:":"+os.Getenv("PORT"),Handler:otelhttp.NewHandler(handler,"GET /work")}
+ stopped:=make(chan os.Signal,1);signal.Notify(stopped,os.Interrupt,syscall.SIGTERM)
+ go func(){<-stopped;server.Shutdown(ctx)}()
+ if err:=server.ListenAndServe();err!=nil&&err!=http.ErrServerClosed{log.Fatal(err)}
 }

@@ -1,4 +1,7 @@
 import os
+import signal
+import sys
+signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
 import porthole_policy
 import requests
 import logging
