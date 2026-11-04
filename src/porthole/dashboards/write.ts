@@ -4,6 +4,7 @@ import {input} from '../security/input'
 import {canonical} from '../ingest/model'
 import {privateHeaders} from '../document'
 import {dashboardBody,label,scopeLabel,type Dashboard} from './model'
+import {dashboardPolicy,nativeRelease} from '../authorization/dashboard-policy'
 import {currentDashboard} from './store'
 export async function writeDashboard(request:Request,env:Bindings,actor:Authority):Promise<Response> {
  const url=new URL(request.url),page=url.pathname.startsWith('/app/'),app='/app/dashboards'
@@ -18,8 +19,8 @@ export async function writeDashboard(request:Request,env:Bindings,actor:Authorit
   const fingerprint=canonical({path:url.pathname,data})
   const lookup=()=>env.DB.prepare(`SELECT fingerprint,response FROM porthole_api_idempotency WHERE actor_ref=? AND request_key=? AND ${actor.fence}`).bind(actor.member.operatorId,key,...actor.args).first<{fingerprint:string;response:string}>()
   const cached=key?await lookup():null
-  if(cached) {if(cached.fingerprint!==fingerprint)fail('idempotency_conflict',409);const value=JSON.parse(cached.response);await currentDashboard(env,actor,value.id);return result(value,true)}
-  const previous=typeof data.id==='string'?await currentDashboard(env,actor,data.id):null,now=Date.now()
+  if(cached) {if(cached.fingerprint!==fingerprint)fail('idempotency_conflict',409);const value=JSON.parse(cached.response);const source=await currentDashboard(env,actor,typeof data.id==='string'?data.id:value.id,true);await nativeRelease(env,actor,[source],true);return result(value,true)}
+  const previous=typeof data.id==='string'?await currentDashboard(env,actor,data.id,true):null,now=Date.now()
   if(previous&&Number(data.revision)!==previous.revision)fail('revision_or_authority_changed',409)
   let body:Dashboard,name:string,scope:Scope,state='active',id=previous?.id??crypto.randomUUID(),revision=(previous?.revision??0)+1
   if(url.pathname.endsWith('/clone')||url.pathname.endsWith('/reorder')||url.pathname.endsWith('/archive')||url.pathname.endsWith('/panel')||url.pathname.endsWith('/annotation')) {
@@ -50,17 +51,27 @@ export async function writeDashboard(request:Request,env:Bindings,actor:Authorit
   }
   if(!scope.services.length||!scope.environments.length||!scope.teams.length||!scopeWithin(scope,actor.member.scope)||body.panels.some(p=>!scopeWithin({services:[p.service],environments:[body.variables.environment],teams:[body.variables.team]},scope)))fail('scope_forbidden')
   const inserting=!previous||id!==previous.id
-  const guard=key?`${actor.fence} AND NOT EXISTS(SELECT 1 FROM porthole_api_idempotency WHERE actor_ref=? AND request_key=?)`:actor.fence,args=key?[...actor.args,actor.member.operatorId,key]:actor.args
+  const gate=dashboardPolicy('d',actor.member.operatorId,true)
+  const source=previous?` AND EXISTS(SELECT 1 FROM porthole_dashboards d WHERE d.id=? AND d.revision=? AND ${gate.sql})`:''
+  const sourceArgs=previous?[previous.id,previous.revision,...gate.args]:[]
+  const live=`${actor.fence}${source}`,liveArgs=[...actor.args,...sourceArgs]
+  const guard=key?`${live} AND NOT EXISTS(SELECT 1 FROM porthole_api_idempotency WHERE actor_ref=? AND request_key=?)`:live,args=key?[...liveArgs,actor.member.operatorId,key]:liveArgs
   const statement=inserting?env.DB.prepare(`INSERT INTO porthole_dashboards SELECT ?,?,?,?,?,?,?,? WHERE ${guard}`).bind(id,name,JSON.stringify(scope),JSON.stringify(body),revision,state,now,now,...args):env.DB.prepare(`UPDATE porthole_dashboards SET name=?,scope=?,body=?,revision=?,state=?,updated_at=? WHERE id=? AND revision=? AND ${guard}`).bind(name,JSON.stringify(scope),JSON.stringify(body),revision,state,now,id,previous.revision,...args)
   const value={id,revision,state}
+  const clonePolicy=inserting&&previous?[env.DB.prepare(`INSERT INTO porthole_dashboard_policies SELECT ?,1,'[]','active',? WHERE EXISTS(SELECT 1 FROM porthole_dashboards WHERE id=?) AND EXISTS(SELECT 1 FROM porthole_dashboard_policies WHERE dashboard_id=?) AND ${actor.fence}`).bind(id,now,id,previous.id,...actor.args)]:[]
   if(key) {
-   const writes=await env.DB.batch([statement,env.DB.prepare(`INSERT OR IGNORE INTO porthole_api_idempotency SELECT ?,?,?,?,?,? WHERE changes()=1 AND ${actor.fence}`).bind(actor.member.operatorId,key,fingerprint,JSON.stringify(value),201,now,...actor.args)])
+   const writes=await env.DB.batch([statement,env.DB.prepare(`INSERT OR IGNORE INTO porthole_api_idempotency SELECT ?,?,?,?,?,? WHERE changes()=1 AND ${actor.fence}`).bind(actor.member.operatorId,key,fingerprint,JSON.stringify(value),201,now,...actor.args),...clonePolicy])
    const receipt=await lookup()
    if(!receipt)fail('revision_or_authority_changed',409)
    if(receipt.fingerprint!==fingerprint)fail('idempotency_conflict',409)
-   const committed=JSON.parse(receipt.response);await currentDashboard(env,actor,committed.id)
+   const committed=JSON.parse(receipt.response)
+   if(previous&&inserting)await nativeRelease(env,actor,[previous],true)
+   else await nativeRelease(env,actor,[{id:committed.id,revision:committed.revision}],true)
    return result(committed,!writes[0].meta.changes)
   }
-  if(!(await statement.run()).meta.changes)fail('revision_or_authority_changed',409)
+  const writes=await env.DB.batch([statement,...clonePolicy])
+  if(!writes[0].meta.changes)fail('revision_or_authority_changed',409)
+  if(previous&&inserting)await nativeRelease(env,actor,[previous],true)
+  else await nativeRelease(env,actor,[{id,revision}],true)
   return result(value,false)
 }

@@ -47,6 +47,7 @@ export function manifestInput(value: unknown): Manifest {
  if(!Object.hasOwn(value.tables,'porthole_erased_batches'))value.tables.porthole_erased_batches=0
  if(!Object.hasOwn(value.tables,'porthole_export_exclusions'))value.tables.porthole_export_exclusions=0
  for(const table of ['porthole_dashboards','porthole_dashboard_versions','porthole_dashboard_publications'])if(!Object.hasOwn(value.tables,table))value.tables[table]=0
+ if(!Object.hasOwn(value.tables,'porthole_dashboard_policies'))value.tables.porthole_dashboard_policies=0
  if(!Object.hasOwn(value.tables,'porthole_baggage_policy'))value.tables.porthole_baggage_policy=0
  for(const table of ['porthole_migration_records','porthole_migration_custody'])if(!Object.hasOwn(value.tables,table))value.tables[table]=0
  for(const table of ['porthole_host_monitor_versions','porthole_host_monitor_evaluations'])if(!Object.hasOwn(value.tables,table))value.tables[table]=0
@@ -113,6 +114,8 @@ export async function validateRow(payload: PortableRow, state: Validation): Prom
   const keys=baggageKeys(json(row.allowed_keys)),attrs=baggageKeys(json(row.attribute_keys));if(attrs.some(key=>!keys.includes(key)))bad()
  } else if(item.table==='porthole_bucket_history') {
   if(!validHistoryReference(row))bad()
+ } else if(item.table==='porthole_dashboard_policies') {
+  if(!uuid(row.dashboard_id)||!integer(row.revision)||row.revision<1||row.entries!=='[]'||row.state!=='quarantined'||!integer(row.updated_at))bad()
  } else if(item.table==='porthole_dashboard_publications') {
   if(!validPublicationRow(row))bad()
  } else if(['porthole_dashboards','porthole_dashboard_versions'].includes(item.table)) {
