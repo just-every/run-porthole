@@ -874,6 +874,22 @@ async function run(source) {
   for(const table of liveHostTables)assert.ok(hostRows[table].length,'native backup starts with real '+table)
   const hostVersions=await sql(source,'SELECT * FROM porthole_host_monitor_versions WHERE object_id='+literal(host.id))
   const hostHistory=await sql(source,'SELECT * FROM porthole_host_monitor_evaluations WHERE object_id='+literal(host.id))
+  // The shared native transfer door must keep pack review grants inert too.
+  cookie=await helpers.freshOwner()
+  const packRoot='/api/porthole/v1/dashboard-powerpacks',dashboardRoot='/api/porthole/v1/dashboards'
+  const packBody={variables:{team:scope.teams[0],environment:scope.environments[0]},range:{from:'0',through:'18446744073709551615'},annotations:[],panels:[{id:'logs',title:'Native retained log count',signal:'logs',service:scope.services[0],aggregate:'count',unit:'records'},{id:'traces',title:'Native retained trace percentile',signal:'traces',service:scope.services[0],aggregate:'p95',unit:'ms'}],layout:[{panel:'logs',width:6,height:1},{panel:'traces',width:6,height:1}]}
+  const packPreview=await value(send(packRoot+'/preview',{name:'Native archive pack',scope,body:packBody}),201)
+  const nativePack=await value(send(packRoot+'/approve',{id:packPreview.id,digest:packPreview.digest,confirm:'apply-private-powerpack'}))
+  const nativeConsumers=[]
+  for(let index=0;index<2;index++)nativeConsumers.push(await value(send(dashboardRoot,{name:'Native archive consumer '+index,scope,body:{...packBody,panels:[],layout:[{id:'native-pack',title:'Private retained signals',width:12,height:1,collapsed:false,children:[],powerpack:{id:nativePack.id,revision:1}}]}}),201))
+  const changedPack=await value(send(packRoot+'/preview',{id:nativePack.id,revision:1,name:'Native archive pack updated',scope,body:{...packBody,layout:[packBody.layout[1],packBody.layout[0]]}}),201)
+  await value(send(packRoot+'/approve',{id:changedPack.id,digest:changedPack.digest,confirm:'apply-private-powerpack'}))
+  const nativePackHistory=await sql(source,'SELECT * FROM porthole_powerpack_versions WHERE id='+literal(nativePack.id)+' ORDER BY revision')
+  assert.equal(nativePackHistory.length,2)
+  const nativeDashboardRows=await sql(source,'SELECT * FROM porthole_dashboards WHERE id IN ('+nativeConsumers.map(row=>literal(row.id)).join(',')+') ORDER BY id')
+  const nativeDashboardHistory=await sql(source,'SELECT * FROM porthole_dashboard_versions WHERE id IN ('+nativeConsumers.map(row=>literal(row.id)).join(',')+') ORDER BY id,revision')
+  assert.equal(nativeDashboardRows.length,2);assert.ok(nativeDashboardRows.every(row=>row.revision===2))
+  assert.ok((await sql(source,'SELECT COUNT(*) AS n FROM porthole_powerpack_reviews'))[0].n>=2,'live source actually has consumed native review grants')
   // Prepare a real Settings export too, including cached download packets.
   const frozen=await value(send(archive+'/exports',{}),201)
   for(let index=0;index<frozen.totalChunks;index++)await value(await fetch(origin+archive+'/exports/'+frozen.id+'/chunks/'+index,{headers:{cookie}}))
@@ -935,6 +951,11 @@ async function run(source) {
   const portable=await readFile(afterFile,'utf8')
   assert.ok(!portable.includes(identifier),'a subsequent native export contains no erased subject')
   assert.ok(portable.includes(peer),'native export retains the unrelated subject')
+  const {fileRecords}=await import('@runeditrun/rer/modules/portability/files')
+  const nativeItems=[]
+  for await(const record of fileRecords(afterFile))if(record.kind==='part')nativeItems.push(...record.items)
+  assert.ok(!nativeItems.some(item=>item.table==='porthole_powerpack_reviews'),'native installation archive excludes review authority')
+  assert.equal(nativeItems.filter(item=>item.kind==='row'&&item.table==='porthole_powerpack_versions'&&item.row.id===nativePack.id).length,2,'native export includes real immutable pack history')
   const destination=await clone('erasure-destination')
   await command(destination,['import','--input',afterFile,'--yes'])
   for(const table of liveHostTables) {
@@ -946,6 +967,12 @@ async function run(source) {
   assert.deepEqual(await sql(destination,'SELECT * FROM porthole_host_monitor_versions WHERE object_id='+literal(host.id)),hostVersions)
   assert.deepEqual(await sql(destination,'SELECT * FROM porthole_host_monitor_evaluations WHERE object_id='+literal(host.id)),hostHistory)
   assert.equal((await sql(destination,'SELECT state FROM porthole_objects WHERE id='+literal(host.id)))[0].state,'quarantined')
+  assert.equal((await sql(destination,'SELECT COUNT(*) AS n FROM porthole_powerpack_reviews'))[0].n,0,'native import cannot restore a reviewed approval')
+  const restoredPack=await sql(destination,'SELECT * FROM porthole_powerpacks WHERE id='+literal(nativePack.id))
+  assert.equal(restoredPack[0].state,'quarantined');assert.equal(restoredPack[0].revision,2)
+  assert.deepEqual(await sql(destination,'SELECT * FROM porthole_powerpack_versions WHERE id='+literal(nativePack.id)+' ORDER BY revision'),nativePackHistory)
+  for(const row of nativeDashboardRows){const restored=(await sql(destination,'SELECT * FROM porthole_dashboards WHERE id='+literal(row.id)))[0];assert.deepEqual(restored,{...row,state:'quarantined'})}
+  assert.deepEqual(await sql(destination,'SELECT * FROM porthole_dashboard_versions WHERE id IN ('+nativeConsumers.map(row=>literal(row.id)).join(',')+') ORDER BY id,revision'),nativeDashboardHistory)
   const restored=await sql(destination,'SELECT records,wire_base64 FROM porthole_ingest_batches ORDER BY id')
   assert.ok(!JSON.stringify(restored).includes(identifier))
   assert.equal(restored.filter(row=>row.records.includes(peer)).length,1,'native restore retains exactly one unrelated subject batch')
@@ -955,6 +982,11 @@ async function run(source) {
   const reexport=join(destination,'exports','restored-erasure.rer')
   await command(destination,['export','--output',reexport])
   assert.ok(!(await readFile(reexport,'utf8')).includes(identifier),'native restore and re-export contain no trace of erased subject')
+  const restoredItems=[]
+  for await(const record of fileRecords(reexport))if(record.kind==='part')restoredItems.push(...record.items)
+  assert.ok(!restoredItems.some(item=>item.table==='porthole_powerpack_reviews'))
+  for(const id of [nativePack.id,...nativeConsumers.map(row=>row.id)])assert.equal(restoredItems.find(item=>item.kind==='row'&&['porthole_powerpacks','porthole_dashboards'].includes(item.table)&&item.row.id===id).row.state,'quarantined','native re-export preserves private inactive pack consumers')
+  console.log('PROBE PORT-068 native archive: rer export, import and re-export -> two bound consumers and both pack versions retained, current definitions inactive, review approvals excluded, erased telemetry stays absent')
   console.log('nativeBackupErasureJourney passed: actual native backup, owner-only exact erasure of every matching batch and frozen custody, unchanged unrelated subject and trace history, capture and revoked-credential refusal, restart and native restore with no erased subject or live host authority')
  } finally {await stop()}
 }
