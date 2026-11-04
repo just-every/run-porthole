@@ -12,3 +12,10 @@ CREATE TABLE porthole_database_sources (
  reviewed_at INTEGER NOT NULL,
  owner_id TEXT NOT NULL
 );
+
+CREATE TRIGGER porthole_database_source_insert AFTER INSERT ON porthole_database_sources WHEN EXISTS(SELECT 1 FROM porthole_audit_context) BEGIN
+ INSERT INTO porthole_audit_facts SELECT lower(hex(randomblob(16))),COALESCE((SELECT MAX(ordinal) FROM porthole_audit_facts),0)+1,operation_ref,actor_ref,actor_revision,'database.review',NEW.owner_id,NEW.revision,occurred_at,CAST(unixepoch('subsec')*1000 AS INTEGER) FROM porthole_audit_context;
+END;
+CREATE TRIGGER porthole_database_source_update AFTER UPDATE ON porthole_database_sources WHEN EXISTS(SELECT 1 FROM porthole_audit_context) BEGIN
+ INSERT INTO porthole_audit_facts SELECT lower(hex(randomblob(16))),COALESCE((SELECT MAX(ordinal) FROM porthole_audit_facts),0)+1,operation_ref,actor_ref,actor_revision,'database.review',NEW.owner_id,NEW.revision,occurred_at,CAST(unixepoch('subsec')*1000 AS INTEGER) FROM porthole_audit_context;
+END;

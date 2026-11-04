@@ -21,6 +21,10 @@ export function processed(record:TelemetryRecord,d:Definition|null,revision:numb
  const safe={...record,payload:sanitizePayload(databasePrivacy(record.payload),active?.redaction,!!active)}
  const result=parse&&active?transform(safe,active,revision):safe
  result.payload=sanitizePayload(result.payload,active?.redaction,!!active)
+ if(record.payload.databaseCapture){
+  const safe=databasePrivacy(record.payload).databaseCapture
+  result.payload.databaseCapture=safe
+ }
  if(parse&&active) {
   const p=result.payload.pipeline as Record<string,unknown>
   p.metrics=metricMatches(result,active)

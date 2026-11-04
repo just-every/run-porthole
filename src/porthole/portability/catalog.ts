@@ -59,6 +59,7 @@ function allPredicates(clauses:string[]):string {
  return `(${allPredicates(clauses.slice(0,middle))} AND ${allPredicates(clauses.slice(middle))})`
 }
 export const emptyProduct = allPredicates([emptyCustody,
+ 'NOT EXISTS(SELECT 1 FROM porthole_database_sources)',
  'NOT EXISTS(SELECT 1 FROM porthole_notebook_publications)',
  'NOT EXISTS(SELECT 1 FROM porthole_notebooks)',
  'NOT EXISTS(SELECT 1 FROM porthole_notebook_versions)',

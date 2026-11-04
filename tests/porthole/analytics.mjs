@@ -292,3 +292,36 @@ export async function analyticalConnectionJourney() {
  }finally{if(collector?.exitCode===null&&collector.signalCode===null){const stopped=new Promise(resolve=>collector.once('exit',resolve));collector.kill('SIGTERM');await stopped}await estate.dispose()}
 }
 if(process.argv[1]===new URL(import.meta.url).pathname)await analyticalKernelJourney()
+
+/** Reuse actual database output and stock-exported bytes through independent
+ * native custody and both configured analytical processes. */
+export async function databaseAnalyticalJourney({captures,packets,marker,plans}) {
+ const estate=await analyticalEstate()
+ try {
+  const {recipientMailJourney}=await import('./health.mjs')
+  await recipientMailJourney({bindings:estate.bindings,services:estate.services,run:async context=>{
+   const {call,post,cookie,getDb}=context,api='/api/porthole/v1/database'
+   const send=async(path,data,status=200)=>(await post(path,data,status)).json(),read=async path=>{const response=await call(path,{headers:{cookie}});assert.equal(response.status,200,await response.clone().text());return response.json()}
+   let current=await read('/api/porthole/v1/analytics/configuration')
+   await send('/api/porthole/v1/analytics/configuration',{revision:current.revision,role:'primary',enabled:true,confirm:'connect-analytical-workers'})
+   const scope={services:['database-checkout'],environments:['production'],teams:['commerce']},source=await send('/app/settings/credentials/mint',{name:'Analytical database source',class:'ingest',scope:{...scope,signals:['logs','traces'],actions:['telemetry.write']}},201)
+   for(const capture of captures){
+    const review=await send(api+'/sources',{id:'analytical-'+capture.engine,revision:0,credentialId:source.credential.id,engine:capture.engine,service:'database-checkout',environment:'production',team:'commerce',plans,enabled:true,confirm:'review-read-only-database'},201)
+    const response=await call(api+'/captures',{method:'POST',headers:{authorization:'Bearer '+source.secret,'content-type':'application/json'},body:JSON.stringify({id:review.id,revision:review.revision,planDigest:review.planDigest,capture})});assert.equal(response.status,201,await response.clone().text())
+   }
+   for(const packet of packets)assert.equal((await call('/v1/traces',{method:'POST',headers:{authorization:'Bearer '+source.secret,'content-type':'application/x-protobuf'},body:packet})).status,200)
+   await send('/api/porthole/v1/ingest/drain',{})
+   for(const role of ['primary','standby']){
+    current=await read('/api/porthole/v1/analytics/configuration');await send('/api/porthole/v1/analytics/configuration',{revision:current.revision,role,enabled:true,confirm:'connect-analytical-workers'})
+    let page=await read(api+'?limit=1'),all=[...page.captures];assert.equal(page.analytical.role,role);assert.ok(page.cursor)
+    page=await read(api+'?limit=1&snapshot='+page.snapshot+'&cursor='+encodeURIComponent(page.cursor));all.push(...page.captures)
+    assert.equal(all.length,2);assert.equal(page.cursor,null)
+    for(const capture of captures){const actual=all.find(c=>c.engine===capture.engine);assert.deepEqual(actual.queries,capture.queries);assert.deepEqual(actual.waits,capture.waits);assert.ok(actual.callers.length>=6,'actual stock caller spans join through the selected analytical store')}
+    const custody=await estate.inspect(role);assert.ok(custody.length>2);assert.ok(!JSON.stringify(custody).includes(marker),'neither analytical custody copy persists planted literals')
+   }
+   await context.restart();assert.equal((await read(api)).captures.length,2)
+   await estate.stop('standby');assert.equal((await call(api,{headers:{cookie}})).status,503,'an unavailable selected backend cannot become an empty or healthy database view')
+   console.log('PROBE PORT-016 analytical copies: identical real engine captures and stock caller spans -> exact statistics, plans and blocking identities through primary and standby, pagination and restart; stopped backend -> 503')
+  }})
+ } finally {await estate.dispose()}
+}

@@ -19,7 +19,7 @@ export async function collect(config){
    await connection.query('BEGIN READ ONLY')
    const info=(await connection.query("SELECT current_setting('server_version') AS version, extract(epoch FROM clock_timestamp())*1000 AS now")).rows[0]
    capture.version=info.version.split(' ')[0];capture.databaseTime=Math.floor(Number(info.now))
-   async function part(key,run){await connection.query('SAVEPOINT porthole_diagnostic');try{await run();capture.coverage[key]='collected'}catch(error){await connection.query('ROLLBACK TO SAVEPOINT porthole_diagnostic');capture.coverage[key]=denied(error)}finally{await connection.query('RELEASE SAVEPOINT porthole_diagnostic')}}
+   async function part(key,run){await connection.query('SAVEPOINT porthole_diagnostic');try{const complete=await run();if(capture.coverage[key]!=='privilege_denied')capture.coverage[key]=complete===false?'unavailable':'collected'}catch(error){await connection.query('ROLLBACK TO SAVEPOINT porthole_diagnostic');capture.coverage[key]=denied(error)}finally{await connection.query('RELEASE SAVEPOINT porthole_diagnostic')}}
    await part('statistics',async()=>{
     const rows=(await connection.query("SELECT queryid::text AS id,query,calls,total_exec_time AS total_ms,mean_exec_time AS mean_ms,rows FROM pg_stat_statements WHERE dbid=(SELECT oid FROM pg_database WHERE datname=current_database()) AND userid=(SELECT oid FROM pg_roles WHERE rolname=$1) ORDER BY total_exec_time DESC LIMIT 25",[config.workloadRole])).rows
     capture.queries=rows.filter(r=>r.query&&r.query!=='<insufficient privilege>').map(r=>({queryId:r.id.replace('-','n'),fingerprint:fingerprint(r.query),calls:Number(r.calls),totalMs:Number(r.total_ms),meanMs:Number(r.mean_ms),rows:Number(r.rows),plan:[]}))
@@ -29,7 +29,7 @@ export async function collect(config){
     const rows=(await connection.query("SELECT a.pid::text AS waiting,b::text AS blocking,a.wait_event_type AS kind,a.query_id::text AS query_id,a.application_name FROM pg_stat_activity a CROSS JOIN LATERAL unnest(pg_blocking_pids(a.pid)) b WHERE a.datname=current_database() AND a.usename=$1 LIMIT 100",[config.workloadRole])).rows
     capture.waits=rows.map(r=>({waiting:r.waiting,blocking:r.blocking,kind:r.kind==='Lock'?'Lock':'unknown',queryId:r.query_id?.replace('-','n')??null,...trace(r.application_name)}))
    })
-   if(plans.length)await part('plans',async()=>{for(const template of plans){const sql=template.replace('?','$1'),rows=(await connection.query('EXPLAIN (FORMAT JSON) '+sql,['synthetic-porthole-0'])).rows,plan=structuralPlan(rows[0]['QUERY PLAN'],'postgresql'),q=capture.queries.find(q=>q.fingerprint===fingerprint(sql));if(q)q.plan=plan}})
+   if(plans.length)await part('plans',async()=>{let complete=true;for(const template of plans){const sql=template.replace('?','$1'),rows=(await connection.query('EXPLAIN (FORMAT JSON) '+sql,['synthetic-porthole-0'])).rows,plan=structuralPlan(rows[0]['QUERY PLAN'],'postgresql'),q=capture.queries.find(q=>q.fingerprint===fingerprint(sql));if(q)q.plan=plan;else complete=false}return complete})
    await connection.query('ROLLBACK')
   }else{
    const mysql=await import('mysql2/promise');connection=await mysql.createConnection({...config.connection,connectTimeout:3000,multipleStatements:false})
@@ -38,7 +38,7 @@ export async function collect(config){
    await connection.query('START TRANSACTION READ ONLY')
    const [info]=await connection.query('SELECT VERSION() AS version, UNIX_TIMESTAMP(NOW(3))*1000 AS now')
    capture.version=info[0].version;capture.databaseTime=Number(info[0].now)
-   async function part(key,run){try{await run();capture.coverage[key]='collected'}catch(error){capture.coverage[key]=denied(error)}}
+   async function part(key,run){try{const complete=await run();if(capture.coverage[key]!=='privilege_denied')capture.coverage[key]=complete===false?'unavailable':'collected'}catch(error){capture.coverage[key]=denied(error)}}
    await part('statistics',async()=>{
     const [rows]=await connection.execute('SELECT DIGEST AS id,DIGEST_TEXT AS query,COUNT_STAR AS calls,SUM_TIMER_WAIT/1000000000 AS total_ms,AVG_TIMER_WAIT/1000000000 AS mean_ms,SUM_ROWS_SENT AS rows_sent FROM performance_schema.events_statements_summary_by_digest WHERE SCHEMA_NAME=? AND DIGEST IS NOT NULL ORDER BY SUM_TIMER_WAIT DESC LIMIT 25',[config.connection.database])
     capture.queries=rows.filter(r=>/^select\b/i.test(r.query)).map(r=>({queryId:r.id,fingerprint:fingerprint(r.query),calls:Number(r.calls),totalMs:Number(r.total_ms),meanMs:Number(r.mean_ms),rows:Number(r.rows_sent),plan:[]}))
@@ -47,7 +47,7 @@ export async function collect(config){
     const [rows]=await connection.query("SELECT t.PROCESSLIST_ID AS waiting,b.PROCESSLIST_ID AS blocking,l.LOCK_TYPE AS kind,v.VARIABLE_VALUE AS traceparent FROM performance_schema.data_lock_waits w JOIN performance_schema.threads t ON t.THREAD_ID=w.REQUESTING_THREAD_ID JOIN performance_schema.threads b ON b.THREAD_ID=w.BLOCKING_THREAD_ID JOIN performance_schema.data_locks l ON l.ENGINE_LOCK_ID=w.REQUESTING_ENGINE_LOCK_ID AND l.ENGINE=w.ENGINE LEFT JOIN performance_schema.user_variables_by_thread v ON v.THREAD_ID=t.THREAD_ID AND v.VARIABLE_NAME='porthole_traceparent' WHERE t.PROCESSLIST_DB=DATABASE() LIMIT 100")
     capture.waits=rows.map(r=>({waiting:String(r.waiting),blocking:String(r.blocking),kind:['RECORD','TABLE'].includes(r.kind)?r.kind:'unknown',queryId:null,...trace(r.traceparent?.toString())}))
    })
-   if(plans.length)await part('plans',async()=>{for(const template of plans){const [rows]=await connection.execute('EXPLAIN FORMAT=JSON '+template,['synthetic-porthole-0']),plan=structuralPlan(JSON.parse(rows[0].EXPLAIN),'mysql'),q=capture.queries.find(q=>q.fingerprint===fingerprint(template));if(q)q.plan=plan}})
+   if(plans.length)await part('plans',async()=>{let complete=true;for(const template of plans){const [rows]=await connection.execute('EXPLAIN FORMAT=JSON '+template,['synthetic-porthole-0']),plan=structuralPlan(JSON.parse(rows[0].EXPLAIN),'mysql'),q=capture.queries.find(q=>q.fingerprint===fingerprint(template));if(q)q.plan=plan;else complete=false}return complete})
    await connection.query('ROLLBACK')
   }
  }catch(error){const state=denied(error);for(const key of Object.keys(capture.coverage))if(capture.coverage[key]!=='not_reviewed')capture.coverage[key]=state}
