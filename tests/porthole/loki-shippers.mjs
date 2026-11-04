@@ -9,8 +9,8 @@ const msg=(n,b)=>Buffer.concat([v(n*8+2),v(b.length),b])
 const str=(n,s)=>msg(n,Buffer.from(s))
 const uint=(n,x)=>Buffer.concat([v(n*8),v(x)])
 const snappy=b=>{let n=b.length-1;const size=[];while(n){size.push(n&255);n>>>=8}return Buffer.concat([v(b.length),Buffer.from(b.length<61?[(b.length-1)*4]:[(59+size.length)*4,...size]),b])}
-// Loki v3.5.0 pkg/logproto/logproto.proto: PushRequest, StreamAdapter,
-// EntryAdapter and LabelAdapter. This is a schema edge, never a stock shipper.
+// Loki v3.5.0 pkg/push/push.proto: PushRequest, StreamAdapter,
+// EntryAdapter and LabelPairAdapter. This is a schema edge, never a stock shipper.
 export function lokiWire(streams){return snappy(Buffer.concat(streams.map(({stream,values})=>msg(1,Buffer.concat([
  str(1,'{'+Object.entries(stream).map(([k,value])=>k+'='+JSON.stringify(value)).join(',')+'}'),
  ...values.map(([at,line,metadata={}])=>msg(2,Buffer.concat([
@@ -54,6 +54,10 @@ export async function lokiSchemaJourney({origin,freshOwner,restartWorker}){
  assert.ok(before.some(row=>row.out_of_order===1),'earlier source batches remain explicitly reordered')
  assert.deepEqual((await readLokiPages({origin,cookie,archive:true})).map(logProjection),before.map(logProjection))
  for(const tenant of ['synthetic-porthole-18799',lokiScope.teams[0]+'|synthetic-porthole-18799',lokiScope.teams[0]+',synthetic-porthole-18799'])assert.equal((await send(entry(at+10n,'synthetic-porthole-18706'),{'x-scope-orgid':tenant})).status,403)
+ const readMint=await post('/app/settings/credentials/mint',{name:'synthetic-porthole-18713',class:'read',scope:{...lokiScope,actions:['telemetry.read']}});assert.equal(readMint.status,201)
+ const reader=await readMint.json()
+ const foreignRead=await fetch(origin+root+'/records?signal=logs&team=synthetic-porthole-18799',{headers:{authorization:'Bearer '+reader.secret,'x-scope-orgid':lokiScope.teams[0]+'|synthetic-porthole-18799'}})
+ assert.equal(foreignRead.status,403,'a combined tenant header cannot widen native read scope')
  const old={streams:[{stream:streamLabels(),values:[[String(now-7201n*1000000000n),'synthetic-porthole-18707'],[String(at),'synthetic-porthole-18708']]}]}
  assert.equal((await send(old)).status,400,'whole stale batch refuses both lines')
  assert.equal((await send(entry(BigInt(Date.now())*1000000n+601n*1000000000n,'synthetic-porthole-18709'))).status,400)
@@ -71,9 +75,273 @@ export async function lokiSchemaJourney({origin,freshOwner,restartWorker}){
  const reasons=rows.flatMap(row=>row.reasons)
  assert.ok(reasons.some(row=>row.reason==='loki_timestamp_older_than_two_hours'&&row.count===2),JSON.stringify(reasons))
  assert.ok(reasons.some(row=>row.reason==='queue_pressure'&&row.count===1))
- assert.ok(reasons.some(row=>row.reason==='malformed_payload'&&row.unknownBatches>0),'malformed compression is an explicitly unknown line count')
+ assert.ok(reasons.some(row=>row.reason==='invalid_compressed_body'&&row.unknownBatches===1),'malformed compression is an explicitly unknown line count: '+JSON.stringify(reasons))
  assert.equal((await post('/app/settings/credentials/revoke',{id:source.credential.id})).status,200)
  assert.equal((await send(wires[0],formats[0])).status,401,'next request cannot replay a revoked source')
  assert.deepEqual((await readLokiPages({origin,cookie})).map(row=>row.id),before.map(row=>row.id))
  console.log('PROBE PORT-087 schema: JSON, gzip JSON and Snappy protobuf -> exact Unicode, empty metadata, ns ties, delayed input, reordered retries, refusal accounting and next-request revocation')
+}
+
+const jsonText=value=>JSON.stringify(value)
+export function shipperConfig(kind,{file,state,ports,endpoints}){
+ const labels=streamLabels()
+ if(kind==='alloy')return `logging { level = "warn" }
+local.file_match "logs" {
+ path_targets = [{ "__path__" = ${jsonText(file)}, ${Object.entries(labels).map(([k,v])=>jsonText(k)+' = '+jsonText(v)).join(', ')} }]
+}
+loki.source.file "logs" {
+ targets = local.file_match.logs.targets
+ forward_to = [loki.process.logs.receiver]
+}
+loki.process "logs" {
+ stage.json { expressions = { ts = "ts", line = "line", lane = "lane", detail = "detail" } }
+ stage.timestamp { source = "ts"
+ format = "RFC3339Nano" }
+ stage.labels { values = { lane = "" } }
+ stage.structured_metadata { values = { detail = "" } }
+ stage.output { source = "line" }
+ forward_to = [loki.write.logs.receiver]
+}
+loki.write "logs" {
+${endpoints.map(url=>` endpoint {
+ url = ${jsonText(url+'/loki/api/v1/push')}
+ bearer_token = sys.env("PORTHOLE_STOCK_TOKEN")
+ tenant_id = ${jsonText(lokiScope.teams[0])}
+ batch_size = "32KiB"
+ batch_wait = "1s"
+ }`).join('\n')}
+}
+`
+ if(kind==='promtail')return `server:
+  http_listen_address: 127.0.0.1
+  http_listen_port: ${ports.http}
+  grpc_listen_port: 0
+positions:
+  filename: ${state}/positions.yaml
+clients:
+${endpoints.map(url=>`  - url: ${url}/loki/api/v1/push
+    bearer_token: \${PORTHOLE_STOCK_TOKEN}
+    tenant_id: ${lokiScope.teams[0]}
+    batchsize: 32768
+    batchwait: 1s`).join('\n')}
+scrape_configs:
+  - job_name: local-producer
+    static_configs:
+      - targets: [localhost]
+        labels:
+          __path__: ${file}
+${Object.entries(labels).map(([k,v])=>'          '+k+': '+v).join('\n')}
+    pipeline_stages:
+      - json:
+          expressions: {ts: ts, line: line, lane: lane, detail: detail}
+      - timestamp: {source: ts, format: RFC3339Nano}
+      - labels: {lane: null}
+      - structured_metadata: {detail: null}
+      - output: {source: line}
+`
+ return `[SERVICE]
+    Flush 1
+    Log_Level warn
+    Parsers_File ${state}/parsers.conf
+[INPUT]
+    Name tail
+    Path ${file}
+    Tag local-producer
+    Read_from_Head On
+    DB ${state}/tail.db
+    Parser producer
+${endpoints.map(url=>{const target=new URL(url);return `[OUTPUT]
+    Name loki
+    Match *
+    Host ${target.hostname}
+    Port ${target.port}
+    URI /loki/api/v1/push
+    Bearer_Token \${PORTHOLE_STOCK_TOKEN}
+    Tenant_ID ${lokiScope.teams[0]}
+    Labels ${Object.entries(labels).map(([k,v])=>k+'='+v).join(',')},lane=$lane
+    Structured_Metadata detail=$detail
+    Remove_Keys ts,lane,detail
+    Drop_Single_Key raw
+    Line_Format json
+    Retry_Limit no_limits
+`}).join('\n')}`
+}
+export async function lokiShipperJourney({origin,freshOwner,restartWorker,withEmptyDestination,configureAnalytical}){
+ const fetch=(url,options={})=>globalThis.fetch(url,{...options,signal:AbortSignal.timeout(30000)})
+ const {spawn,execFileSync}=await import('node:child_process'),{once}=await import('node:events'),{mkdtemp,writeFile,readFile,mkdir,rm}=await import('node:fs/promises')
+ const {createServer}=await import('node:http'),{tmpdir}=await import('node:os'),{join}=await import('node:path'),{setTimeout:delay}=await import('node:timers/promises')
+ const {createServer:socket}=await import('node:net')
+ console.log('LOKI_SCALE_HEAD '+execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim())
+ const scratch=await mkdtemp(join(tmpdir(),'porthole-loki-')),children=[],captures=[],expected=[],versions={alloy:'1.10.2',promtail:'3.5.0',loki:'3.5.0',fluent:'4.0.0'}
+ let cookie=await freshOwner(),bridge
+ const port=async()=>{const s=socket();s.listen(0,'127.0.0.1');await once(s,'listening');const p=s.address().port;await new Promise(r=>s.close(r));return p}
+ const post=(path,data)=>fetch(origin+path,{method:'POST',headers:{origin,cookie,'content-type':'application/json'},body:JSON.stringify(data)})
+ const run=(binary,args,env={})=>{let output='';const child=spawn(binary,args,{env:{...process.env,GOMAXPROCS:'2',...env},stdio:['pipe','pipe','pipe']});children.push(child);child.stdout.on('data',b=>output=(output+b).slice(-12000));child.stderr.on('data',b=>output=(output+b).slice(-12000));child.on('error',error=>output=error.message);return {child,output:()=>output.replace(/[A-Za-z0-9_-]{32,}/g,'[redacted]')}}
+ const stop=async child=>{if(child.pid&&child.exitCode===null){const end=once(child,'exit');child.kill('SIGTERM');if(!await Promise.race([end.then(()=>true),delay(10000).then(()=>false)])){child.kill('SIGKILL');await end}}}
+ const until=async(check,message,process,ms=120000)=>{const end=Date.now()+ms;while(Date.now()<end){if(process&&process.child.exitCode!==null)assert.fail(message+': '+process.output());if(await check())return;await delay(200)}assert.fail(message+(process?': '+process.output():''))}
+ try {
+  for(const key of ['LOKI','ALLOY','PROMTAIL','FLUENT_BIT'])assert.ok(process.env['PORTHOLE_'+key+'_BIN'],'provide verified stock '+key+' binary')
+  const lokiPort=await port(),grpc=await port(),reference='http://127.0.0.1:'+lokiPort
+  await mkdir(join(scratch,'loki'))
+  const config=`auth_enabled: true
+server:
+  http_listen_address: 127.0.0.1
+  http_listen_port: ${lokiPort}
+  grpc_listen_port: ${grpc}
+common:
+  instance_addr: 127.0.0.1
+  path_prefix: ${scratch}/loki
+  replication_factor: 1
+  ring:
+    kvstore: {store: inmemory}
+  storage:
+    filesystem:
+      chunks_directory: ${scratch}/loki/chunks
+      rules_directory: ${scratch}/loki/rules
+schema_config:
+  configs:
+    - from: 2024-01-01
+      store: tsdb
+      object_store: filesystem
+      schema: v13
+      index: {prefix: index_, period: 24h}
+limits_config:
+  discover_service_name: []
+  discover_log_levels: false
+  allow_structured_metadata: true
+  unordered_writes: true
+  reject_old_samples_max_age: 2h
+  ingestion_rate_mb: 32
+  ingestion_burst_size_mb: 64
+  max_query_series: 10000
+  max_entries_limit_per_query: 10000
+  increment_duplicate_timestamp: false
+analytics: {reporting_enabled: false}
+`
+  await writeFile(join(scratch,'loki.yaml'),config)
+  const loki=run(process.env.PORTHOLE_LOKI_BIN,['-config.file='+join(scratch,'loki.yaml')])
+  await until(()=>fetch(reference+'/ready').then(r=>r.ok).catch(()=>false),'Loki readiness',loki)
+  const minted=await post('/app/settings/credentials/mint',{name:'synthetic-porthole-18800',class:'ingest',scope:lokiScope,acceptedBytesPerMinute:100*1024*1024,requestsPerMinute:10000});assert.equal(minted.status,201)
+  const source=await minted.json()
+  assert.equal((await post(root+'/control',{paused:true,maxPendingBytes:128*1024*1024})).status,200)
+  let rejectNext=true
+  // A destination edge only: preserve every source byte, change no parser or
+  // pipeline, and make the stock exporter exercise its configured retry path.
+  bridge=createServer((incoming,outgoing)=>{(async()=>{
+   const wire=Buffer.concat(await Array.fromAsync(incoming)),headers={...incoming.headers};delete headers.host;delete headers.connection;delete headers['content-length']
+   if(rejectNext){rejectNext=false;outgoing.writeHead(429,{'retry-after':'1'});outgoing.end();return}
+   const response=await fetch(origin+incoming.url,{method:'POST',headers,body:wire})
+   const body=Buffer.from(await response.arrayBuffer())
+   if(response.ok)captures.push({wire,headers,path:incoming.url,batch:response.headers.get('x-porthole-batch')})
+   outgoing.writeHead(response.status,Object.fromEntries(response.headers));outgoing.end(body)
+  })().catch(error=>{outgoing.writeHead(503);outgoing.end('forwarding_failed')})})
+  bridge.listen(0,'127.0.0.1');await once(bridge,'listening');const destination='http://127.0.0.1:'+bridge.address().port
+  const base=BigInt(Date.now()-60000)*1000000n
+  for(const [number,kind]of ['alloy','promtail','fluent'].entries()){
+   rejectNext=true
+   const state=join(scratch,kind);await mkdir(state);const file=join(state,'producer.log');await writeFile(file,'')
+   const ports={http:await port()},endpoints=[reference,destination]
+   const config=shipperConfig(kind,{file,state,ports,endpoints}),path=join(state,kind==='alloy'?'config.alloy':kind==='promtail'?'config.yaml':'config.conf')
+   await writeFile(path,config,{mode:0o600})
+   if(kind==='fluent')await writeFile(join(state,'parsers.conf'),'[PARSER]\n    Name producer\n    Format json\n    Time_Key ts\n    Time_Format %Y-%m-%dT%H:%M:%S.%LZ\n    Time_Keep On\n')
+   const binary=process.env['PORTHOLE_'+(kind==='fluent'?'FLUENT_BIT':kind.toUpperCase())+'_BIN']
+   const args=kind==='alloy'?['run','--server.http.listen-addr=127.0.0.1:'+ports.http,'--storage.path='+state+'/state',path]:kind==='promtail'?['-config.expand-env=true','-config.file='+path]:['-c',path]
+   const shipper=run(binary,args,{PORTHOLE_STOCK_TOKEN:source.secret})
+   await delay(1500)
+   const rows=Array.from({length:10000},(_,i)=>{
+    const at=base+BigInt(number)*100000n+BigInt(Math.floor(i/8)),line=`synthetic-porthole-${19000+number}-${String(i).padStart(5,'0')} 日本語 Ελληνικά 😀`,lane='lane'+i%4,detail='Δ-'+String(i)
+    expected.push({at:String(at),line,lane,detail})
+    return {ts:new Date(Number(at/1000000n)).toISOString().slice(0,19)+'.'+String(at%1000000000n).padStart(9,'0')+'Z',line,lane,detail}
+   })
+   // A real separate producer process emits the corpus to the tailed file.
+   const producer=run(process.execPath,['--input-type=module','-e',"import{appendFileSync,readFileSync}from'node:fs';const rows=JSON.parse(readFileSync(0,'utf8'));for(let i=0;i<rows.length;i+=64){appendFileSync(process.argv[1],rows.slice(i,i+64).map(x=>JSON.stringify(x)).join('\\n')+'\\n');await new Promise(r=>setTimeout(r,100))}",file])
+   producer.child.stdin.end(JSON.stringify(rows))
+   await once(producer.child,'exit');assert.equal(producer.child.exitCode,0)
+   await until(async()=>{
+    const response=await fetch(origin+root+'/status',{headers:{cookie}});assert.equal(response.status,200)
+    const state=await response.json();return state.sources.filter(row=>row.sourceId===source.credential.id).reduce((n,row)=>n+row.accepted,0)===(number+1)*10000
+   },kind+' emits all 10000 records',shipper,180000)
+   await stop(shipper.child)
+   const resumed=run(binary,args,{PORTHOLE_STOCK_TOKEN:source.secret});await delay(1200);await stop(resumed.child)
+   assert.equal(resumed.child.exitCode,0,kind+' resumes its durable file position')
+   console.log('PROBE PORT-087 '+kind+': real file producer -> 10000 stock-emitted lines acknowledged after dual destination shipping')
+  }
+  await restartWorker();cookie=await freshOwner()
+  // Captured batch retries are deliberately replayed in reverse delivery order.
+  const unique=[...new Map(captures.map(c=>[c.batch,c])).values()]
+  for(const capture of unique.reverse()){
+   const retry=await fetch(origin+capture.path,{method:'POST',headers:capture.headers,body:capture.wire})
+   assert.equal(retry.status,204);assert.equal(retry.headers.get('x-porthole-duplicate'),'true')
+  }
+  assert.equal((await post(root+'/control',{paused:false})).status,200)
+  await until(async()=>{const r=await post(root+'/drain',{});assert.equal(r.status,200);return (await r.json()).pendingBatches===0},'drain stock corpus',null,240000)
+  const native=await readLokiPages({origin,cookie})
+  const projected=native.map(logProjection),byLine=new Map(expected.map(row=>[row.line,row]));assert.equal(native.length,30000)
+  for(const row of projected){const emitted=byLine.get(row.line);assert.ok(emitted,'native line was emitted');assert.equal(row.at,emitted.at);assert.equal(row.labels.lane,emitted.lane);assert.equal(row.metadata.detail,emitted.detail);assert.equal(Buffer.compare(Buffer.from(row.line),Buffer.from(emitted.line)),0);byLine.delete(row.line)}
+  assert.equal(byLine.size,0,'every emitted producer identity is present exactly once')
+  // Read each actual Loki stream with an inclusive cursor and remove only the
+  // preceding boundary identities; tied nanoseconds may span multiple pages.
+  const referenceRows=[]
+  for(let lane=0;lane<4;lane++){
+   let start=base-1n,previous=new Set()
+   for(;;){
+    const query=new URLSearchParams({query:`{service="${lokiScope.services[0]}",lane="lane${lane}"}`,start:String(start),end:String(base+1000000n),direction:'forward',limit:'137'})
+    const response=await fetch(reference+'/loki/api/v1/query_range?'+query,{headers:{'x-scope-orgid':lokiScope.teams[0],'X-Loki-Response-Encoding-Flags':'categorize-labels'}});assert.equal(response.status,200,await response.clone().text())
+    const data=await response.json(),page=data.data.result.flatMap(s=>s.values.map(([at,line,metadata={}])=>({at,line,labels:s.stream,metadata:metadata.structuredMetadata??{}}))).sort((a,b)=>BigInt(a.at)<BigInt(b.at)?-1:BigInt(a.at)>BigInt(b.at)?1:a.line.localeCompare(b.line))
+    if(!page.length)break
+    const fresh=page.filter(row=>!previous.has(row.line));if(!fresh.length&&page.length<137)break;assert.ok(fresh.length,'Loki cursor advances through ties')
+    referenceRows.push(...fresh);start=BigInt(page.at(-1).at);previous=new Set(page.filter(row=>BigInt(row.at)===start).map(row=>row.line))
+    if(page.length<137)break
+   }
+  }
+  assert.equal(referenceRows.length,30000)
+  const sourceByLine=new Map(referenceRows.map(row=>[row.line,row]))
+  for(const row of projected){const ref=sourceByLine.get(row.line);assert.ok(ref);assert.equal(row.at,ref.at);assert.deepEqual(row.labels,ref.labels);assert.deepEqual(row.metadata,ref.metadata)}
+  const streamCounts=rows=>{const counts=new Map();for(const row of rows){const key=JSON.stringify(Object.entries(row.labels).sort(([a],[b])=>a.localeCompare(b)));counts.set(key,(counts.get(key)??0)+1)}return [...counts].sort(([a],[b])=>a.localeCompare(b))}
+  assert.deepEqual(streamCounts(projected),streamCounts(referenceRows),'per-stream counts agree with actual source storage')
+  console.log('PROBE PORT-087 reconciliation: paginated Loki and native reads -> all 30000 identities, labels, Unicode bytes, metadata and nanoseconds equal')
+  const {lokiArchiveJourney}=await import('./archive.mjs')
+  await lokiArchiveJourney({origin,cookie,freshOwner,withEmptyDestination,records:native,service:lokiScope.services[0]})
+  cookie=await freshOwner()
+  if(configureAnalytical)await configureAnalytical(async()=>{
+   cookie=await freshOwner()
+   let config=await (await fetch(origin+'/api/porthole/v1/analytics/configuration',{headers:{cookie}})).json()
+   assert.equal((await post('/api/porthole/v1/analytics/configuration',{revision:config.revision,role:'primary',enabled:true,confirm:'connect-analytical-workers'})).status,200)
+   await until(async()=>{const r=await post(root+'/drain',{});assert.equal(r.status,200);return (await r.json()).analytical.complete},'replicate real stock corpus',null,240000)
+   for(const role of ['primary','standby']){
+    config=await (await fetch(origin+'/api/porthole/v1/analytics/configuration',{headers:{cookie}})).json()
+    assert.equal((await post('/api/porthole/v1/analytics/configuration',{revision:config.revision,role,enabled:true,confirm:'connect-analytical-workers'})).status,200)
+    const copy=await readLokiPages({origin,cookie});assert.deepEqual(copy.map(row=>[row.id,logProjection(row)]),native.map(row=>[row.id,logProjection(row)]))
+   }
+  })
+  await lokiBrowser({origin,cookie,service:lokiScope.services[0]})
+  assert.equal((await post('/app/settings/credentials/revoke',{id:source.credential.id})).status,200)
+  for(const capture of unique){const r=await fetch(origin+capture.path,{method:'POST',headers:capture.headers,body:capture.wire});assert.equal(r.status,401)}
+  console.log('PROBE PORT-087 recovery: restart, reverse exact-wire retries and source revocation -> 30000 retained records, no duplicates and every next request refused')
+  return {records:30000,versions}
+ }finally{
+  if(bridge)await new Promise(resolve=>{bridge.close(resolve);bridge.closeAllConnections()})
+  for(const child of children)await stop(child)
+  await rm(scratch,{recursive:true,force:true})
+ }
+}
+export async function lokiBrowser({origin,cookie,service}){
+ const {chromium}=await import('@playwright/test'),{mkdir}=await import('node:fs/promises'),{join}=await import('node:path')
+ const browser=await chromium.launch({headless:true,...(process.env.PORTHOLE_CHROMIUM_PATH?{executablePath:process.env.PORTHOLE_CHROMIUM_PATH}:{}),args:['--no-sandbox']})
+ try{for(const width of [1440,390]){
+  const context=await browser.newContext({viewport:{width,height:900}})
+  await context.addCookies(cookie.split('; ').map(pair=>({name:pair.slice(0,pair.indexOf('=')),value:pair.slice(pair.indexOf('=')+1),url:origin})))
+  const page=await context.newPage()
+  for(const path of ['/app/ingest','/app/explore']){
+   assert.equal((await page.goto(origin+path)).status(),200)
+   if(path.endsWith('explore')){
+    await page.getByLabel('Signal',{exact:true}).selectOption('logs');await page.getByLabel('Service',{exact:true}).fill(service)
+    await page.getByRole('button',{name:'Run query',exact:true}).click();await page.getByRole('heading',{name:'Query results',exact:true}).waitFor()
+    if(width===1440)assert.match(await page.locator('pre').textContent(),/synthetic-porthole-19000/)
+   }
+   if(width===1440){assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));assert.equal(await page.locator('button').evaluateAll(nodes=>nodes.filter(node=>!node.textContent.trim()&&!node.title&&!node.getAttribute('aria-label')).length),0)}
+   if(process.env.PORTHOLE_EVIDENCE_DIR){await mkdir(process.env.PORTHOLE_EVIDENCE_DIR,{recursive:true});await page.screenshot({path:join(process.env.PORTHOLE_EVIDENCE_DIR,'loki-'+path.split('/').at(-1)+'-'+width+'.png'),fullPage:true})}
+  }
+  await context.close()
+ }}finally{await browser.close()}
 }

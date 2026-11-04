@@ -14,9 +14,9 @@ const execute=promisify(execFile),api='/api/porthole/v1/archive',hash=value=>cre
 const post=(origin,cookie,path,data)=>fetch(origin+path,{method:'POST',redirect:'manual',headers:{origin,cookie,'content-type':'application/json'},body:JSON.stringify(data)})
 const get=(origin,cookie,path)=>fetch(origin+path,{headers:{cookie}})
 async function value(response,status=200){assert.equal(response.status,status,await response.clone().text());assert.equal(response.headers.get('cache-control'),'no-store');return response.json()}
-async function savedExport(origin,cookie,start){
+async function savedExport(origin,cookie,start,refresh){
  const job=await value(start,201),chunks=[]
- for(let index=0;index<job.totalChunks;index++)chunks.push(await value(await get(origin,cookie,`${api}/exports/${job.id}/chunks/${index}`)))
+ for(let index=0;index<job.totalChunks;index++){if(refresh&&index%128===0)cookie=await refresh();chunks.push(await value(await get(origin,cookie,`${api}/exports/${job.id}/chunks/${index}`)))}
  const manifest=await value(await get(origin,cookie,`${api}/exports/${job.id}/manifest`))
  return {job,chunks,manifest,rows:chunks.flatMap(chunk=>chunk.rows)}
 }
@@ -1110,4 +1110,27 @@ export async function genaiArchiveJourney({origin,cookie,withEmptyDestination,tr
   assert.equal((await destination.sql('SELECT paused FROM porthole_ingest_control'))[0].paused,1)
  })
  console.log('genaiArchiveJourney passed: complete metadata-only wire and retained custody, independent inactive restore and re-export, no inherited sessions or credentials')
+}
+
+/** The stock Loki corpus crosses the existing inactive product-archive door. */
+export async function lokiArchiveJourney({origin,cookie,freshOwner,withEmptyDestination,records,service}) {
+ const {readLokiPages,logProjection}=await import('./loki-shippers.mjs')
+ cookie=await freshOwner()
+ const saved=await savedExport(origin,cookie,await post(origin,cookie,api+'/exports',{}),freshOwner)
+ await withEmptyDestination(async destination=>{
+  let acting=await destination.freshOwner()
+  const restore=await value(await post(destination.origin,acting,api+'/restores',{manifest:saved.manifest}),201)
+  for(const chunk of saved.chunks){if(chunk.index%128===0)acting=await destination.freshOwner();await value(await post(destination.origin,acting,`${api}/restores/${restore.id}/chunks`,{chunk}))}
+  await value(await post(destination.origin,acting,`${api}/restores/${restore.id}/commit`,{confirm:saved.manifest.rootHash}))
+  const copy=await readLokiPages({origin:destination.origin,cookie:acting,service})
+  assert.deepEqual(copy.map(row=>[row.id,logProjection(row)]),records.map(row=>[row.id,logProjection(row)]))
+  assert.deepEqual((await readLokiPages({origin:destination.origin,cookie:acting,service,archive:true})).map(logProjection),records.map(logProjection))
+  assert.equal((await destination.sql('SELECT paused FROM porthole_ingest_control'))[0].paused,1)
+  assert.equal((await destination.sql('SELECT COUNT(*) AS n FROM porthole_credentials'))[0].n,0)
+  assert.equal((await get(destination.origin,cookie,'/api/porthole/v1/ingest/records?signal=logs')).status,401)
+  const reexport=await savedExport(destination.origin,acting,await post(destination.origin,acting,api+'/exports',{}),destination.freshOwner)
+  const tables=['porthole_ingest_batches','porthole_telemetry_records','porthole_telemetry_archive']
+  assert.deepEqual(reexport.rows.filter(row=>tables.includes(row.table)),saved.rows.filter(row=>tables.includes(row.table)))
+ })
+ console.log('PROBE PORT-087 archive: stock corpus export, independent inactive restore and re-export -> every original record and ns preserved, credentials absent')
 }

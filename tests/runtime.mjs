@@ -77,12 +77,12 @@ await writeFile(preProfilesConfig,JSON.stringify({name:'justevery-porthole',comp
 const origin = `http://127.0.0.1:${port}`
 // The emitted Worker's owner-claim setup token: a synthetic test value.
 const setupToken = 'synthetic-runtime-setup-token-1234567890123456789'
-let worker
+let worker,stockAnalytics
 let ownerEmail='owner@example.com'
 let allOutput = ''
 async function startWorker() {
  worker = await emittedWorker({config:'dist/server/wrangler.json',persist,port,inspectorPort,
-  bindings:{AUTH_ORIGIN:origin,AUTH_LOCAL:'true',OWNER_EMAIL:ownerEmail,MAIL_FROM:'synthetic-porthole-4@example.com',SESSION_SECRET:'runtime-session-secret-1234567890123456',SETUP_TOKEN:setupToken},
+  services:stockAnalytics?.services,bindings:{...stockAnalytics?.bindings,AUTH_ORIGIN:origin,AUTH_LOCAL:'true',OWNER_EMAIL:ownerEmail,MAIL_FROM:'synthetic-porthole-4@example.com',SESSION_SECRET:'runtime-session-secret-1234567890123456',SETUP_TOKEN:setupToken},
   onLog:entry=>{allOutput+=entry.message+'\n'},
  })
  await worker.ready
@@ -262,8 +262,16 @@ try {
    await recoveryJourney({origin,cookie,persist,restartWorker,...helpers})
    await recipientMailJourney()
   } else if(process.env.PORTHOLE_STOCK_ONLY==='1') {
-   const {stockIngestJourney}=await import('./porthole/stock-ingest.mjs')
-   await stockIngestJourney({origin,cookie,persist,restartWorker,...helpers})
+   if(process.env.PORTHOLE_LOKI_EDGE_ONLY==='1'){
+    const {lokiSchemaJourney}=await import('./porthole/loki-shippers.mjs');await lokiSchemaJourney({origin,restartWorker,...helpers})
+   }else if(process.env.PORTHOLE_LOKI_SHIPPERS==='1'){
+    const {lokiShipperJourney}=await import('./porthole/loki-shippers.mjs')
+    await lokiShipperJourney({origin,restartWorker,withEmptyDestination,...helpers,configureAnalytical:async run=>{
+     const {analyticalEstate}=await import('./porthole/analytics.mjs');stockAnalytics=await analyticalEstate();await restartWorker();await run()
+    }})
+   }else{
+    const {stockIngestJourney}=await import('./porthole/stock-ingest.mjs');await stockIngestJourney({origin,cookie,persist,restartWorker,...helpers})
+   }
   } else if(process.env.PORTHOLE_AUDIT_ONLY==='1') {
    const {auditJourney}=await import('./porthole/audit.mjs')
    await auditJourney({origin,cookie,persist,restartWorker})
@@ -321,7 +329,7 @@ try {
   throw error
 } finally {
   await closeTransport()
-  await stopWorker()
+  await stopWorker();await stockAnalytics?.dispose()
   for(const store of stores) await rm(store, { recursive: true, force: true })
   // wrangler dev keeps its scratch (.wrangler/tmp) beside the config it runs, which here is the emitted Worker; the artifact producer refuses that folder in dist/server, so leave the build output as rer build wrote it.
   await rm('dist/server/.wrangler', { recursive: true, force: true })
