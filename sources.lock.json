@@ -381,7 +381,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "6d39c182cef43f3d2cb77e402792fa675db8740eb235bf45d4ca1af82a609098",
+      "sha256": "79f1f01d167839780da13d859c0fdf2f33df721b21712acbfdb6b0372283e27f",
       "executable": false
     },
     "DEMO.md": {
@@ -5529,7 +5529,7 @@
       "executable": false
     },
     "tests/porthole/archive.mjs": {
-      "sha256": "87847546067163b77cb357d041e2f2b32d6c81253d5753c2babfbfe71a7597c0",
+      "sha256": "858edede5ea795291ecdbd59ffe03bdbaa587de1a8594b72f6ef014b5d9bd038",
       "executable": false
     },
     "tests/porthole/audit.mjs": {
@@ -5641,7 +5641,7 @@
       "executable": false
     },
     "tests/porthole/object-grants.mjs": {
-      "sha256": "5f19f7623efee9a3a4b2a9e817e4eb7cc3e5111125ebcb5b1e78eb4691315a7b",
+      "sha256": "88cf86eee5ce2d24253dee294531d33ec58f3d35a8e2b926261f90c713df127d",
       "executable": false
     },
     "tests/porthole/pipelines-analytical.mjs": {

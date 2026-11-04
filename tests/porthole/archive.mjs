@@ -787,7 +787,7 @@ async function run(source) {
  }
  async function start() {
   output=''
-  worker=spawn(process.execPath,[join(root,'node_modules/wrangler/bin/wrangler.js'),'dev','--local','--persist-to',join(source,'.wrangler/state'),'--config',join(root,'dist/server/wrangler.json'),'--ip','127.0.0.1','--port',String(port),'--var','AUTH_ORIGIN:'+origin,'--var','AUTH_LOCAL:true','--var','OWNER_EMAIL:'+ownerEmail,'--var','SESSION_SECRET:synthetic-porthole-native-erasure-session-secret','--var','MAIL_PROVIDER:development'],{cwd:root,env:{...process.env,WRANGLER_SEND_METRICS:'false'},stdio:['ignore','pipe','pipe']})
+  worker=spawn(process.execPath,[join(root,'node_modules/wrangler/bin/wrangler.js'),'dev','--local','--persist-to',join(source,'.wrangler/state'),'--config',join(root,'dist/server/wrangler.json'),'--ip','127.0.0.1','--port',String(port),'--var','AUTH_ORIGIN:'+origin,'--var','AUTH_LOCAL:true','--var','OWNER_EMAIL:'+ownerEmail,'--var','SESSION_SECRET:synthetic-porthole-native-erasure-session-secret','--var','MAIL_PROVIDER:development','--var','MAIL_FROM:'+address('synthetic-porthole-9711')],{cwd:root,env:{...process.env,WRANGLER_SEND_METRICS:'false'},stdio:['ignore','pipe','pipe']})
   worker.stdout.on('data',part=>{output+=part});worker.stderr.on('data',part=>{output+=part})
   for(let attempt=0;attempt<120;attempt++){
    if(worker.exitCode!==null)throw Error('Native erasure Worker exited: '+output.slice(-2000))
@@ -1125,7 +1125,7 @@ export async function genaiArchiveJourney({origin,cookie,withEmptyDestination,tr
 }
 
 /** Private archives preserve restrictions, excluding live entries and reviews. */
-export async function dashboardPolicyArchiveJourney({origin,freshOwner,withEmptyDestination,dashboardId,memberEmail,scope}) {
+export async function dashboardPolicyArchiveJourney({origin,freshOwner,withEmptyDestination,dashboardId,memberEmail,scope,publication}) {
  const cookie=await freshOwner(),source=await savedExport(origin,cookie,await post(origin,cookie,api+'/exports',{}))
  const policies=source.rows.filter(row=>row.table==='porthole_dashboard_policies')
  assert.ok(policies.some(row=>row.row.dashboard_id===dashboardId))
@@ -1138,6 +1138,7 @@ export async function dashboardPolicyArchiveJourney({origin,freshOwner,withEmpty
   await value(await post(destination.origin,fresh,`${api}/restores/${start.id}/commit`,{confirm:source.manifest.rootHash}))
   const path='/api/porthole/v1/dashboards/'+dashboardId,restored=await value(await get(destination.origin,fresh,path))
   assert.equal(restored.state,'quarantined')
+  for(const path of publication)assert.equal((await fetch(destination.origin+path,{headers:{origin:'https://display.example.invalid'}})).status,404,'inactive restore cannot revive a withdrawn policy snapshot')
   const restrictions=await destination.sql('SELECT * FROM porthole_dashboard_policies')
   assert.ok(restrictions.length>0);assert.ok(restrictions.every(row=>row.state==='quarantined'&&row.entries==='[]'))
   assert.equal((await destination.sql('SELECT COUNT(*) AS n FROM porthole_dashboard_policy_reviews'))[0].n,0)

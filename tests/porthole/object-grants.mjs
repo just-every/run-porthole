@@ -47,7 +47,8 @@ export async function objectGrantsJourney({origin,freshOwner,signIn,sql,restartW
  await value(await post(settings+'/apply',confirmation(adminReview),{session:admin.session}))
  b=await value(await get(root+'/'+b.id))
  await assertPolicyPublicationWithdrawn({origin,publication})
- const noPolicyWrites=async(run)=>{const before=await sql(`SELECT * FROM porthole_dashboards ORDER BY id`),history=await sql('SELECT * FROM porthole_dashboard_versions ORDER BY id,revision'),receipts=await sql('SELECT * FROM porthole_api_idempotency ORDER BY actor_ref,request_key'),policies=await sql('SELECT * FROM porthole_dashboard_policies ORDER BY dashboard_id');await run();assert.deepEqual(await sql('SELECT * FROM porthole_dashboards ORDER BY id'),before);assert.deepEqual(await sql('SELECT * FROM porthole_dashboard_versions ORDER BY id,revision'),history);assert.deepEqual(await sql('SELECT * FROM porthole_api_idempotency ORDER BY actor_ref,request_key'),receipts);assert.deepEqual(await sql('SELECT * FROM porthole_dashboard_policies ORDER BY dashboard_id'),policies)}
+ const storage=()=>sql("SELECT 'dashboards' AS collection,* FROM porthole_dashboards ORDER BY id; SELECT 'versions' AS collection,* FROM porthole_dashboard_versions ORDER BY id,revision; SELECT 'receipts' AS collection,* FROM porthole_api_idempotency ORDER BY actor_ref,request_key; SELECT 'policies' AS collection,* FROM porthole_dashboard_policies ORDER BY dashboard_id")
+ const noPolicyWrites=async(run)=>{const before=await storage();await run();assert.deepEqual(await storage(),before,'refusal preserves every definition, version, receipt and policy row')}
  await noPolicyWrites(async()=>{
   for(const action of ['save','reorder','clone','archive','panel','annotation']) {
    const data=action==='save'?{...definition('Forbidden B edit'),id:b.id,revision:b.revision}:{id:b.id,revision:b.revision}
@@ -58,6 +59,7 @@ export async function objectGrantsJourney({origin,freshOwner,signIn,sql,restartW
   assert.equal((await get(root+'/'+a.id,other.session)).status,404)
   assert.equal((await get(root+'/'+a.id+'?version=1',other.session)).status,404)
   assert.equal((await get(root+'/'+foreign.id,member.session)).status,403,'object policy never expands telemetry scope')
+  assert.equal((await post(settings+'/preview',{dashboardId:foreign.id,dashboardRevision:foreign.revision,policyRevision:0,entries:[entry(member,'editor')]})).status,403,'a policy cannot grant an otherwise ineligible team')
   assert.equal((await get('/app/dashboards/'+a.id+'/publish',member.session)).status,403)
   assert.equal((await post('/api/porthole/v1/archive/exports',{}, {session:member.session})).status,403)
  })
@@ -157,7 +159,7 @@ export async function objectGrantsJourney({origin,freshOwner,signIn,sql,restartW
  assert.equal((await get(root+'/'+a.id,member.session)).status,404)
  await assertPolicyPublicationWithdrawn({origin,publication})
  const {dashboardPolicyArchiveJourney}=await import('./archive.mjs')
- await dashboardPolicyArchiveJourney({origin,freshOwner,withEmptyDestination,dashboardId:b.id,memberEmail:member.email,scope})
+ await dashboardPolicyArchiveJourney({origin,freshOwner,withEmptyDestination,dashboardId:b.id,memberEmail:member.email,scope,publication})
  cookie=await freshOwner()
  await value(await post('/app/settings/credentials/revoke',{id:reader.credential.id}))
  assert.equal((await get(root,cookie,reader.secret)).status,401,'owner cookie never revives a revoked credential')
