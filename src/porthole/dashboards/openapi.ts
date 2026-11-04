@@ -2,12 +2,20 @@ import {widgetKinds} from './widgets/kinds'
 const json=(description:string,schema:unknown)=>({description,content:{'application/json':{schema}}})
 const scope={$ref:'#/components/schemas/Scope'}
 const functions={type:'array',maxItems:8,description:'Ordered numeric metric transformations; see the documented dashboard function semantics.',items:{oneOf:[{type:'object',additionalProperties:false,required:['kind','seconds','operation'],properties:{kind:{const:'rollup'},seconds:{type:'integer',minimum:1,maximum:604800},operation:{enum:['average','sum']}}},{type:'object',additionalProperties:false,required:['kind','limit'],properties:{kind:{const:'rank'},limit:{type:'integer',minimum:1,maximum:2000}}},{type:'object',additionalProperties:false,required:['kind','window'],properties:{kind:{const:'smooth'},window:{type:'integer',minimum:1,maximum:2000}}},{type:'object',additionalProperties:false,required:['kind'],properties:{kind:{const:'rate'}}}]}}
-const body={type:'object',additionalProperties:false,required:['panels','variables','range','annotations'],properties:{
+const layoutRef={$ref:'#/components/schemas/DashboardLayoutItem'}
+const dimensions={width:{type:'integer',minimum:1,maximum:12},height:{type:'integer',minimum:1,maximum:4}}
+export const dashboardSchemas={DashboardLayoutItem:{oneOf:[
+ {type:'object',additionalProperties:false,required:['panel','width','height'],properties:{panel:{type:'string'},...dimensions}},
+ {type:'object',additionalProperties:false,required:['id','title','width','height','collapsed','children'],properties:{id:{type:'string'},title:{type:'string',maxLength:120},...dimensions,collapsed:{type:'boolean'},service:{type:'string'},variables:{type:'object',additionalProperties:false,properties:{team:{type:'string'},environment:{type:'string'}}},children:{type:'array',items:layoutRef},powerpack:{type:'object',additionalProperties:false,required:['id','revision'],properties:{id:{type:'string',format:'uuid'},revision:{type:'integer',minimum:1}}}}},
+],description:'Every native panel appears exactly once; at most four nested group levels and sixty total items. Pack children are resolved by the server from the exact current reviewed pack revision.'}}
+export const dashboardBodySchema={type:'object',additionalProperties:false,required:['panels','variables','range','annotations'],properties:{
  panels:{type:'array',maxItems:30,items:{type:'object',additionalProperties:false,required:['id','title','service','signal','aggregate','unit'],properties:{id:{type:'string'},title:{type:'string',maxLength:120},service:{type:'string'},signal:{enum:['metrics','logs','traces']},aggregate:{enum:['average','count','p95']},metric:{type:'string',description:'Required for metrics; exact metric name'},unit:{type:'string',maxLength:32},compareWeek:{type:'boolean'},functions,widget:{enum:widgetKinds},note:{type:'string',maxLength:5000}}}},
  variables:{type:'object',required:['team','environment'],properties:{team:{type:'string'},environment:{type:'string'}}},
  range:{type:'object',required:['from','through'],properties:{from:{type:'string',pattern:'^[0-9]+$'},through:{type:'string',pattern:'^[0-9]+$'}}},
+ layout:{type:'array',maxItems:60,items:layoutRef},
  annotations:{type:'array',maxItems:100,items:{type:'object',required:['at','label'],properties:{at:{type:'string'},label:{type:'string',maxLength:300}}}},
 }}
+const body=dashboardBodySchema
 const input={type:'object',additionalProperties:false,required:['name','scope','body'],properties:{id:{type:'string',format:'uuid'},revision:{type:'integer',minimum:1},name:{type:'string',maxLength:120},scope,body}}
 const dashboard={...input,required:['id','revision','name','scope','body','state'],properties:{...input.properties,state:{enum:['active','archived','quarantined']},versions:{type:'array',items:{type:'integer'}}}}
 const receipt={type:'object',required:['id','revision','state'],properties:{id:{type:'string',format:'uuid'},revision:{type:'integer'},state:{type:'string'}}}

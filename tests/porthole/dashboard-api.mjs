@@ -131,7 +131,9 @@ export async function layoutAuthorityJourney({origin,cookie,signIn,id,scope,pack
  assert.ok(row)
  const changed=await post('/app/settings/members/change',{operatorId:row.operatorId??row.operator_id,revision:row.revision,role:'read-only analyst',scope:{...scope,teams:['foreign']}})
  assert.equal(changed.status,200,await changed.clone().text())
- assert.equal((await fetch(origin+'/app/dashboards/'+id,{headers:{cookie:reader}})).status,403,'next request rechecks revoked child scope')
+ assert.equal((await fetch(origin+'/app/dashboards/'+id,{headers:{cookie:reader}})).status,401,'a membership change revokes the old session immediately')
+ const changedReader=await signIn(address)
+ assert.equal((await fetch(origin+'/app/dashboards/'+id,{headers:{cookie:changedReader}})).status,403,'a fresh session still refuses the revoked child scope')
  assert.deepEqual(await sql('SELECT id,body,revision FROM porthole_dashboards ORDER BY id'),before)
- return reader
+ return changedReader
 }

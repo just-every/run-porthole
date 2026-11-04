@@ -1,7 +1,7 @@
 import type {Bindings} from '../../../auth.server'
 import {fail,scopeWithin,type Authority} from '../../security/authority'
-import {dashboardBody,type Dashboard,type DashboardRow} from '../model'
-import {isGroup,packBindings,panelIds,validateDashboardScope,type Group,type LayoutItem} from '../layout'
+import {dashboardBody,type Dashboard} from '../model'
+import {isGroup,packBindings,panelIds,validateDashboardScope,type LayoutItem} from '../layout'
 import {powerpackBody,type PowerpackRow} from './model'
 export function installPack(body:Dashboard,groupId:string,pack:PowerpackRow):Dashboard {
  const template=powerpackBody(JSON.parse(pack.body)),group=packBindings(body.layout).find(group=>group.id===groupId)??fail('powerpack_binding_not_found',400)
@@ -28,4 +28,3 @@ export function packFence(body:Dashboard):{sql:string;args:unknown[]} {
  const groups=packBindings(body.layout)
  return {sql:groups.map(()=>"EXISTS(SELECT 1 FROM porthole_powerpacks WHERE id=? AND revision=? AND state='active')").join(' AND ')||'1',args:groups.flatMap(group=>[group.powerpack!.id,group.powerpack!.revision])}
 }
-export const usesPack=(row:DashboardRow,id:string)=>packBindings(dashboardBody(JSON.parse(row.body)).layout).some(group=>group.powerpack!.id===id)

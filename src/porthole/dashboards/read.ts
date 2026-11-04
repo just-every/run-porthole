@@ -8,15 +8,15 @@ import type {Point,WidgetRecord} from './widgets'
 import {readTelemetry} from '../ingest/read'
 import {fail,scopeWithin,type Scope} from '../security/authority'
 import {dashboardBody,scopeLabel,timestamp,type DashboardRow,type Panel} from './model'
-export interface PanelResult {panel:Panel;value:number|null;state:'empty'|'complete'|'partial'|'stale'|'error';count:number;query:string;error?:string;values:number[];unit?:string;points?:Point[];records?:WidgetRecord[];from?:string;through?:string;comparison?:PanelResult}
+export interface PanelResult {panel:Panel;value:number|null;state:'empty'|'complete'|'partial'|'stale'|'error'|'unavailable';count:number;query:string;error?:string;values:number[];unit?:string;points?:Point[];records?:WidgetRecord[];from?:string;through?:string;comparison?:PanelResult}
 export async function dashboardResults(request:Request,env:Bindings,row:DashboardRow):Promise<PanelResult[]> {
  const body=dashboardBody(JSON.parse(row.body)),params=new URL(request.url).searchParams
- const team=scopeLabel(params.get('team')??body.variables.team),environment=scopeLabel(params.get('environment')??body.variables.environment)
+ const requestedTeam=params.has('team')?scopeLabel(params.get('team')):null,requestedEnvironment=params.has('environment')?scopeLabel(params.get('environment')):null
  const from=timestamp(params.get('from')??body.range.from),through=timestamp(params.get('through')??body.range.through)
  if(BigInt(from)>BigInt(through))fail('invalid_dashboard_range',400)
  const scope=JSON.parse(row.scope) as Scope
  const results=await Promise.all(boundPanels(body).map(async ({panel,team:childTeam,environment:childEnvironment})=>{
-  const team=params.has('team')?scopeLabel(params.get('team')):childTeam,environment=params.has('environment')?scopeLabel(params.get('environment')):childEnvironment
+  const team=requestedTeam??childTeam,environment=requestedEnvironment??childEnvironment
   if(!scopeWithin({services:[panel.service],teams:[team],environments:[environment]},scope))fail('dashboard_variable_scope_forbidden')
   const query=new URLSearchParams({signal:panel.signal,service:panel.service,team,environment,from,through})
   if(panel.metric)query.set('metric',panel.metric)
@@ -28,7 +28,7 @@ export async function dashboardResults(request:Request,env:Bindings,row:Dashboar
    if(cursor)url.searchParams.set('cursor',cursor)
    if(snapshot!==undefined)url.searchParams.set('snapshot',String(snapshot))
    const response=await readTelemetry(new Request(url,{headers:request.headers}),env)
-   if(!response.ok)return {panel,value:null,state:'error' as const,count:0,values:[],query:'/app/explore?'+query,error:String((await response.json() as {error:string}).error)}
+   if(!response.ok)return {panel,value:null,state:response.status>=500?'unavailable' as const:'error' as const,count:0,values:[],query:'/app/explore?'+query,error:String((await response.json() as {error:string}).error)}
    const result=await response.json() as {records:WidgetRecord[];snapshot:number;cursor:string|null;queryRef:string}
    records.push(...result.records.filter(row=>panel.signal!=='metrics'||(row.payload as unknown as {metric:{name:string}}).metric.name===panel.metric));snapshot=result.snapshot;cursor=result.cursor;reference=result.queryRef
    if(!cursor)break

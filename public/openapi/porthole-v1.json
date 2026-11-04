@@ -4882,6 +4882,13 @@
                                   }
                                 }
                               },
+                              "layout": {
+                                "type": "array",
+                                "maxItems": 60,
+                                "items": {
+                                  "$ref": "#/components/schemas/DashboardLayoutItem"
+                                }
+                              },
                               "annotations": {
                                 "type": "array",
                                 "maxItems": 100,
@@ -5295,6 +5302,13 @@
                             "type": "string",
                             "pattern": "^[0-9]+$"
                           }
+                        }
+                      },
+                      "layout": {
+                        "type": "array",
+                        "maxItems": 60,
+                        "items": {
+                          "$ref": "#/components/schemas/DashboardLayoutItem"
                         }
                       },
                       "annotations": {
@@ -5719,6 +5733,13 @@
                               "type": "string",
                               "pattern": "^[0-9]+$"
                             }
+                          }
+                        },
+                        "layout": {
+                          "type": "array",
+                          "maxItems": 60,
+                          "items": {
+                            "$ref": "#/components/schemas/DashboardLayoutItem"
                           }
                         },
                         "annotations": {
@@ -6540,6 +6561,787 @@
         }
       }
     },
+    "/api/porthole/v1/dashboard-powerpacks": {
+      "get": {
+        "summary": "List native-owner powerpack definitions",
+        "description": "Current native owner and current scope required. Bearer credentials refuse even with an owner cookie. Mutations additionally require fresh sign-in proof and same-origin Origin. JSON input is limited to 8192 bytes. Private definitions only; no new publication or delegated update authority.",
+        "security": [
+          {
+            "NativeSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current scoped private packs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "objects": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Correct the rejected input; expression errors include field and hint when available.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sign in or supply a valid live credential.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Use an authorized scope and action. Native writes require the configured same-origin Origin header.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Check the identifier and current access; inaccessible objects may be hidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Use the documented method.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Refresh current authority and revision; reuse an idempotency key only for the identical request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Reduce the request size.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Use a supported Content-Type and encoding.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Restore service availability and retry; a failed request is not evidence of acceptance.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/porthole/v1/dashboard-powerpacks/{id}": {
+      "parameters": [
+        {
+          "in": "path",
+          "name": "id",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "get": {
+        "summary": "Read a private powerpack and its version history",
+        "description": "Current native owner and current scope required. Bearer credentials refuse even with an owner cookie. Mutations additionally require fresh sign-in proof and same-origin Origin. JSON input is limited to 8192 bytes. Private definitions only; no new publication or delegated update authority.",
+        "security": [
+          {
+            "NativeSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Private native definition with JSON-encoded body and scope; detail includes immutable visible versions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Correct the rejected input; expression errors include field and hint when available.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sign in or supply a valid live credential.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Use an authorized scope and action. Native writes require the configured same-origin Origin header.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Check the identifier and current access; inaccessible objects may be hidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Use the documented method.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Refresh current authority and revision; reuse an idempotency key only for the identical request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Reduce the request size.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Use a supported Content-Type and encoding.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Restore service availability and retry; a failed request is not evidence of acceptance.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/porthole/v1/dashboard-powerpacks/preview": {
+      "post": {
+        "summary": "Review an exact private pack and all affected consumer revisions",
+        "description": "Current native owner and current scope required. Bearer credentials refuse even with an owner cookie. Mutations additionally require fresh sign-in proof and same-origin Origin. JSON input is limited to 8192 bytes. Private definitions only; no new publication or delegated update authority.",
+        "security": [
+          {
+            "NativeSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": true,
+            "description": "Must equal the configured application origin for native writes.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "name",
+                  "scope",
+                  "body"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "revision": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120
+                  },
+                  "scope": {
+                    "$ref": "#/components/schemas/Scope"
+                  },
+                  "body": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "panels",
+                      "variables",
+                      "range",
+                      "annotations"
+                    ],
+                    "properties": {
+                      "panels": {
+                        "type": "array",
+                        "maxItems": 30,
+                        "items": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "id",
+                            "title",
+                            "service",
+                            "signal",
+                            "aggregate",
+                            "unit"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "title": {
+                              "type": "string",
+                              "maxLength": 120
+                            },
+                            "service": {
+                              "type": "string"
+                            },
+                            "signal": {
+                              "enum": [
+                                "metrics",
+                                "logs",
+                                "traces"
+                              ]
+                            },
+                            "aggregate": {
+                              "enum": [
+                                "average",
+                                "count",
+                                "p95"
+                              ]
+                            },
+                            "metric": {
+                              "type": "string",
+                              "description": "Required for metrics; exact metric name"
+                            },
+                            "unit": {
+                              "type": "string",
+                              "maxLength": 32
+                            },
+                            "compareWeek": {
+                              "type": "boolean"
+                            },
+                            "functions": {
+                              "type": "array",
+                              "maxItems": 8,
+                              "description": "Ordered numeric metric transformations; see the documented dashboard function semantics.",
+                              "items": {
+                                "oneOf": [
+                                  {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "kind",
+                                      "seconds",
+                                      "operation"
+                                    ],
+                                    "properties": {
+                                      "kind": {
+                                        "const": "rollup"
+                                      },
+                                      "seconds": {
+                                        "type": "integer",
+                                        "minimum": 1,
+                                        "maximum": 604800
+                                      },
+                                      "operation": {
+                                        "enum": [
+                                          "average",
+                                          "sum"
+                                        ]
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "kind",
+                                      "limit"
+                                    ],
+                                    "properties": {
+                                      "kind": {
+                                        "const": "rank"
+                                      },
+                                      "limit": {
+                                        "type": "integer",
+                                        "minimum": 1,
+                                        "maximum": 2000
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "kind",
+                                      "window"
+                                    ],
+                                    "properties": {
+                                      "kind": {
+                                        "const": "smooth"
+                                      },
+                                      "window": {
+                                        "type": "integer",
+                                        "minimum": 1,
+                                        "maximum": 2000
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "kind"
+                                    ],
+                                    "properties": {
+                                      "kind": {
+                                        "const": "rate"
+                                      }
+                                    }
+                                  }
+                                ]
+                              }
+                            },
+                            "widget": {
+                              "enum": [
+                                "query_value",
+                                "timeseries",
+                                "table",
+                                "top_list",
+                                "distribution",
+                                "heatmap",
+                                "pie",
+                                "treemap",
+                                "list",
+                                "log_stream",
+                                "notes"
+                              ]
+                            },
+                            "note": {
+                              "type": "string",
+                              "maxLength": 5000
+                            }
+                          }
+                        }
+                      },
+                      "variables": {
+                        "type": "object",
+                        "required": [
+                          "team",
+                          "environment"
+                        ],
+                        "properties": {
+                          "team": {
+                            "type": "string"
+                          },
+                          "environment": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "range": {
+                        "type": "object",
+                        "required": [
+                          "from",
+                          "through"
+                        ],
+                        "properties": {
+                          "from": {
+                            "type": "string",
+                            "pattern": "^[0-9]+$"
+                          },
+                          "through": {
+                            "type": "string",
+                            "pattern": "^[0-9]+$"
+                          }
+                        }
+                      },
+                      "layout": {
+                        "type": "array",
+                        "maxItems": 60,
+                        "items": {
+                          "$ref": "#/components/schemas/DashboardLayoutItem"
+                        }
+                      },
+                      "annotations": {
+                        "type": "array",
+                        "maxItems": 100,
+                        "items": {
+                          "type": "object",
+                          "required": [
+                            "at",
+                            "label"
+                          ],
+                          "properties": {
+                            "at": {
+                              "type": "string"
+                            },
+                            "label": {
+                              "type": "string",
+                              "maxLength": 300
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Single-use five-minute review packet with id, digest, exact definition and consumers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Correct the rejected input; expression errors include field and hint when available.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sign in or supply a valid live credential.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Use an authorized scope and action. Native writes require the configured same-origin Origin header.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Check the identifier and current access; inaccessible objects may be hidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Use the documented method.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Refresh current authority and revision; reuse an idempotency key only for the identical request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Reduce the request size.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Use a supported Content-Type and encoding.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Restore service availability and retry; a failed request is not evidence of acceptance.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/porthole/v1/dashboard-powerpacks/approve": {
+      "post": {
+        "summary": "Atomically apply the reviewed pack and consumer revisions",
+        "description": "Current native owner and current scope required. Bearer credentials refuse even with an owner cookie. Mutations additionally require fresh sign-in proof and same-origin Origin. JSON input is limited to 8192 bytes. Private definitions only; no new publication or delegated update authority. Any intervening pack or consumer revision, expired review or changed owner authority refuses without product writes. Consumer source revisions advance without publication renewal.",
+        "security": [
+          {
+            "NativeSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": true,
+            "description": "Must equal the configured application origin for native writes.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "id",
+                  "digest",
+                  "confirm"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "digest": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  },
+                  "confirm": {
+                    "const": "apply-private-powerpack"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Private native definition with JSON-encoded body and scope; detail includes immutable visible versions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Correct the rejected input; expression errors include field and hint when available.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sign in or supply a valid live credential.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Use an authorized scope and action. Native writes require the configured same-origin Origin header.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Check the identifier and current access; inaccessible objects may be hidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Use the documented method.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Refresh current authority and revision; reuse an idempotency key only for the identical request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Reduce the request size.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Use a supported Content-Type and encoding.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Restore service availability and retry; a failed request is not evidence of acceptance.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/porthole/v1/genai": {
       "get": {
         "summary": "Read scoped GenAI metadata and observed usage",
@@ -7148,6 +7950,108 @@
             ]
           }
         }
+      },
+      "DashboardLayoutItem": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "panel",
+              "width",
+              "height"
+            ],
+            "properties": {
+              "panel": {
+                "type": "string"
+              },
+              "width": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 12
+              },
+              "height": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 4
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "title",
+              "width",
+              "height",
+              "collapsed",
+              "children"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string",
+                "maxLength": 120
+              },
+              "width": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 12
+              },
+              "height": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 4
+              },
+              "collapsed": {
+                "type": "boolean"
+              },
+              "service": {
+                "type": "string"
+              },
+              "variables": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "team": {
+                    "type": "string"
+                  },
+                  "environment": {
+                    "type": "string"
+                  }
+                }
+              },
+              "children": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/DashboardLayoutItem"
+                }
+              },
+              "powerpack": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "id",
+                  "revision"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "revision": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "description": "Every native panel appears exactly once; at most four nested group levels and sixty total items. Pack children are resolved by the server from the exact current reviewed pack revision."
       },
       "Scope": {
         "type": "object",
