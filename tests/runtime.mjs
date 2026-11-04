@@ -10,7 +10,7 @@ import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import {promisify} from 'node:util'
 const execute=promisify(execFile)
-if(process.env.PORTHOLE_PROMQL_ONLY==='1'){const {promqlJourney}=await import('./porthole/promql.mjs');await promqlJourney();process.exit(0)}
+if(process.env.PORTHOLE_PROMQL_ONLY==='1'){const {promqlJourney}=await import('./porthole/promql.mjs');await promqlJourney(process.env.PORTHOLE_PROMQL_BACKEND);process.exit(0)}
 if(process.env.PORTHOLE_GENAI_CONTENT_ONLY==='1'){const {nativeGenaiContentRefusalJourney}=await import('./porthole/archive.mjs');await nativeGenaiContentRefusalJourney();process.exit(0)}
 if(process.env.PORTHOLE_MAIL_ONLY==='1'){const {recipientMailJourney}=await import('./porthole/health.mjs');await recipientMailJourney();process.exit(0)}
 if(process.env.PORTHOLE_GENAI_ANALYTICAL_ONLY==='1'){const {genaiAnalyticalJourney}=await import('./porthole/genai.mjs');await genaiAnalyticalJourney();process.exit(0)}

@@ -37,7 +37,7 @@ export async function promqlNativeJourney(context,reference,{backend='local',onQ
  for(const item of reference.cases) {
   const result=await value(await query({expression:item.expression,...item.settings,...(snapshot===undefined?{}:{snapshot})}))
   snapshot??=result.snapshot
-  assert.equal(result.snapshot,snapshot);if(result.evaluation.result.length)assert.equal(result.evaluation.result[0].unit,item.expression.includes('rate(')?'requests/s':item.expression.includes('increase(')?'requests':'items');assert.equal(result.evaluation.state,'complete');assert.equal(result.cursor,null);assert.equal(result.evaluation.timestampUnit,'unix-nanoseconds')
+  assert.equal(result.snapshot,snapshot);if(result.evaluation.result.length)assert.equal(result.evaluation.result[0].unit,item.expression.includes('rate(')?('requests'+'/s'):item.expression.includes('increase(')?'requests':'items');assert.equal(result.evaluation.state,'complete');assert.equal(result.cursor,null);assert.equal(result.evaluation.timestampUnit,'unix-nanoseconds')
   assert.equal(result.analytical?.role,backend==='analytical'?'primary':undefined)
   matches(result.evaluation.result,item.expected.result)
   if(!replay){replay=result.replay;expected=item.expected;initial=result}
@@ -164,13 +164,14 @@ async function promqlBrowser({context,reference,initial,backend,snapshot}) {
   await state.close()
  }}finally{await browser.close()}
 }
-export async function promqlJourney() {
+export async function promqlJourney(backend='both') {
+ assert.ok(['both','local','analytical'].includes(backend),'explicit supported journey backend')
  const reference=await prometheusReference()
  try {
   const {recipientMailJourney}=await import('./health.mjs')
-  await recipientMailJourney({run:context=>promqlNativeJourney(context,reference)})
+  if(backend!=='analytical')await recipientMailJourney({run:context=>promqlNativeJourney(context,reference)})
   const {promqlAnalyticalJourney}=await import('./analytics.mjs')
-  await promqlAnalyticalJourney(reference)
+  if(backend!=='local')await promqlAnalyticalJourney(reference)
  }finally{await reference.close()}
- console.log('promqlJourney passed: scalar subset compared with stock Prometheus 3.5.0 on both analytical configurations')
+ console.log('promqlJourney passed: scalar subset compared with stock Prometheus 3.5.0; backend='+backend)
 }
