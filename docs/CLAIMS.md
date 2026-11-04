@@ -41,7 +41,7 @@
 
 These are contract statuses, not a claim that a partial or missing capability is complete. Read the [product contract](/docs/contract) for requirements, named journeys and remaining work.
 
-10 done, 18 partial, 70 missing; 98 total.
+10 done, 19 partial, 69 missing; 98 total.
 
 | Clause | Capability | Status |
 | --- | --- | --- |
@@ -139,7 +139,7 @@ These are contract statuses, not a claim that a partial or missing capability is
 | PORT-084 | All SLO types with source-exact budgets | missing |
 | PORT-085 | Qualified retained and live trace search | missing |
 | PORT-086 | Required multi-vendor query translation floor | missing |
-| PORT-087 | Loki and Pyroscope shipper continuity | missing |
+| PORT-087 | Loki and Pyroscope shipper continuity | partial |
 | PORT-088 | Read existing Datadog log archives | missing |
 | PORT-089 | Backfill useful metric history | missing |
 | PORT-090 | Keep investigation traces beyond hot retention | missing |
