@@ -832,7 +832,7 @@ async function run(source) {
     const review=await value(send('/api/porthole/v1/database/sources',{id:'native-'+capture.engine,revision:0,credentialId:dbsource.credential.id,engine:capture.engine,service:'database-checkout',environment:'production',team:'commerce',plans:databaseProof.plans,enabled:true,confirm:'review-read-only-database'}),201)
     await value(fetch(origin+'/api/porthole/v1/database/captures',{method:'POST',headers:{authorization:'Bearer '+dbsource.secret,'content-type':'application/json'},body:JSON.stringify({id:review.id,revision:review.revision,planDigest:review.planDigest,capture})}),201)
    }
-   for(const packet of databaseProof.packets)await value(fetch(origin+'/v1/traces',{method:'POST',headers:{authorization:'Bearer '+dbsource.secret,'content-type':'application/x-protobuf'},body:packet}))
+   for(const packet of databaseProof.packets)assert.equal((await fetch(origin+'/v1/traces',{method:'POST',headers:{authorization:'Bearer '+dbsource.secret,'content-type':'application/x-protobuf'},body:packet})).status,200)
    await value(send('/api/porthole/v1/ingest/drain',{}))
    const view=await value(fetch(origin+'/api/porthole/v1/database',{headers:{cookie}}));assert.equal(view.captures.length,2)
    const expected=await sql(source,"SELECT payload FROM porthole_telemetry_records WHERE signal='logs' ORDER BY id")

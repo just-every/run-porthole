@@ -34,6 +34,10 @@ export async function databaseEstate(){
   async function state(engine){const c=admins[engine],rows=engine==='postgresql'?(await c.query('SELECT count(*) AS count,sum(amount) AS amount FROM porthole_orders')).rows:(await c.query('SELECT count(*) AS count,sum(amount) AS amount FROM porthole_orders'))[0];return rows.map(r=>({count:Number(r.count),amount:Number(r.amount)}))}
   async function restrict(engine){if(engine==='postgresql'){await p.query('REVOKE pg_read_all_stats FROM porthole_observe; REVOKE SELECT ON porthole_orders FROM porthole_observe; REVOKE EXECUTE ON FUNCTION pg_stat_statements(boolean) FROM PUBLIC')}else{await m.query("REVOKE SELECT ON performance_schema.* FROM 'porthole_observe'@'%'");await m.query("REVOKE SELECT ON porthole.* FROM 'porthole_observe'@'%'")}}
   async function rotate(engine){const next='synthetic-porthole-16004';if(engine==='postgresql')await p.query(`ALTER ROLE porthole_observe PASSWORD '${next}'`);else await m.query("ALTER USER 'porthole_observe'@'%' IDENTIFIED BY ?",[next]);return next}
-  return {ports,config,native,state,restrict,rotate,dispose,admins,workload:{user:'porthole_work',password:workPassword}}
+  async function deniedMutation(engine){
+   const cfg=config(engine).connection,c=await connect(engine,cfg.user,cfg.password)
+   try{await c.query('BEGIN');try{await c.query('UPDATE porthole_orders SET amount=amount+1 WHERE id=1');return false}catch(error){return engine==='postgresql'?error.code==='42501':error.code==='ER_TABLEACCESS_DENIED_ERROR'}}finally{await c.query('ROLLBACK');await c.end();clients.splice(clients.indexOf(c),1)}
+  }
+  return {ports,config,native,state,restrict,rotate,dispose,deniedMutation,admins,workload:{user:'porthole_work',password:workPassword}}
  }catch(error){await dispose();throw error}
 }

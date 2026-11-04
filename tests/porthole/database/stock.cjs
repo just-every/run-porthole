@@ -21,12 +21,15 @@ const server=http.createServer(async(req,res)=>{
   span.setAttribute('http.route','/'+engine+'/'+mode)
   if(mode==='error'){await query(engine,c,engine==='postgresql'?'SELECT cast($1 AS integer)':'SELECT cast(? AS JSON)',[cfg.marker])}
   if(mode==='blocked'){
-   const b=await open(engine),bid=engine==='postgresql'?String((await b.query('SELECT pg_backend_pid() AS id')).rows[0].id):String(b.threadId)
-   await query(engine,b,'BEGIN');await query(engine,b,'UPDATE porthole_orders SET amount = amount WHERE id = 1')
-   blockers[engine]={waiting:id,blocking:bid,traceId:ctx.traceId,spanId:ctx.spanId}
+   const b=await open(engine),holder=await open(engine),bid=engine==='postgresql'?String((await b.query('SELECT pg_backend_pid() AS id')).rows[0].id):String(b.threadId),holderId=engine==='postgresql'?String((await holder.query('SELECT pg_backend_pid() AS id')).rows[0].id):String(holder.threadId)
+   if(engine==='postgresql')await b.query("SELECT set_config('application_name',$1,false)",[traceparent]);else await b.execute('SET @porthole_traceparent = ?',[traceparent])
+   await query(engine,holder,'BEGIN');await query(engine,holder,'UPDATE porthole_orders SET amount = amount WHERE id = 1')
+   await query(engine,b,'BEGIN');await query(engine,b,'UPDATE porthole_orders SET amount = amount WHERE id = 2')
+   const middle=query(engine,b,'SELECT amount FROM porthole_orders WHERE id = 1 FOR UPDATE')
+   blockers[engine]={waiting:id,blocking:bid,chainHolder:holderId,traceId:ctx.traceId,spanId:ctx.spanId}
    process.stdout.write(JSON.stringify({event:'blocking',engine,...blockers[engine]})+'\n')
-   const operation=query(engine,c,'SELECT amount FROM porthole_orders WHERE id = 1 FOR UPDATE')
-   await new Promise(resolve=>pending.push(async()=>{await query(engine,b,'ROLLBACK');resolve()}));await operation
+   const operation=query(engine,c,'SELECT amount FROM porthole_orders WHERE id = 2 FOR UPDATE')
+   await new Promise(resolve=>pending.push(async()=>{await query(engine,holder,'ROLLBACK');await middle;await query(engine,b,'ROLLBACK');resolve()}));await operation
   }else{
    for(let i=0;i<6;i++){const result=await query(engine,c,'SELECT count(*) FROM porthole_orders WHERE customer = '+(engine==='postgresql'?'$1':'?'),[cfg.marker]);counts[engine]++}
   }

@@ -30,7 +30,7 @@ export async function databaseResponse(request:Request,env:Bindings):Promise<Res
    const capture=captureInput(data.capture)
    if(capture.engine!==source.engine)fail('database_engine_changed',409)
    const payload={databaseCapture:{sourceId:source.id,revision:source.revision,...capture},record:{eventName:'porthole.database.capture',attributes:[{key:'porthole.database.kind',value:{stringValue:'capture'}}],body:{stringValue:canonical({sourceId:source.id,revision:source.revision,...capture})}}}
-   const wire=new TextEncoder().encode(canonical(payload)),original=new TextEncoder().encode(canonical(data))
+   const wire=new TextEncoder().encode(canonical(payload)),original=new TextEncoder().encode(canonical({id:source.id,capture:data.capture}))
    // An unsafe request exists in memory only. The envelope and retained wire
    // are constructed exclusively from the validated, sanitized projection.
    const hash=await sha256(original),receipt=await acceptEnvelope(request,env,{id:crypto.randomUUID(),identity:hash,digest:hash,signal:'logs',protocol:'porthole.database.v1',wire,records:[{team:source.team,service:source.service,environment:source.environment,eventTimeNs:(BigInt(capture.collectedAt)*1000000n).toString().padStart(20,'0'),traceId:null,spanId:null,payload,late:0,outOfOrder:0}],gate:reviewLive(source)})
