@@ -160,7 +160,9 @@ export async function servicesJourney({origin,freshOwner,signIn,sql,restartWorke
  const discoveryFields=service=>Object.fromEntries(['id','service','environment','team','versions','summary','associations'].map(key=>[key,service[key]]))
  const discoveryProof={query:discoveryQuery,services:discovered.services.map(discoveryFields)}
  assert.deepEqual((await read(api+discoveryQuery)).services.map(discoveryFields),discoveryProof.services,'restart preserves both version history and isolated environment observations')
- const quietQuery='?'+new URLSearchParams({from:String(end+2n),through:String(end+1000000000n)})
+ // The replacement runtimes also emitted real traffic. Start the quiet window
+ // after their final captured span, independently of their startup duration.
+ const quietQuery='?'+new URLSearchParams({from:String(discoveryEnd+2n),through:String(discoveryEnd+1000000000n)})
  const quiet=await read(api+'/'+checkout.id+quietQuery)
  assert.equal(quiet.freshness,'no-retained-evidence');assert.equal(quiet.spanCount,0);assert.equal(quiet.summary.p95Ns,null);assert.deepEqual(quiet.associations,[])
  assert.equal(quiet.metadata.revision,3);assert.deepEqual(quiet.history,reloaded.history);assert.equal(quiet.coverage.fullTraffic,false,'an empty observation window cannot establish healthy full traffic')
