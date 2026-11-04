@@ -1,5 +1,5 @@
 import type {Bindings} from '../../../auth.server'
-import {fail,scopeWithin,type Authority} from '../../security/authority'
+import {fail,type Authority} from '../../security/authority'
 import {dashboardBody,type Dashboard} from '../model'
 import {isGroup,packBindings,panelIds,validateDashboardScope,type LayoutItem} from '../layout'
 import {powerpackBody,type PowerpackRow} from './model'
@@ -13,13 +13,14 @@ export function installPack(body:Dashboard,groupId:string,pack:PowerpackRow):Das
 export async function resolvePacks(env:Bindings,actor:Authority,body:Dashboard,scope:Parameters<typeof validateDashboardScope>[1]):Promise<Dashboard> {
  for(const group of packBindings(body.layout)) {
   const pack=await env.DB.prepare(`SELECT * FROM porthole_powerpacks WHERE id=? AND ${actor.fence}`).bind(group.powerpack!.id,...actor.args).first<PowerpackRow>()
-  if(!pack||!scopeWithin(JSON.parse(pack.scope),actor.member.scope))fail('powerpack_not_found',404)
+  if(!pack)fail('powerpack_not_found',404)
   if(pack.state!=='active'||pack.revision!==group.powerpack!.revision)fail('powerpack_revision_changed',409)
   body=installPack(body,group.id,pack)
   const children=panelIds(packBindings(body.layout).find(g=>g.id===group.id)!.children)
+  // Dashboard editors need authority over the bound children. Pack
+  // administration retains its separate whole-pack scope requirement.
   // A binding may narrow visibility, never expand the pack's reviewed scope.
-  const selected=dashboardBody({...body,panels:body.panels.filter(p=>children.includes(p.id)),layout:[packBindings(body.layout).find(g=>g.id===group.id)!]})
-  validateDashboardScope(selected,JSON.parse(pack.scope))
+  validateDashboardScope(body,JSON.parse(pack.scope),children)
  }
  validateDashboardScope(body,scope)
  return body

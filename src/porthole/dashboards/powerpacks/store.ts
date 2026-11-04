@@ -24,7 +24,7 @@ async function consumers(env:Bindings,actor:Authority,id:string,pack:PowerpackRo
   for(const group of packBindings(body.layout).filter(group=>group.powerpack!.id===id)) {
    body=installPack(body,group.id,pack)
    const updated=packBindings(body.layout).find(g=>g.id===group.id)!,ids=panelIds(updated.children)
-   validateDashboardScope(dashboardBody({...body,panels:body.panels.filter(p=>ids.includes(p.id)),layout:[updated]}),JSON.parse(pack.scope))
+   validateDashboardScope(body,JSON.parse(pack.scope),ids)
   }
   validateDashboardScope(body,JSON.parse(row.scope))
   return {id:row.id,name:row.name,revision:row.revision,body:JSON.stringify(body)}

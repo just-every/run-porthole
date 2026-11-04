@@ -116,7 +116,7 @@ export async function dashboardApiJourney({origin,cookie,freshOwner,signIn}) {
 
 export async function layoutAuthorityJourney({origin,cookie,signIn,id,scope,packId,packRevision,body,sql}) {
  const address=['synthetic-porthole-6810','example.com'].join(String.fromCharCode(64))
- const post=(path,data,session=cookie,headers={})=>fetch(origin+path,{method:'POST',headers:{origin,cookie:session,'content-type':'application/json',...headers},body:JSON.stringify(data)})
+ const post=(path,data,session=cookie,headers={})=>fetch(origin+path,{method:'POST',redirect:'manual',headers:{origin,cookie:session,'content-type':'application/json',...headers},body:JSON.stringify(data)})
  assert.equal((await post('/app/settings/members/invite',{email:address,displayName:'Scoped layout analyst',role:'read-only analyst',scope})).status,202)
  const reader=await signIn(address),root='/api/porthole/v1/dashboard-powerpacks'
  const before=await sql('SELECT id,body,revision FROM porthole_dashboards ORDER BY id')
@@ -127,6 +127,52 @@ export async function layoutAuthorityJourney({origin,cookie,signIn,id,scope,pack
  assert.equal((await fetch(origin+'/api/porthole/v1/dashboards/'+id,{headers:{cookie,authorization:'Bearer '+source.secret}})).status,404,'group children retain whole-definition signal authority')
  assert.equal((await post(root+'/preview',{name:'Bearer must refuse',scope,body},cookie,{authorization:'Bearer '+source.secret})).status,403)
  assert.deepEqual(await sql('SELECT id,body,revision FROM porthole_dashboards ORDER BY id'),before,'refused native and bearer paths do not mutate consumers')
+ const value=async(response,status=200)=>{assert.equal(response.status,status,await response.clone().text());return response.json()}
+ const narrow={...scope,teams:['commerce'],environments:['production']}
+ const makePack=async(packScope)=>{
+  const review=await value(await post(root+'/preview',{name:'Scoped binding pack',scope:packScope,body}),201)
+  return value(await post(root+'/approve',{id:review.id,digest:review.digest,confirm:'apply-private-powerpack'}))
+ }
+ const broadPack=await makePack(scope),narrowPack=await makePack(narrow)
+ const binding=(pack)=>({id:'bound',title:'Nested pack',width:12,height:1,collapsed:false,powerpack:{id:pack.id,revision:1},children:[]})
+ const consumer=(pack,defaultTeam,parentTeam)=>({...body,panels:[],variables:{team:defaultTeam,environment:'production'},layout:[{id:'parent',title:'Inherited team',width:12,height:1,collapsed:false,variables:{team:parentTeam},children:[binding(pack)]}]})
+ const dashboard=await value(await post('/api/porthole/v1/dashboards',{name:'Scoped maintainer consumer',scope:narrow,body:consumer(broadPack,'commerce','commerce')}),201)
+ const maintainerAddress=['synthetic-porthole-6811','example.com'].join(String.fromCharCode(64))
+ await value(await post('/app/settings/members/invite',{email:maintainerAddress,displayName:'Scoped layout maintainer',role:'maintainer',scope:narrow}),202)
+ const maintainer=await signIn(maintainerAddress),dashboardPath='/api/porthole/v1/dashboards/'+dashboard.id
+ assert.equal((await fetch(origin+'/app/dashboards/'+dashboard.id,{headers:{cookie:maintainer}})).status,200)
+ const resize=await post('/app/dashboards/layout',{id:dashboard.id,revision:1,group:'parent',width:6},maintainer)
+ assert.equal(resize.status,303,await resize.clone().text())
+ const resized=await value(await fetch(origin+dashboardPath,{headers:{cookie:maintainer}}))
+ assert.equal(resized.revision,2);assert.equal(resized.body.layout[0].width,6)
+ assert.equal((await fetch(origin+root+'/'+broadPack.id,{headers:{cookie:maintainer}})).status,403,'dashboard edit does not grant pack administration')
+ const refusedBefore=await sql('SELECT id,body,revision FROM porthole_dashboards ORDER BY id')
+ await value(await post('/api/porthole/v1/dashboards',{id:dashboard.id,revision:2,name:resized.name,scope:narrow,body:{...resized.body,layout:resized.body.layout.map(group=>({...group,variables:{team:'payments'}}))}},maintainer),403)
+ assert.deepEqual(await sql('SELECT id,body,revision FROM porthole_dashboards ORDER BY id'),refusedBefore)
+ const maintainerRow=(await sql("SELECT operator_id,revision FROM porthole_members WHERE operator_id IN (SELECT id FROM oa_operators WHERE email='"+maintainerAddress+"')"))[0]
+ await value(await post('/app/settings/members/change',{operatorId:maintainerRow.operator_id,revision:maintainerRow.revision,role:'maintainer',scope:{...narrow,teams:['payments']}}))
+ assert.equal((await post('/app/dashboards/layout',{id:dashboard.id,revision:2,group:'parent',width:12},maintainer)).status,401)
+ const revokedMaintainer=await signIn(maintainerAddress)
+ assert.equal((await post('/app/dashboards/layout',{id:dashboard.id,revision:2,group:'parent',width:12},revokedMaintainer)).status,403)
+ assert.deepEqual(await sql('SELECT id,body,revision FROM porthole_dashboards ORDER BY id'),refusedBefore)
+ console.log('PROBE PORT-068 A1: scoped maintainer POST /app/dashboards/layout on narrow dashboard using broader pack -> 303, saved width 6 and revision 2; pack administration and foreign or revoked edits refused without writes')
+ const invalid=consumer(narrowPack,'commerce','payments'),valid=consumer(narrowPack,'payments','commerce')
+ const bindingBefore=await sql('SELECT id,body,revision FROM porthole_dashboards ORDER BY id')
+ await value(await post('/api/porthole/v1/dashboards',{name:'Outside reviewed pack',scope,body:invalid}),403)
+ assert.deepEqual(await sql('SELECT id,body,revision FROM porthole_dashboards ORDER BY id'),bindingBefore,'an inherited out-of-pack team cannot create a consumer')
+ const inherited=await value(await post('/api/porthole/v1/dashboards',{name:'Inherited reviewed pack',scope,body:valid}),201)
+ const page=await fetch(origin+'/app/dashboards/'+inherited.id,{headers:{cookie}})
+ assert.equal(page.status,200);const html=await page.text();assert.match(html,/team=commerce/);assert.doesNotMatch(html,/team=payments/)
+ const review=await value(await post(root+'/preview',{id:narrowPack.id,revision:1,name:'Inherited binding update',scope:narrow,body}),201)
+ const packet=JSON.parse(review.packet);assert.equal(packet.consumers.length,1);assert.equal(packet.consumers[0].id,inherited.id)
+ await value(await post(root+'/approve',{id:review.id,digest:review.digest,confirm:'apply-private-powerpack'}))
+ const updated=await value(await fetch(origin+'/api/porthole/v1/dashboards/'+inherited.id,{headers:{cookie}}))
+ assert.equal(updated.revision,2);assert.equal(updated.body.layout[0].children[0].powerpack.revision,2)
+ const updateBefore=await sql('SELECT id,body,revision FROM porthole_dashboards ORDER BY id')
+ await value(await post('/api/porthole/v1/dashboards',{id:inherited.id,revision:2,name:updated.name,scope,body:{...updated.body,layout:updated.body.layout.map(group=>({...group,variables:{team:'payments'}}))}}),403)
+ assert.deepEqual(await sql('SELECT id,body,revision FROM porthole_dashboards ORDER BY id'),updateBefore,'moving an existing binding outside the reviewed pack changes nothing')
+ console.log('PROBE PORT-068 A2: nested pack inherits parent team through dashboard API and owner review -> out-of-pack payments refused 403 without writes; inverse commerce binding creates and updates, source links retain commerce')
+ const afterBindings=await sql('SELECT id,body,revision FROM porthole_dashboards ORDER BY id')
  const row=(await sql("SELECT operator_id,revision FROM porthole_members WHERE operator_id IN (SELECT id FROM oa_operators WHERE email='"+address+"')"))[0]
  assert.ok(row)
  const changed=await post('/app/settings/members/change',{operatorId:row.operatorId??row.operator_id,revision:row.revision,role:'read-only analyst',scope:{...scope,teams:['foreign']}})
@@ -134,6 +180,6 @@ export async function layoutAuthorityJourney({origin,cookie,signIn,id,scope,pack
  assert.equal((await fetch(origin+'/app/dashboards/'+id,{headers:{cookie:reader}})).status,401,'a membership change revokes the old session immediately')
  const changedReader=await signIn(address)
  assert.equal((await fetch(origin+'/app/dashboards/'+id,{headers:{cookie:changedReader}})).status,403,'a fresh session still refuses the revoked child scope')
- assert.deepEqual(await sql('SELECT id,body,revision FROM porthole_dashboards ORDER BY id'),before)
+ assert.deepEqual(await sql('SELECT id,body,revision FROM porthole_dashboards ORDER BY id'),afterBindings)
  return changedReader
 }

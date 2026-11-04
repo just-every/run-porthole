@@ -3,6 +3,13 @@ import assert from 'node:assert/strict'
 import {spawn} from 'node:child_process'
 import {randomUUID} from 'node:crypto'
 
+export const spawnCli=({origin,args,credential,session='',body})=>new Promise((resolve,reject)=>{
+  const child=spawn(process.execPath,['cli/porthole.mjs',origin,...args],{env:{...process.env,PORTHOLE_CREDENTIAL:credential,PORTHOLE_SESSION:session},stdio:['pipe','pipe','pipe']})
+  let stdout='',stderr=''
+  child.stdout.on('data',chunk=>stdout+=chunk);child.stderr.on('data',chunk=>stderr+=chunk)
+  child.on('error',reject);child.on('exit',code=>resolve({code,stdout,stderr}));child.stdin.end(body===undefined?'':JSON.stringify(body))
+ })
+
 /** Public HTTP and spawned CLI journey; the host owns the real Worker. */
 export async function apiJourney({origin,cookie,freshOwner}) {
  cookie=await freshOwner()
@@ -15,12 +22,7 @@ export async function apiJourney({origin,cookie,freshOwner}) {
   const response=await native(root,'POST',body,{'idempotency-key':key})
   assert.equal(response.status,201);return {value:await response.json(),key}
  }
- const cli=(args,secret,body)=>new Promise((resolve,reject)=>{
-  const child=spawn(process.execPath,['cli/porthole.mjs',origin,...args],{env:{...process.env,PORTHOLE_CREDENTIAL:secret,PORTHOLE_SESSION:''},stdio:['pipe','pipe','pipe']})
-  let stdout='',stderr=''
-  child.stdout.on('data',chunk=>stdout+=chunk);child.stderr.on('data',chunk=>stderr+=chunk)
-  child.on('error',reject);child.on('exit',code=>resolve({code,stdout,stderr}));child.stdin.end(body===undefined?'':JSON.stringify(body))
- })
+ const cli=(args,credential,body)=>spawnCli({origin,args,credential,body})
  assert.equal((await fetch(origin+root)).status,401)
  const firstBody=monitor('Checkout API error count'),first=await create(firstBody)
  const replay=await native(root,'POST',firstBody,{'idempotency-key':first.key})

@@ -5,10 +5,11 @@ import { canonical, IntakeError, nano, sha256, type TelemetryRecord } from '../i
 import { authority, fail, proofFence, scopeWithin } from '../security/authority'
 import { input } from '../security/input'
 import { definition, pipelineScope } from './model'
-import { current, processed, type Version } from './intake'
+import { current, processed } from './intake'
 import { sanitize } from './redact'
 import { page } from './page'
 import { nativeCatalog } from './catalog'
+import { checkPipelineReader, pipelineHistory, pipelineRevision, readOptions } from './read'
 
 const root='/api/porthole/v1/pipelines',screen='/app/settings/pipelines'
 const json=(value:unknown,status=200)=>Response.json(value,{status,headers:privateHeaders})
@@ -19,16 +20,26 @@ export async function pipelineResponse(request:Request,env:Bindings):Promise<Res
  const html=path.startsWith(screen)
  let visible:Parameters<typeof page>[0]={revision:0,definition:null,history:[]}
  try {
-  if(url.search)fail('invalid_query',400)
+  const collection=path===root||path===screen||path===root+'/revisions'
+  const options=request.method==='GET'&&collection?readOptions(url.searchParams):readOptions(new URLSearchParams())
+  if(url.search&&!(request.method==='GET'&&collection))fail('invalid_query',400)
   const activation=path.endsWith('/activate')
   const actor=await authority(request,env,{post:request.method==='POST',stepUp:activation})
   if(actor.session.kind!=='native'||actor.member.role!=='owner')fail('owner_required')
-  if(path===root+'/catalog'&&request.method==='GET')return json(nativeCatalog)
+  if(path===root+'/catalog'&&request.method==='GET'){await checkPipelineReader(request,env,actor);return json(nativeCatalog)}
+  if(path.startsWith(root+'/revisions/')&&request.method==='GET') {
+   const result=await pipelineRevision(env,actor,path.slice((root+'/revisions/').length))
+   await checkPipelineReader(request,env,actor);return json(result)
+  }
   const state=await current(env)
-  const history=(await env.DB.prepare(`SELECT * FROM porthole_pipeline_versions WHERE ${actor.fence} ORDER BY revision DESC LIMIT 50`).bind(...actor.args).all<Version>()).results.filter(row=>scopeWithin(pipelineScope(definition(JSON.parse(row.definition))),actor.member.scope))
-  const view={revision:state.revision,definition:state.definition&&scopeWithin(pipelineScope(state.definition),actor.member.scope)?state.definition:null,history:history.map(row=>({...row,definition:JSON.parse(row.definition)}))}
+  const history=await pipelineHistory(env,actor,options,state.revision)
+  const view={revision:state.revision,definition:state.definition&&scopeWithin(pipelineScope(state.definition),actor.member.scope)?state.definition:null,...history}
   visible=view
-  if(request.method==='GET'&&(path===root||path===screen))return html?page(view):json(view)
+  if(request.method==='GET') {
+   if(!collection)fail('not_found',404)
+   await checkPipelineReader(request,env,actor)
+   return html?page({...view,limit:options.limit}):json(path===root+'/revisions'?history:view)
+  }
   if(request.method!=='POST')fail('method_not_allowed',405)
   const data=await input(request)
   if(path.endsWith('/preview')) {

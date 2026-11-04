@@ -39,7 +39,7 @@ export function boundPanels(body:Dashboard):{panel:Panel;team:string;environment
  const visit=(items:LayoutItem[],vars:Dashboard['variables'],service?:string):ReturnType<typeof boundPanels>=>items.flatMap(item=>isGroup(item)?visit(item.children,{...vars,...item.variables},item.service??service):[{panel:{...body.panels.find(p=>p.id===item.panel)!,...(service?{service}:{})},...vars}])
  return visit(body.layout,body.variables)
 }
-export function validateDashboardScope(body:Dashboard,scope:Scope) {
- if(boundPanels(body).some(({panel,team,environment})=>!scopeWithin({services:[panel.service],teams:[team],environments:[environment]},scope)))fail('dashboard_child_scope_forbidden')
+export function validateDashboardScope(body:Dashboard,scope:Scope,panels?:string[]) {
+ if(boundPanels(body).some(({panel,team,environment})=>(!panels||panels.includes(panel.id))&&!scopeWithin({services:[panel.service],teams:[team],environments:[environment]},scope)))fail('dashboard_child_scope_forbidden')
 }
 export function panelIds(items:LayoutItem[]):string[] {return items.flatMap(item=>isGroup(item)?panelIds(item.children):[item.panel])}
