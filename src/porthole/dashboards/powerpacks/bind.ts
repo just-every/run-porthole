@@ -2,7 +2,7 @@ import type {Bindings} from '../../../auth.server'
 import {fail,scopeWithin,type Authority} from '../../security/authority'
 import {dashboardBody,type Dashboard} from '../model'
 import {canonical} from '../../ingest/model'
-import {isGroup,packBindings,panelIds,validateDashboardScope,type LayoutItem,type Group} from '../layout'
+import {isGroup,packBindings,panelIds,validateDashboardScope,validateGroupScope,type LayoutItem,type Group} from '../layout'
 import {powerpackBody,type PowerpackRow} from './model'
 export function installPack(body:Dashboard,groupId:string,pack:PowerpackRow):Dashboard {
  const template=powerpackBody(JSON.parse(pack.body)),group=packBindings(body.layout).find(group=>group.id===groupId)??fail('powerpack_binding_not_found',400)
@@ -26,13 +26,18 @@ export async function resolvePacks(env:Bindings,actor:Authority,body:Dashboard,s
   // Empty children request a new binding and are populated from the pack.
   if(group.children.length&&reviewedChildren(body,group)!==reviewedChildren(resolved,installed))fail('edit_powerpack_children_in_settings',400)
   body=resolved
-  const children=panelIds(installed.children)
   // A binding may narrow visibility, never expand the pack's reviewed scope.
-  const selected=dashboardBody({...body,panels:body.panels.filter(p=>children.includes(p.id)),layout:[packBindings(body.layout).find(g=>g.id===group.id)!]})
-  validateDashboardScope(selected,JSON.parse(pack.scope))
+  validateGroupScope(body,installed,JSON.parse(pack.scope))
  }
  validateDashboardScope(body,scope)
  return body
+}
+export async function validatePackReadScopes(env:Bindings,body:Dashboard,overrides:{team?:string;environment?:string}) {
+ for(const group of packBindings(body.layout)) {
+  const version=await env.DB.prepare('SELECT scope FROM porthole_powerpack_versions WHERE id=? AND revision=?').bind(group.powerpack!.id,group.powerpack!.revision).first<{scope:string}>()
+  if(!version)fail('powerpack_version_unavailable',503)
+  validateGroupScope(body,group,JSON.parse(version.scope),overrides)
+ }
 }
 export function packFence(body:Dashboard):{sql:string;args:unknown[]} {
  const groups=packBindings(body.layout)

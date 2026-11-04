@@ -34,6 +34,7 @@ export async function dashboardLayoutJourney({origin,freshOwner,signIn,restartWo
  assert.equal((await value(await get(packs))).objects.length,0,'preview cannot activate a pack')
  const pack=await value(await post(packs+'/approve',{id:preview.id,digest:preview.digest,confirm:'apply-private-powerpack'}))
  await value(await post(packs+'/approve',{id:preview.id,digest:preview.digest,confirm:'apply-private-powerpack'}),409)
+ await inheritedPackScopeJourney({origin,cookie,scope,template,sql})
  const first=await value(await post(api,{name:'Private layout one',scope,body:base}),201)
  const {layoutPublicationFence}=await import('./publication.mjs')
  const publicPaths=await layoutPublicationFence({origin,cookie,id:first.id,revision:first.revision})
@@ -97,6 +98,69 @@ export async function dashboardLayoutJourney({origin,freshOwner,signIn,restartWo
  console.log('PROBE PORT-068 packs: native owner exact review -> both consumers reflect reviewed updates with immutable history and preserved scope bindings; stale, expired, foreign and delegated attempts refuse without writes')
  console.log('PROBE PORT-068 publication: bind, pack update, replay, restart and inactive restore -> old TV, embed and image addresses remain refused')
  console.log('dashboardLayoutJourney passed')
+}
+async function inheritedPackScopeJourney({origin,cookie,scope,template,sql}) {
+ const post=(path,data)=>fetch(origin+path,form(origin,cookie,data))
+ const read=async id=>(await fetch(origin+api+'/'+id,{headers:{cookie}})).json()
+ const value=async(response,status=200)=>{assert.equal(response.status,status,await response.clone().text());return response.json()}
+ const narrow={services:[scope.services[0]],teams:['commerce'],environments:['production']}
+ const preview=await value(await post(packs+'/preview',{name:'Nested scoped pack',scope:narrow,body:template}),201)
+ const pack=await value(await post(packs+'/approve',{id:preview.id,digest:preview.digest,confirm:'apply-private-powerpack'}))
+ const body=bindings=>({...template,panels:[],layout:[{id:'parent-scope',title:'Containing scope',width:12,height:1,collapsed:false,...bindings,children:[{id:'scoped-consumer',title:'Reviewed scope',width:12,height:1,collapsed:false,powerpack:{id:pack.id,revision:1},children:[]}]}]})
+ const snapshot=()=>sql('SELECT id,body,revision FROM porthole_dashboards ORDER BY id')
+ const before=await snapshot()
+ for(const bindings of [{service:scope.services[1]},{variables:{team:'payments'}},{variables:{environment:'staging'}}]) {
+  const refused=await post(api,{name:'Refuse inherited scope expansion',scope,body:body(bindings)})
+  assert.equal(refused.status,403,'a containing group cannot expand a reviewed pack scope')
+  assert.equal((await refused.json()).error,'dashboard_child_scope_forbidden')
+  assert.deepEqual(await snapshot(),before,'refused nested bindings create no dashboard or revision')
+ }
+ // The containing group may also narrow a different dashboard default back to
+ // the exact reviewed scope. Updates must keep that effective inheritance.
+ const allowed=body({service:scope.services[0],variables:{team:'commerce',environment:'production'}})
+ allowed.variables={team:'payments',environment:'staging'}
+ const saved=await value(await post(api,{name:'Inherited private consumer',scope,body:allowed}),201)
+ for(const query of ['team=payments','environment=staging']) {
+  const unchanged=await sql('SELECT id FROM porthole_query_snapshots ORDER BY id')
+  const refused=await fetch(origin+'/app/dashboards/'+saved.id+'?'+query,{headers:{cookie}})
+  assert.equal(refused.status,403,'URL variables cannot expand the reviewed child scope')
+  assert.match(await refused.text(),/dashboard child scope forbidden/)
+  assert.deepEqual(await sql('SELECT id FROM porthole_query_snapshots ORDER BY id'),unchanged,'a forbidden override starts no child query')
+ }
+ for(const binding of [{service:scope.services[1],team:'commerce',environment:'production'},{service:'',team:'payments',environment:'production'},{service:'',team:'commerce',environment:'staging'},{service:'',team:'',environment:''}]) {
+  const unchanged=await snapshot()
+  const refused=await post('/app/dashboards/layout',{id:saved.id,revision:1,group:'parent-scope',binding:'scope',...binding})
+  assert.equal(refused.status,403,'native parent bindings retain the reviewed descendant scope')
+  assert.deepEqual(await snapshot(),unchanged)
+ }
+ const update=await value(await post(packs+'/preview',{id:pack.id,revision:1,name:'Nested scoped pack updated',scope:narrow,body:{...template,layout:[{...template.layout[0],children:[...template.layout[0].children].reverse()}]}}),201)
+ await value(await post(packs+'/approve',{id:update.id,digest:update.digest,confirm:'apply-private-powerpack'}))
+ const current=await read(saved.id)
+ assert.equal(current.revision,2)
+ assert.deepEqual(current.body.layout[0].variables,{team:'commerce',environment:'production'})
+ assert.equal(current.body.layout[0].children[0].powerpack.revision,2)
+ const {chromium}=await import('@playwright/test'),browser=await chromium.launch({headless:true,...(process.env.PORTHOLE_CHROMIUM?{executablePath:process.env.PORTHOLE_CHROMIUM}:{}),args:['--no-sandbox','--use-mock-keychain','--password-store=basic']})
+ try {for(const width of [1440,390]) {
+  const context=await browser.newContext({viewport:{width,height:900}})
+  await context.addCookies(cookie.split('; ').map(v=>({name:v.slice(0,v.indexOf('=')),value:v.slice(v.indexOf('=')+1),url:origin})))
+  const page=await context.newPage();assert.equal((await page.goto(origin+'/app/dashboards/'+saved.id)).status(),200)
+  if(width===1440) {
+   const group=page.locator('[data-layout-group="scoped-consumer"]')
+   assert.deepEqual(await group.locator('[data-panel]').evaluateAll(nodes=>nodes.map(node=>node.dataset.panel)),['scoped-consumer:traces','scoped-consumer:logs','scoped-consumer:requests'])
+   assert.match(await group.locator('[data-panel="scoped-consumer:logs"]').innerText(),/3 records/)
+   assert.match(await group.locator('[data-panel="scoped-consumer:requests"]').innerText(),/3 requests/)
+   assert.match(await group.locator('[data-panel="scoped-consumer:traces"]').innerText(),/6 records/)
+   for(const link of await group.getByRole('link',{name:/Open underlying/}).all()) {
+    const target=new URL(await link.getAttribute('href'),origin)
+    assert.equal(target.searchParams.get('service'),scope.services[0]);assert.equal(target.searchParams.get('team'),'commerce');assert.equal(target.searchParams.get('environment'),'production')
+    assert.equal(target.searchParams.get('from'),template.range.from);assert.equal(target.searchParams.get('through'),template.range.through)
+   }
+  }
+  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth))
+  if(process.env.PORTHOLE_EVIDENCE_DIR){await mkdir(process.env.PORTHOLE_EVIDENCE_DIR,{recursive:true});await page.screenshot({path:join(process.env.PORTHOLE_EVIDENCE_DIR,`layout-inherited-pack-${width}.png`),fullPage:true})}
+  await context.close()
+ }}finally{await browser.close()}
+ console.log('PROBE PORT-068 inherited-pack-scope: nested native binding and reviewed pack update -> effective parent scope retained; wider service, team and environment and cleared overrides refuse without writes')
 }
 async function boundConsumerBrowser({origin,cookie,id,otherId,from,through,service}) {
  const {chromium}=await import('@playwright/test'),browser=await chromium.launch({headless:true,...(process.env.PORTHOLE_CHROMIUM?{executablePath:process.env.PORTHOLE_CHROMIUM}:{}),args:['--no-sandbox','--use-mock-keychain','--password-store=basic']})

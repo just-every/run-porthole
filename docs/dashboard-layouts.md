@@ -17,6 +17,11 @@ groups inherit those values. Explicit dashboard URL variables override the
 corresponding group defaults. Every effective child scope is checked against the
 dashboard definition and current reader authority. Each underlying query link
 carries that child's actual service, variables and original time range.
+For a powerpack child, the scope of the referenced pack revision also applies.
+Parent groups and URL variables cannot expand it. A forbidden binding refuses
+before saving a revision; a forbidden URL override starts no child queries.
+Nested consumers retain their containing groups' effective bindings when a
+reviewed pack update is applied.
 
 ```json
 {

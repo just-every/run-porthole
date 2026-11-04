@@ -1,4 +1,5 @@
 import {boundPanels} from './layout'
+import {validatePackReadScopes} from './powerpacks/bind'
 import {AuthError} from '../../modules/operator-auth/index.mjs'
 import {applyFunctions} from './functions'
 import type {Bindings} from '../../auth.server'
@@ -15,6 +16,7 @@ export async function dashboardResults(request:Request,env:Bindings,row:Dashboar
  const from=timestamp(params.get('from')??body.range.from),through=timestamp(params.get('through')??body.range.through)
  if(BigInt(from)>BigInt(through))fail('invalid_dashboard_range',400)
  const scope=JSON.parse(row.scope) as Scope
+ await validatePackReadScopes(env,body,{...(requestedTeam?{team:requestedTeam}:{}),...(requestedEnvironment?{environment:requestedEnvironment}:{})})
  const results=await Promise.all(boundPanels(body).map(async ({panel,team:childTeam,environment:childEnvironment})=>{
   const team=requestedTeam??childTeam,environment=requestedEnvironment??childEnvironment
   if(!scopeWithin({services:[panel.service],teams:[team],environments:[environment]},scope))fail('dashboard_variable_scope_forbidden')

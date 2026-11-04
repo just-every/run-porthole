@@ -4,7 +4,7 @@ import {guard} from '../../portability/store'
 import {canonical} from '../../ingest/model'
 import {digest} from '../../audit/store'
 import {dashboardBody,label,type DashboardRow} from '../model'
-import {packBindings,panelIds,validateDashboardScope} from '../layout'
+import {packBindings,validateDashboardScope,validateGroupScope} from '../layout'
 import {installPack} from './bind'
 import {powerpackBody,type PowerpackRow} from './model'
 export interface Packet {pack:PowerpackRow;previous:number;consumers:{id:string;name:string;revision:number;body:string}[]}
@@ -23,8 +23,8 @@ async function consumers(env:Bindings,actor:Authority,id:string,pack:PowerpackRo
   let body=dashboardBody(JSON.parse(row.body))
   for(const group of packBindings(body.layout).filter(group=>group.powerpack!.id===id)) {
    body=installPack(body,group.id,pack)
-   const updated=packBindings(body.layout).find(g=>g.id===group.id)!,ids=panelIds(updated.children)
-   validateDashboardScope(dashboardBody({...body,panels:body.panels.filter(p=>ids.includes(p.id)),layout:[updated]}),JSON.parse(pack.scope))
+   const updated=packBindings(body.layout).find(g=>g.id===group.id)!
+   validateGroupScope(body,updated,JSON.parse(pack.scope))
   }
   validateDashboardScope(body,JSON.parse(row.scope))
   return {id:row.id,name:row.name,revision:row.revision,body:JSON.stringify(body)}

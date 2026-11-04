@@ -42,4 +42,8 @@ export function boundPanels(body:Dashboard):{panel:Panel;team:string;environment
 export function validateDashboardScope(body:Dashboard,scope:Scope) {
  if(boundPanels(body).some(({panel,team,environment})=>!scopeWithin({services:[panel.service],teams:[team],environments:[environment]},scope)))fail('dashboard_child_scope_forbidden')
 }
+export function validateGroupScope(body:Dashboard,group:Group,scope:Scope,overrides:{team?:string;environment?:string}={}) {
+ const ids=new Set(panelIds(group.children))
+ if(boundPanels(body).some(({panel,team,environment})=>ids.has(panel.id)&&!scopeWithin({services:[panel.service],teams:[overrides.team??team],environments:[overrides.environment??environment]},scope)))fail('dashboard_child_scope_forbidden')
+}
 export function panelIds(items:LayoutItem[]):string[] {return items.flatMap(item=>isGroup(item)?panelIds(item.children):[item.panel])}
