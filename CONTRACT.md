@@ -96,6 +96,18 @@ All latency/volume/accuracy numbers below are explicit target acceptance require
 
 **PORT-014 — Metrics engine.** Provide PromQL-compatible instant/range queries, native histograms, exemplars, high-cardinality labels, recording rules, rollups and at least 13 months of metric retention. Preserve counter reset, staleness, missing-data, unit and histogram semantics; expose resolution/downsampling and query errors. Cardinality controls are reviewed, versioned and consistent across dashboard, monitor and API evaluation. Imported critical metric history under PORT-089 retains its full 15-month qualified source segment and declared hourly/five-minute rollups; the native 13-month minimum is not permission to truncate that imported evidence. **Acceptance evidence:** Run the upstream PromQL compliance corpus through the real query API, including resets/staleness/native histograms. At one million active series query a 24-hour range in under two seconds on PORT-057 resources; compare full-resolution and labeled rollup results over 13 months and pivot an exemplar to its trace. Read >13-month-old imported points and the year-over-year comparison after retention maintenance, with exact source resolution/missing labels and no source credential dependency, under PORT-089.
 
+#### PORT-099 — Range-wide metric unit semantics
+
+*Tier:* Core · *From:* new
+
+**Requirement.** Metric range results preserve each returned value's physical meaning and unit at every evaluation instant, including grouped series whose contributing producer changes between steps. A completed series never attaches its first unit to later values of another unit without exact conversion. Supported local and analytical evaluation doors provide the same semantics.
+
+**Acceptance.** Through the public metric query doors and Explore:
+1. An ordinary grouped range containing 400 milliseconds at T and 3 seconds at T+20 seconds in different nonoverlapping lookbacks returns values accurately converted to one declared unit, distinct correctly labeled series, or an explicit refusal of the incompatible range. A complete result of [400, 3] labeled milliseconds is forbidden.
+2. Same-unit grouped ranges complete with correct values, labels and timestamps.
+3. Simultaneous incompatible inputs are refused or correctly converted; unsupported unit combinations never produce a misleading complete result. Refusal changes no saved result or source metric. Equivalent supported local and analytical queries have equivalent outcomes.
+4. Explore accurately displays returned status and units for results and refusals, with no false complete display at desktop and phone widths.
+
 **PORT-015 — Continuous profiling.** Collect CPU, memory, allocation and supported wall/IO profiles for Node, Python, Java, Go, .NET, Ruby and PHP, declaring each runtime/profile-type combination and required privileges. Render flame/call graphs, compare versions and link a slow span to its profile time slice and source revision. A runtime gap is reported, not filled by estimated stacks. Existing ddtrace profiler traffic and Pyroscope SDK/Alloy writes remain compatible under PORT-062/087, including every source-emitted trace/profile link. **Acceptance evidence:** Drive known CPU and allocation bottlenecks in the seven-language estate using supported stock exporters. From a slow span open the captured profile slice and hottest function, compare fixed release and inspect source attribution. Validate each declared runtime/type pair and an unsupported configuration through the setup and profile API. Complete both vendors’ intake journeys, compare forwarded profile captures and pivot an emitted trace/profile link; requiring a replacement profiler to hide lost source links fails continuity.
 
 **PORT-016 — Database monitoring.** Monitor PostgreSQL and MySQL with normalized query fingerprints, throughput/latency distributions, query samples, plans, waits, locks and blocking chains linked to calling endpoints. Use least-privilege database roles; redact literals and protect query samples as telemetry. Explain capture is bounded and explicitly authorized; diagnosis never runs arbitrary production SQL or creates an index without PORT-029 approval. Extend database monitoring to SQL Server, Oracle and MongoDB with engine-native statement/operation fingerprints, query statistics, samples, execution plans where the engine exposes them, lock/wait or engine-equivalent diagnostics and caller links. The published engine/version matrix specifies meaningful native diagnostic equivalents and capture privilege; engines do not vanish from scope because their diagnostics differ. Datadog Agent DBM samples, activity/metrics and plans retain continuity through PORT-062 distinct intakes. **Acceptance evidence:** Run a missing-index and blocked-transaction drill in PostgreSQL and MySQL. Through Database and trace API find the top slow fingerprint, plan, waits/blocker and affected endpoints. Rotate/read-limit the database role, plant sensitive literals and verify safe capture plus explicit privilege errors. For SQL Server and Oracle run a slow-query and blocking-session drill; for MongoDB run a slow find/aggregation with explain and lock/wait or profiler evidence. Through Database/API find the known expensive operation, native plan/diagnostics, service caller and sensitive-literal redaction for each engine; denied capture stays an explicit coverage gap. Query the unchanged Agent’s PostgreSQL DBM samples and explain plan after dual ship and compare source query/resource identity, values, time and privacy handling; a trace-only database view cannot pass DBM intake.
@@ -337,8 +349,8 @@ Judged from the code and tests at commit `0e06d30608259c690c15d13b8fdede9838d62b
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 1 | 0 | 0 | 1 |
-| Target and push further | 9 | 19 | 69 | 97 |
-| All | 10 | 19 | 69 | 98 |
+| Target and push further | 9 | 19 | 70 | 98 |
+| All | 10 | 19 | 70 | 99 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -371,6 +383,7 @@ Judged from the code and tests at commit `0e06d30608259c690c15d13b8fdede9838d62b
 | `PORT-012` | Log pipelines | target | missing |  | No implementation for log pipelines; the complete public-door journey above remains required. |
 | `PORT-013` | Tiered storage and archives | target | missing |  | No implementation for tiered storage and archives; the complete public-door journey above remains required. |
 | `PORT-014` | Metrics engine | target | missing |  | No implementation for metrics engine; the complete public-door journey above remains required. |
+| `PORT-099` | Range-wide metric unit semantics | target | missing |  | Range-wide unit preservation across producer turnover, same-unit completion, incompatible-input refusal without mutation, equivalent local/analytical outcomes and truthful Explore results remain unbuilt and unproved. |
 | `PORT-015` | Continuous profiling | target | missing |  | No implementation for continuous profiling; the complete public-door journey above remains required. |
 | `PORT-016` | Database monitoring | target | missing |  | No implementation for database monitoring; the complete public-door journey above remains required. |
 | `PORT-017` | Frontend and mobile performance | target | missing |  | No implementation for frontend and mobile performance; the complete public-door journey above remains required. |
