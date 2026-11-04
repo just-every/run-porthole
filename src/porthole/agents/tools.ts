@@ -32,7 +32,7 @@ async function dashboardFence(env:Bindings,ctx:ToolContext) {
  const inspect=()=>agentCredential(new Request(env.AUTH_ORIGIN+'/mcp'),env,who,{action:'definitions.read',scope:emptyScope,dataScope:allScope,inspectOnly:true})
  const initial=who.clientId?(await inspect()).fence:null
  return async(rows:{id:string;revision:number}[])=>{
-  let live={sql:actor.fence,args:actor.args}
+  let live:{sql:string;args:unknown[]}={sql:actor.fence,args:actor.args}
   if(initial) {const current=(await inspect()).fence;live={sql:`(${live.sql}) AND (${initial.sql}) AND (${current.sql})`,args:[...live.args,...initial.args,...current.args]}}
   await releaseDashboards(env,live,actor.member.operatorId,rows)
  }

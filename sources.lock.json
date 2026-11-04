@@ -381,7 +381,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "3f2772095b4246d8c1f08ae9fa7ef7c616ad30e1733f7075110b6c27f926276b",
+      "sha256": "6d39c182cef43f3d2cb77e402792fa675db8740eb235bf45d4ca1af82a609098",
       "executable": false
     },
     "DEMO.md": {
@@ -4453,7 +4453,7 @@
       "executable": false
     },
     "src/porthole/agents/tools.ts": {
-      "sha256": "6ef916ec74770cf69b223f7e0203dacf9aa9f2cae692f5dda32c73e9bee1f41b",
+      "sha256": "a6d5958417603ded847cae07d6e441ab62c5f37c883ed6db06c8bb40def13b3e",
       "executable": false
     },
     "src/porthole/analytical/client.ts": {
