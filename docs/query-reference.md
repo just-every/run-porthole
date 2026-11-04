@@ -140,8 +140,12 @@ telemetry cache, pattern table or sharing capability is created.
 
 Before any accumulated result is released, authority, the selected analytical
 connection and every scanned record's retained contents are checked together.
+A reviewed connection change during the scan returns `authority_changed`
+(409), even when the newly selected store contains the same records. Retry
+under the current connection; an accumulated response cannot cross that change.
 An erasure or content change during the scan returns `cluster_custody_changed`
-(409). A later erasure changes counts and invalidates old pagination cursors
+(409), including journaled content that is still physically present or was
+captured under another batch identity. A later erasure changes counts and invalidates old pagination cursors
 (400 `invalid_cluster_cursor`); removed patterns return 404 `cluster_not_found`.
 Revoked credentials refuse, and storage outages return 503 without a local
 fallback. Invalid input returns 400, unsupported methods 405, invalid media

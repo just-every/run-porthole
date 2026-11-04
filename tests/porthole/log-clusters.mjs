@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import {createRequire} from 'node:module'
 import {createServer} from 'node:http'
+import {randomUUID} from 'node:crypto'
 import {mkdir} from 'node:fs/promises'
 import {join} from 'node:path'
 const require=createRequire(import.meta.resolve('@opentelemetry/sdk-node'))
@@ -286,13 +287,15 @@ export async function logClusterAnalyticalProof({context,estate,cookie}){
  // a custody fault injection: analytical erasure remains unsupported, and
  // no new owner erasure operation is enabled by the pattern reader.
  const batch=await getDb().prepare('SELECT id,digest FROM porthole_ingest_batches WHERE id=?').bind(row.batch_id).first()
- const journalAfterLast=async response=>{assert.equal(response.status,200);const page=await response.json();if(page.cursor)estate.afterQuery(journalAfterLast);else await getDb().prepare('INSERT INTO porthole_erased_batches(id,content_digest,erased_at) VALUES(?,?,?)').bind(batch.id,batch.digest,Date.now()).run()}
- estate.afterQuery(journalAfterLast)
- try{
-  const journaled=await search({snapshot:query.snapshot})
-  assert.equal(journaled.status,409);assert.deepEqual(await journaled.json(),{error:'cluster_custody_changed'})
-  assert.equal(await getDb().prepare('SELECT COUNT(*) AS n FROM porthole_telemetry_records WHERE id=?').bind(row.id).first('n'),1,'retained bytes alone cannot override the erasure journal')
- }finally{await getDb().prepare('DELETE FROM porthole_erased_batches WHERE id=?').bind(batch.id).run()}
+ for(const erasedId of [batch.id,randomUUID()]){
+  const journalAfterLast=async response=>{assert.equal(response.status,200);const page=await response.json();if(page.cursor)estate.afterQuery(journalAfterLast);else await getDb().prepare('INSERT INTO porthole_erased_batches(id,content_digest,erased_at) VALUES(?,?,?)').bind(erasedId,batch.digest,Date.now()).run()}
+  estate.afterQuery(journalAfterLast)
+  try{
+   const journaled=await search({snapshot:query.snapshot})
+   assert.equal(journaled.status,409);assert.deepEqual(await journaled.json(),{error:'cluster_custody_changed'})
+   assert.equal(await getDb().prepare('SELECT COUNT(*) AS n FROM porthole_telemetry_records WHERE id=?').bind(row.id).first('n'),1,'retained bytes and a different batch identity cannot override journaled content')
+  }finally{await getDb().prepare('DELETE FROM porthole_erased_batches WHERE id=?').bind(erasedId).run()}
+ }
  await estate.stop('standby')
  try{
   const outage=await value(await search({snapshot:query.snapshot}),503)

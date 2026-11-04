@@ -469,7 +469,7 @@
       "executable": false
     },
     "docs/query-reference.md": {
-      "sha256": "0c0f869c802b6b0c9295e267c8d3e4970b1dc0a2e3c9d57bfa04ddadc6e2ffba",
+      "sha256": "8cdfefbf777f6e669c435eb2526e6278d8a0e1e7cb3e1b1ac1445ba5aa21123d",
       "executable": false
     },
     "docs/recovery.md": {
@@ -5601,7 +5601,7 @@
       "executable": false
     },
     "tests/porthole/log-clusters.mjs": {
-      "sha256": "4a41b9674c0dbdc508a4287bf4fe236468ee4d7b7d9480db6faa3ca8937e5a0f",
+      "sha256": "84c93e6481a8ef79b23b71d6e9c535e183258929b2fe0881fbd0b8ab15170ba7",
       "executable": false
     },
     "tests/porthole/log-search-corpus.mjs": {
