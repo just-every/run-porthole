@@ -381,7 +381,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "92643f4e5870d1097114355cd1f1e5bf881afe3fe840556d26073e0c1053c1c6",
+      "sha256": "ee2792e2c1d55b850f253d0752b988fe56555dba25d5b28b7289b76b275b78df",
       "executable": false
     },
     "DEMO.md": {
@@ -421,7 +421,7 @@
       "executable": false
     },
     "docs/contract/PORT-099-rubric.md": {
-      "sha256": "9897e52e44efc11709190c34f33434d25af4cdc76ad66523615472235fa37408",
+      "sha256": "ce6a28ef79b3d71555e2d3821a028f1c2513e97bc81f31fd49126d032f85abbf",
       "executable": false
     },
     "docs/dashboard-widgets.md": {
