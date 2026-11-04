@@ -34,6 +34,7 @@ or re-scope credentials. Use the native Credentials screen.
 | --- | --- | --- |
 | Monitors | `/api/porthole/v1/configuration/monitors` | List, item read, create, conditional replacement, archive. |
 | Repair definitions | `/api/porthole/v1/configuration/repairs` | List, item read, create, conditional replacement, archive. |
+| Pipelines | `/api/porthole/v1/pipelines` | Current configuration, processor catalog, paginated immutable history and exact revision reads; native owner only. |
 | Dashboards | `/api/porthole/v1/dashboards` | List, current or historical item read, create, conditional replacement, archive. |
 
 Monitor and repair collection GET accepts `limit` from 1 through 200 (default
@@ -62,6 +63,35 @@ environment and team scope is authorized. Monitor reads also require its
 signal; dashboard reads require every panel signal. Historical dashboard reads
 additionally require the historical revision's scope. List omissions or an item
 404 can therefore mean the definition is outside the caller's scope.
+
+## Native pipeline reads
+
+A current native owner reads `/api/porthole/v1/pipelines` for the current global
+revision, authorized active `definition` (or null) and first `history` page.
+`GET /api/porthole/v1/pipelines/catalog` returns the implemented native processor
+catalog with examples. `GET /api/porthole/v1/pipelines/revisions` returns
+`history`, `snapshot` and `cursor`; `GET /api/porthole/v1/pipelines/revisions/42`
+reads exactly revision 42, including an inactive historical definition.
+
+Current and history reads accept `limit` from 1 through 200 (default 50) and
+an opaque `cursor`. History is descending by revision. Pass the returned cursor
+and the same limit to resume; null means complete. The signed cursor binds the
+first page's maximum revision, owner and membership revision, so concurrent
+activation adds nothing to that traversal and Worker restart preserves it.
+Start again without a cursor to see new revisions. Settings uses the same
+history through **Older revisions** and **Latest history** links.
+
+Every read requires a live native owner session and current service,
+environment and team scope. Out-of-scope revisions are omitted from pages;
+exact missing or inaccessible revisions return 404 `pipeline_revision_not_found`.
+A malformed revision returns 400 `invalid_pipeline_revision`; invalid page
+sizes return `invalid_pipeline_limit`; altered, mismatched or obsolete cursors
+return `invalid_pipeline_cursor`. Unknown or repeated parameters return
+`invalid_query`. Non-owner sessions return 403 `owner_required`; signed-out
+requests return 401. Every Authorization header returns 403
+`native_session_required`, even beside an owner cookie. Revocation applies to
+the next read. These reads never preview, activate or change a pipeline.
+Terraform and MCP pipeline support and broader pipeline operations remain open.
 
 ## CLI
 
@@ -99,6 +129,23 @@ clear the variable when finished. Supported mutations are `create`, `update`
 and `archive`, with `--key KEY` and, for update or archive, `--revision N`.
 Create and update consume definition JSON from stdin. A successful definition
 write does not execute a repair or activate a monitor.
+
+For pipelines, use a private native session supplied in `PORTHOLE_SESSION`
+with `PORTHOLE_CREDENTIAL` unset:
+
+```bash
+node ./cli/porthole.mjs "$PORTHOLE_ORIGIN" get pipelines current
+node ./cli/porthole.mjs "$PORTHOLE_ORIGIN" get pipelines catalog
+node ./cli/porthole.mjs "$PORTHOLE_ORIGIN" get pipelines 42
+node ./cli/porthole.mjs "$PORTHOLE_ORIGIN" list pipelines --all --limit 50
+unset PORTHOLE_SESSION
+```
+
+`list pipelines` emits one history page per line. `--cursor CURSOR` resumes
+an interrupted traversal with its original limit. `get pipelines` defaults to
+current configuration. The CLI reports structured server refusals and supports
+no pipeline mutation command. If both authentication variables are supplied,
+the credential takes precedence and pipeline reads refuse.
 
 The client accepts HTTPS origins, allows HTTP only on loopback, refuses
 redirects and bounds each request to 30 seconds. It prints sanitized refusal

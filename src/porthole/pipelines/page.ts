@@ -4,6 +4,9 @@ type State = {
  revision: number
  definition: unknown | null
  history: { revision: number; definition: unknown; created_at: number }[]
+ cursor?: string | null
+ snapshot?: number
+ limit?: number
  preview?: { id: string; digest: string; definition: unknown; results: unknown[]; expectedRevision: number }
  error?: string
 }
@@ -53,5 +56,7 @@ export function page(state: State, status = 200): Promise<Response> {
  <details><summary>Review revision ${e(row.revision)}</summary><pre>${json(row.definition)}</pre>
  <form method="post" action="/app/settings/pipelines/preview">${hidden('revision', state.revision)}${hidden('definition', JSON.stringify(row.definition) ?? 'null')}
  ${sampleField()}<button type="submit">Preview rollback to revision ${e(row.revision)}</button></form></details></li>`).join('')}</ul>` : '<p>No pipeline versions recorded.</p>'}
+ ${state.cursor ? `<p><a href="/app/settings/pipelines?${e(new URLSearchParams({limit:String(state.limit??50),cursor:state.cursor}).toString())}">Older revisions</a></p>` : ''}
+ ${state.snapshot !== undefined && state.snapshot > 0 ? `<p>History snapshot: revision ${e(state.snapshot)}. <a href="/app/settings/pipelines">Latest history</a></p>` : ''}
  </section>`, status, { forms: true })
 }
