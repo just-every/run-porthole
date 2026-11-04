@@ -136,6 +136,11 @@ export async function servicesJourney({origin,freshOwner,signIn,sql,restartWorke
  const reloaded=await read(api+'/'+checkout.id+query)
  assert.deepEqual(reloaded.metadata,changed.metadata);assert.deepEqual(reloaded.history,changed.history)
  assert.deepEqual(reloaded.alerts,changed.alerts);assert.deepEqual(reloaded.associations,checkout.associations)
+ const quietQuery='?'+new URLSearchParams({from:String(end+2n),through:String(end+1000000000n)})
+ const quiet=await read(api+'/'+checkout.id+quietQuery)
+ assert.equal(quiet.freshness,'no-retained-evidence');assert.equal(quiet.spanCount,0);assert.equal(quiet.summary.p95Ns,null);assert.deepEqual(quiet.associations,[])
+ assert.equal(quiet.metadata.revision,3);assert.deepEqual(quiet.history,reloaded.history);assert.equal(quiet.coverage.fullTraffic,false,'an empty observation window cannot establish healthy full traffic')
+ await servicesBrowser({origin,cookie,path:'/app/services/'+checkout.id+quietQuery,contains:'no-retained-evidence',name:'services-no-retained-evidence',dispatch:browserDispatch})
  if(withPinnedClock){const at=Number(end/1000000n)+300001;await withPinnedClock(at,async()=>{const stale=await read(api+query);assert.ok(stale.services.every(s=>s.freshness==='stale'));assert.equal(stale.services.find(s=>s.id===checkout.id).metadata.owner_ref,eligible.id);await servicesBrowser({origin,cookie,path:'/app/services'+query,contains:'Freshness: stale',name:'services-freshness-stale',dispatch:browserDispatch})})}
  await servicesBrowser({origin,cookie:eligibleCookie,path:'/app/services/'+checkout.id+query,contains:'critical',name:'services-responder',dispatch:browserDispatch,follow:true})
  await send('/app/settings/members/change',{operatorId:eligible.id,role:'responder',scope:{services:['fulfillment'],environments:['production'],teams:['fulfillment']}})
@@ -156,11 +161,32 @@ export async function servicesJourney({origin,freshOwner,signIn,sql,restartWorke
  await servicesBrowser({origin,path:'/app/services',contains:'unauthenticated',name:'services-unauthorized',status:401,dispatch:browserDispatch})
  assert.equal((await call(api+'?budget=3',{headers:{cookie}})).status,400)
  await servicesBrowser({origin,cookie,path:'/app/services?budget=3',contains:'invalid service budget',name:'services-invalid',status:400,dispatch:browserDispatch})
+ if(withEmptyDestination){const {servicesArchiveJourney}=await import('./archive.mjs');await servicesArchiveJourney({origin,freshOwner,withEmptyDestination,id:checkout.id,query,expected:changed.metadata})}
+ cookie=await freshOwner()
+ const erasure='/api/porthole/v1/subject-erasure',preview=await send(erasure,{identifier:'checkout'})
+ assert.equal(preview.canApply,true);assert.ok(preview.records>36,'actual stock checkout envelopes are present in the exact erasure preview')
+ if(analytical){
+  const before=await sql('SELECT COUNT(*) AS n FROM porthole_telemetry_records')
+  await send(erasure+'/apply',{identifier:'checkout',digest:preview.digest,confirm:'erase-exact-batches'},409)
+  assert.deepEqual(await sql('SELECT COUNT(*) AS n FROM porthole_telemetry_records'),before,'unqualified analytical erasure refuses unchanged')
+ }else{
+  const receipt=await send(erasure+'/apply',{identifier:'checkout',digest:preview.digest,confirm:'erase-exact-batches'})
+  assert.equal(receipt.erasedRecords,preview.records)
+  const removed=await read(api+'/'+checkout.id+query)
+  assert.equal(removed.spanCount,0);assert.deepEqual(removed.associations,[]);assert.equal(removed.summary.p95Ns,null);assert.equal(removed.metadata.revision,3)
+  assert.ok(removed.alerts.every(a=>a.status==='Unknown'),'erased input cannot leave firing context labeled as fresh measured evidence')
+  const peer=(await read(api+'/'+fulfillment.id+query));assert.deepEqual(peer.summary,fulfillment.summary);assert.deepEqual(peer.associations,fulfillment.associations,'unrelated service evidence stays unchanged')
+  let refused=0
+  for(const packet of proof.packets){const response=await call('/v1/traces',{method:'POST',headers:{authorization:'Bearer '+source.secret,'content-type':packet.type},body:packet.body});assert.ok([200,409].includes(response.status));if(response.status===409)refused++}
+  assert.ok(refused>0,'original checkout wire replay is fenced by the real erasure journal')
+  await restartWorker();cookie=await freshOwner()
+  assert.deepEqual((await read(api+'/'+checkout.id+query)).associations,[],'restart and replay cannot resurrect derived associations')
+  console.log('PROBE PORT-008 erasure: exact native-owner preview and approval of actual checkout envelopes -> derived associations disappear, original replay refuses, unrelated fulfillment stays exact; restart preserves missing evidence')
+ }
  await send('/app/settings/credentials/revoke',{id:source.credential.id})
  const retainedBefore=await sql('SELECT COUNT(*) AS n FROM porthole_telemetry_records')
  assert.equal((await call('/v1/traces',{method:'POST',headers:{authorization:'Bearer '+source.secret,'content-type':proof.packets[0].type},body:proof.packets[0].body})).status,401)
  assert.deepEqual(await sql('SELECT COUNT(*) AS n FROM porthole_telemetry_records'),retainedBefore,'a revoked source cannot replay more custody')
- if(withEmptyDestination){const {servicesArchiveJourney}=await import('./archive.mjs');await servicesArchiveJourney({origin,freshOwner,withEmptyDestination,id:checkout.id,query,expected:changed.metadata})}
  console.log('PROBE PORT-008 discovery: stock two-team HTTP and Kafka estate -> two scoped services, version and observed dependencies; source server and consumer counters reconciled')
  console.log('PROBE PORT-008 summaries: 36 counted checkout requests, eight errors and eight slow requests -> exact observed counts, rates, endpoint values and p50, p95 and p99 from captured stock spans; client spans excluded')
  console.log('PROBE PORT-008 metadata: native reviewed owner reassignment, Settings edit, reload and restart -> three immutable audited revisions; stale, foreign, bearer and forbidden writes leave metadata unchanged')
