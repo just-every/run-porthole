@@ -47,7 +47,7 @@ export function catalog(records:TraceRecord[],from:string,through:string,truncat
   const version=resource['service.version'];if(typeof version==='string')service.versions.add(version)
   const start=BigInt(String(raw.startTimeUnixNano)),end=BigInt(String(raw.endTimeUnixNano)),kind=Number(raw.kind)
   service.spanCount++;if(end>service.lastSeenNs)service.lastSeenNs=end
-  service.associations.push(...associations(resource,attrs,kind,end))
+  service.associations.push(...associations(resource,attrs,kind,end,{traceId:row.trace_id,spanId:row.span_id}))
   if(kind===2||kind===5){
    const status=raw.status as {code?:number}|undefined,http=Number(attrs['http.response.status_code']??attrs['http.status_code']??0),rpc=Number(attrs['rpc.grpc.status_code']??0)
    const endpoint=String(attrs['http.route']??(attrs['rpc.service']?String(attrs['rpc.service'])+'.'+String(attrs['rpc.method']??''):raw.name??'(unnamed)')).slice(0,240)

@@ -4,7 +4,7 @@ import {join} from 'node:path'
 import {form,literal,fixture} from './fixture.mjs'
 import {serviceCatalogEstate} from './polyglot/estate.mjs'
 const api='/api/porthole/v1/services',address=n=>['synthetic-porthole-'+n,'example.com'].join(String.fromCharCode(64))
-const scope={services:['checkout','fulfillment'],environments:['production'],teams:['commerce','fulfillment']}
+const scope={services:['checkout','fulfillment'],environments:['production','staging'],teams:['commerce','fulfillment']}
 export async function servicesJourney({origin,freshOwner,signIn,sql,restartWorker,withPinnedClock,withEmptyDestination,call=(path,options)=>fetch(origin+path,options),analytical=false,browserDispatch}) {
  let cookie=await freshOwner()
  const send=async(path,data,status=200,acting=cookie)=>{const response=await call(path,form(origin,acting,data));assert.equal(response.status,status,await response.clone().text());return response.headers.get('content-type')?.includes('json')?response.json():response}
@@ -64,6 +64,24 @@ export async function servicesJourney({origin,freshOwner,signIn,sql,restartWorke
   assert.ok(messaging.every(a=>a.system==='kafka'&&a.target===proof.topic&&a.relation===(service===checkout?'produces':'consumes')))
   for(const association of service.associations)assert.ok(spans.some(s=>BigInt(s.startNs)+BigInt(s.durationNs)===BigInt(association.lastSeenNs)),'association freshness comes from the original stock export')
  }
+ const discoverySpans=[...proof.spans,...proof.discovery.spans],discoveryEnd=discoverySpans.reduce((end,span)=>{const time=BigInt(span.startNs)+BigInt(span.durationNs);return time>end?time:end},end)
+ const discoveryQuery='?'+new URLSearchParams({from:String(start-1n),through:String(discoveryEnd+1n)})
+ const discovered=await read(api+discoveryQuery)
+ assert.equal(discovered.coverage.scanComplete,true);assert.equal(discovered.services.length,3)
+ const production=discovered.services.find(service=>service.service==='checkout'&&service.environment==='production'),staging=discovered.services.find(service=>service.service==='checkout'&&service.environment==='staging')
+ assert.notEqual(staging.id,production.id,'environment is part of the native catalog identity')
+ assert.deepEqual(production.versions,['synthetic-porthole-8205','synthetic-porthole-8210']);assert.deepEqual(staging.versions,['synthetic-porthole-8211'])
+ for(const receipt of proof.discovery.receipts){
+  assert.equal(Object.values(receipt.counts).reduce((total,count)=>total+count,0),receipt.outcomes.length,'independent replacement-runtime request counters')
+  const service=receipt.environment==='production'?production:staging,spans=discoverySpans.filter(span=>span.kind===2&&span.resource['service.name']==='checkout'&&span.resource['deployment.environment.name']===receipt.environment)
+  const original=receipt.environment==='production'?proof.statuses:[]
+  assert.equal(service.summary.requests,original.length+receipt.outcomes.length)
+  assert.equal(service.summary.errors,[...original,...receipt.outcomes].filter(code=>code===503).length)
+  const durations=spans.map(span=>BigInt(span.durationNs)).sort((a,b)=>a<b?-1:a>b?1:0)
+  for(const [key,p]of [['p50Ns',.5],['p95Ns',.95],['p99Ns',.99]])assert.equal(service.summary[key],durations[Math.ceil(durations.length*p)-1].toString(),'rollout percentiles use all retained versions only in this environment')
+ }
+ assert.deepEqual(staging.associations.filter(row=>row.kind!=='infrastructure'),[],'staging runtime does not inherit production database or queue associations')
+ assert.ok(discovered.edges.filter(edge=>edge.from===staging.id||edge.to===staging.id).length===0,'matching names alone cannot create a cross-environment dependency')
  const {serviceTopologyProof}=await import('./traces.mjs')
  await serviceTopologyProof({read,proof,view,checkout,fulfillment})
  await servicesBrowser({origin,cookie,path:'/app/services/'+checkout.id+query,contains:'Observed requests',name:'services-summary',dispatch:browserDispatch,observed:checkout.summary})
@@ -82,6 +100,9 @@ export async function servicesJourney({origin,freshOwner,signIn,sql,restartWorke
  let eligibleCookie=await signIn(address(8207)),eligible=(await read('/auth/session',eligibleCookie)).operator
  const eligibleView=await read(api+query,eligibleCookie)
  assert.deepEqual(eligibleView.services.map(service=>service.service),['checkout'],'the eligible responder remains restricted to the existing checkout scope')
+ const scopedDiscovery=await read(api+discoveryQuery,eligibleCookie)
+ assert.deepEqual(scopedDiscovery.services.map(service=>service.id),[production.id],'a production responder cannot discover staging versions or counts')
+ assert.equal((await call(api+'/'+staging.id+discoveryQuery,{headers:{cookie:eligibleCookie}})).status,404,'the foreign environment identity has no native read door')
  assert.ok(eligibleView.edges.some(edge=>edge.kind==='unresolved-target'&&edge.to===null),'an outbound call without an authorized receiver remains explicitly unresolved')
  cookie=await freshOwner()
  const owner=(await read('/auth/session')).operator,baselineGrants=await grants(),values={revision:0,ownerRef:owner.id,repository:'https://example.invalid/checkout.git',runbook:'https://restricted.example/runbooks/checkout?view=synthetic-porthole-8209#recovery',criticality:'high',confirm:'save-service-metadata'}
@@ -136,6 +157,9 @@ export async function servicesJourney({origin,freshOwner,signIn,sql,restartWorke
  const reloaded=await read(api+'/'+checkout.id+query)
  assert.deepEqual(reloaded.metadata,changed.metadata);assert.deepEqual(reloaded.history,changed.history)
  assert.deepEqual(reloaded.alerts,changed.alerts);assert.deepEqual(reloaded.associations,checkout.associations)
+ const discoveryFields=service=>Object.fromEntries(['id','service','environment','team','versions','summary','associations'].map(key=>[key,service[key]]))
+ const discoveryProof={query:discoveryQuery,services:discovered.services.map(discoveryFields)}
+ assert.deepEqual((await read(api+discoveryQuery)).services.map(discoveryFields),discoveryProof.services,'restart preserves both version history and isolated environment observations')
  const quietQuery='?'+new URLSearchParams({from:String(end+2n),through:String(end+1000000000n)})
  const quiet=await read(api+'/'+checkout.id+quietQuery)
  assert.equal(quiet.freshness,'no-retained-evidence');assert.equal(quiet.spanCount,0);assert.equal(quiet.summary.p95Ns,null);assert.deepEqual(quiet.associations,[])
@@ -145,9 +169,12 @@ export async function servicesJourney({origin,freshOwner,signIn,sql,restartWorke
  await servicesBrowser({origin,cookie:eligibleCookie,path:'/app/services/'+checkout.id+query,contains:'critical',name:'services-responder',dispatch:browserDispatch,follow:true})
  await send('/app/settings/members/change',{operatorId:eligible.id,role:'responder',scope:{services:['fulfillment'],environments:['production'],teams:['fulfillment']}})
  assert.equal((await call(api,{headers:{cookie:eligibleCookie}})).status,401,'scope revocation invalidates the old native session on its next request')
+ const associationTrace='/api/porthole/v1/traces/'+checkout.associations[0].evidence.traceId+'?snapshot='+view.snapshot
+ assert.equal((await call(associationTrace,{headers:{cookie:eligibleCookie}})).status,401,'an old association pivot cannot preserve a revoked native session')
  await denied(api+'/'+checkout.id,{...values,revision:3},401,eligibleCookie)
  eligibleCookie=await signIn(address(8207))
  assert.ok(!(await read(api+query,eligibleCookie)).services.some(s=>s.id===checkout.id),'ownership does not preserve data access after scope revocation')
+ assert.ok((await read(associationTrace,eligibleCookie)).spans.every(span=>span.service==='fulfillment'),'a historical association reference cannot confer the former service scope')
  await denied(api+'/'+checkout.id,{...values,revision:3},403,eligibleCookie)
  await send('/app/settings/members/remove',{operatorId:restrictedId})
  cookie=await freshOwner()
@@ -162,7 +189,7 @@ export async function servicesJourney({origin,freshOwner,signIn,sql,restartWorke
  assert.equal((await call(api+'?budget=3',{headers:{cookie}})).status,400)
  await servicesBrowser({origin,cookie,path:'/app/services?budget=3',contains:'invalid service budget',name:'services-invalid',status:400,dispatch:browserDispatch})
  let backup
- if(withEmptyDestination){const {servicesArchiveJourney}=await import('./archive.mjs');backup=await servicesArchiveJourney({origin,freshOwner,restartWorker,withEmptyDestination,id:checkout.id,query,expected:changed.metadata,summary:checkout.summary,associations:checkout.associations})}
+ if(withEmptyDestination){const {servicesArchiveJourney}=await import('./archive.mjs');backup=await servicesArchiveJourney({origin,freshOwner,restartWorker,withEmptyDestination,id:checkout.id,query,expected:changed.metadata,summary:checkout.summary,associations:checkout.associations,discovery:discoveryProof})}
  cookie=await freshOwner()
  const erasure='/api/porthole/v1/subject-erasure',preview=await send(erasure,{identifier:'checkout'})
  assert.equal(preview.canApply,true);assert.ok(preview.records>36,'actual stock checkout envelopes are present in the exact erasure preview')
@@ -176,6 +203,7 @@ export async function servicesJourney({origin,freshOwner,signIn,sql,restartWorke
   if(backup)assert.equal((await call('/api/porthole/v1/archive/exports/'+backup.id+'/chunks/'+backup.chunk,{headers:{cookie}})).status,404,'erasure withdraws cached and reconstructed archive packets together')
   const removed=await read(api+'/'+checkout.id+query)
   assert.equal(removed.spanCount,0);assert.deepEqual(removed.associations,[]);assert.equal(removed.summary.p95Ns,null);assert.equal(removed.metadata.revision,3)
+  assert.ok((await read(associationTrace)).spans.every(span=>span.service!=='checkout'),'an erased association pivot cannot restore its original input')
   assert.ok(removed.alerts.every(a=>a.status==='Unknown'),'erased input cannot leave firing context labeled as fresh measured evidence')
   const peer=(await read(api+'/'+fulfillment.id+query));assert.deepEqual(peer.summary,fulfillment.summary);assert.deepEqual(peer.associations,fulfillment.associations,'unrelated service evidence stays unchanged')
   let refused=0
@@ -189,7 +217,8 @@ export async function servicesJourney({origin,freshOwner,signIn,sql,restartWorke
  const retainedBefore=await sql('SELECT COUNT(*) AS n FROM porthole_telemetry_records')
  assert.equal((await call('/v1/traces',{method:'POST',headers:{authorization:'Bearer '+source.secret,'content-type':proof.packets[0].type},body:proof.packets[0].body})).status,401)
  assert.deepEqual(await sql('SELECT COUNT(*) AS n FROM porthole_telemetry_records'),retainedBefore,'a revoked source cannot replay more custody')
- console.log('PROBE PORT-008 discovery: stock two-team HTTP and Kafka estate -> two scoped services, version and observed dependencies; source server and consumer counters reconciled')
+ console.log('PROBE PORT-008 discovery: stock two-team HTTP and Kafka estate plus replacement and staging runtimes -> three scope identities, two production versions, isolated staging version and source-counted summaries; production responder cannot read staging')
+ console.log('PROBE PORT-008 association-pivots: native Services trace links and versioned trace API -> exact original span, service, environment, team and last-observed nanoseconds; current authority applies independently')
  console.log('PROBE PORT-008 summaries: 36 counted checkout requests, eight errors and eight slow requests -> exact observed counts, rates, endpoint values and p50, p95 and p99 from captured stock spans; client spans excluded')
  console.log('PROBE PORT-008 metadata: native reviewed owner reassignment, Settings edit, reload and restart -> three immutable audited revisions; stale, foreign, bearer and forbidden writes leave metadata unchanged')
  console.log('PROBE PORT-008 authority: restricted and revoked native readers -> hidden services absent and unresolved parent links; metadata grants no access; external runbook remains private')
@@ -209,6 +238,12 @@ export async function servicesBrowser({origin,cookie='',path,contains,name,statu
   assert.equal(response.status(),status);assert.ok((await page.locator('body').innerText()).includes(contains))
   if(observed){const body=await page.locator('body').innerText();assert.ok(body.includes(observed.requests+' requests · '+observed.errors+' errors'));for(const name of ['p50','p95','p99'])assert.ok(body.includes(name+' '+(Number(observed[name+'Ns'])/1e6).toFixed(2)+' ms'),'Services shows the independently reconciled '+name);const href=await page.getByRole('link',{name:'Read this snapshot as JSON',exact:true}).getAttribute('href');const linked=await page.goto(origin+href);assert.equal(linked.status(),200);const json=await linked.json();assert.equal(json.summary.requests,observed.requests);assert.equal(json.summary.errors,observed.errors);assert.equal(json.summary.p95Ns,observed.p95Ns);await page.goto(origin+path)}
   if(observed){assert.match(await page.locator('body').innerText(),/database.*postgresql.*synthetic_porthole_8400/);assert.match(await page.locator('body').innerText(),/messaging.*kafka/)}
+  if(observed){
+   const pivot=page.getByRole('link',{name:'Inspect association trace',exact:true}).first(),href=await pivot.getAttribute('href')
+   assert.equal(new URL(href,origin).searchParams.get('snapshot'),new URL(await page.getByRole('link',{name:'Read this snapshot as JSON',exact:true}).getAttribute('href'),origin).searchParams.get('snapshot'))
+   await pivot.click();assert.match(await page.locator('body').innerText(),/Trace waterfall/);assert.ok((await page.locator('body').innerText()).includes('checkout'))
+   await page.goto(origin+path)
+  }
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'native Services reflows')
   assert.equal(await page.locator('button').evaluateAll(nodes=>nodes.filter(n=>!n.textContent.trim()).length),0,'every control has a text label')
   assert.ok(await page.locator('main').evaluate(node=>[...node.querySelectorAll('p,a,button,label,input,select,dt,dd,li')].every(n=>parseFloat(getComputedStyle(n).fontSize)>=13)),'ordinary text is at least 13px')
