@@ -30,7 +30,7 @@ export async function servicesResponse(request:Request,env:Bindings):Promise<Res
   if(id&&!service)fail('service_not_found',404)
   if(request.method==='GET'){
    const members=candidates.filter(m=>service&&scopeWithin({services:[service.service],environments:[service.environment],teams:[service.team]},JSON.parse(m.scope)))
-   return html?servicesPage(view,id,config,owner,members):json(id?{...service,coverage:view.coverage,edges:view.edges.filter(e=>e.from===id||e.to===id),names:view.names,snapshot:view.snapshot,from:view.from,through:view.through,backend:view.backend}:view)
+   return html?servicesPage(view,id,config,owner,members):json(id?{...service,coverage:view.coverage,edges:view.edges.filter(e=>e.from===id||e.to===id),names:view.names,snapshot:view.snapshot,from:view.from,through:view.through,budget:view.budget,backend:view.backend}:view)
   }
   const data=await input(request)
   if(Object.keys(data).some(k=>!['revision','ownerRef','runbook','repository','criticality','confirm'].includes(k)))fail('invalid_service_metadata',400)
