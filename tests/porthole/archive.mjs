@@ -1115,12 +1115,14 @@ export async function genaiArchiveJourney({origin,cookie,withEmptyDestination,tr
 /** Reviewed service metadata restores as inactive history without authority. */
 export async function servicesArchiveJourney({origin,freshOwner,withEmptyDestination,id,query,expected}) {
  const cookie=await freshOwner(),source=await savedExport(origin,cookie,await post(origin,cookie,api+'/exports',{})),root='/api/porthole/v1/services/'+id
+ const largest=source.chunks.reduce((best,chunk)=>Buffer.byteLength(JSON.stringify(chunk))>Buffer.byteLength(JSON.stringify(best))?chunk:best)
+ assert.deepEqual(await value(await get(origin,cookie,`${api}/exports/${source.job.id}/chunks/${largest.index}`)),largest,'large archived stock captures replay exactly from the frozen snapshot')
  const rows=source.rows.filter(row=>row.table==='porthole_service_versions')
  assert.equal(rows.length,3);assert.deepEqual(rows.map(r=>r.row.revision),[1,2,3])
  assert.equal(rows[2].row.runbook,expected.runbook)
  await withEmptyDestination(async destination=>{
   const owner=await destination.freshOwner(),start=await value(await post(destination.origin,owner,api+'/restores',{manifest:source.manifest}),201)
-  for(const chunk of source.chunks)await value(await post(destination.origin,owner,`${api}/restores/${start.id}/chunks`,{chunk}))
+  for(const chunk of source.chunks){await value(await post(destination.origin,owner,`${api}/restores/${start.id}/chunks`,{chunk}));if(chunk.index===largest.index)await value(await post(destination.origin,owner,`${api}/restores/${start.id}/chunks`,{chunk}))}
   await value(await post(destination.origin,owner,`${api}/restores/${start.id}/commit`,{confirm:source.manifest.rootHash}))
   const restored=await value(await get(destination.origin,owner,root+query))
   assert.equal(restored.metadata.state,'quarantined');assert.equal(restored.metadata.runbook,expected.runbook);assert.equal(restored.metadata.criticality,expected.criticality)
@@ -1135,6 +1137,8 @@ export async function servicesArchiveJourney({origin,freshOwner,withEmptyDestina
   assert.equal((await destination.sql('SELECT COUNT(*) AS n FROM porthole_members WHERE operator_id='+literal(expected.owner_ref)))[0].n,0,'metadata owner reference creates no destination member')
   assert.ok(Object.values(restored.names).every(name=>name==='Unavailable member'))
   const exported=await savedExport(destination.origin,owner,await post(destination.origin,owner,api+'/exports',{})),again=exported.rows.filter(r=>r.table==='porthole_service_versions')
+  const retry=exported.chunks.reduce((best,chunk)=>Buffer.byteLength(JSON.stringify(chunk))>Buffer.byteLength(JSON.stringify(best))?chunk:best)
+  assert.deepEqual(await value(await get(destination.origin,owner,`${api}/exports/${exported.job.id}/chunks/${retry.index}`)),retry,'inactive re-export retains exact large-packet replay')
   assert.deepEqual(again.map(r=>({...r.row,state:'active'})),rows.map(r=>r.row),'re-export preserves every exact metadata revision')
   const {servicesBrowser}=await import('./services.mjs')
   await servicesBrowser({origin:destination.origin,cookie:owner,path:'/app/services/'+id+query,contains:'Inactive restored metadata',name:'services-inactive-restored'})
@@ -1142,4 +1146,6 @@ export async function servicesArchiveJourney({origin,freshOwner,withEmptyDestina
   assert.equal((await value(await get(destination.origin,await destination.freshOwner(),root+query))).metadata.state,'quarantined')
  })
  console.log('PROBE PORT-008 archive: actual native export, empty restore and re-export -> three exact inactive revisions; no source sessions, credentials or owner membership restored')
+ console.log('PROBE PORT-008 archive-packets: largest stock-capture packet bytes='+Buffer.byteLength(JSON.stringify(largest))+' -> export retry and restore retry preserve its exact rows, digest and order')
+ return {id:source.job.id,chunk:largest.index}
 }

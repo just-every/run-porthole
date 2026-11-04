@@ -161,7 +161,8 @@ export async function servicesJourney({origin,freshOwner,signIn,sql,restartWorke
  await servicesBrowser({origin,path:'/app/services',contains:'unauthenticated',name:'services-unauthorized',status:401,dispatch:browserDispatch})
  assert.equal((await call(api+'?budget=3',{headers:{cookie}})).status,400)
  await servicesBrowser({origin,cookie,path:'/app/services?budget=3',contains:'invalid service budget',name:'services-invalid',status:400,dispatch:browserDispatch})
- if(withEmptyDestination){const {servicesArchiveJourney}=await import('./archive.mjs');await servicesArchiveJourney({origin,freshOwner,withEmptyDestination,id:checkout.id,query,expected:changed.metadata})}
+ let backup
+ if(withEmptyDestination){const {servicesArchiveJourney}=await import('./archive.mjs');backup=await servicesArchiveJourney({origin,freshOwner,withEmptyDestination,id:checkout.id,query,expected:changed.metadata})}
  cookie=await freshOwner()
  const erasure='/api/porthole/v1/subject-erasure',preview=await send(erasure,{identifier:'checkout'})
  assert.equal(preview.canApply,true);assert.ok(preview.records>36,'actual stock checkout envelopes are present in the exact erasure preview')
@@ -172,6 +173,7 @@ export async function servicesJourney({origin,freshOwner,signIn,sql,restartWorke
  }else{
   const receipt=await send(erasure+'/apply',{identifier:'checkout',digest:preview.digest,confirm:'erase-exact-batches'})
   assert.equal(receipt.erasedRecords,preview.records)
+  if(backup)assert.equal((await call('/api/porthole/v1/archive/exports/'+backup.id+'/chunks/'+backup.chunk,{headers:{cookie}})).status,404,'erasure withdraws cached and reconstructed archive packets together')
   const removed=await read(api+'/'+checkout.id+query)
   assert.equal(removed.spanCount,0);assert.deepEqual(removed.associations,[]);assert.equal(removed.summary.p95Ns,null);assert.equal(removed.metadata.revision,3)
   assert.ok(removed.alerts.every(a=>a.status==='Unknown'),'erased input cannot leave firing context labeled as fresh measured evidence')
