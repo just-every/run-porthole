@@ -1138,3 +1138,30 @@ export async function servicesArchiveJourney({origin,freshOwner,withEmptyDestina
  })
  console.log('PROBE PORT-008 archive: actual native export, empty restore and re-export -> three exact inactive revisions; no source sessions, credentials or owner membership restored')
 }
+
+/** Pattern pages are recomputed, not archived caches or restored authority. */
+export async function clusterArchiveJourney({origin,freshOwner,withEmptyDestination,query,all,members}) {
+ const cookie=await freshOwner(),saved=await savedExport(origin,cookie,await post(origin,cookie,api+'/exports',{}))
+ assert.ok(saved.rows.some(item=>item.table==='porthole_query_snapshots'&&JSON.parse(item.row.scope).record===members[0].id),'original pivots use the portable native query descriptor')
+ await withEmptyDestination(async destination=>{
+  const acting=await destination.freshOwner(),restore=await value(await post(destination.origin,acting,api+'/restores',{manifest:saved.manifest}),201)
+  for(const chunk of saved.chunks)await value(await post(destination.origin,acting,`${api}/restores/${restore.id}/chunks`,{chunk}))
+  await value(await post(destination.origin,acting,`${api}/restores/${restore.id}/commit`,{confirm:saved.manifest.rootHash}))
+  const request=body=>post(destination.origin,acting,'/api/porthole/v1/logs/clusters',body)
+  const result=await value(await request({...query,limit:200}))
+  assert.equal(result.state,'complete');assert.equal(result.totalRecords,236)
+  assert.deepEqual(result.clusters,all.slice().sort((a,b)=>a.id.localeCompare(b.id)))
+  const first=await value(await request({...query,cluster:all[0].id,limit:200}))
+  assert.ok(first.records.every(row=>members.some(original=>original.id===row.id&&JSON.stringify(original.payload)===JSON.stringify(row.payload))))
+  assert.equal((await destination.sql('SELECT paused FROM porthole_ingest_control'))[0].paused,1)
+  assert.equal((await destination.sql('SELECT COUNT(*) AS n FROM porthole_credentials'))[0].n,0)
+  assert.equal((await get(destination.origin,cookie,'/app/explore/clusters')).status,401,'old native authority is not restored')
+  await destination.restartWorker()
+  assert.equal((await value(await request({...query,limit:200}))).totalRecords,236)
+  const exported=await savedExport(destination.origin,acting,await post(destination.origin,acting,api+'/exports',{}))
+  assert.equal(exported.rows.filter(item=>item.table==='porthole_telemetry_records'&&item.row.service===query.service).length,236,'inactive re-export preserves only the original retained custody')
+  const {clusterBrowser}=await import('./log-clusters.mjs')
+  await clusterBrowser({origin:destination.origin,cookie:acting,path:'/app/explore/clusters?'+new URLSearchParams({...query,limit:'50'}),name:'patterns-inactive-restored',contains:'236 retained records in 2 patterns'})
+ })
+ console.log('PROBE PORT-011 restore: owner installation archive -> independent inactive destination -> original pattern counts, members and re-export retained; zero restored credentials')
+}

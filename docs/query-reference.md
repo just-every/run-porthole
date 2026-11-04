@@ -90,3 +90,60 @@ page as a whole-window statistic.
 
 See [programmatic access](/docs/v1/programmatic-access) for CLI and MCP access,
 and [API errors](/docs/v1/api-errors) for permission and validation failures.
+
+## Retained log patterns (version 1)
+
+Native Explore links to **Log patterns** at `/app/explore/clusters`. The same
+read is available as `POST /api/porthole/v1/logs/clusters`, with a native session
+and same-origin Origin header or a current `telemetry.read` bearer credential
+with the logs grant. Bearer authority takes precedence over an accompanying
+cookie. This door reads data and grants no configuration or erasure authority.
+
+```json
+{"service":"checkout","environment":"production","team":"commerce","from":"0","through":"18446744073709551615","limit":50,"scanLimit":10000}
+```
+
+Scope and inclusive nanosecond bounds follow the native query API. Optional
+`dialect` and `expression` accept existing visual or Lucene log predicates;
+aggregate expressions and other signals refuse. All matching retained records
+are scanned at one completed-batch `snapshot`, which is returned in the result.
+New completions do not enter that snapshot. Pending intake is outside this
+watermark; a complete pattern scan makes no delivery-completeness claim.
+
+Version 1 groups messages by exact service, environment, team and severity,
+then replaces decimal tokens, UUIDs and hexadecimal tokens of at least eight
+characters in string bodies with typed placeholders. Literal words and
+whitespace remain significant. Structured bodies group by their exact encoded
+body. A pattern is a deterministic heuristic, not a diagnosis. Two messages
+that differ only in a generalized identifier can intentionally share a group.
+`clusters` contains each pattern's opaque `id`, displayed `pattern` and exact
+`count`; `totalRecords` and `totalClusters` describe the whole completed scan.
+
+Set `cluster` to a returned ID to obtain `records`, each retaining its original
+ID, payload and a native Explore `pivot`. To page either patterns or members,
+resubmit the same filters, returned `snapshot`, `limit`, `scanLimit` and
+`cluster` (for members), plus the returned opaque `cursor`. A member pivot
+selects one original record with the native query's `record` filter and the
+same snapshot and time bounds. The native query API also accepts `record`.
+Current permissions apply on every request, including old links and replay.
+
+`limit` is 1 to 200 (default 50). `scanLimit` is 1 to 10,000 (default 10,000),
+and an internal eight-MiB scan byte budget also applies. Exhaustion returns
+`state: "partial"`, a `scan_limit` or `byte_limit` reason, null totals, empty
+patterns and members, and no cursor. Narrow the time range or scope and retry;
+partial results never present accumulated counts as exact. A completed empty
+scan returns zero totals. Pages are recomputed from retained data; no detached
+telemetry cache, pattern table or sharing capability is created.
+
+Before any accumulated result is released, authority, the selected analytical
+connection and every scanned record's retained contents are checked together.
+An erasure or content change during the scan returns `cluster_custody_changed`
+(409). A later erasure changes counts and invalidates old pagination cursors
+(400 `invalid_cluster_cursor`); removed patterns return 404 `cluster_not_found`.
+Revoked credentials refuse, and storage outages return 503 without a local
+fallback. Invalid input returns 400, unsupported methods 405, invalid media
+415, oversized input 413, and credential quotas 429 with Retry-After.
+Existing custody and inactive archive-restore rules remain unchanged.
+
+This bounded functional door supplies no one-TB latency, full-retention,
+source-equivalence, saved-search, live-tail or log-to-trace qualification.
