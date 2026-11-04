@@ -1,4 +1,4 @@
-import { fingerprint } from '../../../collectors/database/privacy.mjs'
+import { fingerprint } from './sql.mjs'
 import { fail } from '../security/authority'
 export interface Capture {
  engine:'postgresql'|'mysql'; version:string; collectedAt:number; databaseTime:number

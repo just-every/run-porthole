@@ -1,6 +1,6 @@
 import type {Bindings} from '../../auth.server'
 import {AuthError} from '../../modules/operator-auth/index.mjs'
-import {fingerprint,reviewedPlans} from '../../../collectors/database/privacy.mjs'
+import {fingerprint,reviewedPlans} from './sql.mjs'
 import {authority,allScope,emptyScope,fail,proofFence,scopeWithin} from '../security/authority'
 import {input} from '../security/input'
 import {CredentialLimit,verifyCredential} from '../credentials/verify'

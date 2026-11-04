@@ -1,7 +1,7 @@
 import {createHash} from 'node:crypto'
 import {readFile,stat} from 'node:fs/promises'
 import {pathToFileURL} from 'node:url'
-import {fingerprint,structuralPlan,reviewedPlans} from './privacy.mjs'
+import {fingerprint,structuralPlan,reviewedPlans} from '../../src/porthole/database/sql.mjs'
 const hash=value=>createHash('sha256').update(value).digest('hex')
 const denied=error=>['42501','28P01','28000','42000','ER_TABLEACCESS_DENIED_ERROR','ER_SPECIFIC_ACCESS_DENIED_ERROR','ER_ACCESS_DENIED_ERROR','ER_DBACCESS_DENIED_ERROR'].includes(error?.code)||[1044,1045,1142,1227].includes(error?.errno)?'privilege_denied':'unavailable'
 const trace=value=>{const match=/^00-([a-f0-9]{32})-([a-f0-9]{16})-01$/.exec(String(value??''));return {traceId:match?.[1]??null,spanId:match?.[2]??null}}

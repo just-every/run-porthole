@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import {spawn} from 'node:child_process'
 import {createServer} from 'node:http'
 import {collect,deliver,planDigest} from '../../collectors/database/collector.mjs'
-import {fingerprint,structuralPlan} from '../../collectors/database/privacy.mjs'
+import {fingerprint,structuralPlan} from '../../src/porthole/database/sql.mjs'
 import {databaseEstate} from './database/estate.mjs'
 import {form} from './fixture.mjs'
 import {healthBrowser} from './health.mjs'
@@ -88,7 +88,7 @@ export async function databaseJourney({origin,freshOwner,restartWorker,sql,signI
   assert.ok(pending.some(r=>r.state==='pending'));assert.ok(!JSON.stringify(pending).includes(marker));for(const row of pending)assert.ok(!Buffer.from(row.wire_base64,'base64').includes(Buffer.from(marker)),'pending stored wire contains no planted SQL literal')
   await restartWorker();cookie=await freshOwner();await post('/api/porthole/v1/ingest/control',{paused:false});await post('/api/porthole/v1/ingest/drain',{})
   let view=await read();assert.equal(view.captures.length,2)
-  for(const c of view.captures){assert.ok(c.queries.some(q=>q.plan.length));assert.ok(c.callers.length>=6,JSON.stringify(c));const receipt=receipts.receipts.find(r=>r.engine===c.engine);assert.ok(c.callers.some(r=>r.traceId===receipt.traceId));const trace=await read('/api/porthole/v1/traces/'+receipt.traceId);assert.ok(trace.spans.some(s=>s.instrumentation.name==='@opentelemetry/instrumentation-'+(c.engine==='mysql'?'mysql2':'pg')));assert.ok(!JSON.stringify(trace).includes(marker));assert.ok(c.waits.some(w=>w.traceId))}
+  for(const c of view.captures){assert.ok(c.queries.some(q=>q.plan.length));assert.ok(c.callers.length>=6,JSON.stringify(c));const receipt=receipts.receipts.find(r=>r.engine===c.engine);assert.ok(c.callers.some(r=>r.traceId===receipt.traceId&&r.endpoint==='/'+c.engine+'/slow'),'native caller pivot identifies the actual request route');const trace=await read('/api/porthole/v1/traces/'+receipt.traceId);assert.ok(trace.spans.some(s=>s.instrumentation.name==='@opentelemetry/instrumentation-'+(c.engine==='mysql'?'mysql2':'pg')));assert.ok(!JSON.stringify(trace).includes(marker));assert.ok(c.waits.some(w=>w.traceId))}
   await healthBrowser({origin,cookie,path:'/app/database',name:'database-diagnostics',contains:['Database','Seq Scan','ALL','Calling trace','Endpoint']})
   await healthBrowser({origin,cookie,path:'/app/settings/database',name:'database-settings',contains:'Reviewed sources'})
   const first=await read(api+'?limit=1');assert.equal(first.captures.length,1);assert.ok(first.cursor);assert.equal(first.complete,false)

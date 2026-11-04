@@ -1,4 +1,4 @@
-import { fingerprint } from '../../../collectors/database/privacy.mjs'
+import { fingerprint } from './sql.mjs'
 /** Every OTLP database statement is masked before pending and stored wire are
  * constructed, independently of optional user pipelines. Never retain binds. */
 export function databasePrivacy<T>(input:T):T {

@@ -18,6 +18,7 @@ const server=http.createServer(async(req,res)=>{
   if(engine==='postgresql'){id=String((await c.query('SELECT pg_backend_pid() AS id')).rows[0].id);await c.query("SELECT set_config('application_name',$1,false)",[traceparent])}
   else{id=String(c.threadId);await c.execute('SET @porthole_traceparent = ?',[traceparent])}
   span.setAttribute('porthole.database.connection_id',id)
+  span.setAttribute('http.route','/'+engine+'/'+mode)
   if(mode==='error'){await query(engine,c,engine==='postgresql'?'SELECT cast($1 AS integer)':'SELECT cast(? AS JSON)',[cfg.marker])}
   if(mode==='blocked'){
    const b=await open(engine),bid=engine==='postgresql'?String((await b.query('SELECT pg_backend_pid() AS id')).rows[0].id):String(b.threadId)
