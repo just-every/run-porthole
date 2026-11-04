@@ -29,7 +29,7 @@ async function stock(estate,call,source,run){
   const receipts=await run({origin:ready.origin,child,event,events})
   child.stdin.write('stop\n')
   const exit=await new Promise(resolve=>{if(child.exitCode!==null)resolve(child.exitCode);else child.once('exit',resolve)})
-  assert.equal(exit,0,errors.slice(-2000));assert.ok(packets.length>0,'actual stock exporter emitted database spans');assert.ok(!errors.includes(marker),'value-free producer diagnostics')
+  assert.equal(exit,0,errors.slice(-2000));assert.ok(packets.length>0,'actual stock exporter emitted database spans');assert.ok(packets.some(packet=>packet.includes(Buffer.from(marker))),'the real stock SQL export contains the planted literal, so native redaction is exercised');assert.ok(!errors.includes(marker),'value-free producer diagnostics')
   return {receipts,packets,events}
  }finally{
   if(child.exitCode===null){child.stdin.write('stop\n');await Promise.race([new Promise(r=>child.once('exit',r)),pause(5000)]);if(child.exitCode===null){child.kill('SIGTERM');await new Promise(r=>child.once('exit',r))}}
@@ -39,7 +39,7 @@ async function stock(estate,call,source,run){
 function nativeCompare(capture,native,engine){
  const expected=native.find(r=>fingerprint(r.query)===fingerprint('SELECT count(*) FROM porthole_orders WHERE customer = ?'))
  assert.ok(expected,'native independently queried expensive fingerprint exists')
- const actual=capture.queries.find(q=>q.queryId===String(expected.id).replace('-','n'))
+ const actual=capture.queries.find(q=>q.queryId===String(expected.id))
  assert.ok(actual,JSON.stringify(capture));assert.equal(actual.fingerprint,fingerprint(expected.query));assert.equal(actual.calls,Number(expected.calls));assert.equal(actual.rows,Number(expected.rows??expected.rows_sent))
  assert.ok(Math.abs(actual.totalMs-Number(expected.total_ms))<0.00001);assert.ok(Math.abs(actual.meanMs-Number(expected.mean_ms))<0.00001)
  assert.ok(actual.plan.some(p=>p.operator===(engine==='postgresql'?'Seq Scan':'ALL')),'real non-executing missing-index plan')
@@ -55,6 +55,7 @@ export async function databaseJourney({origin,freshOwner,restartWorker,sql,signI
   await healthBrowser({origin,cookie,path:'/app/database',name:'database-empty',contains:'No database captures'})
   for(const engine of ['postgresql','mysql']){
    configs[engine]={...estate.config(engine),id:'local-'+engine,revision:1,origin,secret:source.secret}
+   await assert.rejects(()=>deliver(configs[engine],(url,opts)=>call(new URL(url).pathname,opts)),/database_review_refused_403/,'the shipped collector refuses unreviewed collection before opening a database connection')
    const raw=await collect(configs[engine]);assert.equal((await call(api+'/captures',{method:'POST',headers:{authorization:'Bearer '+source.secret,'content-type':'application/json'},body:JSON.stringify({id:configs[engine].id,revision:1,planDigest:planDigest(configs[engine].plans),capture:raw})})).status,403,'unreviewed capture refused')
    const review=await post(api+'/sources',sourceReview(engine),201);assert.equal(review.planDigest,planDigest(configs[engine].plans))
   }
@@ -93,6 +94,16 @@ export async function databaseJourney({origin,freshOwner,restartWorker,sql,signI
   for(const c of view.captures){assert.ok(c.queries.some(q=>q.plan.length));assert.ok(c.callers.length>=6,JSON.stringify(c));const receipt=receipts.receipts.find(r=>r.engine===c.engine);assert.ok(c.callers.some(r=>r.traceId===receipt.traceId&&r.endpoint==='/'+c.engine+'/slow'),'native caller pivot identifies the actual request route');const trace=await read('/api/porthole/v1/traces/'+receipt.traceId);assert.ok(trace.spans.some(s=>s.instrumentation.name==='@opentelemetry/instrumentation-'+(c.engine==='mysql'?'mysql2':'pg')));assert.ok(!JSON.stringify(trace).includes(marker));assert.ok(c.waits.some(w=>w.traceId))}
   await healthBrowser({origin,cookie,path:'/app/database',name:'database-diagnostics',contains:['Database','Seq Scan','ALL','Calling trace','Endpoint']})
   await healthBrowser({origin,cookie,path:'/app/settings/database',name:'database-settings',contains:'Reviewed sources'})
+  await healthBrowser({origin,cookie:'',path:'/app/database',name:'database-unauthorized',expectedStatus:401,contains:'unauthenticated'})
+  await healthBrowser({origin,cookie,path:'/app/database?limit=0',name:'database-invalid',expectedStatus:400,contains:'invalid_query_limit'})
+  await healthBrowser({origin,cookie,path:'/app/settings/database',name:'database-stale-review',exercise:async(page,width)=>{
+   if(width!==1440)return
+   const review=sourceReview('postgresql')
+   for(const key of ['id','revision','credentialId','service','environment','team','confirm'])await page.locator('[name='+key+']').fill(String(review[key]))
+   await page.locator('[name=plans]').fill(JSON.stringify(review.plans))
+   await Promise.all([page.waitForURL('**/app/settings/database'),page.getByRole('button',{name:'Review collection'}).click()])
+   assert.ok((await page.locator('[role=alert]').innerText()).includes('database review changed'),'stale browser review fails persistently without changing collection')
+  }})
   const first=await read(api+'?limit=1');assert.equal(first.captures.length,1);assert.ok(first.cursor);assert.equal(first.complete,false)
   const second=await read(api+'?limit=1&snapshot='+first.snapshot+'&cursor='+encodeURIComponent(first.cursor));assert.equal(second.captures.length,1);assert.notEqual(first.captures[0].id,second.captures[0].id);assert.equal(second.cursor,null)
   assert.equal((await call(api+'?cursor=bad',{headers:{cookie}})).status,400)
@@ -104,9 +115,11 @@ export async function databaseJourney({origin,freshOwner,restartWorker,sql,signI
    configs[engine].connection.password=next;await estate.restrict(engine)
    const limited=await deliver(configs[engine],(url,opts)=>call(new URL(url).pathname,opts));assert.equal(limited.capture.coverage.statistics,'privilege_denied');assert.equal(limited.capture.coverage.plans,'privilege_denied')
    assert.equal((await post(api+'/sources',sourceReview(engine,1,false),201)).enabled,false)
+   await assert.rejects(()=>deliver(configs[engine],(url,opts)=>call(new URL(url).pathname,opts)),/database_review_refused_403/,'a stopped review prevents the next collection from starting')
    assert.equal((await call(api+'/captures',{method:'POST',headers:{authorization:'Bearer '+source.secret,'content-type':'application/json'},body:JSON.stringify({id:configs[engine].id,revision:1,planDigest:planDigest(configs[engine].plans),capture:captures.find(c=>c.engine===engine)})})).status,403,'stopped collection refuses replay before persistence')
   }
   await post('/api/porthole/v1/ingest/drain',{})
+  await healthBrowser({origin,cookie,path:'/app/database',name:'database-collection-stopped',contains:['stopped','privilege_denied']})
   const limitedView=await read();assert.ok(limitedView.captures.some(c=>c.coverage.statistics==='privilege_denied'));assert.ok(limitedView.captures.some(c=>c.collection==='stopped'))
   const before=await sql('SELECT * FROM porthole_database_sources ORDER BY id')
   await post(api+'/sources',sourceReview('postgresql',1),409);assert.deepEqual(await sql('SELECT * FROM porthole_database_sources ORDER BY id'),before)
@@ -129,18 +142,24 @@ export async function databaseJourney({origin,freshOwner,restartWorker,sql,signI
   const {databaseArchiveJourney}=await import('./archive.mjs')
   cookie=await freshOwner();await databaseArchiveJourney({origin,cookie,withEmptyDestination,marker,expected:limitedView.captures})
   cookie=await freshOwner()
-  const erasure='/api/porthole/v1/subject-erasure',selection=await post(erasure,{identifier:'porthole_orders'})
-  assert.ok(selection.batches.length>=2,'the real captures appear in the current owner erasure inventory')
+  const erasure='/api/porthole/v1/subject-erasure',selection=await post(erasure,{identifier:'local-postgresql'})
+  assert.ok(selection.batches.length===3,'the real captures appear in the current owner erasure inventory')
   const prior=await sql('SELECT records FROM porthole_ingest_batches ORDER BY id')
-  await post(erasure+'/apply',{identifier:'porthole_orders',digest:selection.digest,confirm:'wrong'},409)
+  await post(erasure+'/apply',{identifier:'local-postgresql',digest:selection.digest,confirm:'wrong'},409)
   assert.deepEqual(await sql('SELECT records FROM porthole_ingest_batches ORDER BY id'),prior,'unconfirmed erasure leaves database custody unchanged')
-  await post(erasure+'/apply',{identifier:'porthole_orders',digest:selection.digest,confirm:'erase-exact-batches'})
-  assert.ok((await read()).captures.every(c=>c.queries.length===0),'erased query captures are absent through Database')
+  await post(erasure+'/apply',{identifier:'local-postgresql',digest:selection.digest,confirm:'erase-exact-batches'})
+  assert.ok((await read()).captures.every(c=>c.engine!=='postgresql'),'every erased PostgreSQL capture is absent through Database');assert.ok((await read()).captures.some(c=>c.engine==='mysql'&&c.queries.length>0),'unrelated MySQL diagnostics survive unchanged')
   await post(api+'/sources',sourceReview('postgresql',2,true),201)
   const replay={id:configs.postgresql.id,revision:3,planDigest:planDigest(configs.postgresql.plans),capture:captures.find(c=>c.engine==='postgresql')}
   const deniedReplay=await call(api+'/captures',{method:'POST',headers:{authorization:'Bearer '+source.secret,'content-type':'application/json'},body:JSON.stringify(replay)})
   assert.equal(deniedReplay.status,409);assert.equal((await deniedReplay.json()).error,'erased_batch_refused','a later review revision cannot resurrect an erased capture')
-  await restartWorker();cookie=await freshOwner();assert.ok((await read()).captures.every(c=>c.queries.length===0))
+  const alternate=structuredClone(replay),sample=alternate.capture.queries.find(q=>q.fingerprint===fingerprint('SELECT count(*) FROM porthole_orders WHERE customer = ?'))
+  sample.fingerprint="SELECT count(*) FROM porthole_orders WHERE customer = '"+marker+"'"
+  const alternateRefusal=await call(api+'/captures',{method:'POST',headers:{authorization:'Bearer '+source.secret,'content-type':'application/json'},body:JSON.stringify(alternate)})
+  assert.equal(alternateRefusal.status,409);assert.equal((await alternateRefusal.json()).error,'erased_batch_refused','redacted literals and changed review metadata cannot defeat capture erasure')
+  await restartWorker();cookie=await freshOwner();assert.ok((await read()).captures.every(c=>c.engine!=='postgresql'))
+  await post('/app/settings/credentials/rescope',{id:source.credential.id,scope:{...scope,signals:['traces'],actions:['telemetry.write']}})
+  await assert.rejects(()=>deliver({...configs.postgresql,revision:3},(url,opts)=>call(new URL(url).pathname,opts)),/database_review_refused_403/,'revoked log intake scope stops database collection before connecting')
   await post('/app/settings/credentials/revoke',{id:source.credential.id})
   const refused=await call(api+'/captures',{method:'POST',headers:{authorization:'Bearer '+source.secret,'content-type':'application/json'},body:'{}'});assert.equal(refused.status,401)
   const {nativeDatabaseBackupJourney}=await import('./archive.mjs')

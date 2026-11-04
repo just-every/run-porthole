@@ -321,6 +321,7 @@ export async function databaseAnalyticalJourney({captures,packets,marker,plans})
    }
    await context.restart();assert.equal((await read(api)).captures.length,2)
    await estate.stop('standby');assert.equal((await call(api,{headers:{cookie}})).status,503,'an unavailable selected backend cannot become an empty or healthy database view')
+   await context.browser('/app/database','database-storage-unavailable','Database unavailable',cookie,503)
    console.log('PROBE PORT-016 analytical copies: identical real engine captures and stock caller spans -> exact statistics, plans and blocking identities through primary and standby, pagination and restart; stopped backend -> 503')
   }})
  } finally {await estate.dispose()}

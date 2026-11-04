@@ -4,7 +4,7 @@ const {OTLPTraceExporter}=require('@opentelemetry/exporter-trace-otlp-proto')
 const {HttpInstrumentation}=require('@opentelemetry/instrumentation-http')
 const {PgInstrumentation}=require('@opentelemetry/instrumentation-pg')
 const {MySQL2Instrumentation}=require('@opentelemetry/instrumentation-mysql2')
-const sdk=new NodeSDK({traceExporter:new OTLPTraceExporter(),instrumentations:[new HttpInstrumentation(),new PgInstrumentation({enhancedDatabaseReporting:false}),new MySQL2Instrumentation()]})
+const sdk=new NodeSDK({traceExporter:new OTLPTraceExporter(),instrumentations:[new HttpInstrumentation(),new PgInstrumentation({enhancedDatabaseReporting:true}),new MySQL2Instrumentation({maskStatement:false})]})
 sdk.start()
 const http=require('node:http'),pg=require('pg'),mysql=require('mysql2/promise'),{trace,context}=require('@opentelemetry/api')
 const cfg=JSON.parse(process.env.PORTHOLE_DATABASE_WORKLOAD),clients=[],counts={postgresql:0,mysql:0},pending=[]

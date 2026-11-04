@@ -9,7 +9,7 @@ export function databasePrivacy<T>(input:T):T {
   const marked=database||Array.isArray(row.attributes)&&row.attributes.some(a=>a&&typeof a==='object'&&typeof a.key==='string'&&a.key.startsWith('db.'))
   if(typeof row.key==='string'){
    if(/^(?:db\.(?:statement|query\.text|operation\.text)|sql\.query)$/i.test(row.key))return {...row,value:{stringValue:fingerprint((row.value as Record<string,unknown>)?.stringValue)}}
-   if(/^(?:db\..*(?:parameters|bind|connection_string|user)|db\.session\.id)$/i.test(row.key)||marked&&/^(?:exception\.(?:message|stacktrace)|error\.message)$/.test(row.key))return {...row,value:{stringValue:'[withheld]'}}
+   if(/^db\.(?:.*(?:parameters?|values|bind|connection[._]string)(?:\.|$)|user(?:\.|$)|session\.id$)/i.test(row.key)||marked&&/^(?:exception\.(?:message|stacktrace)|error\.message)$/.test(row.key))return {...row,value:{stringValue:'[withheld]'}}
   }
   for(const [key,child]of Object.entries(row)){
    if(marked&&key==='message'&&typeof child==='string')out[key]='[withheld]'

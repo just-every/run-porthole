@@ -67,7 +67,9 @@ The versioned native-owner review API is
 `POST /api/porthole/v1/database/sources`; the native-session read API is
 `GET /api/porthole/v1/database`. Read parameters are `service`, `environment`,
 `team`, `from`, `through`, `limit`, `snapshot` and `cursor`. Retain the returned
-snapshot when following a cursor. The authenticated local collector submits to
+snapshot when following a cursor. The collector first checks current reviewed authority through
+`POST /api/porthole/v1/database/collection` before opening any database
+connection, then submits to
 `POST /api/porthole/v1/database/captures`. A changed revision, stopped source,
 wrong credential, changed plan digest or out-of-scope source refuses admission.
 
@@ -87,7 +89,9 @@ credential hashes and database connection configuration are excluded from both
 native installation archives and product archives. Independent restore keeps
 capture history inactive and ingestion paused; it cannot restart a collector or
 recreate a grant. Original source digests remain distinct from sanitized stored
-wire. Current membership and telemetry scope still govern every read.
+wire. Current membership and telemetry scope still govern every read. A later review
+revision or a changed representation of already-redacted literals cannot bypass
+the exact-capture erasure journal.
 
 This is a local PostgreSQL and MySQL slice, not complete database monitoring or
 Datadog DBM qualification. The authorized unchanged Agent DBM dual-ship source,

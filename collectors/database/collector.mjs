@@ -22,12 +22,12 @@ export async function collect(config){
    async function part(key,run){await connection.query('SAVEPOINT porthole_diagnostic');try{const complete=await run();if(capture.coverage[key]!=='privilege_denied')capture.coverage[key]=complete===false?'unavailable':'collected'}catch(error){await connection.query('ROLLBACK TO SAVEPOINT porthole_diagnostic');capture.coverage[key]=denied(error)}finally{await connection.query('RELEASE SAVEPOINT porthole_diagnostic')}}
    await part('statistics',async()=>{
     const rows=(await connection.query("SELECT queryid::text AS id,query,calls,total_exec_time AS total_ms,mean_exec_time AS mean_ms,rows FROM pg_stat_statements WHERE dbid=(SELECT oid FROM pg_database WHERE datname=current_database()) AND userid=(SELECT oid FROM pg_roles WHERE rolname=$1) ORDER BY total_exec_time DESC LIMIT 25",[config.workloadRole])).rows
-    capture.queries=rows.filter(r=>r.query&&r.query!=='<insufficient privilege>').map(r=>({queryId:r.id.replace('-','n'),fingerprint:fingerprint(r.query),calls:Number(r.calls),totalMs:Number(r.total_ms),meanMs:Number(r.mean_ms),rows:Number(r.rows),plan:[]}))
+    capture.queries=rows.filter(r=>r.query&&r.query!=='<insufficient privilege>').map(r=>({queryId:r.id,fingerprint:fingerprint(r.query),calls:Number(r.calls),totalMs:Number(r.total_ms),meanMs:Number(r.mean_ms),rows:Number(r.rows),plan:[]}))
     if(rows.some(r=>!r.query||r.query==='<insufficient privilege>'))capture.coverage.statistics='privilege_denied'
    })
    await part('waits',async()=>{
     const rows=(await connection.query("SELECT a.pid::text AS waiting,b::text AS blocking,a.wait_event_type AS kind,a.query_id::text AS query_id,a.application_name FROM pg_stat_activity a CROSS JOIN LATERAL unnest(pg_blocking_pids(a.pid)) b WHERE a.datname=current_database() AND a.usename=$1 LIMIT 100",[config.workloadRole])).rows
-    capture.waits=rows.map(r=>({waiting:r.waiting,blocking:r.blocking,kind:r.kind==='Lock'?'Lock':'unknown',queryId:r.query_id?.replace('-','n')??null,...trace(r.application_name)}))
+    capture.waits=rows.map(r=>({waiting:r.waiting,blocking:r.blocking,kind:r.kind==='Lock'?'Lock':'unknown',queryId:r.query_id??null,...trace(r.application_name)}))
    })
    if(plans.length)await part('plans',async()=>{let complete=true;for(const template of plans){const sql=template.replace('?','$1'),rows=(await connection.query('EXPLAIN (FORMAT JSON) '+sql,['synthetic-porthole-0'])).rows,plan=structuralPlan(rows[0]['QUERY PLAN'],'postgresql'),q=capture.queries.find(q=>q.fingerprint===fingerprint(sql));if(q)q.plan=plan;else complete=false}return complete})
    await connection.query('ROLLBACK')
@@ -55,9 +55,15 @@ export async function collect(config){
  return capture
 }
 export async function deliver(config,transport=fetch){
- const capture=await collect(config),url=new URL('/api/porthole/v1/database/captures',config.origin)
+ const url=new URL('/api/porthole/v1/database/captures',config.origin)
  if(!['127.0.0.1','localhost','[::1]'].includes(url.hostname))throw Error('local_intake_required')
- const result=await transport(url,{method:'POST',headers:{authorization:'Bearer '+config.secret,'content-type':'application/json'},body:JSON.stringify({id:config.id,revision:config.revision,planDigest:planDigest(config.plans),capture}),signal:AbortSignal.timeout(10000)})
+ const policy={id:config.id,revision:config.revision,planDigest:planDigest(config.plans)},headers={authorization:'Bearer '+config.secret,'content-type':'application/json'}
+ const reviewed=await transport(new URL('/api/porthole/v1/database/collection',url),{method:'POST',headers,body:JSON.stringify(policy),signal:AbortSignal.timeout(10000)})
+ if(!reviewed.ok)throw Error('database_review_refused_'+reviewed.status)
+ const approval=await reviewed.json()
+ if(approval.id!==config.id||approval.revision!==config.revision||approval.engine!==config.engine||approval.planDigest!==policy.planDigest||approval.enabled!==true)throw Error('database_review_changed')
+ // Resolve current native consent before opening any database connection.
+ const capture=await collect(config),result=await transport(url,{method:'POST',headers,body:JSON.stringify({...policy,capture}),signal:AbortSignal.timeout(10000)})
  if(!result.ok)throw Error('database_intake_refused_'+result.status)
  return {capture,receipt:await result.json()}
 }
