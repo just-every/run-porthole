@@ -125,6 +125,16 @@ export async function logClusterJourney({origin,cookie,call=(path,options)=>fetc
  assert.ok(repeated.pattern.template.startsWith('Checkout accepted order'));assert.ok(distinct.pattern.template.startsWith('Checkout failed: database unavailable'))
  const filtered=await value(await search({dialect:'lucene',expression:'@cluster.distinct:true',limit:200}))
  assert.equal(filtered.totalRecords,11);assert.equal(filtered.totalClusters,1);assert.deepEqual(filtered.clusters,[distinct])
+ const filteredQuery={snapshot,dialect:'lucene',expression:'@cluster.distinct:true',cluster:distinct.id,limit:4},filteredIds=[]
+ let filteredCursor
+ do{
+  const page=await value(await search({...filteredQuery,...(filteredCursor?{cursor:filteredCursor}:{})}))
+  assert.equal(page.totalRecords,11);assert.equal(page.cluster.count,11)
+  filteredIds.push(...page.records.map(row=>row.payload.record.attributes.find(attribute=>attribute.key==='producer.id').value.stringValue))
+  if(page.cursor)await value(await search({...filteredQuery,expression:'@cluster.distinct:false',cursor:page.cursor}),400)
+  filteredCursor=page.cursor
+ }while(filteredCursor)
+ assert.equal(filteredIds.length,11);assert.deepEqual(new Set(filteredIds),new Set([...expected].filter(([,record])=>record.distinct).map(([id])=>id)))
  const originalIds=new Set(),members=[]
  for(const group of all){
   let cursor=null,count=0
@@ -178,6 +188,7 @@ export async function logClusterJourney({origin,cookie,call=(path,options)=>fetc
   const path='/app/explore/clusters?'+new URLSearchParams({...query,snapshot:String(snapshot),limit:'50'})
   await clusterBrowser({origin,cookie,call,path:'/app/explore/clusters',name:'patterns-form',contains:'Group retained log messages',exercise:async page=>{await page.getByRole('textbox',{name:'Service',exact:true}).fill(clusterScope.service);await page.getByRole('textbox',{name:'Environment',exact:true}).fill(clusterScope.environment);await page.getByRole('textbox',{name:'Team',exact:true}).fill(clusterScope.team);await page.getByRole('button',{name:'Find patterns'}).focus();await Promise.all([page.waitForNavigation(),page.keyboard.press('Enter')]);assert.ok((await page.locator('body').innerText()).includes('236 retained records'))}})
   await clusterBrowser({origin,cookie,call,path,name:'patterns-complete',contains:['236 retained records in 2 patterns','225 original records','11 original records']})
+  await clusterBrowser({origin,cookie,call,path:path+'&dialect=lucene&expression='+encodeURIComponent('@cluster.distinct:true'),name:'patterns-filtered',contains:['11 retained records in 1 patterns','11 original records'],exercise:async page=>{await page.getByRole('link',{name:'View members'}).focus();await Promise.all([page.waitForNavigation(),page.keyboard.press('Enter')]);assert.equal(await page.getByRole('link',{name:/Open original record/}).count(),11)}})
   await clusterBrowser({origin,cookie,call,path:path+'&cluster='+repeated.id,name:'patterns-members',contains:['225 original records','Open original record']})
   await clusterBrowser({origin,cookie,call,path:members[0].pivot,name:'patterns-original',contains:JSON.stringify(members[0].payload.record.body.stringValue).slice(1,-1)})
   await clusterBrowser({origin,cookie,call,path:path+'&scanLimit=200',name:'patterns-partial',contains:'Partial scan'})

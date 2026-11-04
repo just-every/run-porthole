@@ -5601,7 +5601,7 @@
       "executable": false
     },
     "tests/porthole/log-clusters.mjs": {
-      "sha256": "1071bede23545df32e0b8109e008df210717e98bdd79790a3a2a8541ef192034",
+      "sha256": "d7253d1cd7e6574df155ccff63098f672f79e04215cee1f0ce5d8ac05b75daad",
       "executable": false
     },
     "tests/porthole/log-search-corpus.mjs": {
