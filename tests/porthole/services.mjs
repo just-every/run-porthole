@@ -162,7 +162,7 @@ export async function servicesJourney({origin,freshOwner,signIn,sql,restartWorke
  assert.equal((await call(api+'?budget=3',{headers:{cookie}})).status,400)
  await servicesBrowser({origin,cookie,path:'/app/services?budget=3',contains:'invalid service budget',name:'services-invalid',status:400,dispatch:browserDispatch})
  let backup
- if(withEmptyDestination){const {servicesArchiveJourney}=await import('./archive.mjs');backup=await servicesArchiveJourney({origin,freshOwner,withEmptyDestination,id:checkout.id,query,expected:changed.metadata})}
+ if(withEmptyDestination){const {servicesArchiveJourney}=await import('./archive.mjs');backup=await servicesArchiveJourney({origin,freshOwner,restartWorker,withEmptyDestination,id:checkout.id,query,expected:changed.metadata,summary:checkout.summary,associations:checkout.associations})}
  cookie=await freshOwner()
  const erasure='/api/porthole/v1/subject-erasure',preview=await send(erasure,{identifier:'checkout'})
  assert.equal(preview.canApply,true);assert.ok(preview.records>36,'actual stock checkout envelopes are present in the exact erasure preview')

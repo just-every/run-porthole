@@ -1113,19 +1113,34 @@ export async function genaiArchiveJourney({origin,cookie,withEmptyDestination,tr
 }
 
 /** Reviewed service metadata restores as inactive history without authority. */
-export async function servicesArchiveJourney({origin,freshOwner,withEmptyDestination,id,query,expected}) {
- const cookie=await freshOwner(),source=await savedExport(origin,cookie,await post(origin,cookie,api+'/exports',{})),root='/api/porthole/v1/services/'+id
+export async function servicesArchiveJourney({origin,freshOwner,restartWorker,withEmptyDestination,id,query,expected,summary,associations}) {
+ let cookie=await freshOwner()
+ const source=await savedExport(origin,cookie,await post(origin,cookie,api+'/exports',{})),root='/api/porthole/v1/services/'+id
  const largest=source.chunks.reduce((best,chunk)=>Buffer.byteLength(JSON.stringify(chunk))>Buffer.byteLength(JSON.stringify(best))?chunk:best)
+ if(restartWorker){await restartWorker();cookie=await freshOwner()}
  assert.deepEqual(await value(await get(origin,cookie,`${api}/exports/${source.job.id}/chunks/${largest.index}`)),largest,'large archived stock captures replay exactly from the frozen snapshot')
  const rows=source.rows.filter(row=>row.table==='porthole_service_versions')
  assert.equal(rows.length,3);assert.deepEqual(rows.map(r=>r.row.revision),[1,2,3])
  assert.equal(rows[2].row.runbook,expected.runbook)
  await withEmptyDestination(async destination=>{
   const owner=await destination.freshOwner(),start=await value(await post(destination.origin,owner,api+'/restores',{manifest:source.manifest}),201)
-  for(const chunk of source.chunks){await value(await post(destination.origin,owner,`${api}/restores/${start.id}/chunks`,{chunk}));if(chunk.index===largest.index)await value(await post(destination.origin,owner,`${api}/restores/${start.id}/chunks`,{chunk}))}
+  for(const chunk of source.chunks){
+   await value(await post(destination.origin,owner,`${api}/restores/${start.id}/chunks`,{chunk}))
+   if(chunk.index===largest.index){
+    await value(await post(destination.origin,owner,`${api}/restores/${start.id}/chunks`,{chunk}))
+    const before=await value(await get(destination.origin,owner,`${api}/restores/${start.id}`))
+    const staged=await destination.sql('SELECT ordinal,payload FROM porthole_archive_rows WHERE job_id='+literal(start.id)+' ORDER BY ordinal')
+    const changed={...chunk,previousHash:chunk.previousHash==='f'.repeat(64)?'e'.repeat(64):'f'.repeat(64)}
+    assert.equal((await value(await post(destination.origin,owner,`${api}/restores/${start.id}/chunks`,{chunk:changed}),409)).error,'archive_chunk_conflict')
+    assert.deepEqual(await value(await get(destination.origin,owner,`${api}/restores/${start.id}`)),before,'a conflicting large-packet replay changes no staged rows or progress')
+    assert.deepEqual(await destination.sql('SELECT ordinal,payload FROM porthole_archive_rows WHERE job_id='+literal(start.id)+' ORDER BY ordinal'),staged,'conflicting packet content leaves every staged row unchanged')
+   }
+  }
   await value(await post(destination.origin,owner,`${api}/restores/${start.id}/commit`,{confirm:source.manifest.rootHash}))
   const restored=await value(await get(destination.origin,owner,root+query))
   assert.equal(restored.metadata.state,'quarantined');assert.equal(restored.metadata.runbook,expected.runbook);assert.equal(restored.metadata.criticality,expected.criticality)
+  assert.deepEqual(restored.summary,summary,'inactive restoration preserves the independently reconciled request and latency values')
+  assert.deepEqual(restored.associations,associations,'inactive restoration preserves the exact source dependency observations')
   assert.equal(restored.history.length,3);assert.ok(restored.history.every(r=>r.state==='quarantined'))
   assert.deepEqual(restored.alerts,[],'inactive monitor history cannot revive a firing episode after restore')
   const originalFiring=source.rows.filter(r=>r.table==='porthole_monitor_evaluations'&&r.row.status==='Firing')
@@ -1137,6 +1152,8 @@ export async function servicesArchiveJourney({origin,freshOwner,withEmptyDestina
   assert.equal((await destination.sql('SELECT COUNT(*) AS n FROM porthole_members WHERE operator_id='+literal(expected.owner_ref)))[0].n,0,'metadata owner reference creates no destination member')
   assert.ok(Object.values(restored.names).every(name=>name==='Unavailable member'))
   const exported=await savedExport(destination.origin,owner,await post(destination.origin,owner,api+'/exports',{})),again=exported.rows.filter(r=>r.table==='porthole_service_versions')
+  const telemetry=rows=>rows.filter(row=>['porthole_ingest_batches','porthole_telemetry_records','porthole_telemetry_archive'].includes(row.table))
+  assert.deepEqual(telemetry(exported.rows),telemetry(source.rows),'large-packet restore and re-export retain every original wire byte and normalized record')
   const retry=exported.chunks.reduce((best,chunk)=>Buffer.byteLength(JSON.stringify(chunk))>Buffer.byteLength(JSON.stringify(best))?chunk:best)
   assert.deepEqual(await value(await get(destination.origin,owner,`${api}/exports/${exported.job.id}/chunks/${retry.index}`)),retry,'inactive re-export retains exact large-packet replay')
   assert.deepEqual(again.map(r=>({...r.row,state:'active'})),rows.map(r=>r.row),'re-export preserves every exact metadata revision')
