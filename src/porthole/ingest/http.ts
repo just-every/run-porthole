@@ -69,7 +69,7 @@ export async function ingestResponse(request: Request,env: Bindings):Promise<Res
    if(encoding==='gzip')body=await readBytes(new Response(new Uint8Array(body).buffer).body!.pipeThrough(new DecompressionStream('gzip')))
    else if(encoding!=='identity'&&encoding!=='snappy')invalid('unsupported_content_encoding',415)
    if(path==='/api/v1/write'){
-    if(type!=='application/x-protobuf'||encoding!=='snappy'||request.headers.get('x-prometheus-remote-write-version')!=='0.1.0'||request.headers.get('content-type')?.includes('proto=io.prometheus'))invalid('unsupported_remote_write_version_or_encoding',415)
+    if(type!=='application/x-protobuf'||encoding!=='snappy'||request.headers.get('x-prometheus-remote-write-version')!=='0.1.0'||((request.headers.get('content-type')?.match(/(?:^|;)\s*proto=([^;]+)/)?.[1]?.replaceAll('\"','').trim() ?? 'prometheus.WriteRequest')!=='prometheus.WriteRequest'))invalid('unsupported_remote_write_version_or_encoding',415)
     records=remoteWrite(unsnappy(body),request.headers);protocol='prometheus.WriteRequest/v1'
    }else if(path==='/loki/api/v1/push'){
     const data=type==='application/json'?object(JSON.parse(utf8(body))):type==='application/x-protobuf'||!type?lokiProto(unsnappy(body)):invalid('unsupported_loki_encoding',415)

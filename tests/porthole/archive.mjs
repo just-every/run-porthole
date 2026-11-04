@@ -293,6 +293,30 @@ export async function analyticalArchiveSnapshot({context,cookie}) {
  const manifest=await value(await context.call(`${api}/exports/${job.id}/manifest`,{headers:{cookie}}))
  return {job,chunks,manifest,rows:chunks.flatMap(chunk=>chunk.rows)}
 }
+/** Stock remote-write custody stays private and inactive at an independently
+ * bootstrapped destination, including separate metadata and stale markers. */
+export async function prometheusArchiveJourney({context,expected,readPages,recipientMailJourney}) {
+ const saved=await analyticalArchiveSnapshot({context,cookie:context.cookie})
+ const telemetry=new Set(['porthole_ingest_batches','porthole_telemetry_records','porthole_telemetry_archive'])
+ const retained=saved.rows.filter(row=>row.table==='porthole_telemetry_records')
+ assert.equal(retained.length,expected.length)
+ assert.deepEqual(retained.map(row=>JSON.parse(row.row.payload)).sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b))),expected.map(row=>row.payload).sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b))))
+ await recipientMailJourney({run:async destination=>{
+  const {post,call,cookie,getDb}=destination
+  const restore=await value(await post(api+'/restores',{manifest:saved.manifest},201),201)
+  for(const chunk of saved.chunks)await post(`${api}/restores/${restore.id}/chunks`,{chunk})
+  await post(`${api}/restores/${restore.id}/commit`,{confirm:saved.manifest.rootHash})
+  assert.equal((await getDb().prepare('SELECT COUNT(*) AS n FROM porthole_credentials').first()).n,0)
+  assert.equal((await getDb().prepare('SELECT paused FROM porthole_ingest_control').first()).paused,1)
+  assert.equal((await call('/api/porthole/v1/ingest/records?signal=metrics',{headers:{cookie:context.cookie}})).status,401,'source owner session confers no destination authority')
+  const restored=await readPages(destination)
+  assert.deepEqual(restored.records.map(row=>row.payload),expected.map(row=>row.payload),'all sample bits, complete labels, timestamps, staleness and metadata survive native inactive restore')
+  const reexport=await analyticalArchiveSnapshot({context:destination,cookie})
+  assert.deepEqual(reexport.rows.filter(row=>telemetry.has(row.table)),saved.rows.filter(row=>telemetry.has(row.table)),'re-export retains exact source wire and both telemetry custody copies')
+ }})
+ console.log('PROBE PORT-002 archive: native owner export, independent restore and re-export -> exact source wire, metadata and samples; intake paused, credentials absent and source session refused')
+}
+
 export async function restoreAnalyticalSnapshot({context,saved,times}) {
  const {post,call,cookie,getDb,health}=context
  const valueOf=async(path,data,status=200)=>(await post(path,data,status)).json()

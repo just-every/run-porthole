@@ -187,3 +187,61 @@ this does not provide a flame graph engine. Cross-language exporter coverage,
 production gRPC deployments and high-volume latency or capacity have not been
 qualified by these examples. Acceptance of a batch establishes durable intake,
 not a throughput or query-latency guarantee.
+
+
+## Stock Prometheus remote write
+
+The qualified local source and reference are **Prometheus 3.5.0**, using its
+unchanged `prometheus.WriteRequest` v1 sender and raw Snappy encoding. POST to
+`/api/v1/write` with `Content-Type: application/x-protobuf`,
+`Content-Encoding: snappy` and `X-Prometheus-Remote-Write-Version: 0.1.0`.
+An optional `proto` parameter must identify `prometheus.WriteRequest`.
+The same installation-local ingest credential and scope rules apply.
+
+Use Prometheus's existing `remote_write` list to retain the original destination
+and add the Porthole destination. Change only `url` and `bearer_token_file` for the
+new installation. Keep existing scrape jobs, producer instrumentation, labels,
+parsers, metadata and queue settings. The credential file is private local
+configuration; exclude it from telemetry and installation exports. Adding a
+remote destination requires the source owner's authority. This local
+qualification grants no provider fanout or scrape-target management authority.
+
+The public native records API and Explore preserve each complete emitted label
+set, floating-point bits and original millisecond timestamp; the internal
+nanosecond key is that timestamp multiplied by one million. Classic histogram
+bucket, sum and count series remain their original individual series. Counter
+and gauge values are retained without evaluation or invented temporality.
+`record.valueBits` preserves the original 64-bit representation.
+`record.sampleState` distinguishes `stale` (the exact Prometheus stale marker),
+`nan` (an ordinary NaN) and `present`. A stale marker is source absence evidence,
+never a zero or a healthy measurement. This intake performs no PromQL evaluation.
+
+Metadata can arrive in independent requests, before or after samples. Each
+received descriptor is a separately scoped native record with
+`metricKind: metadata`, the original family name, type, help and unit in
+`metadata`, and an empty `record`. It has no measured value or source timestamp.
+Its internal zero sorting key supports pagination and is not a sample time.
+Delivery receipts count both sample records and metadata descriptors; filter by
+`metricKind` when reconciling numeric sample totals. Identical metadata envelopes
+are retries under the existing source identity rules. No historical descriptor
+is silently applied to a sample from a different request. Original wire bytes
+remain in the private owner installation archive.
+
+A 204 acknowledges durable custody, with the existing receipt headers. Buffer
+pressure returns 429 and Retry-After; configure the source's existing
+`retry_on_http_429` setting where retrying pressure is required. An interrupted
+acknowledgment can be retried without adding a second stored batch. Malformed
+Snappy or protobuf returns 400. Remote-write v2, native histograms, exemplars,
+unknown message fields and unknown metadata types return 415 before any part of
+the request is acknowledged. Empty proto3 label values and omitted numeric zero
+fields are supported. The general 1 MiB and 5,000-record limits still apply.
+
+`./tests/porthole/prometheus-stock.mjs` runs a checksum-verified stock source,
+real request counters and latency histograms, and a separate stock reference
+TSDB. It compares more than 200 actual samples through paginated native reads,
+then the primary and standby analytical configurations. It includes source
+staleness, normal NaN, complete labels, original bits and timestamps, metadata,
+actual pressure and interrupted acknowledgments, restart, revoked and foreign
+credentials, unavailable analytical storage, inactive restore and re-export.
+This is local stock-source qualification. It establishes neither Datadog
+continuity, full Prometheus wire support, query equivalence nor capacity.
