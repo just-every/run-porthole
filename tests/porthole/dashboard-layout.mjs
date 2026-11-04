@@ -22,7 +22,7 @@ export async function dashboardLayoutJourney({origin,freshOwner,signIn,restartWo
  const source=await value(await post('/app/settings/credentials/mint',{name:'synthetic-porthole-6804',class:'ingest',scope:{...scope,signals:['metrics','logs','traces'],actions:['telemetry.write']}}),201)
  const from=String(BigInt(Date.now()-1000)*1000000n),packets=await layoutTraffic({origin,source}),through=String(BigInt(Date.now()+1000)*1000000n)
  await value(await post('/api/porthole/v1/ingest/drain',{}))
- const params=signal=>new URLSearchParams({signal,service:scope.services[0],team:'commerce',environment:'production',from,through})
+ const params=signal=>new URLSearchParams({signal,service:scope.services[0],team:'commerce',environment:'production',from,through,...(signal==='metrics'?{metric:'synthetic_porthole_6802'}:{})})
  const records={}
  for(const signal of ['metrics','logs','traces'])records[signal]=(await value(await get('/api/porthole/v1/ingest/records?'+params(signal)))).records
  assert.equal(records.logs.length,3);assert.equal(records.traces.length,6);assert.equal(records.metrics.length,1)
@@ -39,13 +39,16 @@ export async function dashboardLayoutJourney({origin,freshOwner,signIn,restartWo
  const publicPaths=await layoutPublicationFence({origin,cookie,id:first.id,revision:first.revision})
  const group={id:'native',title:'Native diagnostic group',width:6,height:1,collapsed:false,variables:{team:'commerce',environment:'production'},children:[{panel:'logs',width:12,height:1},{id:'nested',title:'Nested latency',width:12,height:1,collapsed:false,children:[{panel:'traces',width:12,height:1}]},{panel:'requests',width:12,height:1}]}
  let firstBody={...base,layout:[group]}
- await value(await post(api,{...first,revision:first.revision,name:'Private layout one',scope,body:firstBody}),201)
+ await value(await post(api,{id:first.id,revision:first.revision,name:'Private layout one',scope,body:firstBody}),201)
  const bound=await post('/app/dashboards/pack',{id:first.id,revision:2,packId:pack.id,packRevision:1,title:'Reusable service'});assert.equal(bound.status,303,await bound.clone().text())
  let one=await value(await get(api+'/'+first.id))
- const secondBody={...base,panels:[],layout:[{id:'consumer',title:'Second reusable service',width:12,height:1,collapsed:false,powerpack:{id:pack.id,revision:1},children:[]}]}
+ const secondBody={...base,panels:[],layout:[{id:'consumer',title:'Second reusable service',width:12,height:1,collapsed:false,variables:{team:'payments',environment:'staging'},powerpack:{id:pack.id,revision:1},children:[]}]}
  const second=await value(await post(api,{name:'Private layout two',scope,body:secondBody}),201)
+ const boundEmpty=await get('/app/dashboards/'+second.id),emptyText=await boundEmpty.text();assert.equal(boundEmpty.status,200);assert.match(emptyText,/role="status">empty/);assert.match(emptyText,/team=payments/);assert.match(emptyText,/environment=staging/)
+ const secondBefore=await value(await get(api+'/'+second.id))
+ await value(await post(api,{id:second.id,revision:secondBefore.revision,name:secondBefore.name,scope,body:{...secondBefore.body,layout:secondBefore.body.layout.map(group=>({...group,variables:{team:'commerce',environment:'production'}}))}}),201)
  const allBefore=await sql('SELECT id,body,revision FROM porthole_dashboards ORDER BY id')
- for(const body of [{...one.body,layout:[...one.body.layout,{panel:'logs',width:12,height:1}]},{...one.body,layout:one.body.layout.map((item,index)=>index?item:{...item,variables:{team:'foreign'}})},{...one.body,layout:one.body.layout.map((item,index)=>index?item:{...item,width:0})}])assert.ok([400,403].includes((await post(api,{id:first.id,revision:one.revision,name:one.name,scope,body})).status))
+ for(const body of [{...one.body,layout:[...one.body.layout,{panel:'logs',width:12,height:1}]},{...one.body,layout:one.body.layout.map((item,index)=>index?item:{...item,variables:{team:'foreign'}})},{...one.body,layout:one.body.layout.map((item,index)=>index?item:{...item,width:0})},{...one.body,layout:one.body.layout.map((item,index)=>index?item:{...item,service:'foreign'})}])assert.ok([400,403].includes((await post(api,{id:first.id,revision:one.revision,name:one.name,scope,body})).status))
  await value(await post(api,{id:first.id,revision:1,name:one.name,scope,body:one.body}),409)
  assert.deepEqual(await sql('SELECT id,body,revision FROM porthole_dashboards ORDER BY id'),allBefore)
  const {layoutAuthorityJourney}=await import('./dashboard-api.mjs')
@@ -57,9 +60,11 @@ export async function dashboardLayoutJourney({origin,freshOwner,signIn,restartWo
  const beforeUpdate=await sql('SELECT id,body,revision FROM porthole_dashboards ORDER BY id')
  await value(await post(packs+'/approve',{id:update.id,digest:'synthetic-porthole-6805',confirm:'apply-private-powerpack'}),409)
  assert.deepEqual(await sql('SELECT id,body,revision FROM porthole_dashboards ORDER BY id'),beforeUpdate)
- await value(await post(packs+'/approve',{id:update.id,digest:update.digest,confirm:'apply-private-powerpack'}))
+ await value(await post(packs+'/approve',{id:update.id,digest:update.digest,confirm:'apply-private-powerpack'},reader),403)
+ assert.deepEqual(await sql('SELECT id,body,revision FROM porthole_dashboards ORDER BY id'),beforeUpdate)
+ await packReviewBrowser({origin,cookie,review:update,ids:[first.id,second.id]})
  const two=await value(await get(api+'/'+second.id));one=await value(await get(api+'/'+first.id))
- assert.equal(one.revision,4);assert.equal(two.revision,2)
+ assert.equal(one.revision,4);assert.equal(two.revision,3)
  for(const row of [one,two]){const g=row.body.layout.find(item=>item.powerpack);assert.equal(g.powerpack.revision,2);assert.deepEqual(g.children[0].children.map(item=>item.panel.split(':').at(-1)),['traces','requests','logs']);assert.ok(row.body.panels.filter(p=>p.id.includes(':')).every(p=>p.title.endsWith(' updated')))}
  const old=await value(await get(api+'/'+second.id+'?version=1'));assert.equal(old.body.layout[0].powerpack.revision,1)
  const history=await value(await get(packs+'/'+pack.id));assert.equal(history.versions.length,2)
@@ -74,23 +79,29 @@ export async function dashboardLayoutJourney({origin,freshOwner,signIn,restartWo
  await value(await post('/api/porthole/v1/ingest/drain',{}))
  assert.equal((await value(await get('/api/porthole/v1/ingest/records?'+params('logs')))).records.length,3)
  await layoutPublicationFence({origin,cookie,id:first.id,phase:'refused',paths:publicPaths})
- const audit=await value(await get('/api/v1/audit/export'));assert.ok(JSON.stringify(audit).includes('dashboards.powerpack-change'));assert.ok(JSON.stringify(audit).includes(first.id));assert.ok(JSON.stringify(audit).includes(second.id))
+ const audit=await value(await get('/api/v1/audit/export')),committed=audit.records.map(record=>record.entry).filter(entry=>entry.phase==='committed')
+ const packFact=committed.find(entry=>entry.action==='dashboards.powerpack-change'&&entry.entityRef===pack.id&&entry.revision===2)
+ assert.ok(packFact?.actorRef,'the reviewed owner update has an attributed durable fact')
+ for(const [id,revision] of [[first.id,4],[second.id,3]])assert.ok(committed.some(entry=>entry.action==='dashboards.change'&&entry.entityRef===id&&entry.revision===revision&&entry.operationRef===packFact.operationRef),'both consumer facts share the exact pack update transaction')
  await layoutBrowser({origin,cookie,id:first.id,reader,expected:{p95,from,through},withPinnedClock})
  const {layoutArchiveJourney}=await import('./archive.mjs')
  await layoutArchiveJourney({origin,freshOwner,withEmptyDestination,ids:[first.id,second.id],packId:pack.id,publicPaths})
  cookie=await freshOwner()
  await value(await post('/app/settings/credentials/revoke',{id:source.credential.id}))
+ const retainedBefore=await sql('SELECT id,record_count,state FROM porthole_ingest_batches ORDER BY id')
  for(const packet of packets)assert.equal((await fetch(origin+packet.path,{method:'POST',headers:packet.headers,body:packet.body})).status,401)
+ assert.deepEqual(await sql('SELECT id,record_count,state FROM porthole_ingest_batches ORDER BY id'),retainedBefore,'revoked source retries cannot persist another capture')
  console.log('PROBE PORT-068 layout: real stock HTTP traffic through three-signal intake -> 3 logs, 6 spans, request metric 3; nested order, scope, source links and rendered values agree')
- console.log('PROBE PORT-068 packs: native owner exact review -> two consumers at revision 2 with immutable history; stale, expired, foreign and delegated attempts refuse without writes')
+ console.log('PROBE PORT-068 packs: native owner exact review -> both consumers reference pack revision 2 with immutable history; stale, expired, foreign and delegated attempts refuse without writes')
  console.log('PROBE PORT-068 publication: bind, pack update, replay, restart and inactive restore -> old TV, embed and image addresses remain refused')
  console.log('dashboardLayoutJourney passed')
 }
 async function layoutBrowser({origin,cookie,id,reader,expected,withPinnedClock}) {
  const {chromium}=await import('@playwright/test'),browser=await chromium.launch({headless:true,...(process.env.PORTHOLE_CHROMIUM?{executablePath:process.env.PORTHOLE_CHROMIUM}:{}),args:['--no-sandbox','--use-mock-keychain','--password-store=basic']})
  try {for(const width of [1440,390]){
-  const context=await browser.newContext({viewport:{width,height:900}});await context.addCookies(cookie.split('; ').map(v=>({name:v.slice(0,v.indexOf('=')),value:v.slice(v.indexOf('=')+1),url:origin})))
+  const context=await browser.newContext({viewport:{width,height:900},ignoreHTTPSErrors:origin.startsWith('https://127.0.0.1:')});await context.addCookies(cookie.split('; ').map(v=>({name:v.slice(0,v.indexOf('=')),value:v.slice(v.indexOf('=')+1),url:origin})))
   const page=await context.newPage(),path='/app/dashboards/'+id
+  const submit=async(control,keyboard=true)=>{if(keyboard)await control.focus();await Promise.all([page.waitForNavigation({waitUntil:'networkidle'}),keyboard?page.keyboard.press('Enter'):control.click()])}
   const shot=async name=>{if(process.env.PORTHOLE_EVIDENCE_DIR){await mkdir(process.env.PORTHOLE_EVIDENCE_DIR,{recursive:true});await page.screenshot({path:join(process.env.PORTHOLE_EVIDENCE_DIR,`layout-${name}-${width}.png`),fullPage:true})}}
   assert.equal((await page.goto(origin+path)).status(),200)
   if(width===1440){
@@ -99,17 +110,17 @@ async function layoutBrowser({origin,cookie,id,reader,expected,withPinnedClock})
    assert.match(await page.locator('[data-panel="requests"]').innerText(),/3 requests/)
    assert.match(await page.locator('[data-panel="traces"]').innerText(),new RegExp(String(Number(expected.p95.toFixed(4))).replace('.','\\.')))
    for(const link of await page.getByRole('link',{name:/Open underlying/}).all()){const target=new URL(await link.getAttribute('href'),origin);assert.equal(target.searchParams.get('from'),expected.from);assert.equal(target.searchParams.get('through'),expected.through);assert.equal(target.searchParams.get('team'),'commerce');assert.equal(target.searchParams.get('environment'),'production');assert.equal((await context.request.get(target.href)).status(),200)}
-   const group=page.locator('[data-layout-group="native"]'),controls=group.locator(':scope > .porthole-layout-controls');await controls.getByText('Layout settings',{exact:true}).click();await controls.getByLabel('Width',{exact:true}).selectOption('12');await controls.getByLabel('Height',{exact:true}).selectOption('2');await controls.getByRole('button',{name:'Save size'}).focus();await page.keyboard.press('Enter');await page.waitForLoadState('networkidle');await page.reload();assert.match(await group.getAttribute('class'),/span-12.*height-2/)
-   await controls.getByText('Layout settings',{exact:true}).click();await controls.getByRole('button',{name:'Collapse group'}).focus();await page.keyboard.press('Enter');await page.waitForLoadState('networkidle');assert.equal(await group.locator(':scope > details').first().getAttribute('open'),null);await page.reload();assert.equal(await group.locator(':scope > details').first().getAttribute('open'),null)
-   await controls.getByText('Layout settings',{exact:true}).click();await controls.getByRole('button',{name:'Expand group'}).click();await page.waitForLoadState('networkidle')
-   const child=page.locator('[data-layout-panel="logs"] > .porthole-layout-controls');await child.getByText('Layout settings',{exact:true}).click();await child.getByRole('button',{name:'Move down'}).focus();await page.keyboard.press('Enter');await page.waitForLoadState('networkidle');assert.deepEqual(await group.locator('[data-panel]').evaluateAll(nodes=>nodes.map(n=>n.dataset.panel)),['traces','logs','requests'])
+   const group=page.locator('[data-layout-group="native"]'),controls=group.locator(':scope > .porthole-layout-controls');await controls.getByText('Layout settings',{exact:true}).click();await controls.getByLabel('Width',{exact:true}).selectOption('12');await controls.getByLabel('Height',{exact:true}).selectOption('2');await submit(controls.getByRole('button',{name:'Save size'}));await page.reload();assert.match(await group.getAttribute('class'),/span-12.*height-2/)
+   await controls.getByText('Layout settings',{exact:true}).click();await submit(controls.getByRole('button',{name:'Collapse group'}));assert.equal(await group.locator(':scope > details').first().getAttribute('open'),null);await page.reload();assert.equal(await group.locator(':scope > details').first().getAttribute('open'),null)
+   await controls.getByText('Layout settings',{exact:true}).click();await submit(controls.getByRole('button',{name:'Expand group'}),false)
+   const child=page.locator('[data-layout-panel="logs"] > .porthole-layout-controls');await child.getByText('Layout settings',{exact:true}).click();await submit(child.getByRole('button',{name:'Move down'}));assert.deepEqual(await group.locator('[data-panel]').evaluateAll(nodes=>nodes.map(n=>n.dataset.panel)),['traces','logs','requests'])
    assert.equal(await page.locator('button,a').evaluateAll(nodes=>nodes.filter(n=>!n.textContent.trim()).length),0,'all touched controls have text labels')
    assert.ok(await page.locator('main p,main button,main label,main summary').evaluateAll(nodes=>nodes.every(n=>parseFloat(getComputedStyle(n).fontSize)>=13)))
   }
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'layout fits viewport');await shot('completed')
-  await page.goto(origin+path+'?team=payments&environment=staging');if(width===1440)assert.match(await page.locator('[data-panel="logs"]').getByRole('status').innerText(),/empty/);await shot('empty')
+  await page.goto(origin+path+'?team=payments&environment=staging');if(width===1440)assert.match(await page.locator('[data-panel="logs"] > [role="status"]').first().innerText(),/empty/);await shot('empty')
   await page.goto(origin+path+'?from=invalid');if(width===1440)assert.match(await page.getByRole('alert').innerText(),/invalid dashboard range/);await shot('invalid')
-  await withPinnedClock(Number(BigInt(expected.through)/1000000n)+700000,async()=>{await page.goto(origin+path);if(width===1440)assert.match(await page.locator('[data-panel="logs"]').getByRole('status').innerText(),/stale/);await shot('stale')})
+  await withPinnedClock(Number(BigInt(expected.through)/1000000n)+700000,async()=>{await page.goto(origin+path);if(width===1440)assert.match(await page.locator('[data-panel="logs"] > [role="status"]').first().innerText(),/stale/);await shot('stale')})
   await page.goto(origin+'/app/settings/dashboard-powerpacks');await shot('settings')
   const denied=await browser.newContext({viewport:{width,height:844}});await denied.addCookies(reader.split('; ').map(v=>({name:v.slice(0,v.indexOf('=')),value:v.slice(v.indexOf('=')+1),url:origin})));const refused=await denied.newPage();assert.equal((await refused.goto(origin+path)).status(),403);if(process.env.PORTHOLE_EVIDENCE_DIR)await refused.screenshot({path:join(process.env.PORTHOLE_EVIDENCE_DIR,`layout-unauthorized-${width}.png`),fullPage:true});await denied.close();await context.close()
  }}finally{await browser.close()}
@@ -135,10 +146,10 @@ export async function layoutAnalyticalJourney() {
   await send(packs+'/approve',{id:next.id,digest:next.digest,confirm:'apply-private-powerpack'})
   const {chromium}=await import('@playwright/test'),browser=await chromium.launch({headless:true,...(process.env.PORTHOLE_CHROMIUM?{executablePath:process.env.PORTHOLE_CHROMIUM}:{}),args:['--no-sandbox','--use-mock-keychain','--password-store=basic']})
   const check=async(role,width=1440,unavailable=false)=>{
-   const context=await browser.newContext({viewport:{width,height:900}});await context.addCookies(cookie.split('; ').map(v=>({name:v.slice(0,v.indexOf('=')),value:v.slice(v.indexOf('=')+1),url:origin})))
+   const context=await browser.newContext({viewport:{width,height:900},ignoreHTTPSErrors:origin.startsWith('https://127.0.0.1:')});await context.addCookies(cookie.split('; ').map(v=>({name:v.slice(0,v.indexOf('=')),value:v.slice(v.indexOf('=')+1),url:origin})))
    await context.route(origin+'/**',async route=>{const request=route.request(),response=await call(new URL(request.url()).pathname+new URL(request.url()).search,{method:request.method(),headers:request.headers(),...(request.postDataBuffer()?{body:request.postDataBuffer()}:{})});await route.fulfill({status:response.status,headers:Object.fromEntries(response.headers),body:Buffer.from(await response.arrayBuffer())})})
    const page=await context.newPage()
-   for(const id of ids){assert.equal((await page.goto(origin+'/app/dashboards/'+id)).status(),200);if(width===1440){const group=page.locator('[data-layout-group="consumer"]');assert.deepEqual(await group.locator('[data-panel]').evaluateAll(nodes=>nodes.map(node=>node.dataset.panel)),['consumer:requests','consumer:logs']);if(unavailable){assert.match(await group.innerText(),/error.*unavailable/s);assert.equal(await group.locator('strong').count(),0)}else{assert.equal(await group.locator('strong').allTextContents().then(values=>values.join(',')),'3,3');assert.equal((await read(api+'/'+id)).revision,2);const link=new URL(await group.getByRole('link',{name:'Open underlying metrics query'}).getAttribute('href'),origin);assert.equal(link.searchParams.get('from'),from);assert.equal(link.searchParams.get('through'),through)}}}
+   for(const id of ids){assert.equal((await page.goto(origin+'/app/dashboards/'+id)).status(),200);if(width===1440){const group=page.locator('[data-layout-group="consumer"]');assert.deepEqual(await group.locator('[data-panel]').evaluateAll(nodes=>nodes.map(node=>node.dataset.panel)),['consumer:requests','consumer:logs']);if(unavailable){assert.match(await group.innerText(),/unavailable: analytics/s);assert.equal(await group.locator('strong').count(),0)}else{assert.equal(await group.locator('strong').allTextContents().then(values=>values.join(',')),'3,3');assert.equal((await read(api+'/'+id)).revision,2);const link=new URL(await group.getByRole('link',{name:'Open underlying metrics query'}).getAttribute('href'),origin);assert.equal(link.searchParams.get('from'),from);assert.equal(link.searchParams.get('through'),through)}}}
    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth))
    if(process.env.PORTHOLE_EVIDENCE_DIR){await mkdir(process.env.PORTHOLE_EVIDENCE_DIR,{recursive:true});await page.screenshot({path:join(process.env.PORTHOLE_EVIDENCE_DIR,`layout-${role}-${unavailable?'unavailable':'complete'}-${width}.png`),fullPage:true})}
    await context.close()
@@ -148,9 +159,22 @@ export async function layoutAnalyticalJourney() {
    await restart();await check('standby');await check('standby',390)
    for(const packet of packets){const retry=await call(packet.path,{method:'POST',headers:packet.headers,body:packet.body});assert.equal(retry.status,200);assert.equal(retry.headers.get('x-porthole-duplicate'),'true')}
    await send('/api/porthole/v1/ingest/drain',{})
-   for(const role of ['primary','standby'])assert.equal((await estate.inspect(role)).length,10,'replicas contain one metric, three logs and six stock HTTP spans after replay')
+   for(const role of ['primary','standby'])assert.equal((await estate.inspect(role)).filter(row=>row.signal!=='metrics'||JSON.parse(row.payload).metric.name==='synthetic_porthole_6802').length,10,'replicas contain one application metric, three logs and six stock HTTP spans after replay')
    await estate.stop('standby');await check('standby',1440,true);await check('standby',390,true)
   }finally{await browser.close()}
  }})}finally{await estate.dispose()}
  console.log('PROBE PORT-068 analytical: stock traffic and reviewed two-consumer pack update -> exact metric and log values on primary and standby, cold restart and replay; stopped selected worker is explicitly unavailable without fallback')
+}
+
+async function packReviewBrowser({origin,cookie,review,ids}) {
+ const {chromium}=await import('@playwright/test'),browser=await chromium.launch({headless:true,...(process.env.PORTHOLE_CHROMIUM?{executablePath:process.env.PORTHOLE_CHROMIUM}:{}),args:['--no-sandbox','--use-mock-keychain','--password-store=basic']})
+ try {for(const width of [1440,390]){
+  const context=await browser.newContext({viewport:{width,height:900}});await context.addCookies(cookie.split('; ').map(v=>({name:v.slice(0,v.indexOf('=')),value:v.slice(v.indexOf('=')+1),url:origin})))
+  const page=await context.newPage();assert.equal((await page.goto(origin+'/app/settings/dashboard-powerpacks?review='+review.id)).status(),200)
+  if(width===1440){const section=page.getByRole('region',{name:'Exact powerpack review'});for(const id of ids)assert.match(await section.innerText(),new RegExp(id));assert.match(await section.locator('pre').innerText(),/Measured logs updated/)}
+  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth))
+  if(process.env.PORTHOLE_EVIDENCE_DIR){await mkdir(process.env.PORTHOLE_EVIDENCE_DIR,{recursive:true});await page.screenshot({path:join(process.env.PORTHOLE_EVIDENCE_DIR,`layout-powerpack-review-${width}.png`),fullPage:true})}
+  if(width===1440){await page.getByRole('checkbox',{name:'Apply this exact private definition and these consumer revisions'}).check();await page.getByRole('button',{name:'Approve private update',exact:true}).focus();await page.keyboard.press('Enter');await page.waitForURL(/\/app\/settings\/dashboard-powerpacks\/[a-f0-9-]{36}$/)}
+  await context.close()
+ }}finally{await browser.close()}
 }

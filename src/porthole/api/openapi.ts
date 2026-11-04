@@ -1,4 +1,5 @@
-import {dashboardPaths} from '../dashboards/openapi'
+import {powerpackPaths} from '../dashboards/powerpacks/openapi'
+import {dashboardPaths,dashboardSchemas} from '../dashboards/openapi'
 import {failures,json,nativeSecurity,originIntent,readSecurity,ref,scopeSchema,errorSchema} from './openapi-common'
 import {intakePaths} from './openapi-intake'
 import {queryPaths,querySchemas} from './openapi-query'
@@ -40,14 +41,14 @@ const securedDashboardPaths=Object.fromEntries(Object.entries(dashboardPaths).ma
 /** Static route contract only: no runtime bindings, settings or stored data. */
 export const openapi={
  openapi:'3.1.0',info:{title:'Porthole implemented HTTP API',version:'1.0.0',description:'Implemented OTLP intake, bounded telemetry queries, configuration definitions and dashboards. Native session security uses the installation session cookie; development cookie names vary by local origin. All requests remain subject to configured origin checks and current scope. This document contains no installation settings. It does not advertise complete vendor language or transport compatibility.'},
- paths:{...intakePaths,...queryPaths,...configurationPaths,...securedDashboardPaths,
+ paths:{...intakePaths,...queryPaths,...configurationPaths,...securedDashboardPaths,...powerpackPaths,
   '/api/porthole/v1/genai':{get:{summary:'Read scoped GenAI metadata and observed usage',security:readSecurity,description:'Current trace authority, snapshot and paging rules apply. Identical span copies do not add usage. Missing token counters, USD, rate source and authorized provider reconciliation stay unavailable. Content capture is disabled.',parameters:['trace','service','environment','team','from','through','cursor','snapshot'].map(name=>({name,in:'query',schema:{type:'string'}})),responses:{200:json('Observed GenAI calls and provider, model and feature groups for this page',{type:'object'}),...failures([400,401,403,405,409,429,503])}}},
   '/api/porthole/v1/openapi.json':{get:{summary:'Read this contract through the protected API',security:nativeSecurity,responses:{200:json('OpenAPI document',{type:'object'}),...failures([400,401,403,405,409,503])}}},
  },
  components:{securitySchemes:{
   ScopedCredential:{type:'http',scheme:'bearer',description:'Porthole scoped credential in Authorization. Intake requires telemetry.write; queries require telemetry.read; definition reads require definitions.read. Signal and resource grants, live custody and limits apply. Credentials in URL query parameters are forbidden.'},
   NativeSession:{type:'apiKey',in:'cookie',name:'__Host-operator_session',description:'Native installation session. Local development uses an origin-specific cookie name. Native mutation roles are owner, admin or maintainer; unsafe requests require a same-origin Origin header. Authorization credentials cannot mutate definitions.'},
- },schemas:{...querySchemas,Scope:scopeSchema,Error:errorSchema,
+ },schemas:{...querySchemas,...dashboardSchemas,Scope:scopeSchema,Error:errorSchema,
   Definition:{type:'object',required:['id','kind','name','scope','body','revision','state'],properties:{id:{type:'string',format:'uuid'},kind:{enum:['monitor','repair']},name:{type:'string'},scope:ref('Scope'),body:{oneOf:[bodies.monitors,bodies.repairs]},revision:{type:'integer',minimum:1},state:{enum:['inactive','active','approved','archived','quarantined']},created_at:{type:'integer'},updated_at:{type:'integer'}}},
  }},
 }

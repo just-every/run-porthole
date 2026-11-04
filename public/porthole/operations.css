@@ -43,3 +43,5 @@
 .rer-themed .porthole-height-3 { min-height: 36rem; }
 .rer-themed .porthole-height-4 { min-height: 48rem; }
 @media (max-width: 600px) { .rer-themed .porthole-layout > * { grid-column: 1 / -1; min-height: 0; } }
+
+.rer-themed .porthole-layout-group:has(> .porthole-group-content:not([open])) { min-height: 0; }

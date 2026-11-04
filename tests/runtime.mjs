@@ -183,6 +183,9 @@ try {
   if(process.env.PORTHOLE_LAYOUT_ONLY==='1') {
    const {dashboardLayoutJourney}=await import('./porthole/dashboard-layout.mjs')
    await dashboardLayoutJourney({origin,restartWorker,withEmptyDestination,withPinnedClock,...helpers})
+  } else if(process.env.PORTHOLE_DASHBOARD_API_ONLY==='1') {
+   const {dashboardApiJourney}=await import('./porthole/dashboard-api.mjs')
+   await dashboardApiJourney({origin,cookie,...helpers})
   } else if(process.env.PORTHOLE_PIPELINES_ONLY==='1') {
    const {pipelineJourney}=await import('./porthole/pipelines.mjs')
    await pipelineJourney({origin,cookie,restartWorker,withEmptyDestination,withPinnedClock,...helpers})
