@@ -15,7 +15,7 @@ const {OTLPLogExporter}=sdkRequire('@opentelemetry/exporter-logs-otlp-'+transpor
 const metadata=new grpc.Metadata();metadata.set('authorization','Bearer '+process.env.PORTHOLE_OTLP_SECRET)
 const config=signal=>transport==='grpc'?{url:process.env.PORTHOLE_OTLP_ENDPOINT,metadata}:{url:process.env.PORTHOLE_OTLP_ENDPOINT+'/v1/'+signal,headers:{authorization:'Bearer '+process.env.PORTHOLE_OTLP_SECRET}}
 const reader=new PeriodicExportingMetricReader({exporter:new OTLPMetricExporter(config('metrics')),exportIntervalMillis:60000})
-const sdk=new NodeSDK({resource:resourceFromAttributes({'service.name':'synthetic-porthole-200','deployment.environment.name':'synthetic-porthole-201','team.name':'synthetic-porthole-202'}),traceExporter:new OTLPTraceExporter(config('traces')),metricReaders:[reader],logRecordProcessors:[new BatchLogRecordProcessor({exporter:new OTLPLogExporter(config('logs'))})]})
+const sdk=new NodeSDK({resource:resourceFromAttributes({'service.name':process.env.PORTHOLE_OTLP_SERVICE??'synthetic-porthole-200','deployment.environment.name':process.env.PORTHOLE_OTLP_ENVIRONMENT??'synthetic-porthole-201','team.name':process.env.PORTHOLE_OTLP_TEAM??'synthetic-porthole-202'}),traceExporter:new OTLPTraceExporter(config('traces')),metricReaders:[reader],logRecordProcessors:[new BatchLogRecordProcessor({exporter:new OTLPLogExporter(config('logs'))})]})
 sdk.start()
 const server=createServer((_request,response)=>{response.writeHead(200,{'content-type':'text/plain'});response.end('synthetic-porthole-1620')})
 async function main(){

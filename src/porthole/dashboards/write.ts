@@ -1,3 +1,4 @@
+import {validateOverlays} from '../events/overlays'
 import type {Bindings} from '../../auth.server'
 import {fail,parseScope,scopeWithin,type Authority,type Scope} from '../security/authority'
 import {input} from '../security/input'
@@ -13,7 +14,7 @@ export async function writeDashboard(request:Request,env:Bindings,actor:Authorit
  }
   const data=await input(request),key=request.headers.get('idempotency-key')
   if(key!==null&&!/^[A-Za-z0-9._:-]{8,120}$/.test(key))fail('idempotency_key_required',400)
-  const action=url.pathname.split('/').at(-1),allowed=action==='reorder'?['id','revision','panel','direction','order']:action==='clone'||action==='archive'?['id','revision']:action==='panel'?['id','revision','title','service','signal','metric','unit','widget','note','compareWeek']:action==='annotation'?['id','revision','at','label']:['id','revision','name','scope','body','service','environment','team','metric','from','through']
+  const action=url.pathname.split('/').at(-1),allowed=action==='reorder'?['id','revision','panel','direction','order']:action==='clone'||action==='archive'?['id','revision']:action==='panel'?['id','revision','title','service','signal','metric','unit','widget','note','compareWeek']:action==='event'?['id','revision','eventId','remove']:action==='annotation'?['id','revision','at','label']:['id','revision','name','scope','body','service','environment','team','metric','from','through']
   if(Object.keys(data).some(key=>!allowed.includes(key)))fail('invalid_dashboard',400)
   const fingerprint=canonical({path:url.pathname,data})
   const lookup=()=>env.DB.prepare(`SELECT fingerprint,response FROM porthole_api_idempotency WHERE actor_ref=? AND request_key=? AND ${actor.fence}`).bind(actor.member.operatorId,key,...actor.args).first<{fingerprint:string;response:string}>()
@@ -22,7 +23,7 @@ export async function writeDashboard(request:Request,env:Bindings,actor:Authorit
   const previous=typeof data.id==='string'?await currentDashboard(env,actor,data.id):null,now=Date.now()
   if(previous&&Number(data.revision)!==previous.revision)fail('revision_or_authority_changed',409)
   let body:Dashboard,name:string,scope:Scope,state='active',id=previous?.id??crypto.randomUUID(),revision=(previous?.revision??0)+1
-  if(url.pathname.endsWith('/clone')||url.pathname.endsWith('/reorder')||url.pathname.endsWith('/archive')||url.pathname.endsWith('/panel')||url.pathname.endsWith('/annotation')) {
+  if(url.pathname.endsWith('/clone')||url.pathname.endsWith('/reorder')||url.pathname.endsWith('/archive')||url.pathname.endsWith('/panel')||url.pathname.endsWith('/annotation')||url.pathname.endsWith('/event')) {
    if(!previous)fail('dashboard_not_found',404)
    body=dashboardBody(JSON.parse(previous.body));name=previous.name;scope=JSON.parse(previous.scope)
    if(url.pathname.endsWith('/clone')) {id=crypto.randomUUID();revision=1;name+=' copy'}
@@ -30,6 +31,10 @@ export async function writeDashboard(request:Request,env:Bindings,actor:Authorit
    if(url.pathname.endsWith('/panel')) {
     const signal=String(data.signal),aggregate=({metrics:'average',logs:'count',traces:'p95'} as const)[signal as 'metrics'|'logs'|'traces']
     body=dashboardBody({...body,panels:[...body.panels,{id:crypto.randomUUID(),title:data.title,service:data.service,signal,aggregate,metric:data.metric,...(data.widget?{widget:data.widget}:{}),...(data.compareWeek?{compareWeek:data.compareWeek===true||data.compareWeek==='on'}:{}),...(data.widget==='notes'?{note:data.note??''}:{}),unit:signal==='logs'?'records':signal==='traces'?'ms':data.unit??''}]})
+   }
+   if(url.pathname.endsWith('/event')) {
+    const eventId=String(data.eventId),ids=body.eventOverlays??[]
+    body=dashboardBody({...body,eventOverlays:data.remove==='yes'?ids.filter(id=>id!==eventId):[...ids,eventId]})
    }
    if(url.pathname.endsWith('/annotation'))body=dashboardBody({...body,annotations:[...body.annotations,{at:data.at,label:data.label}]})
    if(url.pathname.endsWith('/reorder')) {
@@ -49,8 +54,11 @@ export async function writeDashboard(request:Request,env:Bindings,actor:Authorit
    body=dashboardBody(data.body?typeof data.body==='string'?JSON.parse(data.body):data.body:{panels:[{id:'metric',title:'Metric average',signal:'metrics',aggregate:'average',service:data.service,metric:data.metric,unit:''},{id:'logs',title:'Log count',signal:'logs',aggregate:'count',service:data.service,unit:'records'},{id:'traces',title:'Trace p95',signal:'traces',aggregate:'p95',service:data.service,unit:'ms'}],variables:{team:data.team,environment:data.environment},range:{from:data.from,through:data.through},annotations:[]})
   }
   if(!scope.services.length||!scope.environments.length||!scope.teams.length||!scopeWithin(scope,actor.member.scope)||body.panels.some(p=>!scopeWithin({services:[p.service],environments:[body.variables.environment],teams:[body.variables.team]},scope)))fail('scope_forbidden')
+  await validateOverlays(env,actor,body.eventOverlays??[],scope)
+  const overlayFence=body.eventOverlays?.length?` AND NOT EXISTS(SELECT 1 FROM json_each(?) wanted WHERE NOT EXISTS(SELECT 1 FROM porthole_custom_events e WHERE e.id=wanted.value AND e.state='active' AND NOT EXISTS(SELECT 1 FROM porthole_erased_actors erased WHERE erased.actor_ref=e.actor_ref)))`:''
+  const overlayArgs=body.eventOverlays?.length?[JSON.stringify(body.eventOverlays)]:[]
   const inserting=!previous||id!==previous.id
-  const guard=key?`${actor.fence} AND NOT EXISTS(SELECT 1 FROM porthole_api_idempotency WHERE actor_ref=? AND request_key=?)`:actor.fence,args=key?[...actor.args,actor.member.operatorId,key]:actor.args
+  const guard=key?`${actor.fence}${overlayFence} AND NOT EXISTS(SELECT 1 FROM porthole_api_idempotency WHERE actor_ref=? AND request_key=?)`:actor.fence+overlayFence,args=key?[...actor.args,...overlayArgs,actor.member.operatorId,key]:[...actor.args,...overlayArgs]
   const statement=inserting?env.DB.prepare(`INSERT INTO porthole_dashboards SELECT ?,?,?,?,?,?,?,? WHERE ${guard}`).bind(id,name,JSON.stringify(scope),JSON.stringify(body),revision,state,now,now,...args):env.DB.prepare(`UPDATE porthole_dashboards SET name=?,scope=?,body=?,revision=?,state=?,updated_at=? WHERE id=? AND revision=? AND ${guard}`).bind(name,JSON.stringify(scope),JSON.stringify(body),revision,state,now,id,previous.revision,...args)
   const value={id,revision,state}
   if(key) {

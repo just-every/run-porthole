@@ -113,3 +113,30 @@ export async function dashboardApiJourney({origin,cookie,freshOwner,signIn}) {
  assert.equal((await cli(['list','dashboards','--all'],{secret:all.secret})).code,1)
  console.log('Dashboard API journey passed: scoped HTTP, CLI and MCP, panel signal and historical authority, durable native mutations, quota and revocation')
 }
+
+/** Event overlays remain native references in the dashboard's exact revisions. */
+export async function eventDashboardJourney({origin,cookie,restricted,eventIds,foreignId,scope,value}) {
+ const post=(path,data,session=cookie)=>fetch(origin+path,{method:'POST',redirect:'manual',headers:{origin,cookie:session,'content-type':'application/json'},body:JSON.stringify(data)})
+ const get=(path,session=cookie)=>fetch(origin+path,{headers:{cookie:session}})
+ const definition={name:'Native execution dashboard',scope,body:{panels:[{id:'executions',title:'Checkout log evidence',signal:'logs',aggregate:'count',service:'checkout',unit:'records'}],variables:{team:'commerce',environment:'production'},range:{from:'0',through:'18446744073709551615'},annotations:[],eventOverlays:eventIds}}
+ const created=await value(await post('/api/porthole/v1/dashboards',definition),201),path='/api/porthole/v1/dashboards/'+created.id
+ const read=await value(await get(path))
+ assert.deepEqual(read.body.eventOverlays,eventIds)
+ assert.deepEqual(read.eventOverlays.map(e=>e.id),eventIds)
+ assert.deepEqual((await value(await get(path,restricted))).eventOverlays.map(e=>e.id),eventIds)
+ assert.equal((await post('/api/porthole/v1/dashboards',{...definition,id:read.id,revision:read.revision,body:{...definition.body,eventOverlays:[foreignId]}})).status,403)
+ assert.deepEqual(await value(await get(path)),read,'foreign-scope overlay refusal changes no definition or revision')
+ assert.equal((await post('/api/porthole/v1/dashboards',{...definition,id:read.id,revision:0})).status,409)
+ const {eventBrowser}=await import('./events.mjs')
+ await eventBrowser({origin,cookie,path:'/app/dashboards/'+created.id,name:'events-dashboard',exercise:async page=>{
+  assert.equal(await page.locator('[data-overlay]').count(),eventIds.length)
+  assert.equal(await page.locator('[data-event-marker]').count(),eventIds.length,'authorized execution events are placed on the actual nonempty time graph')
+  assert.ok(await page.locator('svg polyline').count()>0,'the graph contains stock SDK telemetry rather than an empty fixture')
+  const occurrences=await Promise.all(eventIds.map(async id=>(await value(await get('/api/porthole/v1/events/'+id))).event.occurredAt))
+  assert.deepEqual(await page.locator('[data-event-marker]').evaluateAll(items=>items.map(el=>el.getAttribute('data-occurrence-ns'))),occurrences)
+  assert.deepEqual(await page.locator('[data-overlay] a').evaluateAll(items=>items.map(a=>a.getAttribute('href'))),eventIds.map(id=>'/app/events/'+id))
+  const link=page.locator('[data-overlay] a').first();await link.focus();await Promise.all([page.waitForURL('**/app/events/*'),link.press('Enter')])
+  assert.equal(await page.locator('[data-event]').getAttribute('data-event'),eventIds[0])
+ }})
+ return {...created,definition}
+}

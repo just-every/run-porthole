@@ -6,6 +6,7 @@ const body={type:'object',additionalProperties:false,required:['panels','variabl
  panels:{type:'array',maxItems:30,items:{type:'object',additionalProperties:false,required:['id','title','service','signal','aggregate','unit'],properties:{id:{type:'string'},title:{type:'string',maxLength:120},service:{type:'string'},signal:{enum:['metrics','logs','traces']},aggregate:{enum:['average','count','p95']},metric:{type:'string',description:'Required for metrics; exact metric name'},unit:{type:'string',maxLength:32},compareWeek:{type:'boolean'},functions,widget:{enum:widgetKinds},note:{type:'string',maxLength:5000}}}},
  variables:{type:'object',required:['team','environment'],properties:{team:{type:'string'},environment:{type:'string'}}},
  range:{type:'object',required:['from','through'],properties:{from:{type:'string',pattern:'^[0-9]+$'},through:{type:'string',pattern:'^[0-9]+$'}}},
+ eventOverlays:{type:'array',maxItems:50,uniqueItems:true,items:{type:'string',format:'uuid'},description:'Private authorized custom-event references; resolved at read time. Definition credentials do not gain event access.'},
  annotations:{type:'array',maxItems:100,items:{type:'object',required:['at','label'],properties:{at:{type:'string'},label:{type:'string',maxLength:300}}}},
 }}
 const input={type:'object',additionalProperties:false,required:['name','scope','body'],properties:{id:{type:'string',format:'uuid'},revision:{type:'integer',minimum:1},name:{type:'string',maxLength:120},scope,body}}
