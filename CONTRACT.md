@@ -103,7 +103,7 @@ All latency/volume/accuracy numbers below are explicit target acceptance require
 **Requirement.** Metric range results preserve each returned value's physical meaning and unit at every evaluation instant, including grouped series whose contributing producer changes between steps. A completed series never attaches its first unit to later values of another unit without exact conversion. Supported local and analytical evaluation doors provide the same semantics.
 
 **Acceptance.** Through the public metric query doors and Explore:
-1. An ordinary grouped range containing 400 milliseconds at T and 3 seconds at T+20 seconds in different nonoverlapping lookbacks returns values accurately converted to one declared unit, distinct correctly labeled series, or an explicit refusal of the incompatible range. A complete result of [400, 3] labeled milliseconds is forbidden.
+1. An ordinary grouped range containing 400 milliseconds at T and 3 seconds at T+20 seconds in different nonoverlapping lookbacks returns values accurately converted to one declared unit, distinct correctly labeled series, or an explicit refusal of the incompatible range. Any response of [400, 3] labeled milliseconds is forbidden.
 2. Same-unit grouped ranges complete with correct values, labels and timestamps.
 3. Simultaneous incompatible inputs are refused or correctly converted; unsupported unit combinations never produce a misleading complete result. Refusal changes no saved result or source metric. Equivalent supported local and analytical queries have equivalent outcomes.
 4. Explore accurately displays returned status and units for results and refusals, with no false complete display at desktop and phone widths.
