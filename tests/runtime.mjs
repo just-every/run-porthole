@@ -10,6 +10,7 @@ import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import {promisify} from 'node:util'
 const execute=promisify(execFile)
+if(process.env.PORTHOLE_LAYOUT_ANALYTICAL_ONLY==='1'){const {layoutAnalyticalJourney}=await import('./porthole/dashboard-layout.mjs');await layoutAnalyticalJourney();process.exit(0)}
 if(process.env.PORTHOLE_GENAI_CONTENT_ONLY==='1'){const {nativeGenaiContentRefusalJourney}=await import('./porthole/archive.mjs');await nativeGenaiContentRefusalJourney();process.exit(0)}
 if(process.env.PORTHOLE_MAIL_ONLY==='1'){const {recipientMailJourney}=await import('./porthole/health.mjs');await recipientMailJourney();process.exit(0)}
 if(process.env.PORTHOLE_GENAI_ANALYTICAL_ONLY==='1'){const {genaiAnalyticalJourney}=await import('./porthole/genai.mjs');await genaiAnalyticalJourney();process.exit(0)}
@@ -179,7 +180,10 @@ try {
     return await run({origin,cookie:destinationCookie,persist,...destinationHelpers,restartWorker})
    } finally {await restartWorker(()=>{persist=savedStore;ownerEmail=savedOwner})}
   }
-  if(process.env.PORTHOLE_PIPELINES_ONLY==='1') {
+  if(process.env.PORTHOLE_LAYOUT_ONLY==='1') {
+   const {dashboardLayoutJourney}=await import('./porthole/dashboard-layout.mjs')
+   await dashboardLayoutJourney({origin,restartWorker,withEmptyDestination,withPinnedClock,...helpers})
+  } else if(process.env.PORTHOLE_PIPELINES_ONLY==='1') {
    const {pipelineJourney,pipelineReadJourney}=await import('./porthole/pipelines.mjs')
    await pipelineJourney({origin,cookie,restartWorker,withEmptyDestination,withPinnedClock,...helpers})
    await pipelineReadJourney({origin,restartWorker,...helpers})
@@ -221,6 +225,10 @@ try {
   } else if(process.env.PORTHOLE_DASHBOARD_ONLY==='1') {
    const {dashboardJourney}=await import('./porthole/dashboards.mjs')
    await dashboardJourney({origin,cookie,restartWorker,withEmptyDestination,...helpers})
+   const {dashboardLayoutJourney}=await import('./porthole/dashboard-layout.mjs')
+   await dashboardLayoutJourney({origin,restartWorker,withEmptyDestination,withPinnedClock,...helpers})
+   const {layoutAnalyticalJourney}=await import('./porthole/dashboard-layout.mjs')
+   await layoutAnalyticalJourney()
    const {nativeLogSearchJourney}=await import('./porthole/explore.mjs')
    await nativeLogSearchJourney({origin,cookie:await helpers.freshOwner()})
   } else if(process.env.PORTHOLE_API_ONLY==='1') {

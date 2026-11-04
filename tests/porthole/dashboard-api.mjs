@@ -113,3 +113,25 @@ export async function dashboardApiJourney({origin,cookie,freshOwner,signIn}) {
  assert.equal((await cli(['list','dashboards','--all'],{secret:all.secret})).code,1)
  console.log('Dashboard API journey passed: scoped HTTP, CLI and MCP, panel signal and historical authority, durable native mutations, quota and revocation')
 }
+
+export async function layoutAuthorityJourney({origin,cookie,signIn,id,scope,packId,packRevision,body,sql}) {
+ const address=['synthetic-porthole-6810','example.com'].join(String.fromCharCode(64))
+ const post=(path,data,session=cookie,headers={})=>fetch(origin+path,{method:'POST',headers:{origin,cookie:session,'content-type':'application/json',...headers},body:JSON.stringify(data)})
+ assert.equal((await post('/app/settings/members/invite',{email:address,displayName:'Scoped layout analyst',role:'read-only analyst',scope})).status,202)
+ const reader=await signIn(address),root='/api/porthole/v1/dashboard-powerpacks'
+ const before=await sql('SELECT id,body,revision FROM porthole_dashboards ORDER BY id')
+ assert.equal((await post(root+'/preview',{id:packId,revision:packRevision,name:'Denied pack',scope,body},reader)).status,403)
+ assert.equal((await post('/app/dashboards/layout',{id,revision:1,group:'native',width:6},reader)).status,403)
+ assert.equal((await fetch(origin+'/app/dashboards/'+id+'?team=foreign',{headers:{cookie:reader}})).status,403)
+ const source=await (await post('/app/settings/credentials/mint',{name:'Layout delegated read',class:'read',scope:{...scope,signals:['logs'],actions:['definitions.read']}})).json()
+ assert.equal((await fetch(origin+'/api/porthole/v1/dashboards/'+id,{headers:{cookie,authorization:'Bearer '+source.secret}})).status,404,'group children retain whole-definition signal authority')
+ assert.equal((await post(root+'/preview',{name:'Bearer must refuse',scope,body},cookie,{authorization:'Bearer '+source.secret})).status,403)
+ assert.deepEqual(await sql('SELECT id,body,revision FROM porthole_dashboards ORDER BY id'),before,'refused native and bearer paths do not mutate consumers')
+ const row=(await sql("SELECT operator_id,revision FROM porthole_members WHERE operator_id IN (SELECT id FROM oa_operators WHERE email='"+address+"')"))[0]
+ assert.ok(row)
+ const changed=await post('/app/settings/members/change',{operatorId:row.operatorId??row.operator_id,revision:row.revision,role:'read-only analyst',scope:{...scope,teams:['foreign']}})
+ assert.equal(changed.status,200,await changed.clone().text())
+ assert.equal((await fetch(origin+'/app/dashboards/'+id,{headers:{cookie:reader}})).status,403,'next request rechecks revoked child scope')
+ assert.deepEqual(await sql('SELECT id,body,revision FROM porthole_dashboards ORDER BY id'),before)
+ return reader
+}

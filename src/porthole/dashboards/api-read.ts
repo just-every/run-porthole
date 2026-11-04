@@ -1,3 +1,4 @@
+import {validateDashboardScope} from './layout'
 import {agentReadAuthority,agentCredential,type ReadPrincipal} from '../security/agent-read'
 import type {Bindings} from '../../auth.server'
 import {AuthError} from '../../modules/operator-auth/index.mjs'
@@ -24,6 +25,7 @@ function permitted(alias:string,scope:Scope,signals:string[]|null) {
 function representation(row:DashboardRow,scope:Scope,signals:string[]|null) {
  const selected=parseScope(JSON.parse(row.scope)),body=dashboardBody(JSON.parse(row.body))
  if(!scopeWithin(selected,scope)||signals&&body.panels.some(panel=>!signals.includes(panel.signal))||body.panels.some(panel=>!scopeWithin({services:[panel.service],environments:[body.variables.environment],teams:[body.variables.team]},selected)))fail('authority_changed',409)
+ validateDashboardScope(body,selected)
  return {...row,scope:selected,body}
 }
 /** A whole definition and every returned historical revision remain subject

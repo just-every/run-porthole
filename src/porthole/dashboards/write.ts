@@ -1,3 +1,5 @@
+import {resolvePacks,packFence} from './powerpacks/bind'
+import {isGroup,validateDashboardScope} from './layout'
 import type {Bindings} from '../../auth.server'
 import {fail,parseScope,scopeWithin,type Authority,type Scope} from '../security/authority'
 import {input} from '../security/input'
@@ -13,7 +15,7 @@ export async function writeDashboard(request:Request,env:Bindings,actor:Authorit
  }
   const data=await input(request),key=request.headers.get('idempotency-key')
   if(key!==null&&!/^[A-Za-z0-9._:-]{8,120}$/.test(key))fail('idempotency_key_required',400)
-  const action=url.pathname.split('/').at(-1),allowed=action==='reorder'?['id','revision','panel','direction','order']:action==='clone'||action==='archive'?['id','revision']:action==='panel'?['id','revision','title','service','signal','metric','unit','widget','note','compareWeek']:action==='annotation'?['id','revision','at','label']:['id','revision','name','scope','body','service','environment','team','metric','from','through']
+  const action=url.pathname.split('/').at(-1),allowed=action==='reorder'?['id','revision','panel','direction','order']:action==='clone'||action==='archive'?['id','revision']:action==='panel'?['id','revision','title','service','signal','metric','unit','widget','note','compareWeek']:action==='pack'?['id','revision','packId','packRevision','title']:action==='layout'?['id','revision','group','direction','width','height','collapsed']:action==='annotation'?['id','revision','at','label']:['id','revision','name','scope','body','service','environment','team','metric','from','through']
   if(Object.keys(data).some(key=>!allowed.includes(key)))fail('invalid_dashboard',400)
   const fingerprint=canonical({path:url.pathname,data})
   const lookup=()=>env.DB.prepare(`SELECT fingerprint,response FROM porthole_api_idempotency WHERE actor_ref=? AND request_key=? AND ${actor.fence}`).bind(actor.member.operatorId,key,...actor.args).first<{fingerprint:string;response:string}>()
@@ -22,17 +24,36 @@ export async function writeDashboard(request:Request,env:Bindings,actor:Authorit
   const previous=typeof data.id==='string'?await currentDashboard(env,actor,data.id):null,now=Date.now()
   if(previous&&Number(data.revision)!==previous.revision)fail('revision_or_authority_changed',409)
   let body:Dashboard,name:string,scope:Scope,state='active',id=previous?.id??crypto.randomUUID(),revision=(previous?.revision??0)+1
-  if(url.pathname.endsWith('/clone')||url.pathname.endsWith('/reorder')||url.pathname.endsWith('/archive')||url.pathname.endsWith('/panel')||url.pathname.endsWith('/annotation')) {
+  if(url.pathname.endsWith('/clone')||url.pathname.endsWith('/reorder')||url.pathname.endsWith('/archive')||url.pathname.endsWith('/panel')||url.pathname.endsWith('/annotation')||url.pathname.endsWith('/layout')||url.pathname.endsWith('/pack')) {
    if(!previous)fail('dashboard_not_found',404)
    body=dashboardBody(JSON.parse(previous.body));name=previous.name;scope=JSON.parse(previous.scope)
    if(url.pathname.endsWith('/clone')) {id=crypto.randomUUID();revision=1;name+=' copy'}
    if(url.pathname.endsWith('/archive'))state=!page||previous.state!=='archived'?'archived':'active'
    if(url.pathname.endsWith('/panel')) {
     const signal=String(data.signal),aggregate=({metrics:'average',logs:'count',traces:'p95'} as const)[signal as 'metrics'|'logs'|'traces']
-    body=dashboardBody({...body,panels:[...body.panels,{id:crypto.randomUUID(),title:data.title,service:data.service,signal,aggregate,metric:data.metric,...(data.widget?{widget:data.widget}:{}),...(data.compareWeek?{compareWeek:data.compareWeek===true||data.compareWeek==='on'}:{}),...(data.widget==='notes'?{note:data.note??''}:{}),unit:signal==='logs'?'records':signal==='traces'?'ms':data.unit??''}]})
+    const panelId=crypto.randomUUID()
+    body=dashboardBody({...body,...(body.layout?{layout:[...body.layout,{panel:panelId,width:12,height:1}]}:{}),panels:[...body.panels,{id:panelId,title:data.title,service:data.service,signal,aggregate,metric:data.metric,...(data.widget?{widget:data.widget}:{}),...(data.compareWeek?{compareWeek:data.compareWeek===true||data.compareWeek==='on'}:{}),...(data.widget==='notes'?{note:data.note??''}:{}),unit:signal==='logs'?'records':signal==='traces'?'ms':data.unit??''}]})
+   }
+   if(url.pathname.endsWith('/pack')) {
+    body=dashboardBody({...body,layout:[...(body.layout??body.panels.map(p=>({panel:p.id,width:12,height:1}))),{id:crypto.randomUUID(),title:label(data.title),width:12,height:1,collapsed:false,children:[],powerpack:{id:data.packId,revision:Number(data.packRevision)}}]})
+   }
+   if(url.pathname.endsWith('/layout')) {
+    if(!body.layout&&data.group==='all')body=dashboardBody({...body,layout:[{id:crypto.randomUUID(),title:previous.name,width:12,height:1,collapsed:false,children:body.panels.map(p=>({panel:p.id,width:12,height:1}))}]})
+    else {
+    if(!body.layout)fail('dashboard_layout_required',400)
+    let found=false
+    const change=(items:NonNullable<Dashboard['layout']>):NonNullable<Dashboard['layout']>=>{
+     const index=items.findIndex(item=>isGroup(item)&&item.id===data.group||!isGroup(item)&&item.panel===data.group)
+     if(index>=0){found=true;const item=items[index];if(data.direction){const to=index+(data.direction==='up'?-1:data.direction==='down'?1:100);if(to<0||to>=items.length)fail('invalid_layout_order',400);[items[index],items[to]]=[items[to],items[index]]}else{items[index]={...item,...(data.width===undefined?{}:{width:Number(data.width)}),...(data.height===undefined?{}:{height:Number(data.height)}),...(data.collapsed===undefined?{}:{collapsed:data.collapsed===true||data.collapsed==='true'})} as typeof item}}
+     else for(const item of items)if(isGroup(item))item.children=change(item.children)
+     return items
+    }
+    body=dashboardBody({...body,layout:change(body.layout)});if(!found)fail('layout_item_not_found',404)
+    }
    }
    if(url.pathname.endsWith('/annotation'))body=dashboardBody({...body,annotations:[...body.annotations,{at:data.at,label:data.label}]})
    if(url.pathname.endsWith('/reorder')) {
+    if(body.layout)fail('use_layout_order_controls',400)
     if(data.order) {
      const order=typeof data.order==='string'?JSON.parse(data.order):data.order
      if(!Array.isArray(order)||order.length!==body.panels.length||new Set(order).size!==order.length||order.some(id=>!body.panels.some(p=>p.id===id)))fail('invalid_panel_order',400)
@@ -48,10 +69,14 @@ export async function writeDashboard(request:Request,env:Bindings,actor:Authorit
    scope=parseScope(typeof data.scope==='string'?JSON.parse(data.scope):data.scope??{services:[scopeLabel(data.service)],environments:[scopeLabel(data.environment)],teams:[scopeLabel(data.team)]})
    body=dashboardBody(data.body?typeof data.body==='string'?JSON.parse(data.body):data.body:{panels:[{id:'metric',title:'Metric average',signal:'metrics',aggregate:'average',service:data.service,metric:data.metric,unit:''},{id:'logs',title:'Log count',signal:'logs',aggregate:'count',service:data.service,unit:'records'},{id:'traces',title:'Trace p95',signal:'traces',aggregate:'p95',service:data.service,unit:'ms'}],variables:{team:data.team,environment:data.environment},range:{from:data.from,through:data.through},annotations:[]})
   }
+  body=await resolvePacks(env,actor,body,scope)
+  validateDashboardScope(body,scope)
   if(!scope.services.length||!scope.environments.length||!scope.teams.length||!scopeWithin(scope,actor.member.scope)||body.panels.some(p=>!scopeWithin({services:[p.service],environments:[body.variables.environment],teams:[body.variables.team]},scope)))fail('scope_forbidden')
   const inserting=!previous||id!==previous.id
+  const dependency=packFence(body)
   const guard=key?`${actor.fence} AND NOT EXISTS(SELECT 1 FROM porthole_api_idempotency WHERE actor_ref=? AND request_key=?)`:actor.fence,args=key?[...actor.args,actor.member.operatorId,key]:actor.args
-  const statement=inserting?env.DB.prepare(`INSERT INTO porthole_dashboards SELECT ?,?,?,?,?,?,?,? WHERE ${guard}`).bind(id,name,JSON.stringify(scope),JSON.stringify(body),revision,state,now,now,...args):env.DB.prepare(`UPDATE porthole_dashboards SET name=?,scope=?,body=?,revision=?,state=?,updated_at=? WHERE id=? AND revision=? AND ${guard}`).bind(name,JSON.stringify(scope),JSON.stringify(body),revision,state,now,id,previous.revision,...args)
+  const guarded=`(${guard}) AND (${dependency.sql})`,guardedArgs=[...args,...dependency.args]
+  const statement=inserting?env.DB.prepare(`INSERT INTO porthole_dashboards SELECT ?,?,?,?,?,?,?,? WHERE ${guarded}`).bind(id,name,JSON.stringify(scope),JSON.stringify(body),revision,state,now,now,...guardedArgs):env.DB.prepare(`UPDATE porthole_dashboards SET name=?,scope=?,body=?,revision=?,state=?,updated_at=? WHERE id=? AND revision=? AND ${guarded}`).bind(name,JSON.stringify(scope),JSON.stringify(body),revision,state,now,id,previous.revision,...guardedArgs)
   const value={id,revision,state}
   if(key) {
    const writes=await env.DB.batch([statement,env.DB.prepare(`INSERT OR IGNORE INTO porthole_api_idempotency SELECT ?,?,?,?,?,? WHERE changes()=1 AND ${actor.fence}`).bind(actor.member.operatorId,key,fingerprint,JSON.stringify(value),201,now,...actor.args)])

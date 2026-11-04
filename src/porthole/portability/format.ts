@@ -1,3 +1,5 @@
+import {powerpackBody} from '../dashboards/powerpacks/model'
+import {validateDashboardScope} from '../dashboards/layout'
 import {hostDefinition,validateHostEvidence} from '../monitors/types/host-heartbeat'
 import {assertGenAIMetadata} from '../genai/privacy'
 import {assertGenAIWire} from '../genai/wire'
@@ -46,7 +48,7 @@ export function manifestInput(value: unknown): Manifest {
  if(!Object.hasOwn(value.tables,'porthole_retention_policies'))value.tables.porthole_retention_policies=0
  if(!Object.hasOwn(value.tables,'porthole_erased_batches'))value.tables.porthole_erased_batches=0
  if(!Object.hasOwn(value.tables,'porthole_export_exclusions'))value.tables.porthole_export_exclusions=0
- for(const table of ['porthole_dashboards','porthole_dashboard_versions','porthole_dashboard_publications'])if(!Object.hasOwn(value.tables,table))value.tables[table]=0
+ for(const table of ['porthole_powerpacks','porthole_powerpack_versions','porthole_dashboards','porthole_dashboard_versions','porthole_dashboard_publications'])if(!Object.hasOwn(value.tables,table))value.tables[table]=0
  if(!Object.hasOwn(value.tables,'porthole_baggage_policy'))value.tables.porthole_baggage_policy=0
  for(const table of ['porthole_migration_records','porthole_migration_custody'])if(!Object.hasOwn(value.tables,table))value.tables[table]=0
  for(const table of ['porthole_host_monitor_versions','porthole_host_monitor_evaluations'])if(!Object.hasOwn(value.tables,table))value.tables[table]=0
@@ -115,9 +117,9 @@ export async function validateRow(payload: PortableRow, state: Validation): Prom
   if(!validHistoryReference(row))bad()
  } else if(item.table==='porthole_dashboard_publications') {
   if(!validPublicationRow(row))bad()
- } else if(['porthole_dashboards','porthole_dashboard_versions'].includes(item.table)) {
+ } else if(['porthole_powerpacks','porthole_powerpack_versions','porthole_dashboards','porthole_dashboard_versions'].includes(item.table)) {
   if(!uuid(row.id)||!str(row.name)||!integer(row.revision,1)||!integer(row.created_at)||!integer(row.updated_at)||!['active','archived','quarantined'].includes(String(row.state)))bad()
-  parseScope(json(row.scope));dashboardBody(json(row.body))
+  const scope=parseScope(json(row.scope)),body=item.table.startsWith('porthole_powerpack')?powerpackBody(json(row.body)):dashboardBody(json(row.body));validateDashboardScope(body,scope)
  } else if(item.table==='porthole_host_monitor_versions') {
   if(!uuid(row.object_id)||!integer(row.revision,1)||!str(row.name)||!integer(row.created_at))bad()
   parseScope(json(row.scope));hostDefinition(json(row.body) as Record<string,unknown>)
