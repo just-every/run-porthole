@@ -28,6 +28,17 @@ export async function readLokiPages({origin,cookie,service=lokiScope.services[0]
   const response=await fetch(origin+root+(archive?'/archive':'/records')+'?'+params,{headers:{cookie}})
   assert.equal(response.status,200,await response.clone().text())
   const page=await response.json();snapshot??=page.snapshot;assert.equal(page.snapshot,snapshot)
+  // Check the public ordering contract across page boundaries as well as
+  // within a page, including distinct records sharing an original nanosecond.
+  let previous=records.at(-1)
+  for(const row of page.records){
+   if(previous){
+    const before=BigInt(previous.event_time_ns),after=BigInt(row.event_time_ns)
+    assert.ok(before<after||before===after&&previous.id<row.id,'native pages retain strict nanosecond and record-ID order')
+   }
+   previous=row
+  }
+  if(page.cursor)assert.notEqual(page.cursor,cursor,'native cursor advances even across tied nanoseconds')
   records.push(...page.records);cursor=page.cursor
  }while(cursor)
  return records

@@ -5605,7 +5605,7 @@
       "executable": false
     },
     "tests/porthole/loki-shippers.mjs": {
-      "sha256": "0d70dddb4fcacde3d91a29bacaf2a5eb9394a943373624e91dc0f6d716a5d162",
+      "sha256": "2d1a02be3e7b616d28e5a470992c58ac2e3b4e8397711fd7806daa40a1bb1367",
       "executable": false
     },
     "tests/porthole/membership.mjs": {
