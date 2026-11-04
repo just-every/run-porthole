@@ -457,7 +457,7 @@
       "executable": false
     },
     "docs/otlp.md": {
-      "sha256": "3662baada14e08c5c783b511b658292aedb7a7cd91ecfaec8e9e49ba13880c18",
+      "sha256": "9009347fa6edf0d2d80e4a83c2a120b7bace66163d5f3857920c6cb2db1e3b79",
       "executable": false
     },
     "docs/product-docs.md": {
@@ -5589,7 +5589,7 @@
       "executable": false
     },
     "tests/porthole/ingest.mjs": {
-      "sha256": "6b17db17d9f422ea7f3fe748bbe99bc6d3ab63a70dbaf45b3873a3041cc0e71d",
+      "sha256": "87dbc512645875ec589ae515db50701ea9449dca28bfd939500b2a7851636fab",
       "executable": false
     },
     "tests/porthole/intake-interrupt.mjs": {
@@ -5685,7 +5685,7 @@
       "executable": false
     },
     "tests/porthole/prometheus-stock.mjs": {
-      "sha256": "fd51faf8474e381ce213a5f8ea6f386464b45cb4e0fc9f40fbabc81324d850f1",
+      "sha256": "5b7084f48f973e9a98f944bfc7e662b4578e3c3fe10ba38e298a945de5a423ee",
       "executable": false
     },
     "tests/porthole/public-docs-site.mjs": {

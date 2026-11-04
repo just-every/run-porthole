@@ -189,7 +189,7 @@ export async function ingestJourney({origin,cookie,sql,restartWorker,freshOwner,
 
 export async function ingestBrowserJourney({origin,cookie,profile}) {
  const {chromium}=await import('@playwright/test')
- const browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']})
+ const browser=await chromium.launch({headless:true,...(process.env.PORTHOLE_CHROMIUM_PATH?{executablePath:process.env.PORTHOLE_CHROMIUM_PATH}:{}),args:['--no-sandbox','--use-mock-keychain','--password-store=basic']})
  try {
   for(const width of [1440,390]){
    const context=await browser.newContext({viewport:{width,height:width===1440?900:844}})
