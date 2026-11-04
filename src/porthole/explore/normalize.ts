@@ -1,3 +1,4 @@
+import {evaluation,evaluationKeys,parsePromql,planParameters} from '../query/promql/plan'
 import {promql} from './promql'
 import {sql} from './sql'
 import {lucene} from './lucene'
@@ -10,7 +11,7 @@ const nativeKeys=['signal','service','environment','team','from','through','curs
 const optional=new Set(['metric','from','through','cursor','snapshot','trace','limit'])
 export function normalizeExploration(input:Record<string,unknown>):NormalizedExploration {
  if(!input||typeof input!=='object'||Array.isArray(input))reject('invalid_exploration','Supply a query object.','query')
- if(Object.keys(input).some(key=>!nativeKeys.includes(key)&&!['dialect','expression'].includes(key)))reject('unsupported_query_filter','Remove unsupported query fields.','query')
+ if(Object.keys(input).some(key=>!nativeKeys.includes(key)&&!['dialect','expression',...evaluationKeys].includes(key)))reject('unsupported_query_filter','Remove unsupported query fields.','query')
  const dialect=input.dialect===undefined?'visual':input.dialect
  if(typeof dialect!=='string'||!['visual','promql','sql','lucene'].includes(dialect))reject('unsupported_exploration_dialect','Choose visual, promql, sql or lucene.','dialect')
  const expression=input.expression===undefined?'':input.expression
@@ -25,11 +26,16 @@ export function normalizeExploration(input:Record<string,unknown>):NormalizedExp
  }
  if(typeof parameters.metric==='string')metricName(parameters.metric)
  if(dialect==='visual') {
+  if(evaluationKeys.some(key=>input[key]!==undefined&&input[key]!==''))reject('promql_dialect_required','Evaluation timestamps apply only to PromQL.','dialect')
   if(expression.trim())reject('unexpected_visual_expression','Select a text dialect to execute an expression.')
   return {parameters,source:{dialect,text:expression}}
  }
  if(!expression.trim())reject('exploration_expression_required','Enter an expression for the selected dialect.')
- const parsed=dialect==='promql'?promql(expression):dialect==='sql'?sql(expression):lucene(expression)
+ const settings=evaluation(input)
+ if(settings&&dialect!=='promql')reject('promql_dialect_required','Evaluation timestamps apply only to PromQL.','dialect')
+ if(settings&&['from','through','cursor','limit','trace'].some(key=>parameters[key]!==undefined))reject('conflicting_promql_time','Evaluation owns its scan range and pages; remove native bounds, cursor, limit and trace.','time')
+ const plan=settings?parsePromql(expression):undefined
+ const parsed=settings?{parameters:planParameters(plan!)}:dialect==='promql'?promql(expression):dialect==='sql'?sql(expression):lucene(expression)
  for(const [key,value] of Object.entries(parsed.parameters)) {
   if(Object.hasOwn(parameters,key)&&parameters[key]!==value)reject('conflicting_query_filter','Native and expression filters must select the same exact value.',key)
   parameters[key]=value
@@ -40,5 +46,5 @@ export function normalizeExploration(input:Record<string,unknown>):NormalizedExp
   try {compileLogSearch(parsed.logSearch,{services:[String(parameters.service??'*')],environments:[String(parameters.environment??'*')],teams:[String(parameters.team??'*')]})}
   catch(error) {if(error instanceof LogSearchError)reject('conflicting_query_filter','Native and expression scope filters must select compatible values.',error.field);throw error}
  }
- return {parameters,source:{dialect:dialect as Dialect,text:expression},...(parsed.aggregate?{aggregate:parsed.aggregate}:{}),...(parsed.logSearch?{logSearch:parsed.logSearch}:{})}
+ return {parameters,source:{dialect:dialect as Dialect,text:expression},...(parsed.aggregate?{aggregate:parsed.aggregate}:{}),...(parsed.logSearch?{logSearch:parsed.logSearch}:{}),...(settings?{promql:{plan:plan!,settings,descriptor:Object.fromEntries(evaluationKeys.filter(key=>input[key]!==undefined&&input[key]!=='').map(key=>[key,input[key] as string|number]))}}:{})}
 }

@@ -1,13 +1,21 @@
 import { array, invalid, object, type TelemetryRecord } from './model'
 import { record } from './normalize'
-import { bytes, double, fields, uint, utf8 } from './wire'
+import { bytes, double, fields, uint, utf8, hex } from './wire'
 
 // prometheus.WriteRequest v1. Native histograms/exemplars require explicit
 // support rather than quietly discarding fields from an acknowledged series.
 export function remoteWrite(input: Uint8Array, headers: Headers): TelemetryRecord[] {
- const result: TelemetryRecord[] = []
- for (const field of fields(input)) {
-  if (field.number === 3) continue // MetricMetadata, preserved in original wire.
+ const result: TelemetryRecord[] = [],metadata=new Map<string,{type:number;unit:string}>()
+ const request=fields(input)
+ for(const field of request.filter(field=>field.number===3)) {
+  const parts=fields(bytes(field)),name=parts.find(p=>p.number===2),type=parts.find(p=>p.number===1),unit=parts.find(p=>p.number===5)
+  if(!name||!type)return invalid('invalid_remote_write_metadata')
+  const key=utf8(bytes(name)),value={type:Number(uint(type)),unit:unit?utf8(bytes(unit)):''},prior=metadata.get(key)
+  if(prior&&(prior.type!==value.type||prior.unit!==value.unit))return invalid('conflicting_remote_write_metadata')
+  metadata.set(key,value)
+ }
+ for (const field of request) {
+  if (field.number === 3) continue // MetricMetadata also survives in original wire.
   if (field.number !== 1) return invalid('unsupported_remote_write_field',415)
   const labels: Record<string,string> = Object.create(null), samples = []
   for (const part of fields(bytes(field))) {
@@ -20,12 +28,15 @@ export function remoteWrite(input: Uint8Array, headers: Headers): TelemetryRecor
    else return invalid('unsupported_remote_write_histogram_or_exemplar',415)
   }
   if (!labels.__name__) return invalid('missing_metric_name')
+  const declared=metadata.get(labels.__name__)??(labels.__name__.endsWith('_total')?metadata.get(labels.__name__.slice(0,-6)):undefined)
+  const kind=declared?.type===1?'sum':declared?.type===2?'gauge':undefined
   for (const sample of samples) {
    const parts = fields(sample), valueField = parts.find(p => p.number === 1), time = parts.find(p => p.number === 2)
    const value = valueField ? double(valueField) : 0, timestamp = time ? BigInt.asIntN(64,uint(time)) : 0n
    if (timestamp < 0n) return invalid('negative_metric_timestamp')
-   // NaN includes Prometheus' stale marker; the original float bits are retained.
-   result.push(record({ protocol: 'prometheus.WriteRequest', resource: { attributes: labels }, metric: { name: labels.__name__ }, record: { value: Number.isFinite(value) ? value : String(value), timestamp: timestamp.toString() } }, labels, (timestamp * 1000000n).toString(), headers, 'metrics'))
+   // Preserve the distinguished stale NaN separately from ordinary NaN.
+   const stale=!!valueField && hex(bytes(valueField))==='020000000000f07f'
+   result.push(record({ protocol: 'prometheus.WriteRequest', resource: { attributes: labels }, metric: { name: labels.__name__, ...(declared?{unit:declared.unit}:{}), ...(kind==='sum'?{sum:{isMonotonic:true,aggregationTemporality:2}}:{}) }, ...(kind?{metricKind:kind}:{}), record: { value: Number.isFinite(value) ? value : String(value), timestamp: timestamp.toString(), ...(stale?{stale:true}:{}) } }, labels, (timestamp * 1000000n).toString(), headers, 'metrics'))
   }
  }
  return result

@@ -468,6 +468,10 @@
       "sha256": "06a806c7bfb606e519873ee20ef7faa6361c33756f5bb2aea54587a6000e514c",
       "executable": false
     },
+    "docs/promql-reference.md": {
+      "sha256": "169e1e1e443e60a9ae23ab2afb3ea1971ec1ffbbbc34d3234eabf19ce3649695",
+      "executable": false
+    },
     "docs/query-reference.md": {
       "sha256": "321d96cad84276918f1309d20bf71870902e231f9308abaef83f267f48e50d64",
       "executable": false
@@ -4613,11 +4617,11 @@
       "executable": false
     },
     "src/porthole/explore/model.ts": {
-      "sha256": "6ce98ff29cdf764bf2c11b92994b4b647dd6a209a5b873d50e732dc408808509",
+      "sha256": "2c66abe55cb9daf63d02928d2b7609a45b84ea651f7dd9ac0f353e6ab949ff1c",
       "executable": false
     },
     "src/porthole/explore/normalize.ts": {
-      "sha256": "7999fe28384cd8798c55399e5ef3e84d42258e6409441c068040889e60384f76",
+      "sha256": "82cf84f8e3638f980a89721a7809bd7b318bf0d19d5468cdd05434906d827324",
       "executable": false
     },
     "src/porthole/explore/promql.ts": {
@@ -4745,7 +4749,7 @@
       "executable": false
     },
     "src/porthole/ingest/vendor.ts": {
-      "sha256": "4a7eaefa50e121996b4d0e177588e3d34cd155ead33df0ce5e0af5f0eefb2777",
+      "sha256": "b523ac95af1e9185e65d6578bc086fa2f5fb21f88a17225af5e20f0110d7d67a",
       "executable": false
     },
     "src/porthole/ingest/wire.ts": {
@@ -5069,7 +5073,7 @@
       "executable": false
     },
     "src/porthole/portability/format.ts": {
-      "sha256": "d4fdd89cb587127d2d998d958ba2800ed68f0b91adf2b1e032bd1b69d10c7ba9",
+      "sha256": "5a51c19e773706f8181920cee08b03a49929b2e0ccbd8bc854454f869e9f3eaf",
       "executable": false
     },
     "src/porthole/portability/health-history.ts": {
@@ -5133,7 +5137,19 @@
       "executable": false
     },
     "src/porthole/query/http.ts": {
-      "sha256": "352f7af7b586fec0c2d9498bd05c2d1174407cf8efab32fa8521bb0c894c33bc",
+      "sha256": "6f29840147da3d6c4bdfbd0851f06f69ecd920e139b244e40a7d2b614df59ff6",
+      "executable": false
+    },
+    "src/porthole/query/promql/evaluate.ts": {
+      "sha256": "e716dccc15e39f14e3788f28572f118dd555e89537cd9f7dd06eb93db2b2e444",
+      "executable": false
+    },
+    "src/porthole/query/promql/plan.ts": {
+      "sha256": "715ace546604da65979b5fe642a783dce1ea6f577d8f066b806bc7c263b978aa",
+      "executable": false
+    },
+    "src/porthole/query/promql/read.ts": {
+      "sha256": "811945b90e9462b7c607c620996c34e54d7a5b62bc06d3389d861cb8d51757f1",
       "executable": false
     },
     "src/porthole/recovery/mail.ts": {

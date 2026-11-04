@@ -1,3 +1,5 @@
+import {evaluationKeys} from './promql/plan'
+import {evaluateTelemetry} from './promql/read'
 import {agentReadAuthority,type ReadPrincipal} from '../security/agent-read'
 import {normalizeExploration,ExplorationError} from '../explore/normalize'
 import {aggregateRows} from './aggregate'
@@ -8,7 +10,7 @@ import { input } from '../security/input'
 import { readTelemetry } from '../ingest/read'
 import { verifyCredential } from '../credentials/verify'
 import { operationDocument as document,escape,privateHeaders } from '../document'
-const keys=['dialect','expression','signal','service','environment','team','from','through','cursor','limit','snapshot','trace','metric']
+const keys=['dialect','expression','signal','service','environment','team','from','through','cursor','limit','snapshot','trace','metric',...evaluationKeys]
 function queryRequest(request:Request,data:Record<string,unknown>):Request {
  const url=new URL('/api/porthole/v1/ingest/records',request.url)
  for(const [key,value] of Object.entries(data)) {
@@ -29,7 +31,7 @@ export async function queryResponse(request:Request,env:Bindings,principal?:Read
   if(principal)await agentReadAuthority(env,principal)
   else if(page || !request.headers.has('authorization'))await authority(request,env,{post:request.method==='POST'})
   else await verifyCredential(request,env,{action:'telemetry.read',scope:emptyScope,dataScope:allScope,inspectOnly:true})
-  if(page && request.method==='GET' && !url.search) return document('Explore telemetry',`<p><a href="/app/dashboards">Dashboards</a></p><p>Read retained telemetry within your current service, environment and team scope. Each query has a reproducible, private snapshot reference in Audit.</p><form method="post" action="/app/explore"><label>Signal <select name="signal" aria-label="Signal"><option>logs</option><option>metrics</option><option>traces</option><option>profiles</option></select></label><label>Service <input name="service" required></label><label>Environment <input name="environment" required></label><label>Team <input name="team" required></label><label>Metric name <input name="metric"></label><label>From in nanoseconds <input name="from" inputmode="numeric"></label><label>Through in nanoseconds <input name="through" inputmode="numeric"></label><details><summary>Text query</summary><label>Dialect <select name="dialect" aria-label="Dialect"><option value="visual">Visual</option><option value="promql">PromQL selector</option><option value="sql">SQL</option><option value="lucene">Lucene</option></select></label><label>Expression <textarea name="expression" rows="5"></textarea></label><p>Text filters must agree with the selected signal and scope. Unsupported syntax refuses before execution.</p></details><button>Run query</button></form>`,200,{forms:true})
+  if(page && request.method==='GET' && !url.search) return document('Explore telemetry',`<p><a href="/app/dashboards">Dashboards</a></p><p>Read retained telemetry within your current service, environment and team scope. Each query has a reproducible, private snapshot reference in Audit.</p><form method="post" action="/app/explore"><label>Signal <select name="signal" aria-label="Signal"><option>logs</option><option>metrics</option><option>traces</option><option>profiles</option></select></label><label>Service <input name="service" required></label><label>Environment <input name="environment" required></label><label>Team <input name="team" required></label><label>Metric name <input name="metric"></label><label>From in nanoseconds <input name="from" inputmode="numeric"></label><label>Through in nanoseconds <input name="through" inputmode="numeric"></label><details><summary>Text query</summary><label>Dialect <select name="dialect" aria-label="Dialect"><option value="visual">Visual</option><option value="promql">PromQL</option><option value="sql">SQL</option><option value="lucene">Lucene</option></select></label><label>Expression <textarea name="expression" rows="5"></textarea></label><label>Instant time in nanoseconds <input name="time" inputmode="numeric"></label><label>Range start in nanoseconds <input name="start" inputmode="numeric"></label><label>Range end in nanoseconds <input name="end" inputmode="numeric"></label><label>Step in seconds <input name="step" inputmode="decimal"></label><label>Lookback in seconds <input name="lookback" inputmode="decimal" placeholder="300"></label><p>PromQL evaluation uses an instant time or a range start, end and step. Scalar gauges and cumulative counters only.</p><p>Text filters must agree with the selected signal and scope. Unsupported syntax refuses before execution.</p></details><button>Run query</button></form>`,200,{forms:true})
   let data:Record<string,unknown>
   const id=url.pathname.split('/').at(-1)!
   if(page&&request.method==='GET')data=Object.fromEntries(url.searchParams)
@@ -37,14 +39,13 @@ export async function queryResponse(request:Request,env:Bindings,principal?:Read
    const previous=await env.DB.prepare('SELECT * FROM porthole_query_snapshots WHERE id=?').bind(id).first<{scope:string;signal:string;from_ns:string;through_ns:string;through_batch:number}>()
    if(!previous)fail('query_not_found',404)
    data={...JSON.parse(previous.scope),signal:previous.signal,snapshot:previous.through_batch}
-   if(previous.from_ns)data.from=previous.from_ns
-   if(previous.through_ns)data.through=previous.through_ns
+   if(data.time===undefined&&data.start===undefined){if(previous.from_ns)data.from=previous.from_ns;if(previous.through_ns)data.through=previous.through_ns}
   } else {
    if(request.method!=='POST')fail('method_not_allowed',405)
    data=await input(request)
   }
   const normalized=normalizeExploration(data)
-  const response=await readTelemetry(queryRequest(request,normalized.parameters),env,{principal,logSearch:normalized.logSearch,source:normalized.source})
+  const response=normalized.promql?await evaluateTelemetry(request,env,normalized.parameters,normalized.promql.plan,normalized.promql.settings,normalized.source,normalized.promql.descriptor,principal):await readTelemetry(queryRequest(request,normalized.parameters),env,{principal,logSearch:normalized.logSearch,source:normalized.source})
   if(!response.ok) {if(!page)return response;const error=await response.json() as {error:string;hint?:string};return document('Query unavailable',`<p role="alert">${escape(error.error)}${error.hint?': '+escape(error.hint):''}</p><p><a href="/app/explore">Return to Explore</a></p>`,response.status)}
   const rows=await response.json() as Record<string,unknown>
   const result={source:normalized.source,parameters:normalized.parameters,...(normalized.logSearch?{plan:normalized.logSearch}:{}),...rows,...(normalized.aggregate?{aggregate:aggregateRows(normalized.aggregate,rows)}:{})},reference=String(rows.queryRef)
