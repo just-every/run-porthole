@@ -242,7 +242,11 @@ export async function servicesBrowser({origin,cookie='',path,contains,name,statu
    const pivot=page.getByRole('link',{name:'Inspect association trace',exact:true}).first(),href=await pivot.getAttribute('href')
    assert.equal(new URL(href,origin).searchParams.get('snapshot'),new URL(await page.getByRole('link',{name:'Read this snapshot as JSON',exact:true}).getAttribute('href'),origin).searchParams.get('snapshot'))
    await pivot.click();assert.match(await page.locator('body').innerText(),/Trace waterfall/);assert.ok((await page.locator('body').innerText()).includes('checkout'))
-   await page.goto(origin+path)
+   assert.equal(new URL(page.url()).hash,new URL(href,origin).hash,'association pivot focuses the original span')
+   const target=page.locator(new URL(page.url()).hash)
+   assert.equal(await target.count(),1);assert.ok(await target.evaluate(node=>{const bounds=node.getBoundingClientRect();return bounds.top<innerHeight&&bounds.bottom>0}),'the original association span is in view')
+   if(process.env.PORTHOLE_EVIDENCE_DIR)for(const width of [1440,390]){await page.setViewportSize({width,height:width===1440?900:844});await page.screenshot({path:join(process.env.PORTHOLE_EVIDENCE_DIR,'services-association-trace-'+width+'.png'),fullPage:true})}
+   await page.setViewportSize({width:1440,height:900});await page.goto(origin+path)
   }
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'native Services reflows')
   assert.equal(await page.locator('button').evaluateAll(nodes=>nodes.filter(n=>!n.textContent.trim()).length),0,'every control has a text label')
