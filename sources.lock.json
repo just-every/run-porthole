@@ -381,7 +381,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "90cc9d9b9a4f73915d5ee8c79ec694b4a3e402afd7c66f686773c55160366fb0",
+      "sha256": "f7557f8f3f51ceb977b6ec72a419aada1e68ee941c2a0a12e806b413b7c5230e",
       "executable": false
     },
     "DEMO.md": {
@@ -469,7 +469,7 @@
       "executable": false
     },
     "docs/promql-reference.md": {
-      "sha256": "169e1e1e443e60a9ae23ab2afb3ea1971ec1ffbbbc34d3234eabf19ce3649695",
+      "sha256": "c5ca7d5407a853b1ed78dfbfe086275d9f07d52dc3e33166057c21767d7d4a4c",
       "executable": false
     },
     "docs/query-reference.md": {
@@ -853,7 +853,7 @@
       "executable": false
     },
     "package.json": {
-      "sha256": "49e6ae6525a3578a67ade98138d4519f7885e447c6e39cd2cee91a24033076e3",
+      "sha256": "ad68723015541d34d6e059f21216cc08f174f01c15dd32269b890943af211202",
       "executable": false
     },
     "packaging.json": {
@@ -861,7 +861,7 @@
       "executable": false
     },
     "pnpm-lock.yaml": {
-      "sha256": "106358d7b3ff93dced976c8ec3eb418502c7073914b45f1e6115b0f084d7e960",
+      "sha256": "abb14e8bf9be9ed00e919f627c264acc92e3abbbdec9037cc537150905c20bcf",
       "executable": false
     },
     "public/brand/apple-touch-icon.png": {
@@ -5525,7 +5525,7 @@
       "executable": false
     },
     "tests/porthole/analytics.mjs": {
-      "sha256": "fa61e6ffaa34449369212454b6facbf78c2928611c5107714eb8d6464844da9f",
+      "sha256": "c9196d90bfefeed2c38d6560ae1dcda0be5c1895c5b3d0bee0aeacbb18bbf31c",
       "executable": false
     },
     "tests/porthole/api.mjs": {
@@ -5533,7 +5533,7 @@
       "executable": false
     },
     "tests/porthole/archive.mjs": {
-      "sha256": "aa60318932daf9cc50ca52b9065bcf35c6b36c80b585da14343e852e56254100",
+      "sha256": "deda98145d5bb791d95bb59b06d35eebcb3e786fc5376d58c6fafa68106c7c2d",
       "executable": false
     },
     "tests/porthole/audit.mjs": {
@@ -5688,12 +5688,16 @@
       "sha256": "5efe4f3048ed0dd43a2d4529b31f973223fa2a4718192bae0e4d3ce56d4cc985",
       "executable": false
     },
+    "tests/porthole/promql-capture.mjs": {
+      "sha256": "c3c461a1fed98f9947d7448ec873ea8ac33c6b198e0766d39a13bb7cf33c7486",
+      "executable": false
+    },
     "tests/porthole/promql-producer.mjs": {
-      "sha256": "45fd8d79670383989b86847fd7be76a83c1824dbf6be70973229dee37a213b3f",
+      "sha256": "f1bacac9cbfdcd1159b5eacfdb7ceacf39f93452623770164414aeccb57b4630",
       "executable": false
     },
     "tests/porthole/promql-reference.mjs": {
-      "sha256": "4f5c39996ae324d5304fdae22221119c6cc3b4c1db0612356ff28ef6a2540737",
+      "sha256": "c7ba8a4301a74a5d2601a648092e86fca5933a399b29e0ee72f5475b75c68e7c",
       "executable": false
     },
     "tests/porthole/promql-wire.mjs": {
@@ -5701,7 +5705,7 @@
       "executable": false
     },
     "tests/porthole/promql.mjs": {
-      "sha256": "e4a4f15967210b4e1d10a73ffb41de8c28361460a22eeb4bc22e61057496f806",
+      "sha256": "9ff78e6959f8dd2353bfc37ab0ccd651eed052c6c39cae39d5d1d9606fa60c9e",
       "executable": false
     },
     "tests/porthole/public-docs-site.mjs": {

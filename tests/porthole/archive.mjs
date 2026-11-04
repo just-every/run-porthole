@@ -1113,7 +1113,7 @@ export async function genaiArchiveJourney({origin,cookie,withEmptyDestination,tr
 }
 
 /** Evaluation descriptors survive a real inactive restore without copying read authority. */
-export async function promqlArchiveJourney({context,reference,replay,expected,backend}) {
+export async function promqlArchiveJourney({context,reference,replay,expected,backend,lifecycle}) {
  const saved=await analyticalArchiveSnapshot({context,cookie:context.cookie})
  const ref=replay.split('/').at(-1)
  assert.ok(saved.rows.some(item=>item.table==='porthole_query_snapshots'&&item.row.id===ref&&JSON.parse(item.row.scope).time===reference.end),'archive retains explicit evaluation time and expression')
@@ -1137,10 +1137,13 @@ export async function promqlArchiveJourney({context,reference,replay,expected,ba
    }
    const restored=await value(await call(replay,{headers:{cookie}}))
    assert.deepEqual(restored.evaluation,expected,'same scalar labels, instants, units, numeric results and scan counts after independent restore')
+   assert.deepEqual((await value(await call(lifecycle.replay,{headers:{cookie}}))).evaluation,lifecycle.evaluation,'captured producer omission and recovery retain absent intervals after inactive restore')
    await restart()
    assert.deepEqual((await value(await call(replay,{headers:{cookie}}))).evaluation,expected)
+   assert.deepEqual((await value(await call(lifecycle.replay,{headers:{cookie}}))).evaluation,lifecycle.evaluation,'restart cannot fill the captured stale interval')
    const exported=await analyticalArchiveSnapshot({context:destination,cookie})
    assert.ok(exported.rows.some(item=>item.table==='porthole_query_snapshots'&&item.row.id===ref))
+   assert.ok(exported.rows.some(item=>item.table==='porthole_query_snapshots'&&item.row.id===lifecycle.replay.split('/').at(-1)))
    assert.equal((await getDb().prepare('SELECT COUNT(*) AS n FROM porthole_credentials').first()).n,0,'re-export has not resumed source credentials')
   }})
  }finally{await estate?.dispose()}

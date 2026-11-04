@@ -7,7 +7,7 @@ const scope={services:['checkout-promql'],environments:['promql'],teams:['commer
 const value=async(response,status=200)=>{assert.equal(response.status,status,await response.clone().text());return response.json()}
 const text=value=>({stringValue:String(value)})
 export function metricPacket(series) {
- return {resourceMetrics:series.map(row=>({resource:{attributes:[{key:'service.name',value:text('checkout-promql')},{key:'deployment.environment.name',value:text('promql')},{key:'team.name',value:text('commerce')},{key:'user.id',value:text(subject)}]},scopeMetrics:[{scope:{name:'synthetic-porthole-3100'},metrics:[{name:row.labels.__name__,unit:row.unit,[row.kind==='counter'?'sum':'gauge']:{...(row.kind==='counter'?{aggregationTemporality:2,isMonotonic:true}:{}),dataPoints:row.samples.map(sample=>({timeUnixNano:sample.time,asDouble:sample.value,attributes:Object.entries(row.labels).filter(([key])=>!['__name__','service','environment','team'].includes(key)).map(([key,value])=>({key,value:text(value)}))}))}}]}]}))}
+ return {resourceMetrics:series.map(row=>({resource:{attributes:[{key:'service.name',value:text('checkout-promql')},{key:'deployment.environment.name',value:text('promql')},{key:'team.name',value:text('commerce')},{key:'user.id',value:text(subject)}]},scopeMetrics:[{scope:{name:'synthetic-porthole-3100'},metrics:[{name:row.labels.__name__,unit:row.unit,[row.kind==='counter'?'sum':'gauge']:{...(row.kind==='counter'?{aggregationTemporality:2,isMonotonic:true}:{}),dataPoints:row.samples.map(sample=>({timeUnixNano:sample.time,...(sample.stale?{asDouble:0,flags:1}:{asDouble:sample.value}),attributes:Object.entries(row.labels).filter(([key])=>!['__name__','service','environment','team'].includes(key)).map(([key,value])=>({key,value:text(value)}))}))}}]}]}))}
 }
 function normalize(result,reference=false) {
  return result.map(row=>({metric:Object.fromEntries(Object.entries(row.metric).sort(([a],[b])=>a.localeCompare(b))),values:(row.values??[row.value]).map(([time,value])=>[reference?secondsToNs(time):String(time),Number(value)])})).sort((a,b)=>JSON.stringify(a.metric).localeCompare(JSON.stringify(b.metric)))
@@ -33,14 +33,15 @@ export async function promqlNativeJourney(context,reference,{backend='local',onQ
  await value(await intake());await post('/api/porthole/v1/ingest/drain',{})
  const reader=await post('/app/settings/credentials/mint',{name:'synthetic-porthole-3103',class:'read',scope:{...scope,actions:['telemetry.read']}},201)
  const query=(data,credential=reader.secret)=>send('/api/porthole/v1/query',{dialect:'promql',...data},credential?{authorization:'Bearer '+credential}:{})
- let snapshot,replay,expected,initial
+ let snapshot,replay,expected,initial,lifecycle
  for(const item of reference.cases) {
   const result=await value(await query({expression:item.expression,...item.settings,...(snapshot===undefined?{}:{snapshot})}))
   snapshot??=result.snapshot
-  assert.equal(result.snapshot,snapshot);if(result.evaluation.result.length)assert.equal(result.evaluation.result[0].unit,item.expression.includes('rate(')?('requests'+'/s'):item.expression.includes('increase(')?'requests':'items');assert.equal(result.evaluation.state,'complete');assert.equal(result.cursor,null);assert.equal(result.evaluation.timestampUnit,'unix-nanoseconds')
+  assert.equal(result.snapshot,snapshot);if(result.evaluation.result.length)assert.equal(result.evaluation.result[0].unit,item.expression.includes('lifecycle')?'':item.expression.includes('rate(')?('requests'+'/s'):item.expression.includes('increase(')?'requests':'items');assert.equal(result.evaluation.state,'complete');assert.equal(result.cursor,null);assert.equal(result.evaluation.timestampUnit,'unix-nanoseconds')
   assert.equal(result.analytical?.role,backend==='analytical'?'primary':undefined)
   matches(result.evaluation.result,item.expected.result)
   if(!replay){replay=result.replay;expected=item.expected;initial=result}
+  if(item.expression==='synthetic_porthole_lifecycle'&&item.settings.start)lifecycle={replay:result.replay,evaluation:result.evaluation}
  }
  if(backend==='analytical') {
   for(const role of ['standby','primary']) {
@@ -76,6 +77,20 @@ export async function promqlNativeJourney(context,reference,{backend='local',onQ
   {expression:'synthetic_porthole_queue',start:'0',end:reference.end,step:.001},
   {expression:'synthetic_porthole_queue',time:reference.end,from:'0'},
  ]) {const result=await query(input);assert.equal(result.status,400,await result.clone().text());assert.ok(!(await result.text()).includes('"state":"complete"'))}
+ // Exhaustion after the first page must discard values already accumulated.
+ const page=await value(await call('/api/porthole/v1/ingest/records?'+new URLSearchParams({signal:'metrics',metric:'synthetic_porthole_queue',limit:200,snapshot}),{headers:{cookie}}))
+ const pageBytes=page.records.reduce((sum,row)=>sum+Buffer.byteLength(JSON.stringify(row.payload)),0)
+ const pagedQuota=await post('/app/settings/credentials/mint',{name:'synthetic-porthole-3105',class:'read',scope:{...scope,actions:['telemetry.read']},scannedBytesPerDay:Math.ceil(pageBytes*1.1)},201)
+ const exhausted=await query({expression:'synthetic_porthole_queue',time:reference.end,snapshot},pagedQuota.secret)
+ assert.equal(exhausted.status,429,'a later-page quota refusal discards the accumulated series')
+ assert.ok(!(await exhausted.text()).includes('evaluation'))
+ assert.ok((await getDb().prepare('SELECT day_scanned_bytes AS used FROM porthole_credentials WHERE id=?').bind(pagedQuota.credential.id).first()).used>0,'at least one page was admitted before the quota stopped this query')
+ const range={start:String(BigInt(reference.t)*1000000n),end:reference.end,step:.1,snapshot}
+ const tooMany=await query({expression:'synthetic_porthole_queue',...range})
+ assert.equal(tooMany.status,400);assert.equal((await tooMany.json()).error,'promql_result_budget_exceeded')
+ const groupedRange=await value(await query({expression:'sum by (team) (synthetic_porthole_queue)',...range}))
+ assert.equal(groupedRange.evaluation.state,'complete','grouping can reduce a large range to a permitted result')
+ assert.equal(groupedRange.evaluation.result.length,1)
  const {wireCases}=await import('./promql-wire.mjs'),edges=await wireCases(reference)
  const edgeResponse=await call('/api/v1/write',{method:'POST',headers:{authorization:'Bearer '+source.secret,'content-type':'application/x-protobuf','content-encoding':'snappy','x-prometheus-remote-write-version':'0.1.0'},body:edges.wire})
  assert.equal(edgeResponse.status,204,await edgeResponse.clone().text());await post('/api/porthole/v1/ingest/drain',{})
@@ -85,12 +100,20 @@ export async function promqlNativeJourney(context,reference,{backend='local',onQ
  const wire=await schemaCases({send,post,query,source,reference,snapshot})
  await promqlBrowser({context,reference,initial,backend,snapshot})
  if(onQuery) {
-  let pages=0
-  onQuery(async()=>{if(++pages===2)await post('/app/settings/credentials/revoke',{id:reader.credential.id})})
-  const denied=await query({expression:'synthetic_porthole_queue',time:reference.end,snapshot})
-  onQuery(null)
-  assert.ok([401,409].includes(denied.status),await denied.clone().text());assert.ok(!(await denied.text()).includes('"result"'))
-  assert.equal(pages,2,'revocation occurred during the second real analytical page')
+  for(const [index,role] of ['primary','standby'].entries()) {
+   const config=await value(await call('/api/porthole/v1/analytics/configuration',{headers:{cookie}}))
+   await post('/api/porthole/v1/analytics/configuration',{revision:config.revision,role,enabled:true,confirm:'connect-analytical-workers'})
+   const selected=index?await post('/app/settings/credentials/mint',{name:'synthetic-porthole-3106',class:'read',scope:{...scope,actions:['telemetry.read']}},201):reader
+   let pages=0
+   onQuery(async()=>{if(++pages===2)await post('/app/settings/credentials/revoke',{id:selected.credential.id})})
+   const denied=await query({expression:'synthetic_porthole_queue',time:reference.end,snapshot},selected.secret)
+   onQuery(null)
+   assert.ok([401,409].includes(denied.status),await denied.clone().text());assert.ok(!(await denied.text()).includes('"result"'))
+   assert.equal(pages,2,'revocation occurred during the second real '+role+' page')
+   assert.equal((await call(lifecycle.replay,{headers:{authorization:'Bearer '+selected.secret}})).status,401,'a saved missing-input range cannot revive a revoked reader')
+  }
+  const config=await value(await call('/api/porthole/v1/analytics/configuration',{headers:{cookie}}))
+  await post('/api/porthole/v1/analytics/configuration',{revision:config.revision,role:'primary',enabled:true,confirm:'connect-analytical-workers'})
  }else {
   await post('/app/settings/credentials/revoke',{id:reader.credential.id})
  }
@@ -99,7 +122,7 @@ export async function promqlNativeJourney(context,reference,{backend='local',onQ
  const owner=await value(await query({expression:'synthetic_porthole_queue',time:reference.end,snapshot},null))
  matches(owner.evaluation.result,expected.result)
  const {promqlArchiveJourney}=await import('./archive.mjs')
- await promqlArchiveJourney({context,reference,replay,expected:initial.evaluation,backend})
+ await promqlArchiveJourney({context,reference,replay,expected:initial.evaluation,backend,lifecycle})
  if(backend==='local') {
   const preview=await post('/api/porthole/v1/subject-erasure',{identifier:subject})
   assert.equal(preview.canApply,true)
@@ -107,9 +130,10 @@ export async function promqlNativeJourney(context,reference,{backend='local',onQ
   const erased=await value(await query({expression:'synthetic_porthole_queue',time:reference.end,snapshot},null))
   assert.deepEqual(erased.evaluation.result,[],'erased subjects remain absent from the saved completion watermark')
   const original=await value(await call(replay,{headers:{cookie}}));assert.deepEqual(original.evaluation.result,[])
+  assert.deepEqual((await value(await call(lifecycle.replay,{headers:{cookie}}))).evaluation.result,[],'erasure removes both measurements and missing-input history from replay')
   assert.equal((await intake()).status,409,'capture replay cannot resurrect erased metric evidence')
  }
- console.log('PROBE PORT-014 '+backend+': stock gauges, counters, resets, range, grouping, missing inputs, boundaries, pages, restart, replay, quotas, refusals and inactive restore passed; schema cases='+wire)
+ console.log('PROBE PORT-014 '+backend+': stock gauges, producer omission and recovery with captured stale markers, counters, resets, range, grouping, missing inputs, boundaries, pages, restart, replay, quotas, refusals and inactive restore passed; schema cases='+wire)
  return {snapshot,replay}
 }
 async function schemaCases({send,post,query,source,reference}) {

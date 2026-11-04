@@ -297,7 +297,7 @@ if(process.argv[1]===new URL(import.meta.url).pathname)await analyticalKernelJou
 export async function promqlAnalyticalJourney(reference) {
  const estate=await analyticalEstate();let hook=null
  try {
-  const services={...estate.services,ANALYTICS_PRIMARY:async request=>{if(new URL(request.url).pathname==='/v1/query'&&hook)await hook();return estate.services.ANALYTICS_PRIMARY(request)}}
+  const services=Object.fromEntries(Object.entries(estate.services).map(([name,service])=>[name,async request=>{if(new URL(request.url).pathname==='/v1/query'&&hook)await hook();return service(request)}]))
   const {recipientMailJourney,healthBrowser}=await import('./health.mjs'),{promqlNativeJourney}=await import('./promql.mjs')
   await recipientMailJourney({bindings:estate.bindings,services,run:async context=>{
    await promqlNativeJourney(context,reference,{backend:'analytical',onQuery:callback=>{hook=callback}})

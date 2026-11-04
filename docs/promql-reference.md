@@ -19,8 +19,18 @@ The supported comparison cases are:
    account for resets and use Prometheus boundary extrapolation and zero bounds.
 5. Counter increments and a real producer process reset compare against the
    same samples and evaluation instants in the stock reference server.
-6. Stale markers, absent inputs, lookback edges, exact range boundaries and
-   multiple native read pages preserve membership and numeric values.
+6. A real producer gauge disappears from the scrape and resumes with a changed
+   measurement. Stock Prometheus emits its own stale marker into captured v1
+   remote-write traffic. Those exact timestamps, labels, values and missing
+   markers are replayed as typed OTLP points through native intake. Instant and
+   stepped-range results match the reference before, at and after disappearance
+   and recovery; restart and inactive restore preserve the absent intervals.
+7. Schema-edge stale markers, absent inputs, lookback edges, exact range
+   boundaries and multiple native read pages preserve membership and values.
+8. A read quota exhausted after an admitted page and an exceeded output budget
+   release no accumulated evaluation. Grouping can reduce an otherwise excessive
+   result to a permitted one. Revocation during the second page on either real
+   analytical role refuses, and saved ranges cannot renew that authority.
 
 Only scalar OTLP gauges and monotonic cumulative sums are evaluated. Delta sums,
 non-monotonic sums, histograms and summaries refuse. Units must remain compatible

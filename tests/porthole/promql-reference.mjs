@@ -8,6 +8,7 @@ import {tmpdir} from 'node:os'
 import {join,resolve} from 'node:path'
 import {createHash} from 'node:crypto'
 import {setTimeout as delay} from 'node:timers/promises'
+import {prometheusCapture} from './promql-capture.mjs'
 const execute=promisify(execFile)
 // Official 3.5.0 release archive digests, checked before extracting the reference.
 const archives={
@@ -34,6 +35,7 @@ export const seconds=nanoseconds=>{const n=BigInt(nanoseconds);return String(n/1
 export async function prometheusReference() {
  const binary=await referenceBinary(),scratch=await mkdtemp(join(tmpdir(),'synthetic-porthole-promql-')),producerPort=await port(),referencePort=await port()
  const origin='http://127.0.0.1:'+referencePort,producerOrigin='http://127.0.0.1:'+producerPort
+ const capture=await prometheusCapture()
  let producer,server,logs=''
  const t=Date.now()-120000
  const query=async(expression,settings)=>{
@@ -47,7 +49,7 @@ export async function prometheusReference() {
  try {
   await startProducer()
   const config=join(scratch,'prometheus.yml')
-  await writeFile(config,`global:\n  scrape_interval: 200ms\n  scrape_timeout: 150ms\nscrape_configs:\n  - job_name: synthetic-porthole-3100\n    honor_timestamps: true\n    static_configs:\n      - targets: ['127.0.0.1:${producerPort}']\n`)
+  await writeFile(config,`global:\n  scrape_interval: 200ms\n  scrape_timeout: 150ms\nremote_write:\n  - url: '${capture.origin}/write'\n    write_relabel_configs:\n      - source_labels: [__name__]\n        regex: synthetic_porthole_lifecycle\n        action: keep\n    queue_config:\n      min_shards: 1\n      max_shards: 1\n      batch_send_deadline: 200ms\nscrape_configs:\n  - job_name: synthetic-porthole-3100\n    honor_timestamps: true\n    static_configs:\n      - targets: ['127.0.0.1:${producerPort}']\n`)
   server=spawn(binary,['--config.file='+config,'--storage.tsdb.path='+join(scratch,'data'),'--web.listen-address=127.0.0.1:'+referencePort,'--web.enable-remote-write-receiver'],{stdio:['ignore','pipe','pipe']})
   for(const stream of [server.stdout,server.stderr])stream.on('data',chunk=>logs=(logs+chunk).slice(-10000))
   await until(async()=>{try{return (await fetch(origin+'/-/ready')).ok}catch{return false}},'stock reference readiness: '+logs)
@@ -68,6 +70,21 @@ export async function prometheusReference() {
    for(const row of data.result){assert.equal(row.values.length,6,'every controlled producer sample was scraped');series.push({labels:row.metric,kind:name.endsWith('_total')?'counter':'gauge',unit:name.endsWith('_total')?'requests':'items',samples:row.values.map(([time,value])=>({time:ns(time),value:Number(value)}))})}
   }
   assert.ok(series.filter(row=>row.kind==='counter').every(row=>row.samples[3].value<row.samples[2].value),'actual process reset lowered every cumulative series')
+  // This gauge has no explicit scrape timestamp. Removing it from the real
+  // producer makes Prometheus itself emit the distinguished stale marker.
+  await until(async()=>capture.samples.some(point=>!point.stale),'stock remote write captured live gauge')
+  const live=await query('timestamp(synthetic_porthole_lifecycle)',{time:String(BigInt(Date.now())*1000000n)})
+  assert.equal(live.result.length,1)
+  const lastLive=BigInt(Math.round(Number(live.result[0].value[1])*1000))*1000000n
+  await fetch(producerOrigin+'/visibility?present=false')
+  await until(async()=>capture.samples.some(point=>point.stale&&BigInt(point.time)>lastLive),'stock Prometheus emitted stale marker after producer omission')
+  const stale=capture.samples.find(point=>point.stale&&BigInt(point.time)>lastLive)
+  assert.deepEqual((await query('synthetic_porthole_lifecycle',{time:stale.time})).result,[])
+  await fetch(producerOrigin+'/visibility?present=true')
+  await until(async()=>capture.samples.some(point=>!point.stale&&point.value===17&&BigInt(point.time)>BigInt(stale.time)),'stock remote write captured resumed measurement')
+  assert.deepEqual(capture.failures,[])
+  const lifecycle=capture.samples.slice(),resumed=lifecycle.find(point=>point.value===17&&BigInt(point.time)>BigInt(stale.time))
+  series.push({labels:lifecycle[0].labels,kind:'gauge',unit:'',samples:lifecycle.map(({time,value,stale})=>({time,value,stale}))})
   const cases=[
    {expression:'synthetic_porthole_queue',settings:{time:end}},
    {expression:'synthetic_porthole_queue{lane="2"}',settings:{start:String(BigInt(t)*1000000n),end,step:7}},
@@ -79,7 +96,9 @@ export async function prometheusReference() {
    {expression:'synthetic_porthole_queue{absent=""}',settings:{time:end}},
    {expression:'synthetic_porthole_queue',settings:{time:String(BigInt(t+55000)*1000000n),lookback:5}},
   ]
+  for(const time of [String(BigInt(stale.time)-1000000n),stale.time,String(BigInt(stale.time)+1000000n),resumed.time])cases.push({expression:'synthetic_porthole_lifecycle',settings:{time}})
+  cases.push({expression:'synthetic_porthole_lifecycle',settings:{start:String(BigInt(stale.time)-1000000000n),end:resumed.time,step:.1}})
   for(const item of cases)item.expected=await query(item.expression,item.settings)
-  return {origin,t,end,series,cases,query,close:async()=>{await stop(producer);await stop(server);await rm(scratch,{recursive:true,force:true})}}
- }catch(error){await stop(producer);await stop(server);await rm(scratch,{recursive:true,force:true});error.message+='\n'+logs;throw error}
+  return {origin,t,end,series,cases,query,close:async()=>{await stop(producer);await stop(server);await capture.close();await rm(scratch,{recursive:true,force:true})}}
+ }catch(error){await stop(producer);await stop(server);await capture.close();await rm(scratch,{recursive:true,force:true});error.message+='\n'+logs;throw error}
 }

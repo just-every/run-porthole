@@ -95,6 +95,9 @@ importers:
       prom-client:
         specifier: 15.1.3
         version: 15.1.3
+      snappyjs:
+        specifier: 0.7.0
+        version: 0.7.0
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -1566,6 +1569,9 @@ packages:
     peerDependenciesMeta:
       '@types/node':
         optional: true
+
+  snappyjs@0.7.0:
+    resolution: {integrity: sha512-u5iEEXkMe2EInQio6Wv9LWHOQYRDbD2O9hzS27GpT/lwfIQhTCnHCTqedqHIHe9ZcvQo+9au6vngQayipz1NYw==}
 
   source-map-js@1.2.2:
     resolution: {integrity: sha512-KGj/8Y43x35aZVDtt+J4mK1hoLGHULMYfSkODJNQjNDC3oW1PqPoxMwo0pLUsWM/UEGzON/NxeHywEfNXNP3Vw==}
@@ -3197,6 +3203,8 @@ snapshots:
       '@img/sharp-win32-ia32': 0.35.5
       '@img/sharp-win32-x64': 0.35.5
       '@types/node': 22.18.8
+
+  snappyjs@0.7.0: {}
 
   source-map-js@1.2.2: {}
 
