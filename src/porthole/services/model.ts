@@ -11,7 +11,7 @@ export function safeLink(value:unknown):string {
  if(typeof value!=='string'||value.length>1000)fail('invalid_service_link',400)
  if(!value)return ''
  let url:URL;try{url=new URL(value)}catch{return fail('invalid_service_link',400)}
- if(url.protocol!=='https:'||url.username||url.password||url.hash||url.search||/[\u0000-\u0020\u007f]/.test(value))fail('invalid_service_link',400)
+ if(url.protocol!=='https:'||url.username||url.password||/[\u0000-\u0020\u007f]/.test(value))fail('invalid_service_link',400)
  return url.href
 }
 export function validateMetadata(row:Record<string,unknown>) {
@@ -36,6 +36,7 @@ export function catalog(records:TraceRecord[],from:string,through:string,truncat
   group.set(canonical({service:row.service,environment:row.environment,team:row.team,record:row.payload.record,resource:row.payload.resource??{},scope:row.payload.scope??{}}),row);variants.set(key,group)
  }
  const unique=new Map([...variants].filter(([,v])=>v.size===1).map(([k,v])=>[k,[...v.values()][0]]))
+ const parentsWithChildren=new Set([...unique.values()].flatMap(row=>typeof row.payload.record.parentSpanId==='string'&&row.payload.record.parentSpanId?[row.trace_id+':'+row.payload.record.parentSpanId.toLowerCase()]:[]))
  const edges=new Map<string,{from:string;to:string|null;kind:string;observations:number}>()
  let conflicts=0
  for(const [key,group]of variants){
@@ -51,6 +52,10 @@ export function catalog(records:TraceRecord[],from:string,through:string,truncat
    service.requests.push({duration:end-start,error:status?.code===2||http>=500||rpc>0,endpoint})
   }
   services.set(id,service)
+  if((kind===3||kind===4)&&!parentsWithChildren.has(key)){
+   const edge={from:id,to:null,kind:'unresolved-target',observations:0},edgeKey=canonical(edge),old=edges.get(edgeKey)??edge
+   old.observations++;edges.set(edgeKey,old)
+  }
   const parent=typeof raw.parentSpanId==='string'&&raw.parentSpanId?unique.get(row.trace_id+':'+raw.parentSpanId.toLowerCase()):undefined
   if(raw.parentSpanId){
    const source=parent?identity(parent):null

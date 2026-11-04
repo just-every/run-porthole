@@ -329,7 +329,7 @@
             "NativeSession": []
           }
         ],
-        "description": "Fresh native owner session only, within current scope. Assignee must already be an active eligible member with matching scope; attribution never grants membership or document access. A revision mismatch or revoked authority changes no metadata. Restore leaves revisions quarantined until a new native review. Links are HTTPS without credentials, query or fragment; no destination is fetched.",
+        "description": "Fresh native owner session only, within current scope. Assignee must already be an active eligible member with matching scope; attribution never grants membership or document access. A revision mismatch or revoked authority changes no metadata. Restore leaves revisions quarantined until a new native review. Links are HTTPS without embedded credentials; no destination is fetched.",
         "parameters": [
           {
             "name": "id",
