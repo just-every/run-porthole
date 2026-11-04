@@ -238,7 +238,8 @@ fields are supported. The general 1 MiB and 5,000-record limits still apply.
 
 `./tests/porthole/prometheus-stock.mjs` runs a checksum-verified stock source,
 real request counters and latency histograms, and a separate stock reference
-TSDB. It compares more than 200 actual samples through paginated native reads,
+TSDB. It compares every accepted sample, including Prometheus's own scrape
+series and more than 200 actual producer samples, through paginated native reads,
 then the primary and standby analytical configurations. It includes source
 staleness, normal NaN, complete labels, original bits and timestamps, metadata,
 actual pressure and interrupted acknowledgments, source restart on its existing

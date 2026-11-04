@@ -220,13 +220,14 @@ export async function prometheusStockJourney() {
    },'both stock destination queues drain and source staleness is emitted')
    await delay(1200)
    await sender.stop();trafficRunning=false;await traffic
-   const writes=[...captures.values()].map(c=>decodeWrite(c.wire)),captured=writes.flatMap(write=>write.samples).filter(s=>s.labels.__name__.startsWith('synthetic_porthole_'))
+   const writes=[...captures.values()].map(c=>decodeWrite(c.wire)),captured=writes.flatMap(write=>write.samples)
    metadata=writes.flatMap(write=>write.metadata)
-   assert.ok(captured.length>200);assert.equal(new Set(captured.map(sampleKey)).size,captured.length,'wire-identical retries never add a distinct captured source batch')
-   expected=(await referenceSamples(reference.origin)).filter(s=>s.labels.__name__.startsWith('synthetic_porthole_'))
+   assert.ok(captured.filter(s=>s.labels.__name__.startsWith('synthetic_porthole_')).length>200,'more than 200 samples come from real producer requests')
+   assert.equal(new Set(captured.map(sampleKey)).size,captured.length,'wire-identical retries never add a distinct captured source batch')
+   expected=await referenceSamples(reference.origin)
    assert.deepEqual(captured.map(sampleKey).sort(),expected.map(sampleKey).sort(),'all identical producer samples reach the actual stock reference TSDB')
    const instance=new URL(producerServer.origin).host
-   for(const sample of captured.filter(s=>s.bits!=='7ff0000000000002')) {
+   for(const sample of captured.filter(s=>s.labels.__name__.startsWith('synthetic_porthole_')&&s.bits!=='7ff0000000000002')) {
     const {job,instance:actualInstance,...labels}=sample.labels
     assert.equal(job,scope.services[0]);assert.equal(actualInstance,instance)
     // Prometheus canonicalizes an empty label to absence, identically at both destinations.
@@ -239,7 +240,7 @@ export async function prometheusStockJourney() {
    await restart()
    for(const capture of savedWire){const response=await call('/api/v1/write',{method:'POST',headers:capture.headers,body:capture.wire});assert.equal(response.status,204);assert.equal(response.headers.get('x-porthole-duplicate'),'true','durable restart retains exact source batch identity')}
    await post(root+'/control',{paused:false});await drained(context)
-   const page=await nativePages(context),samples=reconcile(page.records.filter(r=>r.payload.metricKind==='metadata'||r.payload.metric.name.startsWith('synthetic_porthole_')),expected)
+   const page=await nativePages(context),samples=reconcile(page.records,expected)
    assert.ok(page.pages>4,'native public reads really paginate')
    const retainedMetadata=page.records.filter(r=>r.payload.metricKind==='metadata')
    assert.deepEqual(retainedMetadata.map(r=>canonical(r.payload.metadata)).sort(),metadata.map(canonical).sort(),'separate metadata requests remain native records without invented values')
@@ -270,7 +271,7 @@ export async function prometheusStockJourney() {
    for(const role of ['primary','standby']){
     await configure(role)
     const page=await nativePages(context)
-    reconcile(page.records.filter(r=>r.payload.metricKind!=='metadata'&&r.payload.metric.name.startsWith('synthetic_porthole_')),expected)
+    reconcile(page.records,expected)
     assert.deepEqual(page.records.filter(r=>r.payload.metricKind==='metadata').map(r=>canonical(r.payload.metadata)).sort(),metadata.map(canonical).sort())
     const archive=await nativePages(context,{},undefined,root+'/archive');assert.deepEqual(archive.records.map(r=>r.payload),page.records.map(r=>r.payload))
     if(first)assert.deepEqual(page.records.map(r=>r.payload),first);else first=page.records.map(r=>r.payload)
