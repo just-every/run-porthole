@@ -111,6 +111,14 @@ async function boundConsumerBrowser({origin,cookie,id,from,through}) {
     assert.deepEqual(await group.locator('[data-panel]').evaluateAll(nodes=>nodes.map(n=>n.dataset.panel)),['consumer:traces','consumer:requests','consumer:logs'])
     assert.match(await group.locator('[data-panel="consumer:logs"]').innerText(),/2 records/)
     assert.match(await group.locator('[data-panel="consumer:requests"]').innerText(),/2 requests/)
+    const traceLink=new URL(await group.getByRole('link',{name:'Open underlying traces query'}).getAttribute('href'),origin)
+    traceLink.pathname='/api/porthole/v1/ingest/records'
+    const traceRecords=(await (await context.request.get(traceLink.href)).json()).records
+    assert.equal(traceRecords.length,4,'two independently emitted HTTP requests contribute client and server spans')
+    const latency=Math.max(...traceRecords.map(row=>Number(BigInt(row.payload.record.endTimeUnixNano)-BigInt(row.payload.record.startTimeUnixNano))/1e6))
+    const traceText=await group.locator('[data-panel="consumer:traces"]').innerText()
+    assert.match(traceText,/4 records/)
+    assert.match(traceText,new RegExp(String(Number(latency.toFixed(4))).replace('.','\\.')),'the second consumer renders its own measured trace percentile')
     for(const link of await group.getByRole('link',{name:/Open underlying/}).all()) {
      const target=new URL(await link.getAttribute('href'),origin)
      assert.equal(target.searchParams.get('from'),from);assert.equal(target.searchParams.get('through'),through)
@@ -154,7 +162,7 @@ async function boundConsumerBrowser({origin,cookie,id,from,through}) {
    await context.close()
   }
  } finally {await browser.close()}
- console.log('PROBE PORT-068 child-bindings: independently emitted commerce production and payments staging traffic -> updated consumers preserve distinct child values, order, original ranges and source links after restart; native JSON save retains consumer variables and refuses unreviewed child edits without writes')
+ console.log('PROBE PORT-068 child-bindings: independently emitted commerce production and payments staging traffic -> updated consumers preserve distinct metric, log and trace values, order, original ranges and source links after restart; native JSON save retains consumer variables and refuses unreviewed child edits without writes')
 }
 
 async function layoutBrowser({origin,cookie,id,reader,expected,withPinnedClock}) {

@@ -5585,7 +5585,7 @@
       "executable": false
     },
     "tests/porthole/dashboard-layout.mjs": {
-      "sha256": "ee95fda5b9e404acc5462359daab6335b0125a5789b4b66422305eb7aca49c09",
+      "sha256": "99a819fc82b797f07a34fe3169c5ca15ae54351a4f2227b7c6d2e2f88606ba9f",
       "executable": false
     },
     "tests/porthole/dashboards.mjs": {
