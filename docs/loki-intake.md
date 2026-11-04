@@ -64,10 +64,10 @@ The reproducible journey in `tests/porthole/loki-shippers.mjs` uses:
 
 | Component | Pinned version | Source |
 | --- | --- | --- |
-| Grafana Loki reference | 3.5.0 | Official Linux amd64 release archive |
+| Grafana Loki reference | 3.7.9 | Official Linux amd64 release archive |
 | Grafana Alloy | 1.10.2 | Official Linux amd64 release archive |
 | Promtail, retained compatibility version | 3.5.0 | Official Linux amd64 release archive |
-| Fluent Bit | 4.0.0 | Official `fluent/fluent-bit:4.0.0` image |
+| Fluent Bit | 4.0.0 | Official `docker.io/fluent/fluent-bit:4.0.0` image |
 
 Promtail is a retained compatibility target, not a recommendation for new
 installations. Its historical supported configuration is preserved for this
@@ -107,7 +107,7 @@ covers the labels actually emitted by each shipper.
 The journey reconciles every producer identity, full Unicode byte sequence,
 stream label set, metadata value and original nanosecond through bounded
 native pages and Loki's inclusive timestamp pages with categorized labels. A test destination edge
-returns one 429 so the real stock client retries. The same stock corpus
+returns one 429 to each shipper so its real stock client retries. The same stock corpus
 survives restart, reversed exact-wire replay, private inactive product
 archive restore and re-export. The native local analytical configuration and
 separately connected primary and standby are compared using native APIs.

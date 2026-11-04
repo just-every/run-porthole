@@ -1113,14 +1113,28 @@ export async function genaiArchiveJourney({origin,cookie,withEmptyDestination,tr
 }
 
 /** The stock Loki corpus crosses the existing inactive product-archive door. */
-export async function lokiArchiveJourney({origin,cookie,freshOwner,withEmptyDestination,records,service}) {
+export async function lokiArchiveJourney({origin,cookie,freshOwner,restartWorker,withEmptyDestination,records,service}) {
  const {readLokiPages,logProjection}=await import('./loki-shippers.mjs')
  cookie=await freshOwner()
  const saved=await savedExport(origin,cookie,await post(origin,cookie,api+'/exports',{}),freshOwner)
+ const largest=saved.chunks.reduce((a,b)=>JSON.stringify(a).length>JSON.stringify(b).length?a:b)
+ await restartWorker();cookie=await freshOwner()
+ const cached=await value(await get(origin,cookie,`${api}/exports/${saved.job.id}/chunks/${largest.index}`))
+ assert.deepEqual(cached,largest,'large source packets replay exactly after restart')
  await withEmptyDestination(async destination=>{
   let acting=await destination.freshOwner()
   const restore=await value(await post(destination.origin,acting,api+'/restores',{manifest:saved.manifest}),201)
-  for(const chunk of saved.chunks){if(chunk.index%128===0)acting=await destination.freshOwner();await value(await post(destination.origin,acting,`${api}/restores/${restore.id}/chunks`,{chunk}))}
+  for(const chunk of saved.chunks){
+   if(chunk.index%128===0)acting=await destination.freshOwner()
+   await value(await post(destination.origin,acting,`${api}/restores/${restore.id}/chunks`,{chunk}))
+   if(chunk.index===largest.index){
+    await destination.restartWorker();acting=await destination.freshOwner()
+    const replay=await value(await post(destination.origin,acting,`${api}/restores/${restore.id}/chunks`,{chunk}))
+    assert.equal(replay.nextChunk,chunk.index+1,'a large packet retry never advances twice')
+    const changed=structuredClone(chunk);changed.rows.reverse()
+    assert.equal((await post(destination.origin,acting,`${api}/restores/${restore.id}/chunks`,{chunk:changed})).status,409,'reordered replay cannot replace durable rows')
+   }
+  }
   await value(await post(destination.origin,acting,`${api}/restores/${restore.id}/commit`,{confirm:saved.manifest.rootHash}))
   const copy=await readLokiPages({origin:destination.origin,cookie:acting,service})
   assert.deepEqual(copy.map(row=>[row.id,logProjection(row)]),records.map(row=>[row.id,logProjection(row)]))

@@ -15,7 +15,7 @@ export function lokiWire(streams){return snappy(Buffer.concat(streams.map(({stre
  str(1,'{'+Object.entries(stream).map(([k,value])=>k+'='+JSON.stringify(value)).join(',')+'}'),
  ...values.map(([at,line,metadata={}])=>msg(2,Buffer.concat([
   msg(1,Buffer.concat([uint(1,BigInt(at)/1000000000n),uint(2,BigInt(at)%1000000000n)])),str(2,line),
-  ...Object.entries(metadata).map(([key,value])=>msg(3,Buffer.concat([str(1,key),...(value?[str(2,value)]:[])]))),
+  ...(Array.isArray(metadata)?metadata:Object.entries(metadata)).map(([key,value])=>msg(3,Buffer.concat([str(1,key),...(value?[str(2,value)]:[])]))),
  ]))),
 ])))))}
 export const streamLabels=extra=>({service:lokiScope.services[0],environment:lokiScope.environments[0],team:lokiScope.teams[0],...extra})
@@ -41,6 +41,8 @@ export async function lokiSchemaJourney({origin,freshOwner,restartWorker}){
  const packets=[entry(at,'synthetic-porthole-18702 日本語 Ελληνικά 😀',{empty:'',detail:'Δ 日本語'}),entry(at,'synthetic-porthole-18703'),entry(at-1n,'synthetic-porthole-18704'),entry(now-7140n*1000000000n,'synthetic-porthole-18705')]
  const wires=[JSON.stringify(packets[0]),gzipSync(JSON.stringify(packets[1])),lokiWire(packets[2].streams),lokiWire(packets[3].streams)]
  const formats=[{}, {'content-encoding':'gzip'}, {'content-type':'application/x-protobuf','content-encoding':'snappy'}, {'content-type':'application/x-protobuf'}]
+ packets.push(entry(at+2n,'synthetic-porthole-18714'));packets.at(-1).streams[0].stream.large='x'.repeat(4000)
+ wires.push(Buffer.from(JSON.stringify(packets.at(-1))));formats.push({})
  // One equal-nanosecond pair crosses wire encodings and separate envelopes.
  wires[0]=Buffer.from(wires[0]);packets[2].streams[0].values[0][2]={empty:''};wires[2]=lokiWire(packets[2].streams)
  for(let i=0;i<wires.length;i++){const r=await send(wires[i],formats[i]);assert.equal(r.status,204,await r.text());assert.equal(r.headers.get('x-porthole-accepted'),'1')}
@@ -66,12 +68,14 @@ export async function lokiSchemaJourney({origin,freshOwner,restartWorker}){
  assert.equal((await send(Buffer.from('synthetic-porthole-18711'),{'content-encoding':'gzip'})).status,400)
  assert.equal((await send(Buffer.from([255]),{'content-type':'application/x-protobuf'})).status,400)
  assert.equal((await send(packets[0],{'content-encoding':'snappy'})).status,415)
+ const repeated=lokiWire([{stream:streamLabels(),values:[[String(at),'synthetic-porthole-18715',[['detail','first'],['detail','second']]]]}])
+ const repeatedReply=await send(repeated,{'content-type':'application/x-protobuf'});assert.equal(repeatedReply.status,400);assert.equal((await repeatedReply.json()).error,'duplicate_loki_metadata')
  assert.equal((await post(root+'/control',{paused:true,maxPendingBytes:1})).status,200)
  const pressure=await send(entry(at+20n,'synthetic-porthole-18712'));assert.equal(pressure.status,429);assert.ok(Number(pressure.headers.get('retry-after'))>0)
  assert.equal((await post(root+'/control',{paused:false,maxPendingBytes:33554432})).status,200)
  assert.deepEqual((await readLokiPages({origin,cookie})).map(row=>row.id),before.map(row=>row.id),'all refused writes change no retained data')
  const status=await (await fetch(origin+root+'/status',{headers:{cookie}})).json(),rows=status.sources.filter(row=>row.sourceId===source.credential.id)
- assert.equal(rows.reduce((n,row)=>n+row.accepted,0),4)
+ assert.equal(rows.reduce((n,row)=>n+row.accepted,0),5)
  const reasons=rows.flatMap(row=>row.reasons)
  assert.ok(reasons.some(row=>row.reason==='loki_timestamp_older_than_two_hours'&&row.count===2),JSON.stringify(reasons))
  assert.ok(reasons.some(row=>row.reason==='queue_pressure'&&row.count===1))
@@ -172,7 +176,7 @@ export async function lokiShipperJourney({origin,freshOwner,restartWorker,withEm
  const {createServer}=await import('node:http'),{tmpdir}=await import('node:os'),{join}=await import('node:path'),{setTimeout:delay}=await import('node:timers/promises')
  const {createServer:socket}=await import('node:net')
  console.log('LOKI_SCALE_HEAD '+execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim())
- const scratch=await mkdtemp(join(tmpdir(),'porthole-loki-')),children=[],captures=[],expected=[],versions={alloy:'1.10.2',promtail:'3.5.0',loki:'3.5.0',fluent:'4.0.0'}
+ const scratch=await mkdtemp(join(tmpdir(),'porthole-loki-')),children=[],captures=[],expected=[],versions={alloy:'1.10.2',promtail:'3.5.0',loki:'3.7.9',fluent:'4.0.0'}
  let cookie=await freshOwner(),bridge
  const port=async()=>{const s=socket();s.listen(0,'127.0.0.1');await once(s,'listening');const p=s.address().port;await new Promise(r=>s.close(r));return p}
  const post=(path,data)=>fetch(origin+path,{method:'POST',headers:{origin,cookie,'content-type':'application/json'},body:JSON.stringify(data)})
@@ -301,7 +305,7 @@ analytics: {reporting_enabled: false}
   assert.deepEqual(streamCounts(projected),streamCounts(referenceRows),'per-stream counts agree with actual source storage')
   console.log('PROBE PORT-087 reconciliation: paginated Loki and native reads -> all 30000 identities, labels, Unicode bytes, metadata and nanoseconds equal')
   const {lokiArchiveJourney}=await import('./archive.mjs')
-  await lokiArchiveJourney({origin,cookie,freshOwner,withEmptyDestination,records:native,service:lokiScope.services[0]})
+  await lokiArchiveJourney({origin,cookie,freshOwner,restartWorker,withEmptyDestination,records:native,service:lokiScope.services[0]})
   cookie=await freshOwner()
   if(configureAnalytical)await configureAnalytical(async()=>{
    cookie=await freshOwner()

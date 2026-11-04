@@ -1,3 +1,4 @@
+import { cachedChunk, packetHeader } from './packet'
 import { eraseJournaledBatches } from '../privacy/erasure/http'
 import type { Authority } from '../security/authority'
 import { fail } from '../security/authority'
@@ -44,8 +45,8 @@ export async function stageChunk(db:D1Database,actor:Authority,job:Job,value:unk
  const manifest=JSON.parse(job.manifest!) as Manifest
  // A lost HTTP response can replay the exact already-committed chunk.
  if(value&&typeof value==='object'&&'index' in value&&Number.isSafeInteger(value.index)&&(value.index as number)<job.next_chunk) {
-  const old=await db.prepare('SELECT packet FROM porthole_archive_chunks WHERE job_id=? AND chunk_index=?').bind(job.id,value.index).first<{packet:string}>()
-  if(!old||old.packet!==JSON.stringify(value))fail('archive_chunk_conflict',409)
+  const old=await cachedChunk(db,job.id,value.index as number)
+  if(!old||JSON.stringify(old)!==JSON.stringify(value))fail('archive_chunk_conflict',409)
   await db.batch([guard(db,actor)]);return job
  }
  if(job.state!=='staging'||job.next_chunk>=manifest.chunks)fail('archive_cursor_invalid',409)
@@ -54,7 +55,7 @@ export async function stageChunk(db:D1Database,actor:Authority,job:Job,value:unk
  for(const row of chunk.rows)await validateRow(row,validation)
  for(const [table,count] of Object.entries(validation.tables))if(count>manifest.tables[table])fail('archive_semantics_invalid',422)
  const inserts=chunk.rows.map((payload,index)=>db.prepare('INSERT INTO porthole_archive_rows(job_id,ordinal,payload,table_name,row_key) VALUES(?,?,?,?,?)').bind(job.id,job.row_count+index,JSON.stringify(payload),payload.table,rowKey(payload.table,payload.row)))
- await db.batch([guard(db,actor,`EXISTS(SELECT 1 FROM porthole_archive_jobs WHERE id=? AND state='staging' AND next_chunk=?)`,[job.id,job.next_chunk]),...inserts,db.prepare('INSERT INTO porthole_archive_chunks(job_id,chunk_index,digest,packet) VALUES(?,?,?,?)').bind(job.id,chunk.index,chunk.digest,JSON.stringify(chunk)),db.prepare('UPDATE porthole_archive_jobs SET next_chunk=next_chunk+1,row_count=row_count+?,chain_hash=?,validation=? WHERE id=?').bind(chunk.rows.length,chunk.digest,JSON.stringify(validation),job.id)])
+ await db.batch([guard(db,actor,`EXISTS(SELECT 1 FROM porthole_archive_jobs WHERE id=? AND state='staging' AND next_chunk=?)`,[job.id,job.next_chunk]),...inserts,db.prepare('INSERT INTO porthole_archive_chunks(job_id,chunk_index,digest,packet) VALUES(?,?,?,?)').bind(job.id,chunk.index,chunk.digest,packetHeader(chunk)),db.prepare('UPDATE porthole_archive_jobs SET next_chunk=next_chunk+1,row_count=row_count+?,chain_hash=?,validation=? WHERE id=?').bind(chunk.rows.length,chunk.digest,JSON.stringify(validation),job.id)])
  return jobFor(db,job.id,actor)
 }
 export async function commitRestore(db:D1Database,actor:Authority,job:Job,confirmation:unknown):Promise<Job> {

@@ -4,6 +4,7 @@ import { digest, genesis } from '../audit/store'
 import { projectFacts } from '../audit/facts'
 import { catalog, snapshotQueries } from './catalog'
 import { chunkRows, format, initialValidation, validateRow, type Chunk, type Manifest, type PortableRow, type Validation } from './format'
+import { cachedChunk, packetHeader } from './packet'
 import {custodyBoundary,preflightSourceBytes} from '../migration/custody/boundary'
 import {validateCustody} from '../migration/custody/validate'
 import {requireReviewedUploads,reviewedUploadsAfterErasure} from '../migration/custody/erasure-fence'
@@ -39,8 +40,8 @@ export async function startExport(db:D1Database,actor:Authority):Promise<Job> {
 }
 export async function exportChunk(db:D1Database,actor:Authority,job:Job,index:number):Promise<Chunk|null> {
  if(!['snapshot','complete'].includes(job.state))fail('archive_validation_incomplete',409)
- const old=await db.prepare('SELECT packet FROM porthole_archive_chunks WHERE job_id=? AND chunk_index=?').bind(job.id,index).first<{packet:string}>()
- if(old){await db.batch([guard(db,actor)]);return JSON.parse(old.packet) as Chunk}
+ const old=await cachedChunk(db,job.id,index)
+ if(old){await db.batch([guard(db,actor)]);return old}
  if(index!==job.next_chunk)fail('archive_cursor_invalid',409)
  const rows=(await db.prepare('SELECT payload FROM porthole_archive_rows WHERE job_id=? AND ordinal>=? AND ordinal<? ORDER BY ordinal').bind(job.id,index*chunkRows,(index+1)*chunkRows).all<{payload:string}>()).results.map(value=>JSON.parse(value.payload) as PortableRow)
  if(!rows.length){await finishExport(db,actor,job);return null}
@@ -48,7 +49,7 @@ export async function exportChunk(db:D1Database,actor:Authority,job:Job,index:nu
  if(!state.tables)Object.assign(state,initialValidation())
  for(const row of rows)await validateRow(row,state)
  const base={version:1 as const,index,previousHash:job.chain_hash,rows},chunk:Chunk={...base,digest:await digest(JSON.stringify(base))}
- await db.batch([guard(db,actor,`EXISTS(SELECT 1 FROM porthole_archive_jobs WHERE id=? AND next_chunk=? AND chain_hash=?)`,[job.id,index,job.chain_hash]),db.prepare('INSERT INTO porthole_archive_chunks(job_id,chunk_index,digest,packet) VALUES(?,?,?,?)').bind(job.id,index,chunk.digest,JSON.stringify(chunk)),db.prepare('UPDATE porthole_archive_jobs SET next_chunk=next_chunk+1,chain_hash=?,validation=? WHERE id=?').bind(chunk.digest,JSON.stringify(state),job.id)])
+ await db.batch([guard(db,actor,`EXISTS(SELECT 1 FROM porthole_archive_jobs WHERE id=? AND next_chunk=? AND chain_hash=?)`,[job.id,index,job.chain_hash]),db.prepare('INSERT INTO porthole_archive_chunks(job_id,chunk_index,digest,packet) VALUES(?,?,?,?)').bind(job.id,index,chunk.digest,packetHeader(chunk)),db.prepare('UPDATE porthole_archive_jobs SET next_chunk=next_chunk+1,chain_hash=?,validation=? WHERE id=?').bind(chunk.digest,JSON.stringify(state),job.id)])
  if((index+1)*chunkRows>=job.row_count)await finishExport(db,actor,await jobFor(db,job.id,actor))
  return chunk
 }

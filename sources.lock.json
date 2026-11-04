@@ -441,7 +441,7 @@
       "executable": false
     },
     "docs/loki-intake.md": {
-      "sha256": "b695a53c2d3ba79398bb5295bc332e29c52da4d8f9d7617790c2c8ea2ee23d4e",
+      "sha256": "79e7731866fa69b5d1ee4c559aac673992db64291f305b175d602e1ff792a500",
       "executable": false
     },
     "docs/LOOK.md": {
@@ -5076,6 +5076,10 @@
       "sha256": "828d9dff256d08645b11bbc142650c71699d0d469310246c619921a81cb596d7",
       "executable": false
     },
+    "src/porthole/portability/packet.ts": {
+      "sha256": "cfbbdcb6c50686efabdcbfbfce5866035aac85a28bd7718044c6478cc7704250",
+      "executable": false
+    },
     "src/porthole/portability/page.ts": {
       "sha256": "844b7a89b69afd55d4547539c3154ad9375684053b0a44783c946f2d10d4c6bc",
       "executable": false
@@ -5085,11 +5089,11 @@
       "executable": false
     },
     "src/porthole/portability/restore.ts": {
-      "sha256": "168177cafb41d14eb1fe39d2ec4fd118dea08fa2181e326e30a138799117790c",
+      "sha256": "8a374cea9cc0ec8ffad637035fc83c03bceea2456e7ff1e901029948e54a362e",
       "executable": false
     },
     "src/porthole/portability/store.ts": {
-      "sha256": "7cabe5376ce981dc963506eb860bb7fd5caf1da3cc0ff1ab260a49839bc6ccfe",
+      "sha256": "dff31545ec16b5e919d8a6c331429f00e485148d8499530957a53f055568475b",
       "executable": false
     },
     "src/porthole/privacy/actor-erasure/http.ts": {
@@ -5513,7 +5517,7 @@
       "executable": false
     },
     "tests/porthole/archive.mjs": {
-      "sha256": "1609efce7fed28c7757b5e06d5ecd8c236f66f4a5b34d8ccd779bcac89213e7c",
+      "sha256": "02cc918f60256a2ba08386f9bd5b80a961d9be7d6808a365ea9b2616904084ce",
       "executable": false
     },
     "tests/porthole/audit.mjs": {
@@ -5593,7 +5597,7 @@
       "executable": false
     },
     "tests/porthole/loki-shippers.mjs": {
-      "sha256": "290d69d553287286c81e2a0d39282b79f770f703eea8cf2dd7cd3ad95c68eb5f",
+      "sha256": "74735e9cdb849862e71dc8cb236b1fd71e6ff2b1cc4a92389d34dce72d910ec5",
       "executable": false
     },
     "tests/porthole/membership.mjs": {
