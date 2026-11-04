@@ -1140,7 +1140,7 @@ export async function clusterArchiveJourney({origin,freshOwner,withEmptyDestinat
 }
 
 /** Reviewed service metadata restores as inactive history without authority. */
-export async function servicesArchiveJourney({origin,freshOwner,restartWorker,withEmptyDestination,id,query,expected,summary,associations}) {
+export async function servicesArchiveJourney({origin,freshOwner,restartWorker,withEmptyDestination,id,query,expected,summary,associations,discovery}) {
  let cookie=await freshOwner()
  const source=await savedExport(origin,cookie,await post(origin,cookie,api+'/exports',{})),root='/api/porthole/v1/services/'+id
  const largest=source.chunks.reduce((best,chunk)=>Buffer.byteLength(JSON.stringify(chunk))>Buffer.byteLength(JSON.stringify(best))?chunk:best)
@@ -1168,6 +1168,8 @@ export async function servicesArchiveJourney({origin,freshOwner,restartWorker,wi
   assert.equal(restored.metadata.state,'quarantined');assert.equal(restored.metadata.runbook,expected.runbook);assert.equal(restored.metadata.criticality,expected.criticality)
   assert.deepEqual(restored.summary,summary,'inactive restoration preserves the independently reconciled request and latency values')
   assert.deepEqual(restored.associations,associations,'inactive restoration preserves the exact source dependency observations')
+  const discoveryFields=service=>Object.fromEntries(['id','service','environment','team','versions','summary','associations'].map(key=>[key,service[key]]))
+  assert.deepEqual((await value(await get(destination.origin,owner,'/api/porthole/v1/services'+discovery.query))).services.map(discoveryFields),discovery.services,'inactive restore preserves distinct environments, rolling versions and source trace references')
   assert.equal(restored.history.length,3);assert.ok(restored.history.every(r=>r.state==='quarantined'))
   assert.deepEqual(restored.alerts,[],'inactive monitor history cannot revive a firing episode after restore')
   const originalFiring=source.rows.filter(r=>r.table==='porthole_monitor_evaluations'&&r.row.status==='Firing')

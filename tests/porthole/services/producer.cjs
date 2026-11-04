@@ -38,7 +38,7 @@ async function main(){
   }catch{res.writeHead(503);res.end('synthetic-porthole-8204')}
  })
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve))
- if(process.env.PORTHOLE_SERVICE_ROLE==='fulfillment'){
+ if(process.env.PORTHOLE_SERVICE_ROLE==='fulfillment'&&process.env.PORTHOLE_HTTP_ONLY!=='1'){
   consumer=kafka.consumer({groupId:process.env.PORTHOLE_TOPIC});await consumer.connect();await consumer.subscribe({topic:process.env.PORTHOLE_TOPIC,fromBeginning:true})
   await consumer.run({eachMessage:async({message})=>{received.push(message.value.toString());await request('http://127.0.0.1:'+server.address().port+'/queued')}})
  }

@@ -194,6 +194,15 @@ async function policyBrowser({origin,cookie,policyInput}) {
 
 /** Reconcile native catalog edges with independently captured stock parent IDs. */
 export async function serviceTopologyProof({read,proof,view,checkout,fulfillment}) {
+ // Inspect the exact retained source behind every association through the
+ // existing native trace API; a catalog label alone is insufficient evidence.
+ for(const service of view.services)for(const association of service.associations){
+  const graph=await read('/api/porthole/v1/traces/'+association.evidence.traceId+'?snapshot='+view.snapshot)
+  const span=graph.spans.find(span=>span.spanId===association.evidence.spanId)
+  assert.ok(span,'association refers to an actual retained stock span')
+  assert.equal(span.service,service.service);assert.equal(span.environment,service.environment);assert.equal(span.team,service.team)
+  assert.equal(span.endTimeNs,association.lastSeenNs)
+ }
  const parents=new Map(proof.spans.map(span=>[span.traceId+':'+span.spanId,span]))
  const cross=proof.spans.filter(span=>{const parent=parents.get(span.traceId+':'+span.parentSpanId);return parent&&parent.resource['service.name']!==span.resource['service.name']}).length
  assert.ok(view.edges.some(edge=>edge.from===checkout.id&&edge.to===fulfillment.id&&edge.kind==='observed-parent'))

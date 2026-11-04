@@ -102,7 +102,22 @@ export async function serviceCatalogEstate({origin,secret,dispatch}) {
   if(stats.received.length!==36)throw Error('Actual Kafka delivery did not reconcile')
   const receipts=[]
   for(const child of children){const pending=message(child,'receipt');child.send('stop');receipts.push(await pending);await new Promise(resolve=>child.exitCode===null?child.once('exit',resolve):resolve())}
-  return {statuses,receipts,packets,spans:receipts.flatMap(r=>r.spans),topic,databasePort}
+  // A real replacement runtime keeps the production service identity while a
+  // second deployment uses the same name in staging. Stock SDK resources,
+  // rather than hand-authored spans, carry the changed version and environment.
+  const originalPackets=packets.slice(),discoveryReceipts=[]
+  for(const [environment,version,modes]of [
+   ['production','synthetic-porthole-8210',['work','work','error','error','slow','slow']],
+   ['staging','synthetic-porthole-8211',['work','work','work','slow','slow','slow']],
+  ]){
+   const runtime=await start('fulfillment',{OTEL_SERVICE_NAME:'checkout',OTEL_RESOURCE_ATTRIBUTES:'deployment.environment.name='+environment+',team.name=commerce,service.version='+version,PORTHOLE_HTTP_ONLY:'1'})
+   const outcomes=[]
+   for(const mode of modes){const response=await fetch('http://127.0.0.1:'+runtime.port+'/'+mode);outcomes.push(response.status);await response.text()}
+   const pending=message(runtime.child,'receipt');runtime.child.send('stop');const receipt=await pending
+   await new Promise(resolve=>runtime.child.exitCode===null?runtime.child.once('exit',resolve):resolve())
+   discoveryReceipts.push({...receipt,environment,version,outcomes})
+  }
+  return {statuses,receipts,packets:originalPackets,spans:receipts.flatMap(r=>r.spans),topic,databasePort,discovery:{receipts:discoveryReceipts,spans:discoveryReceipts.flatMap(r=>r.spans),packets:packets.slice(originalPackets.length)}}
  }finally{
   for(const child of children)if(child.exitCode===null){const stopped=new Promise(resolve=>child.once('exit',resolve));child.kill('SIGTERM');await stopped}
   await execute('docker',['stop','--time','5',name]).catch(()=>{});await execute('docker',['rm','-f',name]).catch(()=>{})
