@@ -19,8 +19,8 @@ export function lokiWire(streams){return snappy(Buffer.concat(streams.map(({stre
  ]))),
 ])))))}
 export const streamLabels=extra=>({service:lokiScope.services[0],environment:lokiScope.environments[0],team:lokiScope.teams[0],...extra})
-const escapedLabel='bell:\x07 vertical:\x0b byte:\x01 emoji:😀 bytes:é quote:" slash:\\'
-const quotedLabels=labels=>'{'+Object.entries(labels).map(([key,value])=>key+'='+JSON.stringify(value)).join(',')+String.raw`,escaped="bell:\a vertical:\v byte:\x01 emoji:\U0001F600 bytes:\303\251 quote:\" slash:\\"}`
+const escapedLabel='\ufeffbell:\x07 vertical:\x0b byte:\x01 emoji:😀 bytes:é quote:" slash:\\'
+const quotedLabels=labels=>'{'+Object.entries(labels).map(([key,value])=>key+'='+JSON.stringify(value)).join(',')+String.raw`,escaped="\uFEFFbell:\a vertical:\v byte:\x01 emoji:\U0001F600 bytes:\303\251 quote:\" slash:\\"}`
 export async function readLokiPages({origin,cookie,service=lokiScope.services[0],archive=false}){
  const records=[];let cursor,snapshot
  do {
@@ -60,7 +60,7 @@ export async function lokiSchemaJourney({origin,freshOwner,restartWorker}){
  wires[0]=Buffer.from(wires[0]);packets[2].streams[0].values[0][2]={empty:''};wires[2]=lokiWire(packets[2].streams)
  // The official protobuf stream carries a Go quoted label set. These valid
  // byte, octal, short-control and wide Unicode escapes are not JSON escapes.
- const escaped=entry(at+3n,'synthetic-porthole-18716',{detail:'quoted label edge'})
+ const escaped=entry(at+3n,'\ufeffsynthetic-porthole-18716',{detail:'\ufeffquoted label edge'})
  escaped.streams[0].stream.escaped=escapedLabel
  const quoted=quotedLabels(streamLabels())
  packets.push(escaped);wires.push(lokiWire([{stream:quoted,values:escaped.streams[0].values}]));formats.push({'content-type':'application/x-protobuf'})
@@ -87,7 +87,7 @@ export async function lokiSchemaJourney({origin,freshOwner,restartWorker}){
  assert.equal((await send(Buffer.from('synthetic-porthole-18711'),{'content-encoding':'gzip'})).status,400)
  assert.equal((await send(Buffer.from([255]),{'content-type':'application/x-protobuf'})).status,400)
  assert.equal((await send(packets[0],{'content-encoding':'snappy'})).status,415)
- for(const escape of [String.raw`\xGG`,String.raw`\uD800`,String.raw`\U00110000`,String.raw`\400`]){
+ for(const escape of [String.raw`\xGG`,String.raw`\uD800`,String.raw`\U00110000`,String.raw`\400`,String.raw`\xff`]){
   const invalidLabels='{'+Object.entries(streamLabels()).map(([key,value])=>key+'='+JSON.stringify(value)).join(',')+',escaped="'+escape+'"}'
   assert.equal((await send(lokiWire([{stream:invalidLabels,values:[[String(at),'synthetic-porthole-18717']]}]),{'content-type':'application/x-protobuf'})).status,400,'malformed Go label escape refuses without persistence')
  }
@@ -267,12 +267,15 @@ analytics: {reporting_enabled: false}
   // Independently confirm the escaped-label wire fixture against the stock
   // source parser before comparing its native retained result in the edge run.
   const edgeAt=String(BigInt(Date.now())*1000000n-1000000n),edgeLabels=streamLabels({service:'synthetic-porthole-18720'})
-  const edge=await fetch(reference+'/loki/api/v1/push',{method:'POST',headers:{'content-type':'application/x-protobuf','x-scope-orgid':lokiScope.teams[0]},body:lokiWire([{stream:quotedLabels(edgeLabels),values:[[edgeAt,'synthetic-porthole-18721']]}])})
+  const edgeLine='\ufeffsynthetic-porthole-18721',edgeMetadata={detail:'\ufeffsource metadata'}
+  const edge=await fetch(reference+'/loki/api/v1/push',{method:'POST',headers:{'content-type':'application/x-protobuf','x-scope-orgid':lokiScope.teams[0]},body:lokiWire([{stream:quotedLabels(edgeLabels),values:[[edgeAt,edgeLine,edgeMetadata]]}])})
   assert.equal(edge.status,204,await edge.text())
   const edgeQuery=new URLSearchParams({query:'{service="synthetic-porthole-18720"}',start:edgeAt,end:String(BigInt(edgeAt)+1000000n),direction:'forward'})
-  const edgeRead=await fetch(reference+'/loki/api/v1/query_range?'+edgeQuery,{headers:{'x-scope-orgid':lokiScope.teams[0]}});assert.equal(edgeRead.status,200)
+  const edgeRead=await fetch(reference+'/loki/api/v1/query_range?'+edgeQuery,{headers:{'x-scope-orgid':lokiScope.teams[0],'X-Loki-Response-Encoding-Flags':'categorize-labels'}});assert.equal(edgeRead.status,200)
   const edgeResult=(await edgeRead.json()).data.result;assert.equal(edgeResult.length,1)
-  assert.deepEqual(edgeResult[0].stream,{...edgeLabels,escaped:escapedLabel});assert.deepEqual(edgeResult[0].values,[[edgeAt,'synthetic-porthole-18721']])
+  assert.deepEqual(edgeResult[0].stream,{...edgeLabels,escaped:escapedLabel});assert.equal(edgeResult[0].values.length,1)
+  const [sourceAt,sourceLine,sourceMetadata]=edgeResult[0].values[0]
+  assert.equal(sourceAt,edgeAt);assert.equal(sourceLine,edgeLine);assert.deepEqual(sourceMetadata.structuredMetadata,edgeMetadata)
   console.log('PROBE PORT-087 source schema: Go quoted protobuf labels -> stock Loki retains exact control bytes, Unicode and nanoseconds')
   const minted=await post('/app/settings/credentials/mint',{name:'synthetic-porthole-18800',class:'ingest',scope:lokiScope,acceptedBytesPerMinute:100*1024*1024,requestsPerMinute:10000});assert.equal(minted.status,201)
   const source=await minted.json()
@@ -307,7 +310,7 @@ analytics: {reporting_enabled: false}
    await delay(1500)
    const delayed=BigInt(Date.now()-110*60000)*1000000n+BigInt(number)
    const rows=Array.from({length:10000},(_,i)=>{
-    const at=i===0?delayed:base+BigInt(number)*100000n+BigInt(Math.floor(i/8)),line=`synthetic-porthole-${19000+number}-${String(i).padStart(5,'0')} 日本語 Ελληνικά 😀`,lane='lane'+i%4,detail='Δ-'+String(i)
+    const at=i===0?delayed:base+BigInt(number)*100000n+BigInt(Math.floor(i / 8)),mark=i===17?'\ufeff':'',line=mark+`synthetic-porthole-${19000+number}-${String(i).padStart(5,'0')} 日本語 Ελληνικά 😀`,lane='lane'+i%4,detail=mark+'Δ-'+String(i)
     expected.push({at:String(at),line,lane,detail})
     return {ts:new Date(Number(at/1000000n)).toISOString().slice(0,19)+'.'+String(at%1000000000n).padStart(9,'0')+'Z',line,lane,detail}
    })

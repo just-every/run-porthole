@@ -31,6 +31,8 @@ original values. Invalid escapes, surrogate code points and invalid UTF-8
 refuse before persistence. The schema journey compares retained labels with
 the expected values, and the stock reference journey independently submits
 the same escaped-label form to Loki.
+Leading Unicode byte-order marks remain content in protobuf label values,
+lines and structured metadata; they are not consumed as document markers.
 
 Use decimal-string nanoseconds in JSON. The original timestamp remains an
 integer throughout storage and paginated reads. Results sort by nanosecond
@@ -127,7 +129,8 @@ The reference disables automatic service-name and log-level discovery so the com
 covers the labels actually emitted by each shipper.
 
 Each producer emits a delayed line and delivers the newer half of its corpus
-before the older half. The reference persists its write-ahead log and chunks
+before the older half. Its corpus includes leading Unicode byte-order marks
+in a line and its structured metadata. The reference persists its write-ahead log and chunks
 on the filesystem and is restarted before a second complete source read.
 
 The journey reconciles every producer identity, full Unicode byte sequence,

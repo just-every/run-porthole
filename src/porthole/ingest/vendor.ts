@@ -58,7 +58,7 @@ function labelValue(text: string): string {
   } else append(point)
   i = start + digits - 1
  }
- return utf8(new Uint8Array(result))
+ return utf8(new Uint8Array(result),true)
 }
 function labels(text: string): Record<string,string> {
  if (!text.startsWith('{') || !text.endsWith('}')) return invalid('invalid_loki_labels')
@@ -88,15 +88,15 @@ export function lokiProto(input: Uint8Array): Record<string,unknown> {
    for (const part of parts.filter(p => p.number === 3)) {
     const pair = fields(bytes(part)), key = pair.find(p => p.number === 1), value = pair.find(p => p.number === 2)
     if (!key) return invalid('invalid_loki_metadata')
-    const name = utf8(bytes(key))
+    const name = utf8(bytes(key),true)
     if (Object.hasOwn(metadata,name)) return invalid('duplicate_loki_metadata')
     // Proto3 omits the default empty string on the wire.
-    metadata[name] = value ? utf8(bytes(value)) : ''
+    metadata[name] = value ? utf8(bytes(value),true) : ''
    }
    if (parts.some(p => p.number === 4)) return invalid('unsupported_loki_parsed_fields',415)
-   values.push([(ns + fraction).toString(), lineField ? utf8(bytes(lineField)) : '', metadata])
+   values.push([(ns + fraction).toString(), lineField ? utf8(bytes(lineField),true) : '', metadata])
   }
-  streams.push({ stream: labels(utf8(bytes(labelField))), values })
+  streams.push({ stream: labels(utf8(bytes(labelField),true)), values })
  }
  return { streams }
 }

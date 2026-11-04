@@ -34,7 +34,9 @@ export class Proto {
 export interface Field { number: number; wire: number; value: bigint | Uint8Array }
 export const fields = (bytes: Uint8Array) => new Proto(bytes).fields()
 export function bytes(field: Field): Uint8Array { return field.value instanceof Uint8Array ? field.value : invalid('invalid_protobuf_field') }
-export function utf8(value: Uint8Array): string { try { return new TextDecoder('utf-8', { fatal: true }).decode(value) } catch { return invalid('invalid_utf8') } }
+// A document may carry an encoding marker; a protobuf string's leading mark
+// is its actual content and must survive decoding.
+export function utf8(value: Uint8Array, preserveBOM = false): string { try { return new TextDecoder('utf-8', { fatal: true, ignoreBOM: preserveBOM }).decode(value) } catch { return invalid('invalid_utf8') } }
 export const hex = (value: Uint8Array) => [...value].map(n => n.toString(16).padStart(2, '0')).join('')
 export const uint = (field: Field) => typeof field.value === 'bigint' ? field.value : invalid('invalid_protobuf_field')
 export const fixed = (field: Field) => { const b = bytes(field); return b.length === 8 ? new DataView(b.buffer, b.byteOffset, b.byteLength).getBigUint64(0, true) : invalid('invalid_fixed64') }
