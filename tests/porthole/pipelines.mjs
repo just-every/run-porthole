@@ -198,7 +198,7 @@ export async function pipelineReadJourney({origin,freshOwner,sql,restartWorker,s
  const d={service:'synthetic-porthole-12600',environment:'review',team:'synthetic-porthole-12601',processors:[{type:'json'},{type:'enrich',values:{edition:0}}],metrics:[]}
  const expected=new Map()
  const activate=async index=>{
-  const definition={...d,processors:[{type:'json'},{type:'enrich',values:{edition:index}}]}
+  const definition={...d,processors:[{type:'json'},{type:'enrich',values:{edition:index}}],...(index===5?{service:'synthetic-porthole-12612'}:index===15?{environment:'synthetic-porthole-12612'}:index===25?{team:'synthetic-porthole-12612'}:{})}
   const revision=(await get(api)).revision
   const preview=await value(await post(api+'/preview',{definition,revision,samples:[JSON.stringify({message:'synthetic-porthole-12602'})]}),201)
   const result=await value(await post(api+'/activate',{previewId:preview.id,digest:preview.digest,confirm:'activate-pipeline'}),201)
@@ -284,7 +284,13 @@ export async function pipelineReadJourney({origin,freshOwner,sql,restartWorker,s
  await mutate(`UPDATE porthole_members SET scope=${literal(JSON.stringify({services:[d.service],environments:[d.environment],teams:[d.team]}))},revision=revision+1 WHERE operator_id=${literal(member.id)}`)
  secondary=await signIn(email)
  const scoped=await value(await read(api+'/revisions?limit=200',secondary))
- assert.deepEqual(scoped.history.map(row=>row.revision),[...expected.keys()].reverse(),'scope filtering happens before the page bound')
+ assert.deepEqual(scoped.history.map(row=>row.revision),[...expected].filter(([,row])=>row.service===d.service&&row.environment===d.environment&&row.team===d.team).map(([revision])=>revision).reverse(),'scope filtering happens before the page bound')
+ const visiblePages=[];let visibleCursor=null
+ do {
+  const params=new URLSearchParams({limit:'5'});if(visibleCursor)params.set('cursor',visibleCursor)
+  const part=await value(await read(api+'/revisions?'+params,secondary));visiblePages.push(...part.history);visibleCursor=part.cursor
+ }while(visibleCursor)
+ assert.deepEqual(visiblePages,scoped.history,'foreign revisions interleaved through all three scopes neither leak nor truncate visible pages')
  const secondCursor=(await value(await read(api+'/revisions?limit=7',secondary))).cursor
  cookie=await freshOwner()
  await value(await post('/app/settings/members/change',{operatorId:member.id,role:'maintainer',scope:{services:[d.service],environments:[d.environment],teams:[d.team]}}))

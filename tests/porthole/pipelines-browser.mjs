@@ -57,6 +57,9 @@ export async function pipelineHistoryBrowser({origin,cookie,current,oldest}) {
    const directory=process.env.PORTHOLE_EVIDENCE_DIR
    if(directory){await mkdir(directory,{recursive:true});await page.screenshot({path:join(directory,`pipelines-history-${width}.png`),fullPage:true})}
    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth))
+   await page.getByRole('link',{name:'Latest history',exact:true}).click()
+   await page.getByRole('heading',{name:'Version history',exact:true}).waitFor()
+   assert.ok((await page.getByRole('status').innerText()).includes(String(current.revision)))
    assert.equal(await page.locator('button').filter({hasText:/^\s*$/}).count(),0,'all controls use visible word labels')
    assert.ok(await page.locator('main').evaluate(root=>[...root.querySelectorAll('p,label,button,a,summary,pre')].every(el=>parseFloat(getComputedStyle(el).fontSize)>=13)))
    await context.close()
