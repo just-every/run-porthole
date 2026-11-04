@@ -75,7 +75,7 @@ function reconcile(expected,actual,sourceId){
   const actualRows=rows.map(row=>fingerprint(row.payload)).sort(),expectedRows=expected[signal].map(fingerprint).sort()
   const index=actualRows.findIndex((row,i)=>row!==expectedRows[i])
   if(index!==-1||actualRows.length!==expectedRows.length){
-   const actual=JSON.parse(actualRows[index]??'{}'),wanted=expected[signal].find(p=>p.record.spanId&&p.record.spanId===actual.record?.spanId)||JSON.parse(expectedRows[index]??'{}')
+   const actual=JSON.parse(actualRows[index]??'{}'),wanted=expected[signal].find(p=>signal==='traces'?p.record.spanId===actual.record?.spanId:p.record.timeUnixNano===actual.record?.timeUnixNano&&p.metric?.name===actual.metric?.name)||JSON.parse(expectedRows[index]??'{}')
    const differences=[]
    function compare(a,b,path=''){
     if(JSON.stringify(a)===JSON.stringify(b))return
@@ -88,7 +88,7 @@ function reconcile(expected,actual,sourceId){
   for(const row of rows){
    const record=row.payload.record,time=signal==='traces'?record.startTimeUnixNano:record.timeUnixNano??record.observedTimeUnixNano??'0'
    assert.equal(BigInt(row.event_time_ns),BigInt(time),'original nanoseconds')
-   assert.equal(row.trace_id,record.traceId??null);assert.equal(row.span_id,record.spanId??null)
+   assert.equal(row.trace_id,record.traceId||null);assert.equal(row.span_id,record.spanId||null)
   }
  }
 }

@@ -25,12 +25,12 @@ export async function pipelineJourney({origin,freshOwner,sql,restartWorker,withE
  // nested objects, escaped values and equivalent escaped key spellings.
  const escapedSsn=Array.from(planted[0],char=>'\\u'+char.charCodeAt(0).toString(16).padStart(4,'0')).join('')
  bodies[0]='{"repeated":"'+planted[0]+'","repeated":"safe","nested":[{"note":"'+planted[1]+'","note":"safe"}],"escaped":"'+escapedSsn+'","esc\\u0061ped":"safe",'+bodies[0].slice(1)
- const machineIdentity='abcdef'.repeat(8)+'1234567890abcdef'
+ const machineIdentity='abcdef'.repeat(8)+'1234567890abcdef',badContext='abcdef'.repeat(2)+'1234567890abcdefabcd'
  const send=async(bodies,id,time=at,attributes=[],machine=false)=>{
   const packet=otlpLogBatch(bodies.map((_,i)=>time+BigInt(i)))
   const resource=packet.resourceLogs[0];resource.resource.attributes=[{key:'service.name',value:{stringValue:d.service}},{key:'team.name',value:{stringValue:d.team}},{key:'deployment.environment.name',value:{stringValue:d.environment}},{key:'nested-private',value:{stringValue:planted[0]}}]
-  resource.resource.attributes.push({key:'container.id',value:{stringValue:machine?machineIdentity:planted[0]}},{key:'service.instance.id',value:{stringValue:planted[1]}},{key:'host.name',value:{stringValue:planted[2]}})
-  resource.scopeLogs[0].logRecords.forEach((row,i)=>{row.body.stringValue=bodies[i];row.attributes.push(...(attributes[i]??[]));if(bodies[i].includes('protectedError'))row.severityNumber=17})
+  if(machine)resource.resource.attributes.push({key:'container.id',value:{stringValue:machine?machineIdentity:planted[0]}},{key:'service.instance.id',value:{stringValue:planted[1]}},{key:'host.name',value:{stringValue:planted[2]}})
+  resource.scopeLogs[0].logRecords.forEach((row,i)=>{row.body.stringValue=bodies[i];row.attributes.push(...(attributes[i]??[]));if(machine)row.attributes.push({key:'TraceId',value:{stringValue:badContext}},{key:'SpanId',value:{stringValue:row.spanId}});if(bodies[i].includes('protectedError'))row.severityNumber=17})
   const wire=JSON.stringify(packet),response=await fetch(origin+'/v1/logs',{method:'POST',headers:{authorization:'Bearer '+source.secret,'content-type':'application/json','x-porthole-batch-id':id},body:wire})
   assert.equal(response.status,200,await response.clone().text());return {id:response.headers.get('x-porthole-batch'),wire}
  }
@@ -91,6 +91,7 @@ export async function pipelineJourney({origin,freshOwner,sql,restartWorker,withE
  const first=await send(bodies,'synthetic-porthole-12003',at,[],true)
  const queued=(await sql(`SELECT * FROM porthole_ingest_batches WHERE id=${literal(first.id)}`))[0]
  const wire=JSON.parse(Buffer.from(queued.wire_base64,'base64').toString())
+ assert.ok(wire.records[0].payload.record.attributes.find(row=>row.key==='TraceId').value.stringValue.includes('[REDACTED]'),'a mismatched copied context cannot bypass mandatory privacy')
  const metadata=wire.records[0].payload.resource.attributes
  assert.equal(metadata.find(row=>row.key==='container.id').value.stringValue,machineIdentity,'validated stock machine identity keeps decimal runs inside its hash')
  for(const key of ['service.instance.id','host.name'])assert.equal(metadata.find(row=>row.key===key).value.stringValue,'[REDACTED]','invalid structural identities still receive mandatory privacy masks')
@@ -100,7 +101,7 @@ export async function pipelineJourney({origin,freshOwner,sql,restartWorker,withE
  const stale=await preview(d),kv={...d,processors:[{type:'kv'},{type:'status',source:'level'}]}
  assert.equal((await activate(await preview(kv,['level=info message="Checkout kv"']))).revision,2)
  assert.equal((await post(api+'/activate',{previewId:stale.id,digest:stale.digest,confirm:'activate-pipeline'})).status,409)
- assert.equal((await send(bodies,'synthetic-porthole-12003')).id,first.id,'revision change cannot reinterpret a replay')
+ assert.equal((await send(bodies,'synthetic-porthole-12003',at,[],true)).id,first.id,'revision change cannot reinterpret a replay')
  await send(['level=info message="Checkout kv"'],'synthetic-porthole-12004',at+10n)
  assert.equal((await activate(await preview(d,bodies))).revision,3)
  await restartWorker();cookie=await freshOwner()

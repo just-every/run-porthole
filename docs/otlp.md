@@ -211,7 +211,8 @@ custody: those stored envelopes contain sanitized records and retain the digest
 of the original source bytes. Metric envelopes retain the original bytes. The
 journey reconciles each permitted payload against the actual source capture
 without treating a sanitized envelope as original OTLP. Validated opaque machine
-hashes and instance UUIDs keep their resource identity; secret-named attributes,
+hashes, instance UUIDs and matching structured activity context keep their
+identity; secret-named attributes,
 invalid identity shapes and explicit owner redaction rules remain masked.
 Periodic cumulative metric exports remain distinct observations;
 adding successive cumulative values would overcount requests.

@@ -148,6 +148,24 @@ export function sanitizePayload(input: Record<string, unknown>, rules: Redaction
    const value = source[key]
    if (typeof value === 'string' && /^[0-9]{1,20}$/.test(value) && BigInt(value) <= 18446744073709551615n) target[key] = value
   }
+  // ILogger exports its activity context again as structured attributes.
+  // Preserve that validated context only when the copied trace and span IDs
+  // agree with this OTLP record; no other application attribute is exempt.
+  const sourceAttributes=source.attributes,targetAttributes=target.attributes
+  if(Array.isArray(sourceAttributes)&&Array.isArray(targetAttributes)){
+   const context=(name:string,value:unknown)=>typeof value==='string'&&sourceAttributes.some((raw:unknown)=>{const entry=object(raw);return entry?.key===name&&object(entry.value)?.stringValue===value})
+   if(typeof source.traceId==='string'&&/^[a-fA-F0-9]{32}$/.test(source.traceId)&&typeof source.spanId==='string'&&/^[a-fA-F0-9]{16}$/.test(source.spanId)&&context('TraceId',source.traceId)&&context('SpanId',source.spanId)){
+    for(let index=0;index<sourceAttributes.length;index++){
+     const entry=object(sourceAttributes[index]),clean=object(targetAttributes[index]),value=object(entry?.value)?.stringValue
+     if(!entry||!clean||clean.key!==entry.key||typeof value!=='string')continue
+     if(entry.key==='TraceId'&&value===source.traceId||entry.key==='SpanId'&&value===source.spanId||entry.key==='ParentId'&&/^[a-fA-F0-9]{16}$/.test(value)){
+      let retained=value
+      for(const rule of rules)retained=retained.replace(customPattern(rule.pattern),match=>rule.exceptions.includes(match)?match:mask)
+      clean.value={stringValue:retained}
+     }
+    }
+   }
+  }
   if (Array.isArray(source.events) && Array.isArray(target.events)) {
    for (let index=0;index<source.events.length;index++) {
     const event=object(source.events[index]),cleanEvent=object(target.events[index]),value=event?.timeUnixNano
