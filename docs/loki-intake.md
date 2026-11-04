@@ -104,6 +104,10 @@ local credentials are passed privately through an environment reference.
 The reference disables automatic service-name and log-level discovery so the comparison
 covers the labels actually emitted by each shipper.
 
+Each producer emits a delayed line and delivers the newer half of its corpus
+before the older half. The reference persists its write-ahead log and chunks
+on the filesystem and is restarted before a second complete source read.
+
 The journey reconciles every producer identity, full Unicode byte sequence,
 stream label set, metadata value and original nanosecond through bounded
 native pages and Loki's inclusive timestamp pages with categorized labels. A test destination edge

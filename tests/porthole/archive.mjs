@@ -1117,7 +1117,8 @@ export async function lokiArchiveJourney({origin,cookie,freshOwner,restartWorker
  const {readLokiPages,logProjection}=await import('./loki-shippers.mjs')
  cookie=await freshOwner()
  const saved=await savedExport(origin,cookie,await post(origin,cookie,api+'/exports',{}),freshOwner)
- const largest=saved.chunks.reduce((a,b)=>JSON.stringify(a).length>JSON.stringify(b).length?a:b)
+ let largest=saved.chunks[0],largestBytes=0
+ for(const chunk of saved.chunks){const bytes=Buffer.byteLength(JSON.stringify(chunk));if(bytes>largestBytes){largest=chunk;largestBytes=bytes}}
  await restartWorker();cookie=await freshOwner()
  const cached=await value(await get(origin,cookie,`${api}/exports/${saved.job.id}/chunks/${largest.index}`))
  assert.deepEqual(cached,largest,'large source packets replay exactly after restart')

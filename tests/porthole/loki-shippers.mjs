@@ -191,6 +191,7 @@ export async function lokiShipperJourney({origin,freshOwner,restartWorker,withEm
 server:
   http_listen_address: 127.0.0.1
   http_listen_port: ${lokiPort}
+  grpc_listen_address: 127.0.0.1
   grpc_listen_port: ${grpc}
 common:
   instance_addr: 127.0.0.1
@@ -202,6 +203,12 @@ common:
     filesystem:
       chunks_directory: ${scratch}/loki/chunks
       rules_directory: ${scratch}/loki/rules
+ingester:
+  max_chunk_age: 4h
+  wal:
+    enabled: true
+    dir: ${scratch}/loki/wal
+    flush_on_shutdown: true
 schema_config:
   configs:
     - from: 2024-01-01
@@ -252,14 +259,15 @@ analytics: {reporting_enabled: false}
    const args=kind==='alloy'?['run','--server.http.listen-addr=127.0.0.1:'+ports.http,'--storage.path='+state+'/state',path]:kind==='promtail'?['-config.expand-env=true','-config.file='+path]:['-c',path]
    const shipper=run(binary,args,{PORTHOLE_STOCK_TOKEN:source.secret})
    await delay(1500)
+   const delayed=BigInt(Date.now()-110*60000)*1000000n+BigInt(number)
    const rows=Array.from({length:10000},(_,i)=>{
-    const at=base+BigInt(number)*100000n+BigInt(Math.floor(i/8)),line=`synthetic-porthole-${19000+number}-${String(i).padStart(5,'0')} 日本語 Ελληνικά 😀`,lane='lane'+i%4,detail='Δ-'+String(i)
+    const at=i===0?delayed:base+BigInt(number)*100000n+BigInt(Math.floor(i/8)),line=`synthetic-porthole-${19000+number}-${String(i).padStart(5,'0')} 日本語 Ελληνικά 😀`,lane='lane'+i%4,detail='Δ-'+String(i)
     expected.push({at:String(at),line,lane,detail})
     return {ts:new Date(Number(at/1000000n)).toISOString().slice(0,19)+'.'+String(at%1000000000n).padStart(9,'0')+'Z',line,lane,detail}
    })
    // A real separate producer process emits the corpus to the tailed file.
    const producer=run(process.execPath,['--input-type=module','-e',"import{appendFileSync,readFileSync}from'node:fs';const rows=JSON.parse(readFileSync(0,'utf8'));for(let i=0;i<rows.length;i+=64){appendFileSync(process.argv[1],rows.slice(i,i+64).map(x=>JSON.stringify(x)).join('\\n')+'\\n');await new Promise(r=>setTimeout(r,100))}",file])
-   producer.child.stdin.end(JSON.stringify(rows))
+   producer.child.stdin.end(JSON.stringify([...rows.slice(5000),...rows.slice(0,5000)]))
    await once(producer.child,'exit');assert.equal(producer.child.exitCode,0)
    await until(async()=>{
     const response=await fetch(origin+root+'/status',{headers:{cookie}});assert.equal(response.status,200)
@@ -283,11 +291,13 @@ analytics: {reporting_enabled: false}
   const projected=native.map(logProjection),byLine=new Map(expected.map(row=>[row.line,row]));assert.equal(native.length,30000)
   for(const row of projected){const emitted=byLine.get(row.line);assert.ok(emitted,'native line was emitted');assert.equal(row.at,emitted.at);assert.equal(row.labels.lane,emitted.lane);assert.equal(row.metadata.detail,emitted.detail);assert.equal(Buffer.compare(Buffer.from(row.line),Buffer.from(emitted.line)),0);byLine.delete(row.line)}
   assert.equal(byLine.size,0,'every emitted producer identity is present exactly once')
+  assert.ok(native.some(row=>row.out_of_order===1),'stock shippers retain reordered original times')
+  assert.equal(native.filter(row=>row.late===1).length,3,'each stock shipper retains its original delayed line')
   // Read each actual Loki stream with an inclusive cursor and remove only the
   // preceding boundary identities; tied nanoseconds may span multiple pages.
-  const referenceRows=[]
+  const readReferencePages=async()=>{const referenceRows=[]
   for(let lane=0;lane<4;lane++){
-   let start=base-1n,previous=new Set()
+   let start=expected.reduce((minimum,row)=>BigInt(row.at)<minimum?BigInt(row.at):minimum,base)-1n,previous=new Set()
    for(;;){
     const query=new URLSearchParams({query:`{service="${lokiScope.services[0]}",lane="lane${lane}"}`,start:String(start),end:String(base+1000000n),direction:'forward',limit:'137'})
     const response=await fetch(reference+'/loki/api/v1/query_range?'+query,{headers:{'x-scope-orgid':lokiScope.teams[0],'X-Loki-Response-Encoding-Flags':'categorize-labels'}});assert.equal(response.status,200,await response.clone().text())
@@ -298,11 +308,19 @@ analytics: {reporting_enabled: false}
     if(page.length<137)break
    }
   }
+   return referenceRows
+  }
+  const referenceRows=await readReferencePages()
   assert.equal(referenceRows.length,30000)
   const sourceByLine=new Map(referenceRows.map(row=>[row.line,row]))
   for(const row of projected){const ref=sourceByLine.get(row.line);assert.ok(ref);assert.equal(row.at,ref.at);assert.deepEqual(row.labels,ref.labels);assert.deepEqual(row.metadata,ref.metadata)}
   const streamCounts=rows=>{const counts=new Map();for(const row of rows){const key=JSON.stringify(Object.entries(row.labels).sort(([a],[b])=>a.localeCompare(b)));counts.set(key,(counts.get(key)??0)+1)}return [...counts].sort(([a],[b])=>a.localeCompare(b))}
   assert.deepEqual(streamCounts(projected),streamCounts(referenceRows),'per-stream counts agree with actual source storage')
+  await stop(loki.child)
+  const restartedLoki=run(process.env.PORTHOLE_LOKI_BIN,['-config.file='+join(scratch,'loki.yaml')])
+  await until(()=>fetch(reference+'/ready').then(r=>r.ok).catch(()=>false),'Loki restart with real filesystem storage',restartedLoki)
+  assert.deepEqual(await readReferencePages(),referenceRows,'all source lines and metadata survive Loki restart')
+  console.log('LOKI_STREAM_COUNTS '+JSON.stringify(streamCounts(projected).map(([,count])=>count)))
   console.log('PROBE PORT-087 reconciliation: paginated Loki and native reads -> all 30000 identities, labels, Unicode bytes, metadata and nanoseconds equal')
   const {lokiArchiveJourney}=await import('./archive.mjs')
   await lokiArchiveJourney({origin,cookie,freshOwner,restartWorker,withEmptyDestination,records:native,service:lokiScope.services[0]})
@@ -344,7 +362,7 @@ export async function lokiBrowser({origin,cookie,service}){
     if(width===1440)assert.match(await page.locator('pre').textContent(),/synthetic-porthole-19000/)
    }
    if(width===1440){assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));assert.equal(await page.locator('button').evaluateAll(nodes=>nodes.filter(node=>!node.textContent.trim()&&!node.title&&!node.getAttribute('aria-label')).length),0)}
-   if(process.env.PORTHOLE_EVIDENCE_DIR){await mkdir(process.env.PORTHOLE_EVIDENCE_DIR,{recursive:true});await page.screenshot({path:join(process.env.PORTHOLE_EVIDENCE_DIR,'loki-'+path.split('/').at(-1)+'-'+width+'.png'),fullPage:true})}
+   if(process.env.PORTHOLE_EVIDENCE_DIR){await mkdir(process.env.PORTHOLE_EVIDENCE_DIR,{recursive:true});await page.screenshot({path:join(process.env.PORTHOLE_EVIDENCE_DIR,'loki-'+path.split('/').at(-1)+'-'+width+'.png'),fullPage:path.endsWith('ingest')})}
   }
   await context.close()
  }}finally{await browser.close()}

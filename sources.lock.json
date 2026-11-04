@@ -441,7 +441,7 @@
       "executable": false
     },
     "docs/loki-intake.md": {
-      "sha256": "79e7731866fa69b5d1ee4c559aac673992db64291f305b175d602e1ff792a500",
+      "sha256": "4fe244cd3456cf6e95c5043d0b5c1f94e8b8864004c6e69f1a46cf6b08b3757b",
       "executable": false
     },
     "docs/LOOK.md": {
@@ -5085,7 +5085,7 @@
       "executable": false
     },
     "src/porthole/portability/relations.ts": {
-      "sha256": "3d657fc2e054c6289f3208645bd6f67298375d05ed6e16bbff01ef750ad8446a",
+      "sha256": "b1a5d8b89238874843356fad35119713b10c4d0481fa1e06a1235a9da8677f0d",
       "executable": false
     },
     "src/porthole/portability/restore.ts": {
@@ -5517,11 +5517,11 @@
       "executable": false
     },
     "tests/porthole/archive.mjs": {
-      "sha256": "02cc918f60256a2ba08386f9bd5b80a961d9be7d6808a365ea9b2616904084ce",
+      "sha256": "8c6d1d19cc48b78010e093c05abe20dfe6a7f890dba60b19fa56e7d889108a4d",
       "executable": false
     },
     "tests/porthole/audit.mjs": {
-      "sha256": "0647a18d44ea72e6c6e81cdd8753b84cd8de4b70c29c15e89e81b8118ce48c3e",
+      "sha256": "eeab11256954ae207aad9e2e666420bd75574591276b20c26bac1d11f09c805c",
       "executable": false
     },
     "tests/porthole/bucket-history.mjs": {
@@ -5597,7 +5597,7 @@
       "executable": false
     },
     "tests/porthole/loki-shippers.mjs": {
-      "sha256": "74735e9cdb849862e71dc8cb236b1fd71e6ff2b1cc4a92389d34dce72d910ec5",
+      "sha256": "1d0ad6009609f7da83267a6f31efd66c2b8d382de1731fb9cc2ff6bec93f8806",
       "executable": false
     },
     "tests/porthole/membership.mjs": {
