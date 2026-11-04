@@ -133,10 +133,13 @@ export async function layoutAuthorityJourney({origin,cookie,signIn,id,scope,pack
  assert.deepEqual(await sql('SELECT id,body,revision FROM porthole_dashboards ORDER BY id'),before,'refused JSON edits leave every consumer unchanged')
  assert.equal((await post(root+'/preview',{id:packId,revision:packRevision,name:'Denied pack',scope,body},reader)).status,403)
  assert.equal((await post('/app/dashboards/layout',{id,revision:1,group:'native',width:6},reader)).status,403)
+ const bindings={id,revision:definition.revision,group:'native',binding:'scope',service:'',team:'commerce',environment:'production'}
+ assert.equal((await post('/app/dashboards/layout',bindings,reader)).status,403)
  assert.equal((await fetch(origin+'/app/dashboards/'+id+'?team=foreign',{headers:{cookie:reader}})).status,403)
  const source=await (await post('/app/settings/credentials/mint',{name:'Layout delegated read',class:'read',scope:{...scope,signals:['logs'],actions:['definitions.read']}})).json()
  assert.equal((await fetch(origin+'/api/porthole/v1/dashboards/'+id,{headers:{cookie,authorization:'Bearer '+source.secret}})).status,404,'group children retain whole-definition signal authority')
  assert.equal((await post(root+'/preview',{name:'Bearer must refuse',scope,body},cookie,{authorization:'Bearer '+source.secret})).status,403)
+ assert.equal((await post('/app/dashboards/layout',bindings,cookie,{authorization:'Bearer '+source.secret})).status,403)
  assert.deepEqual(await sql('SELECT id,body,revision FROM porthole_dashboards ORDER BY id'),before,'refused native and bearer paths do not mutate consumers')
  const row=(await sql("SELECT operator_id,revision FROM porthole_members WHERE operator_id IN (SELECT id FROM oa_operators WHERE email='"+address+"')"))[0]
  assert.ok(row)
@@ -145,6 +148,8 @@ export async function layoutAuthorityJourney({origin,cookie,signIn,id,scope,pack
  assert.equal((await fetch(origin+'/app/dashboards/'+id,{headers:{cookie:reader}})).status,401,'a membership change revokes the old session immediately')
  const changedReader=await signIn(address)
  assert.equal((await fetch(origin+'/app/dashboards/'+id,{headers:{cookie:changedReader}})).status,403,'a fresh session still refuses the revoked child scope')
+ assert.equal((await post('/app/dashboards/layout',bindings,reader)).status,401)
+ assert.equal((await post('/app/dashboards/layout',bindings,changedReader)).status,403)
  assert.deepEqual(await sql('SELECT id,body,revision FROM porthole_dashboards ORDER BY id'),before)
  return changedReader
 }

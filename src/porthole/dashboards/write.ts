@@ -15,7 +15,7 @@ export async function writeDashboard(request:Request,env:Bindings,actor:Authorit
  }
   const data=await input(request),key=request.headers.get('idempotency-key')
   if(key!==null&&!/^[A-Za-z0-9._:-]{8,120}$/.test(key))fail('idempotency_key_required',400)
-  const action=url.pathname.split('/').at(-1),allowed=action==='reorder'?['id','revision','panel','direction','order']:action==='clone'||action==='archive'?['id','revision']:action==='panel'?['id','revision','title','service','signal','metric','unit','widget','note','compareWeek']:action==='pack'?['id','revision','packId','packRevision','title']:action==='layout'?['id','revision','group','direction','width','height','collapsed']:action==='annotation'?['id','revision','at','label']:['id','revision','name','scope','body','service','environment','team','metric','from','through']
+  const action=url.pathname.split('/').at(-1),allowed=action==='reorder'?['id','revision','panel','direction','order']:action==='clone'||action==='archive'?['id','revision']:action==='panel'?['id','revision','title','service','signal','metric','unit','widget','note','compareWeek']:action==='pack'?['id','revision','packId','packRevision','title']:action==='layout'?(data.binding===undefined?['id','revision','group','direction','width','height','collapsed']:['id','revision','group','binding','service','team','environment']):action==='annotation'?['id','revision','at','label']:['id','revision','name','scope','body','service','environment','team','metric','from','through']
   if(Object.keys(data).some(key=>!allowed.includes(key)))fail('invalid_dashboard',400)
   const fingerprint=canonical({path:url.pathname,data})
   const lookup=()=>env.DB.prepare(`SELECT fingerprint,response FROM porthole_api_idempotency WHERE actor_ref=? AND request_key=? AND ${actor.fence}`).bind(actor.member.operatorId,key,...actor.args).first<{fingerprint:string;response:string}>()
@@ -44,7 +44,12 @@ export async function writeDashboard(request:Request,env:Bindings,actor:Authorit
     let found=false
     const change=(items:NonNullable<Dashboard['layout']>):NonNullable<Dashboard['layout']>=>{
      const index=items.findIndex(item=>isGroup(item)&&item.id===data.group||!isGroup(item)&&item.panel===data.group)
-     if(index>=0){found=true;const item=items[index];if(data.direction){const to=index+(data.direction==='up'?-1:data.direction==='down'?1:100);if(to<0||to>=items.length)fail('invalid_layout_order',400);[items[index],items[to]]=[items[to],items[index]]}else{items[index]={...item,...(data.width===undefined?{}:{width:Number(data.width)}),...(data.height===undefined?{}:{height:Number(data.height)}),...(data.collapsed===undefined?{}:{collapsed:data.collapsed===true||data.collapsed==='true'})} as typeof item}}
+     if(index>=0){found=true;const item=items[index];if(data.binding!==undefined){
+      if(data.binding!=='scope'||!isGroup(item)||!['service','team','environment'].every(key=>typeof data[key]==='string'))fail('invalid_group_bindings',400)
+      const {service:_service,variables:_variables,...group}=item
+      const service=data.service===''?undefined:scopeLabel(data.service),team=data.team===''?undefined:scopeLabel(data.team),environment=data.environment===''?undefined:scopeLabel(data.environment)
+      items[index]={...group,...(service?{service}:{}),...(team||environment?{variables:{...(team?{team}:{}),...(environment?{environment}:{})}}:{})}
+     }else if(data.direction){const to=index+(data.direction==='up'?-1:data.direction==='down'?1:100);if(to<0||to>=items.length)fail('invalid_layout_order',400);[items[index],items[to]]=[items[to],items[index]]}else{items[index]={...item,...(data.width===undefined?{}:{width:Number(data.width)}),...(data.height===undefined?{}:{height:Number(data.height)}),...(data.collapsed===undefined?{}:{collapsed:data.collapsed===true||data.collapsed==='true'})} as typeof item}}
      else for(const item of items)if(isGroup(item))item.children=change(item.children)
      return items
     }

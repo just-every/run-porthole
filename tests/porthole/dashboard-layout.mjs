@@ -6,21 +6,21 @@ import {mkdir} from 'node:fs/promises'
 import {join} from 'node:path'
 import {form} from './fixture.mjs'
 const execute=promisify(execFile),api='/api/porthole/v1/dashboards',packs='/api/porthole/v1/dashboard-powerpacks'
-export async function layoutTraffic({origin,source,call=fetch,team='commerce',environment='production',requests=3}) {
+export async function layoutTraffic({origin,source,call=fetch,service='synthetic-porthole-6800',team='commerce',environment='production',requests=3}) {
  const packets=[],failures=[],bridge=createServer(async(request,response)=>{
   try{const parts=[];for await(const part of request)parts.push(part);const body=Buffer.concat(parts),headers={'content-type':request.headers['content-type'],authorization:'Bearer '+source.secret};packets.push({path:request.url,headers,body});const forwarded=await call(origin+request.url,{method:'POST',headers,body});response.writeHead(forwarded.status,{'content-type':forwarded.headers.get('content-type')??'application/json'});response.end(Buffer.from(await forwarded.arrayBuffer()))}catch(error){failures.push(error);response.writeHead(503);response.end()}
  })
  await new Promise(resolve=>bridge.listen(0,'127.0.0.1',resolve))
- try{const child=await execute(process.execPath,['tests/porthole/dashboard-layout-source.cjs'],{timeout:45000,env:{...process.env,NO_PROXY:'localhost,127.0.0.1,::1',PORTHOLE_LAYOUT_INTAKE:'http://127.0.0.1:'+bridge.address().port,PORTHOLE_LAYOUT_SOURCE:source.secret,OTEL_SDK_DISABLED:'false',OTEL_TRACES_SAMPLER:'always_on',PORTHOLE_LAYOUT_TEAM:team,PORTHOLE_LAYOUT_ENVIRONMENT:environment,PORTHOLE_LAYOUT_REQUESTS:String(requests)},maxBuffer:1024*1024});assert.match(child.stdout,new RegExp('Actual HTTP requests completed: '+requests));assert.deepEqual(failures,[]);assert.equal(new Set(packets.map(packet=>packet.path)).size,3,'stock-exported signals: '+packets.map(packet=>packet.path).join(', '));return packets}finally{await new Promise(resolve=>{bridge.closeAllConnections();bridge.close(resolve)})}
+ try{const child=await execute(process.execPath,['tests/porthole/dashboard-layout-source.cjs'],{timeout:45000,env:{...process.env,NO_PROXY:'localhost,127.0.0.1,::1',PORTHOLE_LAYOUT_INTAKE:'http://127.0.0.1:'+bridge.address().port,PORTHOLE_LAYOUT_SOURCE:source.secret,OTEL_SDK_DISABLED:'false',OTEL_TRACES_SAMPLER:'always_on',PORTHOLE_LAYOUT_SERVICE:service,PORTHOLE_LAYOUT_TEAM:team,PORTHOLE_LAYOUT_ENVIRONMENT:environment,PORTHOLE_LAYOUT_REQUESTS:String(requests)},maxBuffer:1024*1024});assert.match(child.stdout,new RegExp('Actual HTTP requests completed: '+requests));assert.deepEqual(failures,[]);assert.equal(new Set(packets.map(packet=>packet.path)).size,3,'stock-exported signals: '+packets.map(packet=>packet.path).join(', '));return packets}finally{await new Promise(resolve=>{bridge.closeAllConnections();bridge.close(resolve)})}
 }
 export async function dashboardLayoutJourney({origin,freshOwner,signIn,restartWorker,withEmptyDestination,withPinnedClock,sql}) {
  let cookie=await freshOwner()
  const post=(path,data,session=cookie)=>fetch(origin+path,form(origin,session,data))
  const get=(path,session=cookie)=>fetch(origin+path,{headers:{cookie:session}})
  const value=async(response,status=200)=>{assert.equal(response.status,status,await response.clone().text());return response.json()}
- const scope={services:['synthetic-porthole-6800'],environments:['production','staging'],teams:['commerce','payments']}
+ const scope={services:['synthetic-porthole-6800','synthetic-porthole-6830'],environments:['production','staging'],teams:['commerce','payments']}
  const source=await value(await post('/app/settings/credentials/mint',{name:'synthetic-porthole-6804',class:'ingest',scope:{...scope,signals:['metrics','logs','traces'],actions:['telemetry.write']}}),201)
- const from=String(BigInt(Date.now()-1000)*1000000n),packets=[...await layoutTraffic({origin,source}),...await layoutTraffic({origin,source,team:'payments',environment:'staging',requests:2})],through=String(BigInt(Date.now()+1000)*1000000n)
+ const from=String(BigInt(Date.now()-1000)*1000000n),packets=[...await layoutTraffic({origin,source}),...await layoutTraffic({origin,source,team:'payments',environment:'staging',requests:2}),...await layoutTraffic({origin,source,service:scope.services[1],team:'payments',environment:'staging',requests:5})],through=String(BigInt(Date.now()+1000)*1000000n)
  await value(await post('/api/porthole/v1/ingest/drain',{}))
  const params=signal=>new URLSearchParams({signal,service:scope.services[0],team:'commerce',environment:'production',from,through,...(signal==='metrics'?{metric:'synthetic_porthole_6802'}:{})})
  const records={}
@@ -76,7 +76,7 @@ export async function dashboardLayoutJourney({origin,freshOwner,signIn,restartWo
  await withPinnedClock(next.expires_at+1,async()=>{assert.ok([403,409].includes((await post(packs+'/approve',{id:next.id,digest:next.digest,confirm:'apply-private-powerpack'})).status))})
  await restartWorker();one=await value(await get(api+'/'+first.id));assert.equal(one.body.layout[1].powerpack.revision,2)
  const preserved=await value(await get(api+'/'+second.id));assert.deepEqual(preserved.body.layout[0].variables,{team:'payments',environment:'staging'});assert.deepEqual(preserved.body.range,{from,through})
- await boundConsumerBrowser({origin,cookie,id:second.id,from,through})
+ await boundConsumerBrowser({origin,cookie,id:second.id,from,through,service:scope.services[1]})
  for(const packet of packets){const retry=await fetch(origin+packet.path,{method:'POST',headers:packet.headers,body:packet.body});assert.equal(retry.status,200);assert.equal(retry.headers.get('x-porthole-duplicate'),'true')}
  await value(await post('/api/porthole/v1/ingest/drain',{}))
  assert.equal((await value(await get('/api/porthole/v1/ingest/records?'+params('logs')))).records.length,3)
@@ -98,7 +98,7 @@ export async function dashboardLayoutJourney({origin,freshOwner,signIn,restartWo
  console.log('PROBE PORT-068 publication: bind, pack update, replay, restart and inactive restore -> old TV, embed and image addresses remain refused')
  console.log('dashboardLayoutJourney passed')
 }
-async function boundConsumerBrowser({origin,cookie,id,from,through}) {
+async function boundConsumerBrowser({origin,cookie,id,from,through,service}) {
  const {chromium}=await import('@playwright/test'),browser=await chromium.launch({headless:true,...(process.env.PORTHOLE_CHROMIUM?{executablePath:process.env.PORTHOLE_CHROMIUM}:{}),args:['--no-sandbox','--use-mock-keychain','--password-store=basic']})
  try {
   for(const width of [1440,390]) {
@@ -143,6 +143,59 @@ async function boundConsumerBrowser({origin,cookie,id,from,through}) {
     await Promise.all([page.waitForNavigation({waitUntil:'networkidle'}),page.keyboard.press('Enter')]);await page.reload()
     assert.match(await group.locator('[data-panel="consumer:logs"]').innerText(),/3 records/)
     assert.match(await group.locator('[data-panel="consumer:requests"]').innerText(),/3 requests/)
+    // The native group form edits only this consumer's binding. All three
+    // signals must switch to the independently emitted five-request service.
+    await page.goto(path)
+    const bindings=group.getByRole('form',{name:'Group scope bindings'}),settings=group.locator(':scope > .porthole-layout-controls')
+    const saveBindings=async(values)=>{
+     await settings.getByText('Layout settings',{exact:true}).click()
+     for(const [field,value] of Object.entries(values))await bindings.getByLabel(field+' binding',{exact:true}).fill(value)
+     await bindings.getByRole('button',{name:'Save bindings',exact:true}).focus()
+     await Promise.all([page.waitForNavigation({waitUntil:'networkidle'}),page.keyboard.press('Enter')]);await page.reload()
+    }
+    const beforeBindings=await (await context.request.get(origin+api+'/'+id)).json()
+    await saveBindings({Service:service,Team:'payments',Environment:'staging'})
+    const afterBindings=await (await context.request.get(origin+api+'/'+id)).json()
+    assert.equal(afterBindings.revision,beforeBindings.revision+1)
+    assert.deepEqual(afterBindings.body.layout[0].children,beforeBindings.body.layout[0].children)
+    assert.deepEqual(afterBindings.body.panels,beforeBindings.body.panels)
+    assert.deepEqual(afterBindings.body.layout[0].powerpack,beforeBindings.body.layout[0].powerpack)
+    assert.equal(afterBindings.body.layout[0].service,service)
+    assert.deepEqual(afterBindings.body.layout[0].variables,{team:'payments',environment:'staging'})
+    assert.match(await group.locator('[data-panel="consumer:logs"]').innerText(),/5 records/)
+    assert.match(await group.locator('[data-panel="consumer:requests"]').innerText(),/5 requests/)
+    const scopedTrace=new URL(await group.getByRole('link',{name:'Open underlying traces query'}).getAttribute('href'),origin)
+    scopedTrace.pathname='/api/porthole/v1/ingest/records'
+    const serviceTraces=(await (await context.request.get(scopedTrace.href)).json()).records
+    assert.equal(serviceTraces.length,10)
+    const serviceLatency=Math.max(...serviceTraces.map(row=>Number(BigInt(row.payload.record.endTimeUnixNano)-BigInt(row.payload.record.startTimeUnixNano))/1e6))
+    assert.match(await group.locator('[data-panel="consumer:traces"]').innerText(),new RegExp(String(Number(serviceLatency.toFixed(4))).replace('.','\\.')))
+    for(const link of await group.getByRole('link',{name:/Open underlying/}).all()) {
+     const target=new URL(await link.getAttribute('href'),origin)
+     for(const [key,value] of Object.entries({service,team:'payments',environment:'staging',from,through}))assert.equal(target.searchParams.get(key),value)
+     assert.equal((await context.request.get(target.href)).status(),200)
+    }
+    const mutate=async(data,status)=>{
+     const response=await context.request.post(origin+'/app/dashboards/layout',{headers:{origin},data:{id,revision:afterBindings.revision,group:'consumer',binding:'scope',service,team:'payments',environment:'staging',...data},maxRedirects:0})
+     assert.equal(response.status(),status,await response.text())
+    }
+    await mutate({revision:beforeBindings.revision},409)
+    for(const key of ['service','team','environment'])await mutate({[key]:'foreign'},403)
+    await mutate({binding:'unexpected'},400)
+    await mutate({team:42},400)
+    await mutate({group:'consumer:requests-group'},400)
+    assert.deepEqual(await (await context.request.get(origin+api+'/'+id)).json(),afterBindings,'refused stale, foreign and pack-child form edits preserve the consumer and its history')
+    await saveBindings({Service:'',Team:'',Environment:''})
+    const inherited=await (await context.request.get(origin+api+'/'+id)).json()
+    assert.equal(inherited.body.layout[0].service,undefined)
+    assert.equal(inherited.body.layout[0].variables,undefined)
+    assert.match(await group.locator('[data-panel="consumer:logs"]').innerText(),/3 records/)
+    assert.match(await group.locator('[data-panel="consumer:requests"]').innerText(),/3 requests/)
+    await saveBindings({Team:'payments'})
+    assert.match(await group.locator('[data-panel="consumer:logs"] > [role="status"]').first().innerText(),/empty/)
+    await saveBindings({Service:'',Team:'payments',Environment:'staging'})
+    assert.match(await group.locator('[data-panel="consumer:logs"]').innerText(),/2 records/)
+    assert.deepEqual((await (await context.request.get(origin+api+'/'+id+'?version='+afterBindings.revision)).json()).body,afterBindings.body,'later binding edits preserve the exact earlier revision')
     // Keep the second consumer distinct for the final two viewport captures.
     await page.getByText('Edit dashboard',{exact:true}).click()
     const restored=JSON.parse(await editor.inputValue());restored.layout[0].variables={team:'payments',environment:'staging'}
@@ -150,6 +203,9 @@ async function boundConsumerBrowser({origin,cookie,id,from,through}) {
     await Promise.all([page.waitForNavigation({waitUntil:'networkidle'}),page.keyboard.press('Enter')]);await page.reload()
     assert.match(await group.locator('[data-panel="consumer:logs"]').innerText(),/2 records/)
    }
+   const settings=page.locator('[data-layout-group="consumer"] > .porthole-layout-controls')
+   await settings.getByText('Layout settings',{exact:true}).click()
+   if(width===1440){assert.equal(await settings.getByLabel('Team binding',{exact:true}).inputValue(),'payments');assert.equal(await settings.getByLabel('Environment binding',{exact:true}).inputValue(),'staging')}
    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth))
    if(process.env.PORTHOLE_EVIDENCE_DIR){await mkdir(process.env.PORTHOLE_EVIDENCE_DIR,{recursive:true});await page.screenshot({path:join(process.env.PORTHOLE_EVIDENCE_DIR,`layout-bound-consumer-${width}.png`),fullPage:true})}
    if(width===390) {
@@ -162,7 +218,7 @@ async function boundConsumerBrowser({origin,cookie,id,from,through}) {
    await context.close()
   }
  } finally {await browser.close()}
- console.log('PROBE PORT-068 child-bindings: independently emitted commerce production and payments staging traffic -> updated consumers preserve distinct metric, log and trace values, order, original ranges and source links after restart; native JSON save retains consumer variables and refuses unreviewed child edits without writes')
+ console.log('PROBE PORT-068 child-bindings: independently emitted commerce production and payments staging traffic -> updated consumers preserve distinct metric, log and trace values, order, original ranges and source links after restart; native JSON save retains consumer variables and refuses unreviewed child edits without writes; keyboard group binding forms switch service and variables, clear overrides to inherit, and reject stale, foreign and reviewed-child changes without writes')
 }
 
 async function layoutBrowser({origin,cookie,id,reader,expected,withPinnedClock}) {

@@ -3,9 +3,11 @@
 Dashboards can arrange existing metric, log and trace widgets inside private
 layout groups. Open **Layout and powerpacks** on a dashboard to group its panels
 or bind an existing powerpack. **Layout settings** on each item provides width,
-height, keyboard move controls and a saved collapse state. Narrow screens stack
-items in their saved order. Use **Edit dashboard** for nested membership and
-child variable or service bindings. Saving creates an audited immutable revision.
+height, keyboard move controls and a saved collapse state. Group settings also
+provide service, team and environment bindings. Leave a binding blank to inherit
+it from the containing group or dashboard; saving creates a new consumer
+revision without changing the reviewed pack children. Narrow screens stack
+items in their saved order. Use **Edit dashboard** for nested membership. Saving creates an audited immutable revision.
 
 A dashboard body may include `layout`. Every panel must appear exactly once.
 A panel cell has `panel`, `width` (one to twelve columns) and `height` (one to four
@@ -53,7 +55,9 @@ retain their group title, position, size, collapse state and variable overrides.
 The referenced pack version supplies its child layout and widgets. Editing
 those children in a consumer definition is refused explicitly without saving a
 revision; change the reusable definition in Settings and review all consumers.
-Consumer group bindings remain editable in the dashboard JSON form. The consumer
+Consumer group bindings remain editable in Layout settings and the dashboard
+JSON form. Stale revisions, foreign scopes and unreviewed child bindings refuse
+without changing the dashboard or pack. The consumer
 keeps its dashboard time range and variable defaults unless a group supplies an
 explicit child override. A pack cannot
 contain another pack. The native bounds are thirty panels, four nested group
