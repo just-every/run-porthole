@@ -16,6 +16,7 @@ export async function servicesResponse(request:Request,env:Bindings):Promise<Res
  const html=base!==root,config=base===settings,id=path===base?undefined:path.slice(base.length+1)
  try {
   if(id&&!/^[a-f0-9]{32}$/.test(id))fail('invalid_service_id',400)
+  if(config&&!id)fail('service_not_found',404)
   if(!['GET','POST'].includes(request.method))fail('method_not_allowed',405)
   const actor=await authority(request,env,{post:request.method==='POST',stepUp:request.method==='POST'})
   if(!['owner','admin','maintainer','responder','read-only analyst','restricted contractor'].includes(actor.member.role))fail('telemetry_forbidden')

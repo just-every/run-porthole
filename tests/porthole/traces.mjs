@@ -191,3 +191,14 @@ async function policyBrowser({origin,cookie,policyInput}) {
   await context.close()
  }}finally{await browser.close()}
 }
+
+/** Reconcile native catalog edges with independently captured stock parent IDs. */
+export async function serviceTopologyProof({read,proof,view,checkout,fulfillment}) {
+ const parents=new Map(proof.spans.map(span=>[span.traceId+':'+span.spanId,span]))
+ const cross=proof.spans.filter(span=>{const parent=parents.get(span.traceId+':'+span.parentSpanId);return parent&&parent.resource['service.name']!==span.resource['service.name']}).length
+ assert.ok(view.edges.some(edge=>edge.from===checkout.id&&edge.to===fulfillment.id&&edge.kind==='observed-parent'))
+ assert.equal(view.edges.filter(edge=>edge.to).reduce((count,edge)=>count+edge.observations,0),cross,'observed dependency totals reconcile against original stock parent identities')
+ const traceId=proof.spans.find(span=>span.kind===2&&span.resource['service.name']==='checkout').traceId
+ const graph=await read('/api/porthole/v1/traces/'+traceId)
+ assert.ok(graph.spans.some(span=>span.service==='fulfillment'),'the native trace door opens the actual checkout dependency')
+}

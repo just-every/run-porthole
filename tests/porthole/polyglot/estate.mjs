@@ -72,3 +72,36 @@ export async function polyglotEstate(){
  }
  return {environment,stop,probe,diagnostics,restartServices}
 }
+
+/** Focused two-team checkout estate, sharing the real Kafka runtime above.
+ * Counts come from application handlers; durations come from independently
+ * captured stock spans before the stock OTLP exporter sends its wire bytes. */
+export async function serviceCatalogEstate({origin,secret,dispatch}) {
+ const children=[],packets=[],name='porthole-services-'+randomUUID().slice(0,8),topic='synthetic-porthole-8200-'+randomUUID(),kafkaPort=await freePort(),controller=await freePort()
+ const gateway=httpServer(async(req,res)=>{
+  try{const chunks=[];for await(const chunk of req)chunks.push(chunk);const body=Buffer.concat(chunks),type=req.headers['content-type']??'application/x-protobuf';packets.push({body,type});const response=await dispatch(req.url,{method:'POST',headers:{'content-type':type,authorization:'Bearer '+secret},body});res.writeHead(response.status,{'content-type':response.headers.get('content-type')??'application/x-protobuf'});res.end(Buffer.from(await response.arrayBuffer()))}catch{res.writeHead(503);res.end()}
+ })
+ async function message(child,type){return new Promise((resolve,reject)=>{const timer=setTimeout(()=>{child.off('message',receive);reject(Error('Stock estate timed out: '+type))},90000);const receive=data=>{if(data.type!==type)return;clearTimeout(timer);child.off('message',receive);resolve(data)};child.on('message',receive);child.once('exit',code=>{if(code){clearTimeout(timer);reject(Error('Stock estate process failed'))}})})}
+ async function start(role,extra={}){
+  const child=spawn(process.execPath,['tests/porthole/services/producer.cjs'],{env:{...process.env,OTEL_SERVICE_NAME:role,OTEL_RESOURCE_ATTRIBUTES:'deployment.environment.name=production,team.name='+(role==='checkout'?'commerce':'fulfillment')+',service.version=synthetic-porthole-8205',OTEL_EXPORTER_OTLP_TRACES_ENDPOINT:'http://127.0.0.1:'+gateway.address().port+'/v1/traces',OTEL_TRACES_SAMPLER:'always_on',OTEL_METRICS_EXPORTER:'none',OTEL_LOGS_EXPORTER:'none',KAFKA_BROKER:'127.0.0.1:'+kafkaPort,PORTHOLE_TOPIC:topic,PORTHOLE_SERVICE_ROLE:role,...extra},stdio:['ignore','ignore','pipe','ipc']});children.push(child);let diagnostic='';child.stderr.on('data',chunk=>{diagnostic=(diagnostic+chunk).slice(-3000)});const ready=await message(child,'ready');return {child,port:ready.port}
+ }
+ try {
+  await execute('docker',['run','--detach','--name',name,'--network','host','-e','KAFKA_NODE_ID=1','-e','KAFKA_PROCESS_ROLES=broker,controller','-e',`KAFKA_LISTENERS=PLAINTEXT://:${kafkaPort},CONTROLLER://:${controller}`,'-e',`KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://127.0.0.1:${kafkaPort}`,'-e','KAFKA_CONTROLLER_QUORUM_VOTERS=1@127.0.0.1:'+controller,'-e','KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER','-e','KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT','-e','KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT','-e','KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1','-e','KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1','-e','KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1','apache/kafka:3.9.1'],{timeout:120000})
+  await new Promise(resolve=>gateway.listen(0,'127.0.0.1',resolve))
+  // Create the topic before the consumer subscribes, without sending telemetry.
+  const {Kafka,logLevel}=await import('kafkajs'),admin=new Kafka({brokers:['127.0.0.1:'+kafkaPort],logLevel:logLevel.NOTHING,retry:{retries:20,initialRetryTime:200,maxRetryTime:2000}}).admin()
+  await admin.connect();await admin.createTopics({topics:[{topic,numPartitions:1,replicationFactor:1}]});await admin.disconnect()
+  const fulfillment=await start('fulfillment'),checkout=await start('checkout',{PORTHOLE_NEXT:'http://127.0.0.1:'+fulfillment.port}),statuses=[]
+  for(let i=0;i<36;i++){const mode=i<20?'work':i<28?'error':'slow',response=await fetch('http://127.0.0.1:'+checkout.port+'/checkout?mode='+mode+'&id=synthetic-porthole-'+(8300+i));statuses.push(response.status);await response.text()}
+  let stats
+  for(let attempt=0;attempt<100;attempt++){const pending=message(fulfillment.child,'stats');fulfillment.child.send('stats');stats=await pending;if(stats.received.length===36)break;await pause(50)}
+  if(stats.received.length!==36)throw Error('Actual Kafka delivery did not reconcile')
+  const receipts=[]
+  for(const child of children){const pending=message(child,'receipt');child.send('stop');receipts.push(await pending);await new Promise(resolve=>child.exitCode===null?child.once('exit',resolve):resolve())}
+  return {statuses,receipts,packets,spans:receipts.flatMap(r=>r.spans)}
+ }finally{
+  for(const child of children)if(child.exitCode===null){const stopped=new Promise(resolve=>child.once('exit',resolve));child.kill('SIGTERM');await stopped}
+  await execute('docker',['stop','--time','5',name]).catch(()=>{});await execute('docker',['rm','-f',name]).catch(()=>{})
+  if(gateway.listening)await new Promise(resolve=>gateway.close(resolve))
+ }
+}
