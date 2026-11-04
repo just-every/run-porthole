@@ -24,7 +24,8 @@ There is no event-edit operation.
 `GET /api/porthole/v1/events` returns `events`, `snapshot`, `cursor`, `pageCursor`
 and `facets`. Facet counts and `facets.totalEvents` describe every currently authorized matching
 event at the receipt snapshot, across all pages. Page position does not change
-the counts. A final corpus fence refuses a summary if an input was erased
+the counts. `facets.scope` is `snapshot`; each facet entry contains `value` and
+`count`. A final corpus fence refuses with `event_evidence_changed` if an input was erased
 while it was being read. Select a facet in Events to search that exact value; resource and tag
 filters also work in private saved filters. Use the
 opaque cursor with the identical search and session. Each page rechecks current

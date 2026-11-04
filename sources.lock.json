@@ -429,7 +429,7 @@
       "executable": false
     },
     "docs/events.md": {
-      "sha256": "399b8f403c87beec72b61ddf73f083e51dc146c7a9e40eca9930d272558a5388",
+      "sha256": "266c7b2bfce14b2d080969d047fcd75c3d692a0a8806142224c86c8ac56d630a",
       "executable": false
     },
     "docs/genai.md": {
@@ -989,7 +989,7 @@
       "executable": false
     },
     "public/openapi/porthole-v1.json": {
-      "sha256": "b33fdba2beca8a6bea363662a4784510442a9c224e24a720dca93f22a12e138e",
+      "sha256": "ec4f92fec1df4a8b0b7cc994cb5120b446824c950d7470a96e73030bd35fb716",
       "executable": false
     },
     "public/porthole/dashboards.js": {
@@ -4629,7 +4629,7 @@
       "executable": false
     },
     "src/porthole/events/openapi.ts": {
-      "sha256": "db0a0ffeb28647698f5b2cc8a87546b2bb6bbd67a5b7cfedffc085ebe559a492",
+      "sha256": "9b65f03c301f1559107f530955464071d167922faaf92bec1417e2bf2b82f688",
       "executable": false
     },
     "src/porthole/events/overlays.ts": {
