@@ -1,31 +1,60 @@
 import { array, invalid, object, type TelemetryRecord } from './model'
 import { record } from './normalize'
-import { bytes, double, fields, uint, utf8 } from './wire'
+import { bytes, double, fields, fixed, uint, utf8, type Field } from './wire'
 
-// prometheus.WriteRequest v1. Native histograms/exemplars require explicit
-// support rather than quietly discarding fields from an acknowledged series.
+// prometheus.WriteRequest v1, pinned to Prometheus v3.5.0 prompb/types.proto.
+// Refuse unsupported fields before acknowledging any part of the request.
+const metadataTypes = ['unknown','counter','gauge','histogram','gaugehistogram','summary','info','stateset']
+function remoteFields(input: Uint8Array, allowed: number[], code: string) {
+ const parts = fields(input)
+ if (parts.some(part => !allowed.includes(part.number))) return invalid(code,415)
+ if (new Set(parts.map(part => part.number)).size !== parts.length) return invalid('duplicate_remote_write_field')
+ return parts
+}
+function remoteBytes(field: Field) { return field.wire === 2 ? bytes(field) : invalid('invalid_remote_write_wire_type') }
 export function remoteWrite(input: Uint8Array, headers: Headers): TelemetryRecord[] {
  const result: TelemetryRecord[] = []
  for (const field of fields(input)) {
-  if (field.number === 3) continue // MetricMetadata, preserved in original wire.
+  if (field.number === 3) {
+   const parts = remoteFields(remoteBytes(field),[1,2,4,5],'unsupported_remote_write_metadata_field')
+   const get = (number: number) => parts.find(part => part.number === number)
+   const typeField = get(1), type = typeField ? Number(uint(typeField)) : 0
+   if (!metadataTypes[type]) return invalid('unsupported_remote_write_metadata_type',415)
+   const text = (number: number) => get(number) ? utf8(remoteBytes(get(number)!)) : ''
+   const metadata = {type:metadataTypes[type],familyName:text(2),help:text(4),unit:text(5)}
+   if (!metadata.familyName) return invalid('missing_metric_name')
+   // Metadata messages have neither sample values nor source timestamps. The
+   // zero sort key is internal pagination state, never a measured data point.
+   const entry = record({protocol:'prometheus.WriteRequest',resource:{attributes:{}},metric:{name:metadata.familyName},metricKind:'metadata',metadata,record:{}},{},'0',headers,'metrics')
+   entry.late = 0
+   entry.payload.delivery = {receivedTimeUnixNano:(BigInt(Date.now())*1000000n).toString(),sourceTime:'not-supplied',uncertainTime:false,clockAheadNs:'0'}
+   result.push(entry)
+   continue
+  }
   if (field.number !== 1) return invalid('unsupported_remote_write_field',415)
   const labels: Record<string,string> = Object.create(null), samples = []
-  for (const part of fields(bytes(field))) {
+  for (const part of fields(remoteBytes(field))) {
    if (part.number === 1) {
-    const pair = fields(bytes(part)), name = pair.find(p => p.number === 1), value = pair.find(p => p.number === 2)
-    if (!name || !value) return invalid('invalid_remote_write_label')
-    const key = utf8(bytes(name)); if (Object.hasOwn(labels,key)) return invalid('duplicate_remote_write_label')
-    labels[key] = utf8(bytes(value))
-   } else if (part.number === 2) samples.push(bytes(part))
+    const pair = remoteFields(remoteBytes(part),[1,2],'unsupported_remote_write_label_field')
+    const name = pair.find(p => p.number === 1), value = pair.find(p => p.number === 2)
+    if (!name) return invalid('invalid_remote_write_label')
+    const key = utf8(remoteBytes(name))
+    if (!key || Object.hasOwn(labels,key)) return invalid('duplicate_remote_write_label')
+    // Protobuf omits an empty proto3 string, which is a valid label value.
+    labels[key] = value ? utf8(remoteBytes(value)) : ''
+   } else if (part.number === 2) samples.push(remoteBytes(part))
    else return invalid('unsupported_remote_write_histogram_or_exemplar',415)
   }
   if (!labels.__name__) return invalid('missing_metric_name')
   for (const sample of samples) {
-   const parts = fields(sample), valueField = parts.find(p => p.number === 1), time = parts.find(p => p.number === 2)
+   const parts = remoteFields(sample,[1,2],'unsupported_remote_write_sample_field')
+   const valueField = parts.find(p => p.number === 1), time = parts.find(p => p.number === 2)
+   if (valueField && valueField.wire !== 1) return invalid('invalid_remote_write_wire_type')
    const value = valueField ? double(valueField) : 0, timestamp = time ? BigInt.asIntN(64,uint(time)) : 0n
    if (timestamp < 0n) return invalid('negative_metric_timestamp')
-   // NaN includes Prometheus' stale marker; the original float bits are retained.
-   result.push(record({ protocol: 'prometheus.WriteRequest', resource: { attributes: labels }, metric: { name: labels.__name__ }, record: { value: Number.isFinite(value) ? value : String(value), timestamp: timestamp.toString() } }, labels, (timestamp * 1000000n).toString(), headers, 'metrics'))
+   const valueBits = valueField ? fixed(valueField).toString(16).padStart(16,'0') : '0000000000000000'
+   const sampleState = valueBits === '7ff0000000000002' ? 'stale' : Number.isNaN(value) ? 'nan' : 'present'
+   result.push(record({protocol:'prometheus.WriteRequest',resource:{attributes:labels},metric:{name:labels.__name__},metricKind:'sample',record:{value:Number.isFinite(value)?value:String(value),valueBits,sampleState,timestamp:timestamp.toString()}},labels,(timestamp*1000000n).toString(),headers,'metrics'))
   }
  }
  return result

@@ -14,6 +14,7 @@ if(process.env.PORTHOLE_GENAI_CONTENT_ONLY==='1'){const {nativeGenaiContentRefus
 if(process.env.PORTHOLE_MAIL_ONLY==='1'){const {recipientMailJourney}=await import('./porthole/health.mjs');await recipientMailJourney();process.exit(0)}
 if(process.env.PORTHOLE_GENAI_ANALYTICAL_ONLY==='1'){const {genaiAnalyticalJourney}=await import('./porthole/genai.mjs');await genaiAnalyticalJourney();process.exit(0)}
 if(process.env.PORTHOLE_LOG_CLUSTERS_ANALYTICAL_ONLY==='1'){const {logClusterAnalyticalJourney}=await import('./porthole/log-clusters.mjs');await logClusterAnalyticalJourney();process.exit(0)}
+if(process.env.PORTHOLE_PROMETHEUS_ONLY==='1'){const {prometheusStockJourney}=await import('./porthole/prometheus-stock.mjs');await prometheusStockJourney();process.exit(0)}
 if(process.env.PORTHOLE_ANALYTICAL_ONLY==='1'){const {analyticalConnectionJourney}=await import('./porthole/analytics.mjs');await analyticalConnectionJourney();process.exit(0)}
 
 // Standalone journeys own their runtime and HTTP transport. Load Wrangler only
