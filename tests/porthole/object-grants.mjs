@@ -186,9 +186,15 @@ async function policyBrowser({origin,cookie,member,other,a,b,settings}) {
    assert.ok(await page.locator('main p,main label,main button,main a,main summary,main pre').evaluateAll(nodes=>nodes.every(node=>parseFloat(getComputedStyle(node).fontSize)>=13)),'policy screens keep readable text')
    assert.equal(await page.locator('button,a').evaluateAll(nodes=>nodes.filter(node=>!node.textContent.trim()&&!node.getAttribute('aria-label')).length),0,'every control has a readable label')
    assert.equal(await page.locator('form[action="/app/dashboards/save"]').count(),name==='editor'?1:0)
-   if(name==='owner-settings') {await page.getByLabel('Restrictions JSON').focus();assert.equal(await page.getByLabel('Restrictions JSON').evaluate(element=>element===document.activeElement),true);await page.getByRole('button',{name:'Review restrictions'}).click();await page.getByRole('heading',{name:'Review dashboard access',exact:true}).waitFor();assert.equal(await page.getByRole('checkbox',{name:'Apply these exact restrictions'}).isChecked(),false)}
+   if(name==='owner-settings') {await page.getByLabel('Restrictions JSON').focus();assert.equal(await page.getByLabel('Restrictions JSON').evaluate(element=>element===document.activeElement),true)}
   }
   if(evidence)await page.screenshot({path:join(evidence,`dashboard-policy-${name}-${width}.png`),fullPage:true})
+  if(name==='owner-settings') {
+   await page.getByRole('button',{name:'Review restrictions'}).click()
+   await page.getByRole('heading',{name:'Review dashboard access',exact:true}).waitFor()
+   if(width===1440)assert.equal(await page.getByRole('checkbox',{name:'Apply these exact restrictions'}).isChecked(),false)
+   if(evidence)await page.screenshot({path:join(evidence,`dashboard-policy-owner-review-${width}.png`),fullPage:true})
+  }
   await context.close()
  }}finally{await browser.close()}
 }
