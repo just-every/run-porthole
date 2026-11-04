@@ -52,3 +52,16 @@ export async function* queryPages(request,{query,all=false}) {
   seen.add(page.cursor);body={...body,cursor:page.cursor,snapshot:page.snapshot}
  }while(true)
 }
+
+export async function* pipelinePages(request,{limit=50,cursor,all=false}) {
+ const seen=new Set()
+ do {
+  const params=new URLSearchParams({limit:String(limit)})
+  if(cursor)params.set('cursor',cursor)
+  const page=await request('/api/porthole/v1/pipelines/revisions?'+params)
+  yield page
+  cursor=page.cursor
+  if(cursor&&seen.has(cursor))throw Error('Porthole returned a repeated cursor')
+  if(cursor)seen.add(cursor)
+ }while(all&&cursor)
+}

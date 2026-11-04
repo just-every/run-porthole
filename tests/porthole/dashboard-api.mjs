@@ -120,6 +120,17 @@ export async function layoutAuthorityJourney({origin,cookie,signIn,id,scope,pack
  assert.equal((await post('/app/settings/members/invite',{email:address,displayName:'Scoped layout analyst',role:'read-only analyst',scope})).status,202)
  const reader=await signIn(address),root='/api/porthole/v1/dashboard-powerpacks'
  const before=await sql('SELECT id,body,revision FROM porthole_dashboards ORDER BY id')
+ const definition=await (await fetch(origin+'/api/porthole/v1/dashboards/'+id,{headers:{cookie}})).json()
+ for(const edit of [
+  body=>{body.panels.find(panel=>panel.id.includes(':')).title='Unreviewed local widget'},
+  body=>{body.layout.find(group=>group.powerpack).children[0].variables={team:'payments',environment:'staging'}}
+ ]) {
+  const changed=structuredClone(definition.body);edit(changed)
+  const response=await post('/api/porthole/v1/dashboards',{id,revision:definition.revision,name:definition.name,scope:definition.scope,body:changed})
+  assert.equal(response.status,400,'the direct API must refuse unreviewed pack content edits')
+  assert.equal((await response.json()).error,'edit_powerpack_children_in_settings')
+ }
+ assert.deepEqual(await sql('SELECT id,body,revision FROM porthole_dashboards ORDER BY id'),before,'refused JSON edits leave every consumer unchanged')
  assert.equal((await post(root+'/preview',{id:packId,revision:packRevision,name:'Denied pack',scope,body},reader)).status,403)
  assert.equal((await post('/app/dashboards/layout',{id,revision:1,group:'native',width:6},reader)).status,403)
  assert.equal((await fetch(origin+'/app/dashboards/'+id+'?team=foreign',{headers:{cookie:reader}})).status,403)

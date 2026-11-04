@@ -1,6 +1,6 @@
 import {resolve} from 'node:path'
 import {pathToFileURL} from 'node:url'
-import {client,definitionRoot,definitionPages,queryPages} from './client.mjs'
+import {client,definitionRoot,definitionPages,queryPages,pipelinePages} from './client.mjs'
 
 async function readInput(stream) {
  let raw=''
@@ -20,6 +20,24 @@ export async function run(args,{env=process.env,input=process.stdin,output=proce
   return
  }
  const [collection,id,...flags]=rest
+ if(collection==='pipelines') {
+  const root='/api/porthole/v1/pipelines'
+  if(command==='get'&&!flags.length&&(!id||id==='current'||id==='catalog'||/^[1-9][0-9]*$/.test(id))) {
+   emit(await request(!id||id==='current'?root:id==='catalog'?root+'/catalog':root+'/revisions/'+id));return
+  }
+  if(command!=='list')throw Error('Use get pipelines [current|catalog|REVISION] or list pipelines [--all] [--limit N] [--cursor CURSOR]')
+  const options=rest.slice(1);let all=false,limit=50,cursor
+  for(let index=0;index<options.length;index++) {
+   const option=options[index]
+   if(option==='--all')all=true
+   else if(option==='--limit'&&/^[1-9][0-9]*$/.test(options[index+1]??''))limit=Number(options[++index])
+   else if(option==='--cursor'&&options[index+1])cursor=options[++index]
+   else throw Error('Use list pipelines [--all] [--limit N] [--cursor CURSOR]')
+  }
+  if(!Number.isSafeInteger(limit)||limit<1||limit>200)throw Error('Limit must be between 1 and 200')
+  for await(const page of pipelinePages(request,{limit,cursor,all}))emit(page)
+  return
+ }
  const root=definitionRoot(collection)
  if(command==='list') {
   const all=rest.slice(1).includes('--all'),options=rest.slice(1).filter(arg=>arg!=='--all')

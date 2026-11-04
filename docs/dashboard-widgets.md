@@ -48,8 +48,9 @@ Grouped table rows expose `data-series` and `data-value`; their table exposes
 `data-total`. These attributes describe the displayed data.
 
 This slice does not complete PORT-018 or PORT-068. Source-import parity,
-layout and grouping containers, reusable powerpacks, formulas and the other
-required function families remain gaps. Previous-week overlays use the fixed UTC
+source group and powerpack parity, formulas and the other required function
+families remain gaps. Private native containers and reviewed reusable packs are
+documented in `./docs/dashboard-layouts.md`. Previous-week overlays use the fixed UTC
 offset documented in `./docs/dashboards.md`; they preserve actual source ranges
 and do not fill missing observations. Host and topology maps, service and
 SLO summaries, monitor and check status, alert graphs, event streams, change

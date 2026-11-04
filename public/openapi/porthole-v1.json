@@ -6877,6 +6877,471 @@
         }
       }
     },
+    "/api/porthole/v1/pipelines": {
+      "get": {
+        "summary": "Read current pipeline configuration and first history page",
+        "security": [
+          {
+            "NativeSession": []
+          }
+        ],
+        "description": "Current native owner session only, within current service, environment and team scope. Authorization headers always refuse, including with an owner cookie. Current authority is rechecked on every page. Reads change no pipeline or telemetry. History is descending, bounded to the first page snapshot; newer activations require a new traversal. Unknown or repeated query parameters refuse.",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "Opaque signed continuation. Keep the same limit. Bound to the current owner and membership revision; survives Worker restart.",
+            "schema": {
+              "type": "string",
+              "maxLength": 2048
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current global revision, authorized active definition or null, and immutable history page",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "revision",
+                    "definition",
+                    "history",
+                    "snapshot",
+                    "cursor"
+                  ],
+                  "properties": {
+                    "history": {
+                      "type": "array",
+                      "maxItems": 200,
+                      "items": {
+                        "$ref": "#/components/schemas/PipelineRevision"
+                      }
+                    },
+                    "snapshot": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "cursor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "revision": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "definition": {
+                      "oneOf": [
+                        {
+                          "$ref": "#/components/schemas/PipelineDefinition"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Correct the rejected input; expression errors include field and hint when available.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sign in or supply a valid live credential.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Use an authorized scope and action. Native writes require the configured same-origin Origin header.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Check the identifier and current access; inaccessible objects may be hidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Use the documented method.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Refresh current authority and revision; reuse an idempotency key only for the identical request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Restore service availability and retry; a failed request is not evidence of acceptance.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/porthole/v1/pipelines/catalog": {
+      "get": {
+        "summary": "Read the native processor catalog",
+        "security": [
+          {
+            "NativeSession": []
+          }
+        ],
+        "description": "Current native owner session only, within current service, environment and team scope. Authorization headers always refuse, including with an owner cookie. Current authority is rechecked on every page. Reads change no pipeline or telemetry. History is descending, bounded to the first page snapshot; newer activations require a new traversal. Unknown or repeated query parameters refuse.",
+        "responses": {
+          "200": {
+            "description": "Implemented processor examples and supported native limits",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Correct the rejected input; expression errors include field and hint when available.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sign in or supply a valid live credential.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Use an authorized scope and action. Native writes require the configured same-origin Origin header.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Check the identifier and current access; inaccessible objects may be hidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Use the documented method.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Refresh current authority and revision; reuse an idempotency key only for the identical request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Restore service availability and retry; a failed request is not evidence of acceptance.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/porthole/v1/pipelines/revisions": {
+      "get": {
+        "summary": "Page immutable pipeline revision history",
+        "security": [
+          {
+            "NativeSession": []
+          }
+        ],
+        "description": "Current native owner session only, within current service, environment and team scope. Authorization headers always refuse, including with an owner cookie. Current authority is rechecked on every page. Reads change no pipeline or telemetry. History is descending, bounded to the first page snapshot; newer activations require a new traversal. Unknown or repeated query parameters refuse.",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "Opaque signed continuation. Keep the same limit. Bound to the current owner and membership revision; survives Worker restart.",
+            "schema": {
+              "type": "string",
+              "maxLength": 2048
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Snapshot-consistent authorized history page",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PipelineHistory"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Correct the rejected input; expression errors include field and hint when available.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sign in or supply a valid live credential.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Use an authorized scope and action. Native writes require the configured same-origin Origin header.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Check the identifier and current access; inaccessible objects may be hidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Use the documented method.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Refresh current authority and revision; reuse an idempotency key only for the identical request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Restore service availability and retry; a failed request is not evidence of acceptance.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/porthole/v1/pipelines/revisions/{revision}": {
+      "get": {
+        "summary": "Read one exact immutable pipeline revision",
+        "security": [
+          {
+            "NativeSession": []
+          }
+        ],
+        "description": "Current native owner session only, within current service, environment and team scope. Authorization headers always refuse, including with an owner cookie. Current authority is rechecked on every page. Reads change no pipeline or telemetry. History is descending, bounded to the first page snapshot; newer activations require a new traversal. Unknown or repeated query parameters refuse.",
+        "parameters": [
+          {
+            "name": "revision",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Exact authorized revision, including inactive history",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PipelineRevision"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Correct the rejected input; expression errors include field and hint when available.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sign in or supply a valid live credential.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Use an authorized scope and action. Native writes require the configured same-origin Origin header.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Check the identifier and current access; inaccessible objects may be hidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Use the documented method.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Refresh current authority and revision; reuse an idempotency key only for the identical request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Restore service availability and retry; a failed request is not evidence of acceptance.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/porthole/v1/genai": {
       "get": {
         "summary": "Read scoped GenAI metadata and observed usage",
@@ -7434,6 +7899,159 @@
           }
         ],
         "description": "Every native panel appears exactly once; at most four nested group levels and sixty total items. Pack children are resolved by the server from the exact current reviewed pack revision."
+      },
+      "PipelineDefinition": {
+        "type": "object",
+        "required": [
+          "service",
+          "environment",
+          "team",
+          "processors",
+          "metrics"
+        ],
+        "properties": {
+          "service": {
+            "type": "string"
+          },
+          "environment": {
+            "type": "string"
+          },
+          "team": {
+            "type": "string"
+          },
+          "processors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "type"
+              ],
+              "properties": {
+                "type": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "metrics": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "exclude": {
+            "type": "object"
+          },
+          "redaction": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        }
+      },
+      "PipelineRevision": {
+        "type": "object",
+        "required": [
+          "revision",
+          "definition",
+          "created_at",
+          "owner_id",
+          "state"
+        ],
+        "properties": {
+          "revision": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "definition": {
+            "type": "object",
+            "required": [
+              "service",
+              "environment",
+              "team",
+              "processors",
+              "metrics"
+            ],
+            "properties": {
+              "service": {
+                "type": "string"
+              },
+              "environment": {
+                "type": "string"
+              },
+              "team": {
+                "type": "string"
+              },
+              "processors": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "type"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "metrics": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              },
+              "exclude": {
+                "type": "object"
+              },
+              "redaction": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "created_at": {
+            "type": "integer",
+            "description": "Unix milliseconds."
+          },
+          "owner_id": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          }
+        }
+      },
+      "PipelineHistory": {
+        "type": "object",
+        "required": [
+          "history",
+          "snapshot",
+          "cursor"
+        ],
+        "properties": {
+          "history": {
+            "type": "array",
+            "maxItems": 200,
+            "items": {
+              "$ref": "#/components/schemas/PipelineRevision"
+            }
+          },
+          "snapshot": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "cursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
       },
       "Scope": {
         "type": "object",

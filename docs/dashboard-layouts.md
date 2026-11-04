@@ -50,7 +50,10 @@ Bind from the dashboard form using the pack ID and current revision. The server
 copies the reviewed native widgets into a group with a `powerpack` reference
 containing `id` and `revision`, and prefixes child IDs with the group ID. Bindings
 retain their group title, position, size, collapse state and variable overrides.
-The referenced pack version supplies its child layout and widgets. The consumer
+The referenced pack version supplies its child layout and widgets. Editing
+those children in a consumer definition is refused explicitly without saving a
+revision; change the reusable definition in Settings and review all consumers.
+Consumer group bindings remain editable in the dashboard JSON form. The consumer
 keeps its dashboard time range and variable defaults unless a group supplies an
 explicit child override. A pack cannot
 contain another pack. The native bounds are thirty panels, four nested group
