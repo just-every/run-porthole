@@ -3,7 +3,7 @@
 // are omitted entirely, including hashes. Source ids remain audit references.
 const excluded=[
  'porthole_host_sources','porthole_host_heartbeats','porthole_host_monitor_state',
- 'porthole_pipeline_previews',
+ 'porthole_pipeline_previews','porthole_powerpack_reviews',
  'porthole_metric_previews',
  'porthole_follow_up','porthole_follow_up_events',
  'porthole_analytical_configuration','rer_dependency_%','oc_%','porthole_members','porthole_credentials','porthole_object_approvals',
@@ -18,6 +18,7 @@ export default {
  requiredConfiguration:['OWNER_EMAIL','SESSION_SECRET','SETUP_TOKEN','AUTH_ORIGIN','MAIL_PROVIDER','MAIL_FROM'],
  importSafety:{
   porthole_pipeline_versions:{state:['quarantined']},
+  porthole_powerpacks:{state:['quarantined']},porthole_dashboards:{state:['quarantined']},porthole_dashboard_publications:{state:['quarantined']},
   porthole_metric_rules:{state:['quarantined']},
   porthole_retention_policies:{active:[0]},
   porthole_baggage_policy:{enabled:[0]},
@@ -28,7 +29,7 @@ export default {
  importRow(table,row) {
   if(table==='porthole_pipeline_versions')return {...row,state:'quarantined'}
   if(table==='porthole_metric_rules')return {...row,state:'quarantined'}
-  if(['porthole_objects','porthole_bucket_history'].includes(table))return {...row,state:'quarantined'}
+  if(['porthole_objects','porthole_bucket_history','porthole_powerpacks','porthole_dashboards','porthole_dashboard_publications'].includes(table))return {...row,state:'quarantined'}
   if(table==='porthole_retention_policies')return {...row,active:0}
   if(table==='porthole_baggage_policy')return {...row,enabled:0}
   if(table==='porthole_ingest_control')return {...row,paused:1}
