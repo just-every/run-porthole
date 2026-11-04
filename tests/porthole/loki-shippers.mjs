@@ -358,6 +358,7 @@ export async function lokiBrowser({origin,cookie,service}){
    assert.equal((await page.goto(origin+path)).status(),200)
    if(path.endsWith('explore')){
     await page.getByLabel('Signal',{exact:true}).selectOption('logs');await page.getByLabel('Service',{exact:true}).fill(service)
+    await page.getByLabel('Environment',{exact:true}).fill(lokiScope.environments[0]);await page.getByLabel('Team',{exact:true}).fill(lokiScope.teams[0])
     await page.getByRole('button',{name:'Run query',exact:true}).click();await page.getByRole('heading',{name:'Query results',exact:true}).waitFor()
     if(width===1440)assert.match(await page.locator('pre').textContent(),/synthetic-porthole-19000/)
    }

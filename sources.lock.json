@@ -381,7 +381,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "45980654d593a86132690dd5b59561544c8b6dead67d860a0b4f129a14bb3fa1",
+      "sha256": "9805ad57e3a2c20be44c688897f9bc20fbe80ef2cf8cd5627257406a7bbe32ee",
       "executable": false
     },
     "DEMO.md": {
@@ -5597,7 +5597,7 @@
       "executable": false
     },
     "tests/porthole/loki-shippers.mjs": {
-      "sha256": "1d0ad6009609f7da83267a6f31efd66c2b8d382de1731fb9cc2ff6bec93f8806",
+      "sha256": "6d57e0da6ab3f462d1b6ca493b3c3faf7a4a8d3d26ed13628bd6927accb8c54a",
       "executable": false
     },
     "tests/porthole/membership.mjs": {
