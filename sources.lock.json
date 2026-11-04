@@ -325,7 +325,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "0aaae68ff13431ada8d42bdae48727d96ca6db3b9c6f87b582faef7adbfd2924",
+      "sha256": "cb3f2b67e233218b08bba6f99814c66c80609a4179b823d0fae536e7391b33aa",
       "executable": false
     },
     "agent-surface.json": {
@@ -381,7 +381,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "75cec55f1f0cb33feb98745b9f64e23b8ed30a31076f7cd77cc118d15f46554f",
+      "sha256": "12511e0888d2649f80d5cab64bf7d57f09996629395f64580f6d05ec4f72dc91",
       "executable": false
     },
     "DEMO.md": {
@@ -413,11 +413,15 @@
       "executable": false
     },
     "docs/CLAIMS.md": {
-      "sha256": "0c8bf163e872990ed5780e63210f41bd40d46a370919740aeeddb8716a5c12e7",
+      "sha256": "e620d8e2237eb100ea0d8563dc2bea77e3047c1ad7ab2e999ed40b7df6b784d7",
       "executable": false
     },
     "docs/company-agents.md": {
       "sha256": "a26211c35a8d0a6342a39778929823341f6dbdaf2a99a9476d50631a1768a0b6",
+      "executable": false
+    },
+    "docs/contract/PORT-099-rubric.md": {
+      "sha256": "ce6a28ef79b3d71555e2d3821a028f1c2513e97bc81f31fd49126d032f85abbf",
       "executable": false
     },
     "docs/dashboard-widgets.md": {
@@ -1284,6 +1288,10 @@
       "sha256": "88e0323fe300f007754f67b0ae4102e265378e5d449108858a090132f2c5dd26",
       "executable": false
     },
+    "RULINGS.md": {
+      "sha256": "47b8469501926cc8fcf45db5e7a91d894530abc4fd5f55aa7a7138c99b0cc906",
+      "executable": false
+    },
     "RUN-LOCALLY.md": {
       "sha256": "ab049a0eb1db086a99aff1627444eaa38de2fb1ca0d2532def42bb75ca83038e",
       "executable": false
@@ -2021,7 +2029,7 @@
       "executable": false
     },
     "scripts/porthole/contract-docs.mjs": {
-      "sha256": "8667a2da31793d548ffcdec1f043e5ecbac288d77c4c6d20b3b1500745c5300b",
+      "sha256": "87c6751876f174f1c680b8656cf5d8a6525b29d241de036be2b0fbc4019ac887",
       "executable": false
     },
     "scripts/porthole/export-parquet.py": {
@@ -5637,7 +5645,7 @@
       "executable": false
     },
     "tests/porthole/log-clusters.mjs": {
-      "sha256": "c391f96c77d5769865208469dfc6c62394395742e889e2bac86679f9c88096ed",
+      "sha256": "c86932a71e8509c5530d72cbda7e4010dfc3305c5e662a93db5cf32539de6565",
       "executable": false
     },
     "tests/porthole/log-search-corpus.mjs": {
