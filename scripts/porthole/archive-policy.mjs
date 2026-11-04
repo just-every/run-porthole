@@ -17,6 +17,7 @@ export default {
  excludeTables:excluded,
  requiredConfiguration:['OWNER_EMAIL','SESSION_SECRET','SETUP_TOKEN','AUTH_ORIGIN','MAIL_PROVIDER','MAIL_FROM'],
  importSafety:{
+  porthole_custom_events:{state:['quarantined']},porthole_event_filters:{state:['quarantined']},
   porthole_pipeline_versions:{state:['quarantined']},
   porthole_metric_rules:{state:['quarantined']},
   porthole_retention_policies:{active:[0]},
@@ -26,6 +27,7 @@ export default {
   porthole_monitor_state:{status:['Unknown']},
  },
  importRow(table,row) {
+  if(['porthole_custom_events','porthole_event_filters'].includes(table))return {...row,state:'quarantined'}
   if(table==='porthole_pipeline_versions')return {...row,state:'quarantined'}
   if(table==='porthole_metric_rules')return {...row,state:'quarantined'}
   if(['porthole_objects','porthole_bucket_history'].includes(table))return {...row,state:'quarantined'}

@@ -1,3 +1,4 @@
+import {validateEventRow,eventFilter} from '../events/model'
 import {hostDefinition,validateHostEvidence} from '../monitors/types/host-heartbeat'
 import {assertGenAIMetadata} from '../genai/privacy'
 import {assertGenAIWire} from '../genai/wire'
@@ -37,6 +38,7 @@ const bad = (): never => fail('archive_semantics_invalid',422)
 const object = (value: unknown): value is Record<string,unknown> => !!value && typeof value==='object' && !Array.isArray(value)
 export function manifestInput(value: unknown): Manifest {
  if(!object(value) || Object.keys(value).sort().join(',')!==['format','id','createdAt','rowCount','chunks','rootHash','tables','inactive'].sort().join(',') || value.format!==format || !uuid(value.id) || !integer(value.createdAt) || !integer(value.rowCount) || !integer(value.chunks) || !hex(value.rootHash) || value.inactive!==true || !object(value.tables)) return bad()
+ for(const table of ['porthole_custom_events','porthole_event_filters'])if(!Object.hasOwn(value.tables,table))value.tables[table]=0
  // Older archives predate export exclusions. Their absent journal is empty;
  // a later destination journal still wins during restore.
  for(const table of ['porthole_notebooks','porthole_notebook_versions','porthole_notebook_publications'])if(!Object.hasOwn(value.tables,table))value.tables[table]=0
@@ -73,7 +75,12 @@ export async function validateRow(payload: PortableRow, state: Validation): Prom
  if(Object.keys(row).sort().join(',')!==[...item.columns].sort().join(',')) bad()
  for(const [key,value] of Object.entries(row)) if(value!==null && typeof value!=='string' && !(item.table==='porthole_metric_points'&&key==='value'?Number.isSafeInteger(value):integer(value))) bad()
  const required=(...keys:string[])=>{for(const key of keys)if(!str(row[key]) || !(row[key] as string).length)bad()}
- if(item.table==='porthole_notebook_publications') {
+ if(item.table==='porthole_custom_events') {
+  await validateEventRow(row)
+ } else if(item.table==='porthole_event_filters') {
+  if(!uuid(row.id)||!uuid(row.owner_ref)||!str(row.name)||!integer(row.revision,1)||!integer(row.created_at)||!['active','quarantined'].includes(String(row.state)))bad()
+  eventFilter(json(row.definition))
+ } else if(item.table==='porthole_notebook_publications') {
   publicationRow(row)
  } else if(['porthole_notebooks','porthole_notebook_versions'].includes(item.table)) {
   notebookRow(row)
