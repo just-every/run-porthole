@@ -4525,7 +4525,7 @@
       "executable": false
     },
     "src/porthole/authorization/dashboard-policy.ts": {
-      "sha256": "50ef6e8ec3dd4b07913c45d1f8216418e845196a52fd1d8a18887378a87c3786",
+      "sha256": "f70c2c659c892ef627cb1e0c4be0b7fddd37cb98b37705fe03c89e2e2884a92c",
       "executable": false
     },
     "src/porthole/authorization/http.ts": {
