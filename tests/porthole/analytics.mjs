@@ -111,10 +111,15 @@ export async function analyticalEstate() {
    await execute(process.execPath,[wrangler,'d1','migrations','apply','DB','--local','--config',server.config,'--persist-to',server.persist],{cwd:scratch,env});await start(server)
   }
   const find=role=>servers.find(server=>server.role===role)
-  const services=Object.fromEntries(servers.map(server=>['ANALYTICS_'+server.role.toUpperCase(),request=>analyticalTransport(server.origin,request)]))
+  let afterQuery
+  const services=Object.fromEntries(servers.map(server=>['ANALYTICS_'+server.role.toUpperCase(),async request=>{
+   const response=await analyticalTransport(server.origin,request)
+   if(afterQuery&&new URL(request.url).pathname==='/v1/query'){const run=afterQuery;afterQuery=undefined;await run(response.clone())}
+   return response
+  }]))
   const bindings=Object.fromEntries(servers.map(server=>['ANALYTICS_'+server.role.toUpperCase()+'_TOKEN',server.token]))
   const inspect=async role=>JSON.parse((await execute(process.execPath,[wrangler,'d1','execute','DB','--local','--config',find(role).config,'--persist-to',find(role).persist,'--json','--command','SELECT * FROM analytics_records'],{cwd:scratch,env})).stdout).flatMap(result=>result.results??[])
-  return {inspect,bindings,services,stop:role=>stop(find(role)),start:role=>start(find(role)),dispose,origin:role=>find(role).origin}
+  return {afterQuery:run=>{afterQuery=run},inspect,bindings,services,stop:role=>stop(find(role)),start:role=>start(find(role)),dispose,origin:role=>find(role).origin}
  }catch(error){await dispose();throw error}
 }
 
@@ -285,6 +290,8 @@ export async function analyticalConnectionJourney() {
    } finally {await destination.dispose()}
    const {nativeLogSearchJourney}=await import('./explore.mjs')
    await nativeLogSearchJourney({origin,cookie:nextOwner,call,backend:'analytical'})
+   const {logClusterAnalyticalProof}=await import('./log-clusters.mjs')
+   await logClusterAnalyticalProof({context,estate,cookie:nextOwner})
    const candidate=(await promisify(execFile)('git',['rev-parse','HEAD'])).stdout.trim()
    console.log('PORTHOLE_ANALYTICAL_RUN '+JSON.stringify({runId:'sx-porthole-c7-recovery-20261022',head:candidate,result:'passed'}))
    console.log('analyticalConnectionJourney passed: real independent primary/standby processes, product query/health/monitor, collector outage and direct provider-edge notice, behind refusal, explicit failover/failback, bounded 20/3 backlog, original ns and no duplicate records/notices')
@@ -316,7 +323,7 @@ export async function databaseAnalyticalJourney({captures,packets,marker,plans})
     let page=await read(api+'?limit=1'),all=[...page.captures];assert.equal(page.analytical.role,role);assert.ok(page.cursor)
     page=await read(api+'?limit=1&snapshot='+page.snapshot+'&cursor='+encodeURIComponent(page.cursor));all.push(...page.captures)
     assert.equal(all.length,2);assert.equal(page.cursor,null)
-    for(const capture of captures){const actual=all.find(c=>c.engine===capture.engine);assert.deepEqual(actual.queries,capture.queries);assert.deepEqual(actual.waits,capture.waits);assert.ok(actual.callers.length>=6,'actual stock caller spans join through the selected analytical store')}
+    for(const capture of captures){const actual=all.find(c=>c.engine===capture.engine),expected=capture.queries.map(q=>({...q,fingerprint:q.fingerprint.replaceAll('password = ?','password = [REDACTED]')}));assert.deepEqual(actual.queries,expected);assert.deepEqual(actual.waits,capture.waits);assert.ok(actual.callers.length>=6,'actual stock caller spans join through the selected analytical store');assert.ok(actual.callers.every(c=>c.endpoint.startsWith('/'+capture.engine+'/')),'caller links stay bound to the actual engine on '+role)}
     const custody=await estate.inspect(role);assert.ok(custody.length>2);assert.ok(!JSON.stringify(custody).includes(marker),'neither analytical custody copy persists planted literals')
    }
    await context.restart();assert.equal((await read(api)).captures.length,2)

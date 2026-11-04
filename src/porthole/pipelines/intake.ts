@@ -1,4 +1,5 @@
 import { databasePrivacy } from '../database/privacy'
+import type { Capture } from '../database/model'
 import type { Bindings } from '../../auth.server'
 import { canonical, IntakeError, type TelemetryRecord } from '../ingest/model'
 import { definition, type Definition } from './model'
@@ -22,8 +23,10 @@ export function processed(record:TelemetryRecord,d:Definition|null,revision:numb
  const result=parse&&active?transform(safe,active,revision):safe
  result.payload=sanitizePayload(result.payload,active?.redaction,!!active)
  if(record.payload.databaseCapture){
-  const safe=databasePrivacy(record.payload).databaseCapture
-  result.payload.databaseCapture=safe
+  const safe=databasePrivacy(record.payload).databaseCapture as Capture
+  // Preserve validated counters, clocks and opaque identities as typed data.
+  // Samples must keep the approved masks, including masks on object names.
+  result.payload.databaseCapture={...safe,queries:safe.queries.map(query=>({...query,fingerprint:sanitize(query.fingerprint,active?.redaction,!!active)}))}
  }
  if(parse&&active) {
   const p=result.payload.pipeline as Record<string,unknown>

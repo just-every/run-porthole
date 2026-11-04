@@ -93,6 +93,7 @@ export async function databaseResponse(request:Request,env:Bindings):Promise<Res
    captures.push({id:row.id,sourceId:String(raw.sourceId),revision:Number(raw.revision),service:row.service,environment:row.environment,team:row.team,...capture,callersComplete:!traceData.cursor,callers:traceData.records.flatMap(span=>{
     if(span.service!==row.service||span.environment!==row.environment||span.team!==row.team)return []
     const attrs=Object.fromEntries((span.payload.record.attributes??[]).map(a=>[a.key,a.value.stringValue??a.value.intValue]))
+    if((attrs['db.system.name']??attrs['db.system'])!==capture.engine)return []
     const sql=attrs['db.statement']??attrs['db.query.text']
     if(!sql||!capture.queries.some(q=>q.fingerprint===fingerprint(sql)))return []
     const root=traceData.records.find(r=>r.trace_id===span.trace_id&&Number((r.payload.record as {kind?:number}).kind)===2)

@@ -31,7 +31,10 @@ const server=http.createServer(async(req,res)=>{
    const operation=query(engine,c,'SELECT amount FROM porthole_orders WHERE id = 2 FOR UPDATE')
    await new Promise(resolve=>pending.push(async()=>{await query(engine,holder,'ROLLBACK');await middle;await query(engine,b,'ROLLBACK');resolve()}));await operation
   }else{
-   for(let i=0;i<6;i++){const result=await query(engine,c,'SELECT count(*) FROM porthole_orders WHERE customer = '+(engine==='postgresql'?'$1':'?'),[cfg.marker]);counts[engine]++}
+   for(let i=0;i<6;i++){const result=await query(engine,c,'SELECT count(*) FROM porthole_orders WHERE customer='+(engine==='postgresql'?'$1':'?'),[cfg.marker]);counts[engine]++}
+   await query(engine,c,'SELECT count(*) FROM porthole_orders AS private_tenant WHERE customer='+(engine==='postgresql'?'$1':'?'),[cfg.marker])
+   await query(engine,c,"SELECT password = 'value' FROM (SELECT 'value' AS password) AS sample")
+   if(engine==='postgresql')await c.query(String.raw`SELECT '\' AS separator, '${cfg.marker}#tag' AS customer`)
   }
   await c.end();clients.splice(clients.indexOf(c),1)
   res.writeHead(200,{'content-type':'application/json'});res.end(JSON.stringify({traceId:ctx.traceId,spanId:ctx.spanId,connectionId:id,engine,calls:counts[engine]}))

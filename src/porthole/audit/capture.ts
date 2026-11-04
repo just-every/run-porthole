@@ -29,6 +29,7 @@ const actions: Record<string, string> = {
  '/app/settings/credentials/rescope':'credentials.rescope',
  '/app/settings/credentials/mint':'credentials.mint', '/app/settings/credentials/rotate':'credentials.rotate', '/app/settings/credentials/revoke':'credentials.revoke',
  '/api/porthole/v1/ingest/control':'ingest.control', '/api/porthole/v1/ingest/drain':'ingest.reconcile', '/api/porthole/v1/ingest/loss':'ingest.loss',
+ '/api/porthole/v1/logs/clusters':'telemetry.query','/app/explore/clusters':'telemetry.query',
  '/api/porthole/v1/query':'telemetry.query', '/app/explore':'telemetry.query', '/api/porthole/v1/mcp':'telemetry.tool',
  '/api/porthole/v1/monitors/evaluate':'monitors.evaluate','/app/monitors/evaluate':'monitors.evaluate','/app/settings/monitors/save':'objects.change','/app/settings/monitors/activate':'objects.monitor-activate',
  '/api/porthole/v1/objects':'objects.change', '/app/operations/save':'objects.change',
@@ -73,7 +74,7 @@ export async function capture(request: Request, env: Bindings, handle: (env: Bin
   ? (path.startsWith('/app/dashboards/')||path.startsWith('/api/porthole/v1/dashboards')?'dashboards.change':undefined) ?? (path.startsWith('/api/porthole/v1/exports')?'signals.export':undefined) ?? actions[path] ?? (path.startsWith('/api/operator/import/')||path.startsWith('/app/import/')?'migration.request':undefined) ?? (path.startsWith('/api/porthole/v1/storage/history')?'storage.history':undefined) ?? (path.startsWith('/auth/dependencies/')?'connector.attempt':undefined) ?? (path.startsWith('/api/porthole/v1/archive/')||path.startsWith('/app/settings/archive/')?'installation.archive':undefined)
   : request.method==='GET' && path.startsWith('/api/porthole/v1/exports/')?'signals.export-read'
   : request.method==='GET' && (path.startsWith('/api/porthole/v1/archive/')||path.startsWith('/app/settings/archive/jobs/'))?'installation.archive-read'
-  : request.method==='GET' && (path==='/api/porthole/v1/database'||path==='/app/database'||path==='/api/porthole/v1/genai'||path==='/app/genai'||path.startsWith('/api/porthole/v1/traces/')||path.startsWith('/app/traces')||path==='/api/porthole/v1/ingest/records'||path==='/api/porthole/v1/ingest/archive'||/^\/api\/porthole\/v1\/query\/[a-f0-9-]{36}$/.test(path))?'telemetry.query'
+  : request.method==='GET' && (path==='/api/porthole/v1/database'||path==='/app/database'||path==='/app/explore/clusters'||path==='/api/porthole/v1/genai'||path==='/app/genai'||path.startsWith('/api/porthole/v1/traces/')||path.startsWith('/app/traces')||path==='/api/porthole/v1/ingest/records'||path==='/api/porthole/v1/ingest/archive'||/^\/api\/porthole\/v1\/query\/[a-f0-9-]{36}$/.test(path))?'telemetry.query'
   : ['GET','HEAD'].includes(request.method) && path.startsWith('/api/porthole/v1/storage/history')?'storage.history-read' : undefined
  if (!action) return handle(env)
  const operationRef = crypto.randomUUID(), occurredAt = Date.now()
