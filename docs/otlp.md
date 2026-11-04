@@ -206,7 +206,14 @@ Original export bytes are decoded independently with the official Python schema,
 then reconciled against every permitted paginated native record, including
 resource and instrumentation versions, resource and scope schema URLs, original
 nanosecond timestamps, log trace and span IDs, metric units, kinds, temporality
-and exemplars. Periodic cumulative metric exports remain distinct observations;
+and exemplars. Existing mandatory privacy remains before durable log and trace
+custody: those stored envelopes contain sanitized records and retain the digest
+of the original source bytes. Metric envelopes retain the original bytes. The
+journey reconciles each permitted payload against the actual source capture
+without treating a sanitized envelope as original OTLP. Validated opaque machine
+hashes and instance UUIDs keep their resource identity; secret-named attributes,
+invalid identity shapes and explicit owner redaction rules remain masked.
+Periodic cumulative metric exports remain distinct observations;
 adding successive cumulative values would overcount requests.
 
 The journey also exercises exact-byte retry after Worker restart, malformed and

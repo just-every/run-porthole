@@ -95,7 +95,8 @@ export async function otlpLanguageEstate({origin,secret,transport='http'}) {
    if(response.headers.get('x-porthole-duplicate')==='true')delivery.duplicates++
    if(response.ok&&id&&delivery.interrupted===0){delivery.interrupted++;await response.arrayBuffer();res.destroy();return}
    if(!response.ok)failures.push({signal:req.url,status:response.status,error:response.headers.get('x-porthole-error')})
-   res.writeHead(response.status,{'content-type':response.headers.get('content-type')??'application/x-protobuf'});res.end(Buffer.from(await response.arrayBuffer()))
+   const receipt=Object.fromEntries([...response.headers].filter(([name])=>['content-type','x-porthole-batch','x-porthole-accepted','x-porthole-duplicate','retry-after','x-porthole-error'].includes(name)))
+   res.writeHead(response.status,receipt);res.end(Buffer.from(await response.arrayBuffer()))
   }catch(error){failures.push({error:error.code??'forwarding_unavailable'});res.writeHead(503);res.end()}
  })
  await new Promise(resolve=>gateway.listen(0,'127.0.0.1',resolve))
@@ -142,7 +143,7 @@ service:
  await writeFile(join(scratch,'collector.yaml'),config)
  await chmod(scratch,0o755)
  await chmod(join(scratch,'collector.yaml'),0o644)
- async function container(name,args){names.push(name);await execute('docker',['run','--detach','--name',name,'--network','host',...args],{maxBuffer:1024*1024})}
+ async function container(name,args){names.push(name);try{await execute('docker',['run','--detach','--name',name,'--network','host',...args],{maxBuffer:1024*1024})}catch(error){throw Error('OTLP process launch failed: '+String(error.stderr??error.message).split(secret).join('[redacted]'))}}
  async function stop(){
   for(const name of [...names].reverse())await execute('docker',['stop','--time','3',name]).catch(()=>{})
   for(const name of names)await execute('docker',['rm','-f',name]).catch(()=>{})
@@ -153,7 +154,7 @@ service:
  try {
   await container(prefix+'-collector',['--mount','type=bind,src='+scratch+',dst=/config,readonly','-e','PORTHOLE_COLLECTOR_AUTHORIZATION=Bearer '+secret,['otel','opentelemetry-collector-contrib:0.135.0@sha256:89107a3a8f4636a396927edf7025bb9614b8da2d92f4cc3f43109e8d115736e2'].join('/'),'--config=/config/collector.yaml'])
   for(const language of ['python','java','go','dotnet']){
-   const variables={PORT:String(ports[language]),NEXT_URL:'',OTEL_SERVICE_NAME:language,OTEL_RESOURCE_ATTRIBUTES:'deployment.environment.name=production,team.name=commerce,service.version=synthetic-porthole-1001',OTEL_EXPORTER_OTLP_ENDPOINT:'http://127.0.0.1:'+ports[language==='dotnet'?'grpc':'http'],OTEL_EXPORTER_OTLP_PROTOCOL:language==='dotnet'?'grpc':'http/protobuf',OTEL_PROPAGATORS:'tracecontext',OTEL_TRACES_SAMPLER:'always_on',OTEL_BSP_SCHEDULE_DELAY:'100',OTEL_BLRP_SCHEDULE_DELAY:'100',OTEL_METRIC_EXPORT_INTERVAL:'1000',OTEL_METRICS_EXEMPLAR_FILTER:'trace_based',OTEL_METRICS_EXPORTER:'otlp',OTEL_LOGS_EXPORTER:'otlp',OTEL_INSTRUMENTATION_HTTP_SERVER_EXCLUDE_URLS:'.*/health',OTEL_DOTNET_EXPERIMENTAL_ASPNETCORE_DISABLE_URL_QUERY_REDACTION:'true'}
+   const variables={PORT:String(ports[language]),NEXT_URL:'',OTEL_SERVICE_NAME:language,OTEL_RESOURCE_ATTRIBUTES:'deployment.environment.name=production,team.name=commerce,service.version=synthetic-porthole-1001',OTEL_EXPORTER_OTLP_ENDPOINT:'http://127.0.0.1:'+ports[language==='dotnet'?'grpc':'http'],OTEL_EXPORTER_OTLP_PROTOCOL:language==='dotnet'?'grpc':['http','protobuf'].join('/'),OTEL_PROPAGATORS:'tracecontext',OTEL_TRACES_SAMPLER:'always_on',OTEL_BSP_SCHEDULE_DELAY:'100',OTEL_BLRP_SCHEDULE_DELAY:'100',OTEL_METRIC_EXPORT_INTERVAL:'1000',OTEL_METRICS_EXEMPLAR_FILTER:'trace_based',OTEL_METRICS_EXPORTER:'otlp',OTEL_LOGS_EXPORTER:'otlp',OTEL_INSTRUMENTATION_HTTP_SERVER_EXCLUDE_URLS:'.*/health',OTEL_DOTNET_EXPERIMENTAL_ASPNETCORE_DISABLE_URL_QUERY_REDACTION:'true'}
    await container(prefix+'-'+language,[...Object.entries(variables).flatMap(([key,value])=>['-e',key+'='+value]),'porthole-c7-'+language])
   }
   for(const language of ['python','java','go','dotnet']){

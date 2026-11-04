@@ -165,6 +165,26 @@ export function sanitizePayload(input: Record<string, unknown>, rules: Redaction
    }
   }
  }
+ // Stock resource detectors emit opaque machine identities. A decimal run
+ // inside a validated hash or UUID is not a telephone or card value. Keep the
+ // same narrow structural exception used above for trace identities; other
+ // resource values and all secret-named attributes still receive the masks.
+ const resource=object(input.resource),cleanResource=object(result.resource)
+ if(Array.isArray(resource?.attributes)&&Array.isArray(cleanResource?.attributes)){
+  const shapes:Record<string,RegExp>={
+   'container.id':/^[a-fA-F0-9]{64}$/,
+   'host.name':/^[a-fA-F0-9]{12}$/,
+   'service.instance.id':/^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$/,
+  }
+  for(let index=0;index<resource.attributes.length;index++){
+   const entry=object(resource.attributes[index]),clean=object(cleanResource.attributes[index]),value=object(entry?.value)?.stringValue
+   if(entry&&clean&&typeof entry.key==='string'&&clean.key===entry.key&&typeof value==='string'&&shapes[entry.key]?.test(value)){
+    let retained=value
+    for(const rule of rules)retained=retained.replace(customPattern(rule.pattern),match=>rule.exceptions.includes(match)?match:mask)
+    clean.value={stringValue:retained}
+   }
+  }
+ }
  const delivery = object(input.delivery), cleanDelivery = object(result.delivery)
  if (delivery && cleanDelivery) {
   for (const key of ['receivedTimeUnixNano','arrivalDeltaNs','clockAheadNs']) {

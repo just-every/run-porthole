@@ -32,13 +32,21 @@ func main(){
  resources,err:=resource.New(ctx,resource.WithFromEnv(),resource.WithTelemetrySDK());if err!=nil{log.Fatal(err)}
  provider:=sdktrace.NewTracerProvider(sdktrace.WithBatcher(exporter,sdktrace.WithBatchTimeout(100*time.Millisecond)),sdktrace.WithResource(resources))
  defer provider.Shutdown(ctx)
- logExporter,err:=otlploghttp.New(ctx);if err!=nil{log.Fatal(err)}
- logProvider:=sdklog.NewLoggerProvider(sdklog.WithProcessor(sdklog.NewBatchProcessor(logExporter,sdklog.WithExportInterval(100*time.Millisecond))),sdklog.WithResource(resources))
+ logOptions:=[]sdklog.LoggerProviderOption{sdklog.WithResource(resources)}
+ if os.Getenv("OTEL_LOGS_EXPORTER")!="none"{
+  logExporter,err:=otlploghttp.New(ctx);if err!=nil{log.Fatal(err)}
+  logOptions=append(logOptions,sdklog.WithProcessor(sdklog.NewBatchProcessor(logExporter,sdklog.WithExportInterval(100*time.Millisecond))))
+ }
+ logProvider:=sdklog.NewLoggerProvider(logOptions...)
  defer logProvider.Shutdown(ctx)
  logglobal.SetLoggerProvider(logProvider)
  requestLogger:=logProvider.Logger("requests.completed",otellog.WithInstrumentationVersion("1.0.0"))
- metricExporter,err:=otlpmetrichttp.New(ctx);if err!=nil{log.Fatal(err)}
- metricProvider:=sdkmetric.NewMeterProvider(sdkmetric.WithResource(resources),sdkmetric.WithReader(sdkmetric.NewPeriodicReader(metricExporter,sdkmetric.WithInterval(time.Second))))
+ metricOptions:=[]sdkmetric.Option{sdkmetric.WithResource(resources)}
+ if os.Getenv("OTEL_METRICS_EXPORTER")!="none"{
+  metricExporter,err:=otlpmetrichttp.New(ctx);if err!=nil{log.Fatal(err)}
+  metricOptions=append(metricOptions,sdkmetric.WithReader(sdkmetric.NewPeriodicReader(metricExporter,sdkmetric.WithInterval(time.Second))))
+ }
+ metricProvider:=sdkmetric.NewMeterProvider(metricOptions...)
  defer metricProvider.Shutdown(ctx)
  otel.SetMeterProvider(metricProvider)
  requestCounter,err:=metricProvider.Meter("requests.completed").Int64Counter("synthetic_porthole_requests",metric.WithUnit("{request}"));if err!=nil{log.Fatal(err)}

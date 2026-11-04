@@ -49,7 +49,7 @@ function comparable(payload){
  // explicitly present on the wire, including those defaults.
  const strip=value=>{
   if(Array.isArray(value))return value.map(strip)
-  if(value&&typeof value==='object')return Object.fromEntries(Object.entries(value).filter(([k,v])=>!(Array.isArray(v)&&!v.length)&&!(v===''&&['name','version','schemaUrl','resourceSchemaUrl','scopeSchemaUrl','traceState','severityText','description'].includes(k))&&!((v===0||v==='0'||v===false)&&['droppedAttributesCount','droppedEventsCount','droppedLinksCount','flags','severityNumber','aggregationTemporality','isMonotonic','code'].includes(k))).map(([k,v])=>[k,strip(v)]))
+  if(value&&typeof value==='object')return Object.fromEntries(Object.entries(value).filter(([k,v])=>!(Array.isArray(v)&&!v.length)&&!(v===''&&['name','version','schemaUrl','resourceSchemaUrl','scopeSchemaUrl','traceState','severityText','description','parentSpanId','traceId','spanId'].includes(k))&&!((v===0||v==='0'||v===false)&&['droppedAttributesCount','droppedEventsCount','droppedLinksCount','flags','severityNumber','aggregationTemporality','isMonotonic','code'].includes(k))).map(([k,v])=>[k,strip(v)]))
   return value
  }
  return strip(result)
@@ -72,7 +72,19 @@ async function pages(origin,cookie,signal,extra={},request=path=>fetch(origin+pa
 function reconcile(expected,actual,sourceId){
  for(const signal of signals){
   const rows=actual[signal].filter(row=>row.source_id===sourceId)
-  assert.deepEqual(rows.map(row=>fingerprint(row.payload)).sort(),expected[signal].map(fingerprint).sort(),signal+' every stock record, resource, scope, schema, metric descriptor and original payload preserved')
+  const actualRows=rows.map(row=>fingerprint(row.payload)).sort(),expectedRows=expected[signal].map(fingerprint).sort()
+  const index=actualRows.findIndex((row,i)=>row!==expectedRows[i])
+  if(index!==-1||actualRows.length!==expectedRows.length){
+   const actual=JSON.parse(actualRows[index]??'{}'),wanted=expected[signal].find(p=>p.record.spanId&&p.record.spanId===actual.record?.spanId)||JSON.parse(expectedRows[index]??'{}')
+   const differences=[]
+   function compare(a,b,path=''){
+    if(JSON.stringify(a)===JSON.stringify(b))return
+    if(a&&b&&typeof a==='object'&&typeof b==='object'){for(const key of new Set([...Object.keys(a),...Object.keys(b)]))compare(a[key],b[key],path+'.'+key)}
+    else differences.push({path,actual:a,expected:b})
+   }
+   compare(actual,canonical(comparable(wanted)))
+   assert.fail(signal+' complete stock payload reconciliation: actual='+actualRows.length+' expected='+expectedRows.length+' differences='+JSON.stringify(differences.slice(0,8)))
+  }
   for(const row of rows){
    const record=row.payload.record,time=signal==='traces'?record.startTimeUnixNano:record.timeUnixNano??record.observedTimeUnixNano??'0'
    assert.equal(BigInt(row.event_time_ns),BigInt(time),'original nanoseconds')
@@ -126,7 +138,7 @@ export async function otlpLanguagesJourney({origin,freshOwner,restartWorker,with
    for(let i=0;i<captures.length;i++){
     const capture=captures[i],rows=flatten(messages[i],capture.signal)
     assert.equal(rows.length,capture.count,'receipt counts actual stock-exported records')
-    expected[capture.signal].push(...rows);allCaptures.push(capture)
+    capture.records=rows;expected[capture.signal].push(...rows);allCaptures.push(capture)
    }
    if(process.env.PORTHOLE_EVIDENCE_DIR){
     const directory=process.env.PORTHOLE_EVIDENCE_DIR;await mkdir(directory,{recursive:true})
@@ -165,7 +177,7 @@ export async function otlpLanguagesJourney({origin,freshOwner,restartWorker,with
  await post(api+'/control',{paused:false})
  const status=await value(await fetch(origin+api+'/status',{headers:{cookie}}))
  for(const signal of signals){const rows=status.sources.filter(r=>r.sourceId===source.credential.id&&r.signal===signal);for(const key of ['accepted','queryable','archived'])assert.equal(rows.reduce((n,r)=>n+r[key],0),expected[signal].length,'counted '+key+' '+signal)}
- if(withEmptyDestination){const {otlpLanguageArchiveJourney}=await import('./archive.mjs');await otlpLanguageArchiveJourney({origin,cookie,withEmptyDestination,expected,sourceId:source.credential.id,reconcile,pages})}
+ if(withEmptyDestination){const {otlpLanguageArchiveJourney}=await import('./archive.mjs');await otlpLanguageArchiveJourney({origin,cookie,withEmptyDestination,expected,captures:allCaptures,sourceId:source.credential.id,reconcile,pages,fingerprint})}
  await otlpLanguagesAnalyticalJourney({captures:allCaptures,expected})
  cookie=await freshOwner();await languageScreens({origin,cookie})
  console.log('PROBE PORT-001 language exports: 32 independently counted real requests, 16 success and 16 refusal outcomes; stock HTTP and gRPC Collector exports -> all trace, log and metric payloads reconciled')

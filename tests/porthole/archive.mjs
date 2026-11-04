@@ -1114,11 +1114,23 @@ export async function genaiArchiveJourney({origin,cookie,withEmptyDestination,tr
 
 /** Stock runtime bytes and three correlated signals keep the same inactive
  * archive boundary as the existing profile and trace journeys. */
-export async function otlpLanguageArchiveJourney({origin,cookie,withEmptyDestination,expected,sourceId,reconcile,pages}) {
+export async function otlpLanguageArchiveJourney({origin,cookie,withEmptyDestination,expected,captures,sourceId,reconcile,pages,fingerprint}) {
  const saved=await savedExport(origin,cookie,await post(origin,cookie,api+'/exports',{}))
  const tables=['porthole_ingest_batches','porthole_telemetry_records','porthole_telemetry_archive']
  const originals=saved.rows.filter(row=>tables.includes(row.table))
- assert.ok(originals.some(row=>row.table==='porthole_ingest_batches'&&row.row.source_id===sourceId&&row.row.wire_base64),'original stock wire stays in owner archive')
+ assert.ok(originals.some(row=>row.table==='porthole_ingest_batches'&&row.row.source_id===sourceId&&row.row.wire_base64),'stock input custody stays in owner archive')
+ for(const capture of captures){
+  const digest=hash(JSON.stringify({environment:null,service:null,team:null,tenant:null,wire:capture.wire.toString('base64')}))
+  const batch=originals.find(row=>row.table==='porthole_ingest_batches'&&row.row.source_id===sourceId&&row.row.signal===capture.signal&&row.row.digest===digest)?.row
+  assert.ok(batch,'owner custody retains the independently computed original source-wire digest')
+  const wire=Buffer.from(batch.wire_base64,'base64')
+  if(capture.signal==='metrics')assert.ok(wire.equals(capture.wire),'original metric bytes remain exact')
+  else{
+   const stored=JSON.parse(wire.toString())
+   assert.equal(stored.format,'porthole.sanitized-'+(capture.signal==='traces'?'trace':'log')+'-envelope.v1','mandatory privacy remains before durable wire custody')
+   assert.deepEqual(stored.records.map(row=>fingerprint(row.payload)).sort(),capture.records.map(fingerprint).sort(),'permitted source payloads remain complete in sanitized durable custody')
+  }
+ }
  await withEmptyDestination(async destination=>{
   const acting=await destination.freshOwner(),restore=await value(await post(destination.origin,acting,api+'/restores',{manifest:saved.manifest}),201)
   for(const chunk of saved.chunks)await value(await post(destination.origin,acting,`${api}/restores/${restore.id}/chunks`,{chunk}))
@@ -1132,5 +1144,5 @@ export async function otlpLanguageArchiveJourney({origin,cookie,withEmptyDestina
   const reexport=await savedExport(destination.origin,await destination.freshOwner(),await post(destination.origin,await destination.freshOwner(),api+'/exports',{}))
   assert.deepEqual(reexport.rows.filter(row=>tables.includes(row.table)),originals,'stock bytes, payloads, nanoseconds and archive copies survive inactive restore and re-export')
  })
- console.log('PROBE PORT-001 inactive archive: owner export, independent restore, restart and re-export -> original stock bytes and all three signals preserved; collection paused, credentials absent and old session refused')
+ console.log('PROBE PORT-001 inactive archive: owner export, independent restore, restart and re-export -> original source digests, metric bytes and permitted three-signal payloads preserved; collection paused, credentials absent and old session refused')
 }

@@ -25,9 +25,11 @@ export async function pipelineJourney({origin,freshOwner,sql,restartWorker,withE
  // nested objects, escaped values and equivalent escaped key spellings.
  const escapedSsn=Array.from(planted[0],char=>'\\u'+char.charCodeAt(0).toString(16).padStart(4,'0')).join('')
  bodies[0]='{"repeated":"'+planted[0]+'","repeated":"safe","nested":[{"note":"'+planted[1]+'","note":"safe"}],"escaped":"'+escapedSsn+'","esc\\u0061ped":"safe",'+bodies[0].slice(1)
- const send=async(bodies,id,time=at,attributes=[])=>{
+ const machineIdentity='abcdef'.repeat(8)+'1234567890abcdef'
+ const send=async(bodies,id,time=at,attributes=[],machine=false)=>{
   const packet=otlpLogBatch(bodies.map((_,i)=>time+BigInt(i)))
   const resource=packet.resourceLogs[0];resource.resource.attributes=[{key:'service.name',value:{stringValue:d.service}},{key:'team.name',value:{stringValue:d.team}},{key:'deployment.environment.name',value:{stringValue:d.environment}},{key:'nested-private',value:{stringValue:planted[0]}}]
+  resource.resource.attributes.push({key:'container.id',value:{stringValue:machine?machineIdentity:planted[0]}},{key:'service.instance.id',value:{stringValue:planted[1]}},{key:'host.name',value:{stringValue:planted[2]}})
   resource.scopeLogs[0].logRecords.forEach((row,i)=>{row.body.stringValue=bodies[i];row.attributes.push(...(attributes[i]??[]));if(bodies[i].includes('protectedError'))row.severityNumber=17})
   const wire=JSON.stringify(packet),response=await fetch(origin+'/v1/logs',{method:'POST',headers:{authorization:'Bearer '+source.secret,'content-type':'application/json','x-porthole-batch-id':id},body:wire})
   assert.equal(response.status,200,await response.clone().text());return {id:response.headers.get('x-porthole-batch'),wire}
@@ -86,9 +88,12 @@ export async function pipelineJourney({origin,freshOwner,sql,restartWorker,withE
  assert.equal((await activate(p)).revision,1)
  assert.equal((await post(api+'/activate',{previewId:p.id,digest:p.digest,confirm:'activate-pipeline'})).status,409,'approval is single use')
  await value(await post(intake+'/control',{paused:true}))
- const first=await send(bodies,'synthetic-porthole-12003')
+ const first=await send(bodies,'synthetic-porthole-12003',at,[],true)
  const queued=(await sql(`SELECT * FROM porthole_ingest_batches WHERE id=${literal(first.id)}`))[0]
  const wire=JSON.parse(Buffer.from(queued.wire_base64,'base64').toString())
+ const metadata=wire.records[0].payload.resource.attributes
+ assert.equal(metadata.find(row=>row.key==='container.id').value.stringValue,machineIdentity,'validated stock machine identity keeps decimal runs inside its hash')
+ for(const key of ['service.instance.id','host.name'])assert.equal(metadata.find(row=>row.key===key).value.stringValue,'[REDACTED]','invalid structural identities still receive mandatory privacy masks')
  assert.equal(wire.format,'porthole.sanitized-log-envelope.v1');assert.deepEqual(wire.records,JSON.parse(queued.records));assert.notEqual(Buffer.from(queued.wire_base64,'base64').toString(),first.wire)
  assert.equal(queued.digest,createHash('sha256').update(JSON.stringify({environment:null,service:null,team:null,tenant:null,wire:Buffer.from(first.wire).toString('base64')})).digest('hex'),'source identity remains bound to original bytes')
  for(const secret of [...planted,Buffer.from(planted[11]).toString('base64')])assert.ok(!JSON.stringify(wire).includes(secret),'no prohibited value in pending custody')
