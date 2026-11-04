@@ -22,8 +22,10 @@ content digest, with `replayed: true`. Changed content or another actor conflict
 There is no event-edit operation.
 
 `GET /api/porthole/v1/events` returns `events`, `snapshot`, `cursor`, `pageCursor`
-and `facets`. Facet counts describe only the currently authorized events in
-that page. Select a facet in Events to search that exact value; resource and tag
+and `facets`. Facet counts and `facets.totalEvents` describe every currently authorized matching
+event at the receipt snapshot, across all pages. Page position does not change
+the counts. A final corpus fence refuses a summary if an input was erased
+while it was being read. Select a facet in Events to search that exact value; resource and tag
 filters also work in private saved filters. Use the
 opaque cursor with the identical search and session. Each page rechecks current
 scope; changed membership invalidates the cursor. Ordering is occurrence time,
@@ -53,7 +55,10 @@ Private dashboards accept an optional `eventOverlays` array of event IDs.
 The existing dashboard editor can add or remove an authorized reference.
 Saving checks both native event access and the dashboard’s scope. Each graph’s
 timeline resolves references again using current native access, selected service,
-team, environment and time range. Time-series and heatmap graphs mark original event times on their existing time axes; other widgets retain the private reference timeline. An unavailable reference shows no event content.
+team, environment and time range. Time-series and heatmap graphs mark original event times on their existing time axes; other widgets retain the private reference timeline. The eleven current native widget renderers retain authorized reference timelines;
+only the time-series and heatmap axes place time markers. An empty time graph
+keeps the reference timeline without inventing telemetry. An unavailable reference
+shows no event content.
 Definition credentials receive no event references or resolved content. A new
 overlay revision invalidates earlier public addresses by the existing source
 revision fence; removing an overlay cannot revive them. Public frozen numeric
@@ -74,6 +79,6 @@ overlays. These read fences do not claim complete subject erasure or retention
 qualification under PORT-035 and PORT-096.
 
 Kubernetes, AWS and integration connectors, authenticated provider provenance,
-provider event export, complete cross-page facets and the remaining graph catalog, event-monitor evaluation
+provider event export, the remaining graph catalog, event-monitor evaluation
 and unchanged Datadog callers remain unqualified. Authorized AWS source identity
 is not supplied. The native slice does not establish PORT-069 DONE.

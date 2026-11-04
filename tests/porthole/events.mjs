@@ -62,7 +62,8 @@ export async function eventJourney({origin,freshOwner,signIn,restartWorker,withE
  assert.equal(original.event.occurredAt,input.occurredAt.padStart(20,'0'));assert.ok(original.event.receivedAt>=Number(BigInt(input.occurredAt)/1000000n))
  const first=await value(await get(api+'?source=native-command&limit=2'))
  assert.equal(first.events.length,2);assert.ok(first.cursor)
- assert.deepEqual(first.facets.counts.source,[{value:'native-command',count:2}])
+ assert.equal(first.facets.scope,'snapshot');assert.equal(first.facets.totalEvents,submitted.length)
+ assert.deepEqual(first.facets.counts.source,[{value:'native-command',count:submitted.length}])
  const firstExport=await download(await get(api+'/export?source=native-command&limit=2'))
  assert.equal(firstExport.snapshot,first.snapshot);assert.ok(firstExport.cursor)
  assert.deepEqual(firstExport.events,first.events)
@@ -74,7 +75,7 @@ export async function eventJourney({origin,freshOwner,signIn,restartWorker,withE
  const observed=[...first.events];let cursor=first.cursor
  while(cursor) {
   const page=await value(await get(api+'?source=native-command&limit=2&cursor='+encodeURIComponent(cursor)))
-  assert.equal(page.snapshot,first.snapshot);observed.push(...page.events);cursor=page.cursor
+  assert.equal(page.snapshot,first.snapshot);assert.deepEqual(page.facets,first.facets);observed.push(...page.events);cursor=page.cursor
  }
  assert.deepEqual(observed.map(row=>row.id),expected.map(row=>row.id))
  assert.deepEqual(observed.map(row=>row.sourceId),expected.map(row=>row.input.sourceId))
@@ -135,6 +136,8 @@ export async function eventJourney({origin,freshOwner,signIn,restartWorker,withE
  const filteredExport=await download(await get(api+'/export?filter='+filter.id+'&limit=200'))
  assert.deepEqual(filteredExport.events.map(event=>event.id),reports.map(report=>report.events[1].id))
  const foreign=await value(await post(api,{...input,sourceId:randomUUID(),team:'payments',tags:['restricted:payment'],resource:'private-payment-worker',title:'Restricted payment event'}),201)
+ const foreignService=await value(await post(api,{...input,source:'native-restricted',sourceId:randomUUID(),service:'private-worker',tags:['restricted:service'],title:'Restricted service event'}),201)
+ const foreignEnvironment=await value(await post(api,{...input,source:'native-restricted',sourceId:randomUUID(),environment:'private-stage',tags:['restricted:environment'],title:'Restricted environment event'}),201)
  await value(await post('/app/settings/members/invite',{email:address(2601),displayName:'Event contractor',role:'restricted contractor',scope}),202)
  let restricted=await signIn(address(2601))
  const members=await sql('SELECT operator_id FROM porthole_members m JOIN oa_operators o ON o.id=m.operator_id WHERE o.email='+literal(address(2601))),restrictedId=members[0].operator_id
@@ -144,6 +147,13 @@ export async function eventJourney({origin,freshOwner,signIn,restartWorker,withE
  assert.deepEqual(scopedExport.events,scoped.events)
  assert.ok(!JSON.stringify(scoped.facets).includes('restricted:payment'))
  assert.ok(!JSON.stringify(scoped.facets).includes('private-payment-worker'))
+ for(const [field,hidden,event] of [['service','private-worker',foreignService],['environment','private-stage',foreignEnvironment]]) {
+  assert.ok(!scoped.events.some(row=>row.id===event.event.id))
+  assert.ok(!JSON.stringify(scoped.facets).includes(hidden))
+  assert.equal((await get(api+'/'+event.event.id,restricted)).status,404)
+  assert.equal((await get(api+'?'+field+'='+hidden,restricted)).status,403)
+ }
+ assert.equal(scoped.facets.totalEvents,scoped.events.length)
  assert.deepEqual((await value(await get(api+'?tag=restricted%3Apayment',restricted))).events,[])
  assert.equal((await get(api+'/export?team=payments',restricted)).status,403)
  assert.equal((await get(api+'/export?filter='+filter.id,restricted)).status,404)
@@ -162,7 +172,7 @@ export async function eventJourney({origin,freshOwner,signIn,restartWorker,withE
  cookie=await freshOwner()
  await eventBrowser({origin,cookie,path:'/app/events?source=native-command&team=commerce',name:'events-complete',exercise:async page=>{
   assert.equal(await page.locator('[data-event]').count(),submitted.length+2)
-  const facet=page.getByRole('region',{name:'Facets on this page'})
+  const facet=page.getByRole('region',{name:'Facets in this search'})
   assert.match(await facet.innerText(),new RegExp('execution:completed \\('+reports.length+'\\)'))
   const resource=facet.getByRole('link',{name:'local-command ('+(submitted.length+2)+')',exact:true})
   await resource.focus();await Promise.all([page.waitForURL('**resource=local-command**'),resource.press('Enter')])
@@ -214,7 +224,8 @@ export async function eventJourney({origin,freshOwner,signIn,restartWorker,withE
  await value(await post('/api/porthole/v1/actors/erase',{actorRef:author.id,confirm:'erase'}))
  assert.equal((await get(api+'/'+authored.event.id)).status,404)
  assert.deepEqual((await download(await get(api+'/export?sourceId='+encodeURIComponent(authored.event.sourceId)))).events,[])
- assert.deepEqual((await value(await get(api+'?sourceId='+encodeURIComponent(authored.event.sourceId)))).facets.counts.tag,[])
+ const erasedFacets=(await value(await get(api+'?sourceId='+encodeURIComponent(authored.event.sourceId)))).facets
+ assert.equal(erasedFacets.totalEvents,0);assert.deepEqual(erasedFacets.counts.tag,[])
  assert.ok(!(await (await get('/app/dashboards/'+dashboard.id)).text()).includes(authored.event.title))
  assert.equal((await post(api,{...input,sourceId:authored.event.sourceId})).status,409,'erased event identity cannot be resurrected by replay')
  // A full allowed page is populated by actual local syntax-check executions.
@@ -222,7 +233,7 @@ export async function eventJourney({origin,freshOwner,signIn,restartWorker,withE
  const batch=[]
  for(let i=0;i<205;i++) {
   await execute(process.execPath,['--check','cli/porthole.mjs'],{timeout:10000})
-  const execution={...input,source:'native-batch',sourceId:randomUUID(),title:'Syntax check completed',occurredAt:String(BigInt(Date.now())*1000000n),tags:['execution:completed']}
+  const execution={...input,source:'native-batch',sourceId:randomUUID(),title:'Syntax check completed',occurredAt:String(BigInt(Date.now())*1000000n),resource:'syntax-run-'+i,tags:['execution:completed',i%2?'batch:odd':'batch:even']}
   const receipt=await value(await post(api,execution),201);batch.push({id:receipt.event.id,input:execution})
  }
  const expectedBatch=[...batch].sort((a,b)=>BigInt(a.input.occurredAt)<BigInt(b.input.occurredAt)?-1:BigInt(a.input.occurredAt)>BigInt(b.input.occurredAt)?1:a.id.localeCompare(b.id))
@@ -234,7 +245,26 @@ export async function eventJourney({origin,freshOwner,signIn,restartWorker,withE
  assert.deepEqual([...batchFirst.events,...batchLast.events].map(event=>event.id),expectedBatch.map(receipt=>receipt.id))
  const batchSearch=await value(await get(api+'?source=native-batch&limit=200'))
  assert.deepEqual(batchSearch.events,batchFirst.events)
- assert.deepEqual(batchSearch.facets.counts.tag,[{value:'execution:completed',count:200}])
+ assert.equal(batchSearch.facets.totalEvents,205)
+ assert.deepEqual(batchSearch.facets.counts.tag,[{value:'batch:even',count:103},{value:'batch:odd',count:102},{value:'execution:completed',count:205}])
+ assert.equal(batchSearch.facets.counts.resource.length,205,'facet values beyond the event page remain discoverable')
+ assert.ok(batchSearch.facets.counts.resource.every(row=>row.count===1&&/^syntax-run-\d+$/.test(row.value)))
+ const continued=await value(await get(api+'?source=native-batch&limit=200&cursor='+encodeURIComponent(batchSearch.cursor)))
+ assert.equal(continued.events.length,5);assert.deepEqual(continued.facets,batchSearch.facets,'facets describe the same complete corpus on every page')
+ const even=await value(await get(api+'?source=native-batch&tag=batch%3Aeven&limit=1'))
+ assert.equal(even.events.length,1);assert.equal(even.facets.totalEvents,103)
+ assert.deepEqual(even.facets.counts.tag,[{value:'batch:even',count:103},{value:'execution:completed',count:103}])
+ const lastResource=await value(await get(api+'?source=native-batch&resource=syntax-run-204'))
+ assert.deepEqual(lastResource.events.map(row=>row.id),[batch[204].id])
+ assert.equal(lastResource.facets.totalEvents,1)
+ await eventBrowser({origin,cookie,path:'/app/events?source=native-batch&limit=1',name:'events-snapshot-facets',exercise:async page=>{
+  assert.equal(await page.locator('[data-event]').count(),1)
+  const facets=page.getByRole('region',{name:'Facets in this search'})
+  assert.match(await facets.innerText(),/205 matching events/)
+  const pivot=facets.getByRole('link',{name:'syntax-run-204 (1)',exact:true})
+  await pivot.focus();await Promise.all([page.waitForURL('**resource=syntax-run-204**'),pivot.press('Enter')])
+  assert.equal(await page.locator('[data-event]').getAttribute('data-event'),batch[204].id)
+ }})
  const {eventArchiveJourney}=await import('./archive.mjs')
  await eventArchiveJourney({origin,freshOwner,withEmptyDestination,eventIds:[original.event.id,late.event.id],dashboardId:dashboard.id,filterId:filter.id,publicationPaths:publication.paths,value})
  cookie=await freshOwner()
@@ -249,7 +279,7 @@ export async function eventJourney({origin,freshOwner,signIn,restartWorker,withE
  const afterEffects=await sql('SELECT (SELECT COUNT(*) FROM porthole_monitor_evaluations) AS evaluations,(SELECT COUNT(*) FROM porthole_health_notices) AS notices')
  assert.equal(afterEffects[0].evaluations,beforeEffects[0].evaluations);assert.equal(afterEffects[0].notices,beforeEffects[0].notices)
  console.log('PROBE PORT-069 native execution: real typecheck and syntax checks -> eight immutable paginated execution events alongside stock SDK request evidence with reconciled IDs, order and provenance')
- console.log('PROBE PORT-069 export and facets: 205 actual syntax checks in 200 and 5 record NDJSON pages, exact resource and tag predicates, failure exit 7, private filter, erased author and revoked membership -> reconciled immutable fields and page counts with refused exposure')
+ console.log('PROBE PORT-069 export and facets: 205 actual syntax checks in 200 and 5 record NDJSON pages, exact resource and tag predicates, failure exit 7, private filter, erased author and revoked membership -> reconciled immutable fields, 205 snapshot-wide resource facets and exact cross-page counts with refused exposure')
  console.log('PROBE PORT-069 replay and authority: concurrent and reordered retries, forged provider fields, private filters, changed scope and erased author -> one logical event and refused exposure')
  console.log('PROBE PORT-069 overlays and custody: native dashboard revisions, public source fences, restart and inactive archive -> authorized reference resolution with no revived public address')
  console.log('PROBE PORT-069 browser: native Events, Settings, empty, invalid, restricted and unavailable states -> keyboard completion and captured 1440 and 390 screens')

@@ -37,13 +37,10 @@ export async function validateEventRow(row:Record<string,unknown>) {
  if(row.source!==v.source||row.source_id!==v.sourceId||row.service!==v.service||row.environment!==v.environment||row.team!==v.team||row.occurred_ns!==v.occurredAt||await eventDigest(v)!==row.digest||!Number.isSafeInteger(row.sequence)||Number(row.sequence)<1||!Number.isSafeInteger(row.received_at)||!Number.isSafeInteger(row.actor_revision)||Number(row.actor_revision)<1||!['active','quarantined'].includes(String(row.state))||![row.id,row.actor_ref].every(x=>typeof x==='string'&&/^[a-f0-9-]{36}$/.test(x)))fail('archive_semantics_invalid',422)
 }
 
-/** Counts describe only the released page, never an unseen or incomplete corpus. */
-export function eventFacets(events:ReturnType<typeof representation>[]) {
- const counts:Record<string,{value:string;count:number}[]>={}
- for(const field of ['source','service','environment','team','severity','resource','tag'] as const) {
-  const values=new Map<string,number>()
-  for(const event of events)for(const value of field==='tag'?event.tags:[event[field]])if(value)values.set(value,(values.get(value)??0)+1)
-  counts[field]=[...values].sort(([a],[b])=>a.localeCompare(b)).map(([value,count])=>({value,count}))
- }
- return {scope:'page' as const,counts}
+export const facetFields=['source','service','environment','team','severity','resource','tag'] as const
+export type FacetField=typeof facetFields[number]
+/** Facets cover the complete matching receipt snapshot, before page position. */
+export function eventFacets(rows:{field:FacetField;value:string;count:number}[],total:number) {
+ const counts=Object.fromEntries(facetFields.map(field=>[field,rows.filter(row=>row.field===field).map(({value,count})=>({value,count}))])) as Record<FacetField,{value:string;count:number}[]>
+ return {scope:'snapshot' as const,totalEvents:total,counts}
 }

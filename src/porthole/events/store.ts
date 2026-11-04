@@ -1,6 +1,6 @@
 import type {Bindings} from '../../auth.server'
 import {authority,fail,scopeWithin,type Authority} from '../security/authority'
-import {eventScope,eventDigest,representation,eventFacets,type EventRow,type CustomEvent,type EventFilter} from './model'
+import {eventScope,eventDigest,representation,eventFacets,facetFields,type FacetField,type EventRow,type CustomEvent,type EventFilter} from './model'
 import {canonical} from '../ingest/model'
 import {digest} from '../audit/store'
 import {timestamp} from '../dashboards/model'
@@ -68,14 +68,31 @@ export async function searchEvents(env:Bindings,actor:Authority,filter:EventFilt
   else if(['severity','resource','correlationKey'].includes(name)) {clauses.push(`json_extract(e.body,'$.${name}')=?`);args.push(value)}
   else {clauses.push(`e.${name}=?`);args.push(value)}
  }
- if(current?.time) {clauses.push('(e.occurred_ns>? OR (e.occurred_ns=? AND e.id>?))');args.push(current.time,current.time,current.id)}
- const rows=(await env.DB.prepare(`SELECT e.* FROM porthole_custom_events e WHERE ${clauses.join(' AND ')} ORDER BY e.occurred_ns,e.id LIMIT ?`).bind(...args,limit+1).all<EventRow>()).results
+ // Page position only limits returned events. Facets cover every match at
+ // this receipt watermark, including evidence on later or earlier pages.
+ const match=clauses.join(' AND '),pageArgs:unknown[]=[]
+ let position=''
+ if(current?.time) {position=' AND (e.occurred_ns>? OR (e.occurred_ns=? AND e.id>?))';pageArgs.push(current.time,current.time,current.id)}
+ const facets=facetFields.map(field=>`'${field}',${field==='tag'?"json_extract(e.body,'$.tags')":`json_array(${['severity','resource'].includes(field)?"json_extract(e.body,'$."+field+"')":'e.'+field})`}`).join(',')
+ const terms=`SELECT fields.key AS field,term.value AS value FROM matching e,json_each(json_object(${facets})) fields,json_each(fields.value) term`
+ const [page,summary]=await env.DB.batch([
+  env.DB.prepare(`SELECT e.* FROM porthole_custom_events e WHERE ${match}${position} ORDER BY e.occurred_ns,e.id LIMIT ?`).bind(...args,...pageArgs,limit+1),
+  env.DB.prepare(`WITH matching AS (SELECT e.* FROM porthole_custom_events e WHERE ${match}),terms AS (${terms})
+   SELECT field,value,COUNT(*) AS count FROM terms WHERE value!='' GROUP BY field,value
+   UNION ALL SELECT '', '',COUNT(*) FROM matching ORDER BY field,value`).bind(...args),
+ ])
+ const rows=page.results as unknown as EventRow[],totals=summary.results as unknown as {field:FacetField|'';value:string;count:number}[]
+ const total=totals.find(row=>row.field==='')!.count
  const selected=rows.slice(0,limit),last=selected.at(-1)
  const next=rows.length>limit&&last?await pack(env,{snapshot,time:last.occurred_ns,id:last.id,binding}):null
  const pageCursor=cursor??await pack(env,{snapshot,time:'',id:'',binding})
  await release(env,actor,selected.map(row=>row.id))
- const events=selected.map(representation)
- return {events,snapshot,cursor:next,pageCursor,facets:eventFacets(events)}
+ // Immutable rows below the receipt watermark cannot be replaced by a late
+ // arrival. Recount the entire contributing corpus so a concurrent erasure
+ // cannot leak an off-page value or count through the facet summary.
+ const checked=await env.DB.prepare(`SELECT COUNT(*) AS n FROM porthole_custom_events e WHERE ${match}`).bind(...args).first<{n:number}>()
+ if(checked?.n!==total)fail('event_evidence_changed',409)
+ return {events:selected.map(representation),snapshot,cursor:next,pageCursor,facets:eventFacets(totals.filter((row):row is {field:FacetField;value:string;count:number}=>row.field!==''),total)}
 }
 export async function overlayRows(request:Request,env:Bindings,ids:string[]) {
  if(!ids.length)return []

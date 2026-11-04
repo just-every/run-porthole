@@ -186,7 +186,7 @@ export async function eventPublicationJourney({origin,cookie,freshOwner,dashboar
  const post=(path,data)=>fetch(origin+path,form(origin,cookie,data))
  const get=path=>fetch(origin+path,{headers:{cookie}})
  const source=await value(await get('/api/porthole/v1/dashboards/'+dashboard.id))
- const draft=await post(root+'/preview',{dashboardId:source.id,sourceRevision:source.revision,publicTitle:'Reviewed checkout count',labels:{executions:'Execution evidence count'},allowedOrigins:['https://display.example'],expiresAt:Date.now()+3600000})
+ const draft=await post(root+'/preview',{dashboardId:source.id,sourceRevision:source.revision,publicTitle:'Reviewed checkout count',labels:{[source.body.panels.find(panel=>panel.widget!=='notes').id]:'Execution evidence count'},allowedOrigins:['https://display.example'],expiresAt:Date.now()+3600000})
  assert.equal(draft.status,303,await draft.clone().text())
  const reviewPath=draft.headers.get('location'),packet=await (await get(reviewPath)).text()
  const values=Object.fromEntries([...packet.matchAll(/<input type="hidden" name="([^"]+)" value="([^"]*)">/g)].map(([,name,value])=>[name,value.replaceAll('&#34;','"').replaceAll('&#38;','&').replaceAll('&#39;',"'")]))

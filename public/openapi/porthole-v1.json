@@ -86,7 +86,7 @@
           }
         },
         "summary": "Search native custom events",
-        "description": "Native sessions only. Current service, environment and team scopes apply before search. Events are ordered by original occurrence time and event ID, at a receipt sequence snapshot. The opaque cursor is bound to the exact filter, native session and current member revision. Late arrivals enter a fresh search. pageCursor reopens the displayed page at its original receipt snapshot, including the first page. Facet counts cover the returned page only, after current authority and erasure fences. Resource and tag predicates match exact values. No provider or event-monitor authority is supplied.",
+        "description": "Native sessions only. Current service, environment and team scopes apply before search. Events are ordered by original occurrence time and event ID, at a receipt sequence snapshot. The opaque cursor is bound to the exact filter, native session and current member revision. Late arrivals enter a fresh search. pageCursor reopens the displayed page at its original receipt snapshot, including the first page. Facet counts and totalEvents cover every matching event at the same receipt snapshot, independent of page position. Current authority and erasure fences apply to every contributing event. Resource and tag predicates match exact values. No provider or event-monitor authority is supplied.",
         "parameters": [
           {
             "name": "source",
