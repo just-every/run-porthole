@@ -22,7 +22,7 @@ export async function servicesResponse(request:Request,env:Bindings):Promise<Res
   if(!['owner','admin','maintainer','responder','read-only analyst','restricted contractor'].includes(actor.member.role))fail('telemetry_forbidden')
   const owner=actor.session.kind==='native'&&actor.member.role==='owner'
   if((config||request.method==='POST')&&!owner)fail('service_owner_required')
-  if(request.method==='POST'&&(!id||base===screen||url.search))fail('invalid_service_query',400)
+  if(request.method==='POST'&&(!id||base===screen||(!config&&url.search)))fail('invalid_service_query',400)
   // Resolve the Settings directory before the catalog's final source and
   // authority fence. No later directory read can release an older catalog.
   const candidates=config&&request.method==='GET'?(await env.DB.prepare(`SELECT o.id,o.display_name,m.scope,m.role FROM oa_operators o JOIN porthole_members m ON m.operator_id=o.id WHERE o.status='active' AND m.role!='finance reader' AND ${actor.fence}`).bind(...actor.args).all<{id:string;display_name:string;scope:string}>()).results:[]
@@ -52,6 +52,6 @@ export async function servicesResponse(request:Request,env:Bindings):Promise<Res
   const saved=await env.DB.prepare(`INSERT INTO porthole_service_versions SELECT ?,?,?,?,?,?,?,?,?,?,?,? WHERE ${actor.fence} AND ${proof.sql} AND COALESCE((SELECT MAX(revision) FROM porthole_service_versions WHERE id=?),0)=? AND ${eligible}`)
    .bind(id,service!.service,service!.environment,service!.team,revision+1,ownerRef,repository,runbook,criticality,actor.member.operatorId,now,'active',...actor.args,...proof.args,id,revision,ownerRef,ownerRef,service!.service,service!.environment,service!.team).run()
   if(!saved.meta.changes)fail('service_revision_or_authority_changed',409)
-  return html?new Response(null,{status:303,headers:{...privateHeaders,location:settings+'/'+id}}):json({id,revision:revision+1,ownerRef,repository,runbook,criticality,state:'active'},201)
+  return html?new Response(null,{status:303,headers:{...privateHeaders,location:settings+'/'+id+url.search}}):json({id,revision:revision+1,ownerRef,repository,runbook,criticality,state:'active'},201)
  }catch(error){const known=error instanceof AuthError||error instanceof IntakeError,status=known?error.status:503,code=known?error.code:'services_unavailable';return html?servicesPage(undefined,undefined,false,false,[],code,status):json({error:code},status)}
 }

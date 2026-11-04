@@ -68,7 +68,25 @@ export async function servicesJourney({origin,freshOwner,signIn,sql,restartWorke
  assert.ok(eligibleView.edges.some(edge=>edge.kind==='unresolved-target'&&edge.to===null),'an outbound call without an authorized receiver remains explicitly unresolved')
  cookie=await freshOwner()
  const owner=(await read('/auth/session')).operator,baselineGrants=await grants(),values={revision:0,ownerRef:owner.id,repository:'https://example.invalid/checkout.git',runbook:'https://restricted.example/runbooks/checkout?view=synthetic-porthole-8209#recovery',criticality:'high',confirm:'save-service-metadata'}
- await send(api+'/'+checkout.id,values,201)
+ // The first Settings revision must retain its selected telemetry window.
+ const saveInitial=()=>servicesBrowser({origin,cookie,path:'/app/settings/services/'+checkout.id+query+'&snapshot='+view.snapshot+'&budget=2000',contains:'Review service metadata',name:analytical?'services-initial-selected-settings':'services-initial-historical-settings',dispatch:browserDispatch,save:{...values,revision:1}})
+ if(withPinnedClock){
+  const at=Number(end/1000000n)+172800000
+  await withPinnedClock(at,async()=>{
+   // Confirm a native owner link at the selected clock through the public door.
+   const {randomBytes,randomUUID}=await import('node:crypto'),{ownerSigninDigest}=await import('../../src/modules/operator-auth/owner-signin-grant.mjs')
+   const token=randomBytes(32).toString('base64url')
+   await sql(`INSERT INTO oa_owner_signins(id,token_hash,operator_id,operator_version,created_at,expires_at) SELECT ${literal(randomUUID())},${literal(await ownerSigninDigest(token))},id,version,${at},${at+120000} FROM oa_operators WHERE id=${literal(owner.id)}`)
+   const signed=await send('/auth/owner-signin',{token},303,'')
+   cookie=signed.headers.getSetCookie().map(value=>value.split(';')[0]).join('; ')
+   assert.equal((await read()).services.length,0,'historical service is outside the default window')
+   await saveInitial()
+  })
+  cookie=await freshOwner({force:true})
+ }else await saveInitial()
+ const initial=await read(api+'/'+checkout.id+query)
+ assert.equal(initial.metadata.owner_ref,owner.id);assert.equal(initial.metadata.runbook,values.runbook);assert.equal(initial.metadata.repository,values.repository);assert.equal(initial.metadata.criticality,values.criticality)
+ console.log('PROBE PORT-008 BLOCKING-A: Settings initial metadata save from its selected window -> revision 1 saved and reloaded with the original window and snapshot')
  assert.deepEqual(await grants(),baselineGrants,'attribution grants no membership or scope')
  await denied(api+'/'+checkout.id,values,409)
  await denied(api+'/'+checkout.id,{...values,revision:1},403,eligibleCookie)
@@ -135,7 +153,15 @@ export async function servicesBrowser({origin,cookie='',path,contains,name,statu
  try{
   const context=await browser.newContext({viewport:{width:1440,height:900}})
   if(cookie)await context.addCookies(cookie.split('; ').map(v=>({name:v.slice(0,v.indexOf('=')),value:v.slice(v.indexOf('=')+1),url:origin})))
-  if(dispatch)await context.route(origin+'/**',async route=>{const r=route.request(),response=await dispatch(r.url(),{method:r.method(),headers:r.headers(),...(r.postDataBuffer()?{body:r.postDataBuffer()}:{})});await route.fulfill({status:response.status,headers:Object.fromEntries(response.headers),body:Buffer.from(await response.arrayBuffer())})})
+  const redirects=[]
+  if(dispatch)await context.route(origin+'/**',async route=>{
+   const r=route.request()
+   let response=await dispatch(r.url(),{method:r.method(),redirect:'manual',headers:r.headers(),...(r.postDataBuffer()?{body:r.postDataBuffer()}:{})})
+   // Redirects bypass browser interception. Follow through the same actual
+   // Worker transport, retaining the original response for the save assertion.
+   if(response.status===303){const location=new URL(response.headers.get('location'),r.url()).href;redirects.push({status:response.status,location});response=await dispatch(location,{method:'GET',redirect:'manual',headers:r.headers()})}
+   await route.fulfill({status:response.status,headers:Object.fromEntries(response.headers),body:Buffer.from(await response.arrayBuffer())})
+  })
   const page=await context.newPage(),response=await page.goto(origin+path)
   assert.equal(response.status(),status);assert.ok((await page.locator('body').innerText()).includes(contains))
   if(observed){const body=await page.locator('body').innerText();assert.ok(body.includes(observed.requests+' requests · '+observed.errors+' errors'));for(const name of ['p50','p95','p99'])assert.ok(body.includes(name+' '+(Number(observed[name+'Ns'])/1e6).toFixed(2)+' ms'),'Services shows the independently reconciled '+name);const href=await page.getByRole('link',{name:'Read this snapshot as JSON',exact:true}).getAttribute('href');const linked=await page.goto(origin+href);assert.equal(linked.status(),200);const json=await linked.json();assert.equal(json.summary.requests,observed.requests);assert.equal(json.summary.errors,observed.errors);assert.equal(json.summary.p95Ns,observed.p95Ns);await page.goto(origin+path)}
@@ -145,9 +171,20 @@ export async function servicesBrowser({origin,cookie='',path,contains,name,statu
   const link=page.getByRole('link',{name:'All services',exact:true});if(await link.count()){await link.focus();assert.ok(await link.evaluate(n=>n===document.activeElement))}
   if(save){
    const stale=await context.newPage();await stale.goto(origin+path)
-   await page.getByLabel('Runbook URL').fill('https://restricted.example/runbooks/reviewed');await page.getByLabel('Criticality',{exact:true}).selectOption('critical');await page.getByLabel('I approve these exact values').check()
-   await Promise.all([page.waitForURL(origin+'/app/settings/services/'+path.split('/').at(-1).split('?')[0]),page.getByRole('button',{name:'Save reviewed metadata'}).click()])
-   assert.match(await page.locator('body').innerText(),/Revision\s+3/)
+   const values=save===true?{revision:3,runbook:'https://restricted.example/runbooks/reviewed',criticality:'critical'}:save
+   if(values.ownerRef)await page.getByLabel('Owner',{exact:true}).selectOption(values.ownerRef)
+   if(values.repository)await page.getByLabel('Repository URL').fill(values.repository)
+   await page.getByLabel('Runbook URL').fill(values.runbook);await page.getByLabel('Criticality',{exact:true}).selectOption(values.criticality);await page.getByLabel('I approve these exact values').check()
+   const [submitted]=await Promise.all([page.waitForResponse(r=>r.request().method()==='POST'),page.waitForNavigation({waitUntil:'domcontentloaded'}),page.getByRole('button',{name:'Save reviewed metadata'}).click()])
+   assert.equal(dispatch?redirects.at(-1)?.status:submitted.status(),303,'reviewed metadata saves from its selected window')
+   // Establish the redirected GET in browser history before testing reload.
+   if(dispatch)await page.goto(redirects.at(-1).location)
+   assert.match(await page.locator('body').innerText(),new RegExp('Revision\\s+'+values.revision))
+   const savedWindow=new URL(dispatch?redirects.at(-1).location:page.url()).searchParams,originalWindow=new URL(origin+path).searchParams
+   for(const key of ['from','through','snapshot','budget'])if(originalWindow.has(key))assert.equal(BigInt(savedWindow.get(key)),BigInt(originalWindow.get(key)),'save and reload preserve '+key)
+   await page.reload();assert.match(await page.locator('body').innerText(),new RegExp('Revision\\s+'+values.revision))
+   assert.equal(await page.getByLabel('Runbook URL').inputValue(),values.runbook)
+   assert.equal(await page.getByLabel('Criticality',{exact:true}).inputValue(),values.criticality)
    await stale.getByLabel('I approve these exact values').check()
    const refusal=stale.waitForResponse(r=>r.request().method()==='POST')
    await stale.getByRole('button',{name:'Save reviewed metadata'}).click()
