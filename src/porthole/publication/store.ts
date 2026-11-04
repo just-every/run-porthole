@@ -8,6 +8,7 @@ import {allowedOrigins,publicText,validProjection,type Projection,type Publicati
 export async function sourceDashboard(env:Bindings,actor:Authority,id:string):Promise<DashboardRow> {
  const row=await env.DB.prepare(`SELECT * FROM porthole_dashboards WHERE id=? AND state='active' AND ${actor.fence}`).bind(id,...actor.args).first<DashboardRow>()
  if(!row)fail('dashboard_not_found',404)
+ if(dashboardBody(JSON.parse(row.body)).layout)fail('private_layout_publication_unavailable',409)
  if(!scopeWithin(JSON.parse(row.scope),actor.member.scope))fail('scope_forbidden')
  return row
 }

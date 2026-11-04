@@ -1111,3 +1111,26 @@ export async function genaiArchiveJourney({origin,cookie,withEmptyDestination,tr
  })
  console.log('genaiArchiveJourney passed: complete metadata-only wire and retained custody, independent inactive restore and re-export, no inherited sessions or credentials')
 }
+
+/** Pack definitions restore as private inactive history, without review grants. */
+export async function layoutArchiveJourney({origin,freshOwner,withEmptyDestination,ids,packId,publicPaths}) {
+ const cookie=await freshOwner(),source=await savedExport(origin,cookie,await post(origin,cookie,api+'/exports',{}))
+ const originals=await Promise.all(ids.map(async id=>value(await get(origin,cookie,'/api/porthole/v1/dashboards/'+id))))
+ const pack=await value(await get(origin,cookie,'/api/porthole/v1/dashboard-powerpacks/'+packId))
+ assert.ok(source.rows.some(row=>row.table==='porthole_powerpack_versions'&&row.row.revision===1))
+ assert.ok(!source.rows.some(row=>row.table==='porthole_powerpack_reviews'),'owner review packets are never portable authority')
+ await withEmptyDestination(async destination=>{
+  const session=await destination.freshOwner(),start=await value(await post(destination.origin,session,api+'/restores',{manifest:source.manifest}),201)
+  for(const chunk of source.chunks)await value(await post(destination.origin,session,`${api}/restores/${start.id}/chunks`,{chunk}))
+  await value(await post(destination.origin,session,`${api}/restores/${start.id}/commit`,{confirm:source.manifest.rootHash}))
+  await destination.restartWorker()
+  for(const original of originals){const restored=await value(await get(destination.origin,session,'/api/porthole/v1/dashboards/'+original.id));assert.equal(restored.state,'quarantined');assert.deepEqual(restored.body,original.body);assert.deepEqual(restored.versions,original.versions)}
+  const restoredPack=await value(await get(destination.origin,session,'/api/porthole/v1/dashboard-powerpacks/'+packId));assert.equal(restoredPack.state,'quarantined');assert.deepEqual(restoredPack.body,pack.body);assert.deepEqual(restoredPack.versions,pack.versions)
+  assert.equal((await destination.sql('SELECT COUNT(*) AS n FROM porthole_powerpack_reviews'))[0].n,0)
+  for(const path of publicPaths)assert.equal((await fetch(destination.origin+path,{headers:{origin:'https://office.example'}})).status,404)
+  const reexport=await savedExport(destination.origin,session,await post(destination.origin,session,api+'/exports',{}))
+  for(const id of ids){const row=reexport.rows.find(row=>row.table==='porthole_dashboards'&&row.row.id===id);assert.equal(row.row.state,'quarantined');assert.deepEqual(JSON.parse(row.row.body),originals.find(original=>original.id===id).body)}
+  assert.equal(reexport.rows.find(row=>row.table==='porthole_powerpacks'&&row.row.id===packId).row.state,'quarantined')
+  console.log('PROBE PORT-068 archive: installation restore and re-export -> both consumers and pack revisions preserved, inactive, no review grants or revived public addresses')
+ })
+}

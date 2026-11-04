@@ -179,3 +179,24 @@ async function publicationBrowser({origin,cookie,dashboardId,allowed,labels,sour
   await anonymous.close();await context.close()
  }}finally{await browser.close()}
 }
+
+/** Existing frozen addresses remain fenced when a dashboard gains structure. */
+export async function layoutPublicationFence({origin,cookie,id,revision,phase='create',paths=[]}) {
+ if(phase==='refused') {
+  for(const path of paths)assert.equal((await fetch(origin+path,{headers:{origin:'https://office.example'}})).status,404,'structural edits and pack updates never renew old public addresses')
+  assert.equal((await fetch(origin+'/app/dashboards/'+id+'/publish',{headers:{cookie}})).status,409,'private layouts cannot introduce a new publication slice')
+  return paths
+ }
+ const post=(path,data)=>fetch(origin+path,form(origin,cookie,data))
+ const response=await post(root+'/preview',{dashboardId:id,sourceRevision:revision,publicTitle:'Office measured count',labels:{logs:'Request count'},allowedOrigins:['https://office.example'],expiresAt:Date.now()+3600000})
+ assert.equal(response.status,303,await response.clone().text())
+ const html=await (await fetch(origin+response.headers.get('location'),{headers:{cookie}})).text()
+ const values=Object.fromEntries([...html.matchAll(/<input type="hidden" name="([^"]+)" value="([^"]*)">/g)].map(([,name,value])=>[name,value.replaceAll('&#34;','"').replaceAll('&#38;','&').replaceAll('&#39;',"'")]))
+ const approved=await post(root+'/approve',{...values,confirm:'reviewed-public-snapshot',reviewTv:'reviewed',reviewEmbed:'reviewed',reviewImages:'reviewed'})
+ assert.equal(approved.status,303,await approved.clone().text())
+ const published=await (await fetch(origin+approved.headers.get('location'),{headers:{cookie}})).text()
+ const addresses=[...published.matchAll(/href="(\/published\/[^\"]+)"/g)].map(match=>match[1])
+ assert.equal(addresses.length,3)
+ for(const path of addresses)assert.equal((await fetch(origin+path,{headers:{origin:'https://office.example'}})).status,200)
+ return addresses
+}

@@ -13,7 +13,7 @@ const json=(value:unknown,status=200)=>Response.json(value,{status,headers:priva
 export async function dashboardResponse(request:Request,env:Bindings):Promise<Response|null> {
  const url=new URL(request.url),page=url.pathname.startsWith(app),requestId=crypto.randomUUID()
  if(!page&&!url.pathname.startsWith(api))return null
- if(![app,api,app+'/save',app+'/reorder',app+'/clone',app+'/archive',app+'/panel',app+'/annotation',api+'/archive'].includes(url.pathname)&&!new RegExp('^('+app+'|'+api+')/[a-f0-9-]{36}$').test(url.pathname))return null
+ if(![app,api,app+'/save',app+'/reorder',app+'/clone',app+'/archive',app+'/panel',app+'/annotation',app+'/layout',app+'/pack',api+'/archive'].includes(url.pathname)&&!new RegExp('^('+app+'|'+api+')/[a-f0-9-]{36}$').test(url.pathname))return null
  try {
   if(!page&&request.method==='GET')return await dashboardReadResponse(request,env)
   const actor=await authority(request,env,{post:request.method==='POST'}),canEdit=['owner','admin','maintainer'].includes(actor.member.role)

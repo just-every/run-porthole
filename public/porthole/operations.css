@@ -20,3 +20,26 @@
 .rer-themed .porthole-notebook-cells { padding-left: 24px; }
 .rer-themed .porthole-notebook-cells article { min-width: 0; margin: 24px 0; overflow-wrap: anywhere; }
 .rer-themed .porthole-notebook-cells svg { max-width: 600px; }
+
+.rer-themed .porthole-layout { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.rer-themed .porthole-layout > * { min-width: 0; overflow-wrap: anywhere; }
+.rer-themed .porthole-layout-group { border: 1px solid var(--rer-border, #9ca3af); border-radius: 12px; padding: 16px; }
+.rer-themed .porthole-layout article { margin: 0; }
+.rer-themed .porthole-layout summary { font-size: 16px; }
+.rer-themed .porthole-layout-controls { margin-top: 12px; }
+.rer-themed .porthole-span-1 { grid-column: span 1; }
+.rer-themed .porthole-span-2 { grid-column: span 2; }
+.rer-themed .porthole-span-3 { grid-column: span 3; }
+.rer-themed .porthole-span-4 { grid-column: span 4; }
+.rer-themed .porthole-span-5 { grid-column: span 5; }
+.rer-themed .porthole-span-6 { grid-column: span 6; }
+.rer-themed .porthole-span-7 { grid-column: span 7; }
+.rer-themed .porthole-span-8 { grid-column: span 8; }
+.rer-themed .porthole-span-9 { grid-column: span 9; }
+.rer-themed .porthole-span-10 { grid-column: span 10; }
+.rer-themed .porthole-span-11 { grid-column: span 11; }
+.rer-themed .porthole-span-12 { grid-column: span 12; }
+.rer-themed .porthole-height-2 { min-height: 24rem; }
+.rer-themed .porthole-height-3 { min-height: 36rem; }
+.rer-themed .porthole-height-4 { min-height: 48rem; }
+@media (max-width: 600px) { .rer-themed .porthole-layout > * { grid-column: 1 / -1; min-height: 0; } }

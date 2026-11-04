@@ -1,3 +1,4 @@
+import {boundPanels} from './layout'
 import {AuthError} from '../../modules/operator-auth/index.mjs'
 import {applyFunctions} from './functions'
 import type {Bindings} from '../../auth.server'
@@ -14,7 +15,8 @@ export async function dashboardResults(request:Request,env:Bindings,row:Dashboar
  const from=timestamp(params.get('from')??body.range.from),through=timestamp(params.get('through')??body.range.through)
  if(BigInt(from)>BigInt(through))fail('invalid_dashboard_range',400)
  const scope=JSON.parse(row.scope) as Scope
- const results=await Promise.all(body.panels.map(async panel=>{
+ const results=await Promise.all(boundPanels(body).map(async ({panel,team:childTeam,environment:childEnvironment})=>{
+  const team=params.has('team')?scopeLabel(params.get('team')):childTeam,environment=params.has('environment')?scopeLabel(params.get('environment')):childEnvironment
   if(!scopeWithin({services:[panel.service],teams:[team],environments:[environment]},scope))fail('dashboard_variable_scope_forbidden')
   const query=new URLSearchParams({signal:panel.signal,service:panel.service,team,environment,from,through})
   if(panel.metric)query.set('metric',panel.metric)
@@ -52,13 +54,14 @@ export async function dashboardResults(request:Request,env:Bindings,row:Dashboar
   const stale=records.length>0&&Date.now()-Number(BigInt(String(records.at(-1)!.event_time_ns))/1000000n)>600000
   return {panel,value,state:partial?'partial':!records.length||panel.functions?.length&&!points.length?'empty':stale?'stale':'complete',count:records.length,query:'/app/explore?'+query+'&snapshot='+snapshot,values,unit,reference,points,records,from,through} as PanelResult
  })) as PanelResult[]
- const compared=body.panels.filter(panel=>panel.compareWeek)
- if(compared.length) {
+ for(const result of results.filter(result=>result.panel.compareWeek)) {
   const week=604800000000000n
   if(BigInt(from)<week)fail('week_comparison_before_unix_epoch',400)
-  const previousUrl=new URL(request.url);previousUrl.searchParams.set('from',String(BigInt(from)-week));previousUrl.searchParams.set('through',String(BigInt(through)-week))
-  const prior=await dashboardResults(new Request(previousUrl,{headers:request.headers}),env,{...row,body:JSON.stringify({...body,panels:compared.map(panel=>({...panel,compareWeek:false}))})})
-  for(const result of results)result.comparison=prior.find(previous=>previous.panel.id===result.panel.id)
+  const previousUrl=new URL(request.url),query=new URL(result.query,request.url)
+  previousUrl.searchParams.set('from',String(BigInt(from)-week));previousUrl.searchParams.set('through',String(BigInt(through)-week))
+  for(const key of ['team','environment'])if(query.searchParams.has(key))previousUrl.searchParams.set(key,query.searchParams.get(key)!)
+  const prior=await dashboardResults(new Request(previousUrl,{headers:request.headers}),env,{...row,body:JSON.stringify({...body,layout:undefined,panels:[{...result.panel,compareWeek:false}]})})
+  result.comparison=prior[0]
  }
  return results
 }
