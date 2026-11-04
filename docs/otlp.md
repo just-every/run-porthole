@@ -220,7 +220,12 @@ adding successive cumulative values would overcount requests.
 The journey also exercises exact-byte retry after Worker restart, malformed and
 wrong-signal refusals, revoked intake and paginated read credentials, accepted
 and queryable accounting, both separate analytical configurations and inactive
-installation restore and re-export. Browser proof opens delivery and actual
+installation restore and re-export. Captured stock exports also exercise pressure
+refusal over both transports with exact rejected-record counts, unchanged accepted
+records and successful duplicate receipts while the buffer is full. Narrowing any
+service, environment, team or signal grant fences the next export retry and an
+earlier read cursor; revocation also fences both analytical configurations.
+Browser proof opens delivery and actual
 request-log results at 1440 and 390 pixels. Run from an installed checkout with
 Docker available:
 

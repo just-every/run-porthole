@@ -156,6 +156,7 @@ export async function otlpLanguagesJourney({origin,freshOwner,restartWorker,with
  outcomes(expected,requests)
  const actual={};for(const signal of signals)actual[signal]=await pages(origin,cookie,signal)
  reconcile(expected,actual,source.credential.id)
+ await stockRefusals({origin,cookie,post,source,captures:allCaptures,actual})
  await post(api+'/control',{paused:true})
  for(const signal of signals){
   const malformed=await fetch(origin+'/v1/'+signal,{method:'POST',headers:{authorization:'Bearer '+source.secret,'content-type':'application/x-protobuf'},body:Buffer.from([255])})
@@ -184,6 +185,92 @@ export async function otlpLanguagesJourney({origin,freshOwner,restartWorker,with
  console.log('otlpLanguagesJourney passed '+JSON.stringify({requests:requests.length,records:Object.fromEntries(signals.map(signal=>[signal,expected[signal].length])),transports:['http','grpc'],languages}))
  return {expected}
 }
+// Reuse only emitted stock messages: refusal probes must not manufacture a
+// language's telemetry or turn a denied retry into a second accepted batch.
+async function stockRefusals({origin,cookie,post,source,captures,actual}){
+ const grpc=(await import('@grpc/grpc-js')).default
+ const {receiver,services}=await import('../../scripts/porthole/otlp-grpc.mjs')
+ const running=await receiver({upstream:origin,listen:'127.0.0.1:0'}),clients=new Map()
+ for(const signal of signals){
+  const Client=grpc.makeGenericClientConstructor(services[signal],signal)
+  clients.set(signal,new Client('127.0.0.1:'+running.port,grpc.credentials.createInsecure()))
+ }
+ const packet=signal=>captures.find(c=>c.signal===signal)
+ const rpc=(signal,wire,{secret=source.secret,headers={}}={})=>new Promise((resolve,reject)=>{
+  const metadata=new grpc.Metadata();metadata.set('authorization','Bearer '+secret)
+  for(const [name,value]of Object.entries(headers))metadata.set(name,value)
+  let receipt
+  const call=clients.get(signal).Export(wire,metadata,{deadline:Date.now()+10000},(error,body)=>error?reject(error):resolve({body,receipt}))
+  call.on('metadata',metadata=>{receipt=metadata.getMap()})
+ })
+ const http=(signal,capture=packet(signal),headers={})=>fetch(origin+'/v1/'+signal,{method:'POST',headers:{authorization:'Bearer '+source.secret,...capture.headers,...headers},body:capture.wire})
+ const deniedRpc=(signal,wire,code,options)=>assert.rejects(()=>rpc(signal,wire,options),error=>error.code===code&&/^[a-z_]+$/.test(error.details),'protocol refusal has a value-free diagnostic')
+ const totals=async()=>{
+  const result=await value(await fetch(origin+api+'/status',{headers:{cookie}}))
+  return Object.fromEntries(signals.map(signal=>[signal,Object.fromEntries(['accepted','queryable','archived','rejected'].map(key=>[key,result.sources.filter(row=>row.sourceId===source.credential.id&&row.signal===signal).reduce((n,row)=>n+row[key],0)]))]))
+ }
+ const before=await totals()
+ try{
+  // Pressure refuses new identities, while acknowledged exact-byte retries
+  // still complete without consuming buffer space or duplicating records.
+  await post(api+'/control',{paused:true,maxPendingBytes:1})
+  for(const signal of signals){
+   const capture=packet(signal)
+   const pressure=await http(signal,capture,{'x-porthole-batch-id':'synthetic-porthole-pressure-http-'+signal})
+   assert.equal(pressure.status,429);assert.ok(Number(pressure.headers.get('retry-after'))>0)
+   await deniedRpc(signal,capture.wire,grpc.status.RESOURCE_EXHAUSTED,{headers:{'x-porthole-batch-id':'synthetic-porthole-pressure-grpc-'+signal}})
+   const duplicate=await rpc(signal,capture.wire)
+   assert.equal(duplicate.body.length,0);assert.equal(duplicate.receipt['x-porthole-duplicate'],'true')
+   const current=(await totals())[signal]
+   assert.equal(current.rejected-before[signal].rejected,2*capture.count,'both transports account every refused stock record exactly')
+   for(const key of ['accepted','queryable','archived'])assert.equal(current[key],before[signal][key],'pressure and retries preserve '+key)
+  }
+  await post(api+'/control',{paused:true,maxPendingBytes:33554432})
+  for(const signal of signals){
+   await deniedRpc(signal,Buffer.from([255]),grpc.status.INVALID_ARGUMENT)
+   await deniedRpc(signal,packet(signal).wire,grpc.status.UNAUTHENTICATED,{secret:'synthetic-porthole-1003'})
+   for(const other of signals.filter(other=>other!==signal)){
+    assert.equal((await http(signal,packet(other))).status,400,'stock '+other+' cannot masquerade as '+signal)
+    await deniedRpc(signal,packet(other).wire,grpc.status.INVALID_ARGUMENT)
+   }
+  }
+  const reader=await post('/app/settings/credentials/mint',{name:'Stock scope continuation',class:'read',scope:{...scope,actions:['telemetry.read']}},201)
+  const readScope={...scope,actions:['telemetry.read']}
+  const query=new URLSearchParams({signal:'logs',service:'python',environment:'production',team:'commerce',limit:'1'})
+  const first=await value(await fetch(origin+api+'/records?'+query,{headers:{authorization:'Bearer '+reader.secret}}))
+  assert.equal(first.records.length,1);assert.ok(first.cursor)
+  query.set('cursor',first.cursor);query.set('snapshot',String(first.snapshot))
+  for(const dimension of ['services','environments','teams','signals']){
+   const restriction={[dimension]:dimension==='signals'?['traces']:['synthetic-porthole-ungranted']}
+   await post('/app/settings/credentials/rescope',{id:source.credential.id,scope:{...scope,...restriction}})
+   for(const signal of signals){
+    if(dimension==='signals'&&signal==='traces')continue
+    // Even an already accepted identity must pass today's scope first.
+    assert.equal((await http(signal)).status,403,'current '+dimension+' scope fences acknowledged HTTP retries')
+    await deniedRpc(signal,packet(signal).wire,grpc.status.PERMISSION_DENIED)
+   }
+   await post('/app/settings/credentials/rescope',{id:source.credential.id,scope})
+   await post('/app/settings/credentials/rescope',{id:reader.credential.id,scope:{...readScope,...restriction}})
+   const refused=await fetch(origin+api+'/records?'+query,{headers:{authorization:'Bearer '+reader.secret}})
+   assert.equal(refused.status,403,'current '+dimension+' scope fences an old pagination cursor')
+   assert.deepEqual(Object.keys(await refused.json()),['error'],'denied continuation returns no telemetry')
+   await post('/app/settings/credentials/rescope',{id:reader.credential.id,scope:readScope})
+  }
+  await post('/app/settings/credentials/revoke',{id:reader.credential.id})
+  for(const signal of signals){
+   const replay=await rpc(signal,packet(signal).wire)
+   assert.equal(replay.receipt['x-porthole-duplicate'],'true','restored scope admits the original durable receipt')
+   const after=await pages(origin,cookie,signal)
+   assert.deepEqual(after.map(row=>row.id),actual[signal].map(row=>row.id),'refused exports and retries add no retained record')
+   const current=(await totals())[signal]
+   for(const key of ['accepted','queryable','archived'])assert.equal(current[key],before[signal][key])
+  }
+ }finally{
+  for(const client of clients.values())client.close()
+  await running.close()
+ }
+ console.log('PROBE PORT-001 stock refusal boundary: captured three-signal exports over HTTP and gRPC -> exact pressure accounting, wrong-signal and malformed refusal, current service, environment, team and signal scope on retry and paginated reads; accepted records unchanged')
+}
 export async function otlpLanguagesAnalyticalJourney({captures,expected}){
  const {analyticalEstate}=await import('./analytics.mjs'),{recipientMailJourney}=await import('./health.mjs')
  const estate=await analyticalEstate()
@@ -199,6 +286,16 @@ export async function otlpLanguagesAnalyticalJourney({captures,expected}){
    config=await read('/api/porthole/v1/analytics/configuration');await send('/api/porthole/v1/analytics/configuration',{revision:config.revision,enabled:true,role,confirm:'connect-analytical-workers'})
    const actual={};for(const signal of signals)actual[signal]=await pages(origin,cookie,signal,{},path=>call(path,{headers:{cookie}}))
    reconcile(expected,actual,source.credential.id)
+   const reader=await send('/app/settings/credentials/mint',{name:'Current stock '+role+' reader',class:'read',scope:{...scope,actions:['telemetry.read']}},201)
+   const query=new URLSearchParams({signal:'logs',service:'python',limit:'1'})
+   const first=await value(await call(api+'/records?'+query,{headers:{authorization:'Bearer '+reader.secret}}))
+   assert.equal(first.records.length,1);assert.ok(first.cursor)
+   query.set('cursor',first.cursor);query.set('snapshot',String(first.snapshot))
+   await send('/app/settings/credentials/rescope',{id:reader.credential.id,scope:{...scope,services:['java'],actions:['telemetry.read']}})
+   const denied=await call(api+'/records?'+query,{headers:{authorization:'Bearer '+reader.secret}})
+   assert.equal(denied.status,403,role+' continuation intersects current scope');assert.deepEqual(Object.keys(await denied.json()),['error'])
+   await send('/app/settings/credentials/revoke',{id:reader.credential.id})
+   assert.equal((await call(api+'/records?signal=logs',{headers:{authorization:'Bearer '+reader.secret}})).status,401,role+' read revocation is immediate')
   }
   await restart();const actual={};for(const signal of signals)actual[signal]=await pages(origin,cookie,signal,{},path=>call(path,{headers:{cookie}}));reconcile(expected,actual,source.credential.id)
   await estate.stop('standby');assert.equal((await call(api+'/records?signal=logs',{headers:{cookie}})).status,503,'unavailable analytical storage does not become an empty success')

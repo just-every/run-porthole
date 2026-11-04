@@ -381,7 +381,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "d2bb953cddd1ffa6dd74bef9187257c9c60c7a84dea6877cdbae78a2f8fd370c",
+      "sha256": "329fff1e4eae70d4aecc3b5adea1fa279e97b9f8af7645489d47404f0b9decf1",
       "executable": false
     },
     "DEMO.md": {
@@ -457,7 +457,7 @@
       "executable": false
     },
     "docs/otlp.md": {
-      "sha256": "8ffd03e251583217b4d861ec7811c427435fc8ccec7c5522d20f461a6ab3eec0",
+      "sha256": "87d1cc97457e208e04ee90343ec9c5ee04358b6722e51af618c8e68f8e299ccb",
       "executable": false
     },
     "docs/product-docs.md": {
@@ -5629,7 +5629,7 @@
       "executable": false
     },
     "tests/porthole/otlp-languages.mjs": {
-      "sha256": "65e88bfe2ba7ab94725013beea987710c71397e722713378156d78c826e70e14",
+      "sha256": "14f1d951b0476fcf3957cab235fb9c24e8bed684f3565ba23c260b3aa5dbd1a1",
       "executable": false
     },
     "tests/porthole/pipelines-analytical.mjs": {
