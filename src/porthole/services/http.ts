@@ -23,10 +23,13 @@ export async function servicesResponse(request:Request,env:Bindings):Promise<Res
   const owner=actor.session.kind==='native'&&actor.member.role==='owner'
   if((config||request.method==='POST')&&!owner)fail('service_owner_required')
   if(request.method==='POST'&&(!id||base===screen||url.search))fail('invalid_service_query',400)
+  // Resolve the Settings directory before the catalog's final source and
+  // authority fence. No later directory read can release an older catalog.
+  const candidates=config&&request.method==='GET'?(await env.DB.prepare(`SELECT o.id,o.display_name,m.scope,m.role FROM oa_operators o JOIN porthole_members m ON m.operator_id=o.id WHERE o.status='active' AND m.role!='finance reader' AND ${actor.fence}`).bind(...actor.args).all<{id:string;display_name:string;scope:string}>()).results:[]
   const view=await serviceRead(request,env,actor),service=id?view.services.find(s=>s.id===id):undefined
   if(id&&!service)fail('service_not_found',404)
   if(request.method==='GET'){
-   const members=config?(await env.DB.prepare(`SELECT o.id,o.display_name,m.scope,m.role FROM oa_operators o JOIN porthole_members m ON m.operator_id=o.id WHERE o.status='active' AND m.role!='finance reader' AND ${actor.fence}`).bind(...actor.args).all<{id:string;display_name:string;scope:string}>()).results.filter(m=>service&&scopeWithin({services:[service.service],environments:[service.environment],teams:[service.team]},JSON.parse(m.scope))):[]
+   const members=candidates.filter(m=>service&&scopeWithin({services:[service.service],environments:[service.environment],teams:[service.team]},JSON.parse(m.scope)))
    return html?servicesPage(view,id,config,owner,members):json(id?{...service,coverage:view.coverage,edges:view.edges.filter(e=>e.from===id||e.to===id),names:view.names,snapshot:view.snapshot,from:view.from,through:view.through,backend:view.backend}:view)
   }
   const data=await input(request)

@@ -40,13 +40,17 @@ export async function servicesJourney({origin,freshOwner,signIn,sql,restartWorke
   assert.equal(service.summary.requestsPerSecond,captured.length/(Number(end-start+3n)/1e9))
   for(const endpoint of service.endpoints){
    const spans=captured.filter(s=>(s.attributes['http.route']??s.name)===endpoint.endpoint)
-   assert.equal(endpoint.requests,spans.length)
+   assert.equal(endpoint.requests,spans.length,'source endpoint membership: '+endpoint.endpoint)
    assert.equal(endpoint.errors,spans.filter(s=>s.status.code===2||Number(s.attributes['http.response.status_code']??s.attributes['http.status_code'])>=500).length)
+   const latency=spans.map(span=>BigInt(span.durationNs)).sort((a,b)=>a<b?-1:a>b?1:0)
+   for(const [key,p]of [['p50Ns',.5],['p95Ns',.95],['p99Ns',.99]])assert.equal(endpoint[key],latency[Math.ceil(latency.length*p)-1].toString(),'per-endpoint latency reconciles with the original stock spans')
+   assert.equal(endpoint.requestsPerSecond,spans.length/(Number(end-start+3n)/1e9))
   }
  }
  const checkout=view.services.find(s=>s.service==='checkout'),fulfillment=view.services.find(s=>s.service==='fulfillment')
  const {serviceTopologyProof}=await import('./traces.mjs')
  await serviceTopologyProof({read,proof,view,checkout,fulfillment})
+ await servicesBrowser({origin,cookie,path:'/app/services/'+checkout.id+query,contains:'Observed requests',name:'services-summary',dispatch:browserDispatch,observed:checkout.summary})
  for(const [index,packet]of proof.packets.entries()){
   const replay=await call('/v1/traces',{method:'POST',headers:{authorization:'Bearer '+source.secret,'content-type':packet.type,'x-porthole-batch-id':'synthetic-porthole-replay-'+index},body:packet.body})
   assert.equal(replay.status,200,await replay.clone().text())
@@ -57,10 +61,13 @@ export async function servicesJourney({origin,freshOwner,signIn,sql,restartWorke
  assert.deepEqual(replayed.edges,view.edges)
  const partial=await read(api+query+'&budget=200');assert.equal(partial.coverage.scanComplete,false,'multi-page bounded scans stay partial')
  await servicesBrowser({origin,cookie,path:'/app/services'+query+'&budget=200',contains:'Partial scan',name:'services-partial',dispatch:browserDispatch})
- await send('/app/settings/members/invite',{email:address(8207),displayName:'Eligible service owner',role:'responder',scope},202)
+ await send('/app/settings/members/invite',{email:address(8207),displayName:'Eligible service owner',role:'responder',scope:{services:['checkout'],environments:['production'],teams:['commerce']}},202)
  let eligibleCookie=await signIn(address(8207)),eligible=(await read('/auth/session',eligibleCookie)).operator
+ const eligibleView=await read(api+query,eligibleCookie)
+ assert.deepEqual(eligibleView.services.map(service=>service.service),['checkout'],'the eligible responder remains restricted to the existing checkout scope')
+ assert.ok(eligibleView.edges.some(edge=>edge.kind==='unresolved-target'&&edge.to===null),'an outbound call without an authorized receiver remains explicitly unresolved')
  cookie=await freshOwner()
- const owner=(await read('/auth/session')).operator,baselineGrants=await grants(),values={revision:0,ownerRef:owner.id,repository:'https://example.invalid/checkout.git',runbook:'https://restricted.example/runbooks/checkout',criticality:'high',confirm:'save-service-metadata'}
+ const owner=(await read('/auth/session')).operator,baselineGrants=await grants(),values={revision:0,ownerRef:owner.id,repository:'https://example.invalid/checkout.git',runbook:'https://restricted.example/runbooks/checkout?view=synthetic-porthole-8209#recovery',criticality:'high',confirm:'save-service-metadata'}
  await send(api+'/'+checkout.id,values,201)
  assert.deepEqual(await grants(),baselineGrants,'attribution grants no membership or scope')
  await denied(api+'/'+checkout.id,values,409)
@@ -90,7 +97,7 @@ export async function servicesJourney({origin,freshOwner,signIn,sql,restartWorke
  await restartWorker();cookie=await freshOwner()
  const reloaded=await read(api+'/'+checkout.id+query)
  assert.deepEqual(reloaded.metadata,changed.metadata);assert.deepEqual(reloaded.history,changed.history)
- if(withPinnedClock){const at=Number(end/1000000n)+300001;await withPinnedClock(at,async()=>{const stale=await read(api+query);assert.ok(stale.services.every(s=>s.freshness==='stale'));assert.equal(stale.services.find(s=>s.id===checkout.id).metadata.owner_ref,eligible.id)})}
+ if(withPinnedClock){const at=Number(end/1000000n)+300001;await withPinnedClock(at,async()=>{const stale=await read(api+query);assert.ok(stale.services.every(s=>s.freshness==='stale'));assert.equal(stale.services.find(s=>s.id===checkout.id).metadata.owner_ref,eligible.id);await servicesBrowser({origin,cookie,path:'/app/services'+query,contains:'Freshness: stale',name:'services-freshness-stale',dispatch:browserDispatch})})}
  await servicesBrowser({origin,cookie:eligibleCookie,path:'/app/services/'+checkout.id+query,contains:'critical',name:'services-responder',dispatch:browserDispatch,follow:true})
  await send('/app/settings/members/change',{operatorId:eligible.id,role:'responder',scope:{services:['fulfillment'],environments:['production'],teams:['fulfillment']}})
  assert.equal((await call(api,{headers:{cookie:eligibleCookie}})).status,401,'scope revocation invalidates the old native session on its next request')
@@ -123,7 +130,7 @@ export async function servicesJourney({origin,freshOwner,signIn,sql,restartWorke
  return {view,query,checkoutId:checkout.id}
 }
 
-export async function servicesBrowser({origin,cookie='',path,contains,name,status=200,dispatch,save=false,follow=false}) {
+export async function servicesBrowser({origin,cookie='',path,contains,name,status=200,dispatch,save=false,follow=false,observed}) {
  const {chromium}=await import('@playwright/test'),browser=await chromium.launch({headless:true,...(process.env.PORTHOLE_CHROMIUM_PATH?{executablePath:process.env.PORTHOLE_CHROMIUM_PATH}:{}),args:['--no-sandbox','--use-mock-keychain','--password-store=basic']})
  try{
   const context=await browser.newContext({viewport:{width:1440,height:900}})
@@ -131,6 +138,7 @@ export async function servicesBrowser({origin,cookie='',path,contains,name,statu
   if(dispatch)await context.route(origin+'/**',async route=>{const r=route.request(),response=await dispatch(r.url(),{method:r.method(),headers:r.headers(),...(r.postDataBuffer()?{body:r.postDataBuffer()}:{})});await route.fulfill({status:response.status,headers:Object.fromEntries(response.headers),body:Buffer.from(await response.arrayBuffer())})})
   const page=await context.newPage(),response=await page.goto(origin+path)
   assert.equal(response.status(),status);assert.ok((await page.locator('body').innerText()).includes(contains))
+  if(observed){const body=await page.locator('body').innerText();assert.ok(body.includes(observed.requests+' requests · '+observed.errors+' errors'));for(const name of ['p50','p95','p99'])assert.ok(body.includes(name+' '+(Number(observed[name+'Ns'])/1e6).toFixed(2)+' ms'),'Services shows the independently reconciled '+name)}
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'native Services reflows')
   assert.equal(await page.locator('button').evaluateAll(nodes=>nodes.filter(n=>!n.textContent.trim()).length),0,'every control has a text label')
   assert.ok(await page.locator('main').evaluate(node=>[...node.querySelectorAll('p,a,button,label,input,select,dt,dd,li')].every(n=>parseFloat(getComputedStyle(n).fontSize)>=13)),'ordinary text is at least 13px')

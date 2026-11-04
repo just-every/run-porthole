@@ -77,7 +77,7 @@ export async function polyglotEstate(){
  * Counts come from application handlers; durations come from independently
  * captured stock spans before the stock OTLP exporter sends its wire bytes. */
 export async function serviceCatalogEstate({origin,secret,dispatch}) {
- const children=[],packets=[],name='porthole-services-'+randomUUID().slice(0,8),topic='synthetic-porthole-8200-'+randomUUID(),kafkaPort=await freePort(),controller=await freePort()
+ const children=[],packets=[],name='porthole-services-'+randomUUID().slice(0,8),topic='synthetic-porthole-8200-'+randomUUID().replaceAll('-','').replace(/[0-9]/g,digit=>String.fromCharCode(97+Number(digit))),kafkaPort=await freePort(),controller=await freePort()
  const gateway=httpServer(async(req,res)=>{
   try{const chunks=[];for await(const chunk of req)chunks.push(chunk);const body=Buffer.concat(chunks),type=req.headers['content-type']??'application/x-protobuf';packets.push({body,type});const response=await dispatch(req.url,{method:'POST',headers:{'content-type':type,authorization:'Bearer '+secret},body});res.writeHead(response.status,{'content-type':response.headers.get('content-type')??'application/x-protobuf'});res.end(Buffer.from(await response.arrayBuffer()))}catch{res.writeHead(503);res.end()}
  })
