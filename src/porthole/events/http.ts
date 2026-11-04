@@ -11,7 +11,7 @@ const api='/api/porthole/v1/events',app='/app/events',settings='/app/settings/ev
 const json=(value:unknown,status=200,headers:Record<string,string>={})=>Response.json(value,{status,headers:{...privateHeaders,...headers}})
 export async function eventsResponse(request:Request,env:Bindings):Promise<Response|null> {
  const url=new URL(request.url),page=url.pathname.startsWith(app)||url.pathname.startsWith(settings)
- if(![api,api+'/filters',app,app+'/filters',settings,settings+'/create'].includes(url.pathname)&&!/^\/(?:api\/porthole\/v1\/events|app\/events)\/[a-f0-9-]{36}$/.test(url.pathname))return null
+ if(![api,api+'/export',api+'/filters',app,app+'/filters',settings,settings+'/create'].includes(url.pathname)&&!/^\/(?:api\/porthole\/v1\/events|app\/events)\/[a-f0-9-]{36}$/.test(url.pathname))return null
  try {
   const actor=await authority(request,env,{post:request.method==='POST'})
   if(actor.member.role==='finance reader')fail('events_forbidden')
@@ -37,7 +37,7 @@ export async function eventsResponse(request:Request,env:Bindings):Promise<Respo
   }
   if(url.pathname===settings) {if(url.search)fail('invalid_event_query',400);return settingsPage(actor.member.role==='owner')}
   if(url.pathname===api+'/filters') {if(url.search)fail('invalid_event_query',400);const rows=await filters();await release(env,actor);return json({filters:rows.map(row=>({...row,definition:JSON.parse(row.definition)}))})}
-  if(url.pathname!==api&&url.pathname!==app) {
+  if(url.pathname!==api&&url.pathname!==api+'/export'&&url.pathname!==app) {
    if(url.search)fail('invalid_event_query',400)
    const event=await eventById(env,actor,url.pathname.split('/').at(-1)!)
    if(!event)fail('event_not_found',404)
@@ -56,7 +56,8 @@ export async function eventsResponse(request:Request,env:Bindings):Promise<Respo
    filter=eventFilter(JSON.parse(row.definition))
   }
   const result=await searchEvents(env,actor,filter,limit,cursor)
-  return page?eventsPage(result.events,filter,saved,result.cursor,url):json(result)
+  if(url.pathname===api+'/export')return new Response(result.events.map(event=>JSON.stringify(event)+'\n').join(''),{headers:{...privateHeaders,'content-type':'application/x-ndjson; charset=utf-8','content-disposition':'attachment; filename="events.ndjson"','x-porthole-records':String(result.events.length),'x-porthole-snapshot':String(result.snapshot),'x-porthole-next-cursor':result.cursor??''}})
+  return page?eventsPage(result.events,filter,saved,result.cursor,url,result.facets,result.pageCursor):json(result)
  }catch(error) {
   const status=error instanceof AuthError?error.status:error instanceof SyntaxError?400:503,code=error instanceof AuthError?error.code:status===400?'invalid_event':'events_unavailable'
   return page?document('Events unavailable',`<p role="alert">${escape(code.replaceAll('_',' '))}</p><p><a href="${app}">Return to Events</a></p>`,status):json({error:code,details:{status,code,requestId:crypto.randomUUID()}},status)

@@ -1,7 +1,7 @@
 # Native custom events
 
 Open `/app/events` to search custom execution evidence by source, original
-source ID, service, environment, team, severity, text, correlation and inclusive
+source ID, service, environment, team, severity, resource, exact tag, text, correlation and inclusive
 Unix-nanosecond time bounds. Open Event settings to submit a custom event as a
 current native owner. Reads use current native membership and all three scopes;
 finance readers and bearer credentials cannot use these doors. An owner cookie
@@ -21,7 +21,10 @@ original actor returns the same ID, original occurrence and receipt times and
 content digest, with `replayed: true`. Changed content or another actor conflicts.
 There is no event-edit operation.
 
-`GET /api/porthole/v1/events` returns `events`, `snapshot` and `cursor`. Use the
+`GET /api/porthole/v1/events` returns `events`, `snapshot`, `cursor`, `pageCursor`
+and `facets`. Facet counts describe only the currently authorized events in
+that page. Select a facet in Events to search that exact value; resource and tag
+filters also work in private saved filters. Use the
 opaque cursor with the identical search and session. Each page rechecks current
 scope; changed membership invalidates the cursor. Ordering is occurrence time,
 then event ID, at a fixed receipt-sequence snapshot. A newly received late event
@@ -29,6 +32,17 @@ appears in a fresh search, preserving its original occurrence time. Use
 `GET /api/porthole/v1/events/{id}` to read one event. Unknown query fields,
 repeated fields, invalid cursors and unsupported requests return explicit errors.
 An unavailable store never becomes an empty successful result.
+
+`GET /api/porthole/v1/events/export` downloads a bounded NDJSON page of the same
+immutable event representations. It accepts the same predicates, private filter,
+limit and cursor as search. Read `x-porthole-records` and `x-porthole-snapshot`,
+then continue with `x-porthole-next-cursor` until that header is empty. The Events
+page links to its exact `pageCursor` so a late arrival cannot change the page
+being downloaded. All pages recheck the current session, member revision, scope
+and erased actors. Empty authorized results yield an empty file; invalid cursors,
+restricted scopes and unavailable storage return errors rather than downloads.
+This is a current native read, with no stored export job or detached event cache.
+It grants no provider or delegated credential action.
 
 Save a filter privately from Events, or use the versioned `/api/porthole/v1/events/filters` door.
 A change requires its exact current revision. Filters contain query definitions,
@@ -60,6 +74,6 @@ overlays. These read fences do not claim complete subject erasure or retention
 qualification under PORT-035 and PORT-096.
 
 Kubernetes, AWS and integration connectors, authenticated provider provenance,
-event export, the remaining facet and graph catalog, event-monitor evaluation
+provider event export, complete cross-page facets and the remaining graph catalog, event-monitor evaluation
 and unchanged Datadog callers remain unqualified. Authorized AWS source identity
 is not supplied. The native slice does not establish PORT-069 DONE.

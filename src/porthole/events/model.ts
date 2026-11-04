@@ -7,7 +7,7 @@ export const filterColumns=['id','owner_ref','name','definition','revision','sta
 export interface CustomEvent {sourceType:'custom';source:string;sourceId:string;title:string;text:string;service:string;environment:string;team:string;resource:string;tags:string[];severity:'info'|'warning'|'error';occurredAt:string;correlationKey:string}
 export interface EventRow {sequence:number;id:string;source:string;source_id:string;service:string;environment:string;team:string;occurred_ns:string;received_at:number;body:string;digest:string;actor_ref:string;actor_revision:number;state:'active'|'quarantined'}
 export interface FilterRow {id:string;owner_ref:string;name:string;definition:string;revision:number;state:string;created_at:number}
-export type EventFilter=Partial<Record<'source'|'sourceId'|'service'|'environment'|'team'|'severity'|'text'|'correlationKey'|'from'|'through',string>>
+export type EventFilter=Partial<Record<'source'|'sourceId'|'service'|'environment'|'team'|'severity'|'resource'|'tag'|'text'|'correlationKey'|'from'|'through',string>>
 const object=(v:unknown):Record<string,unknown>=>v!==null&&typeof v==='object'&&!Array.isArray(v)?v as Record<string,unknown>:fail('invalid_event',400)
 const optional=(v:unknown,max:number)=>v===undefined||v===''?'':label(v,max)
 export function customEvent(raw:unknown):CustomEvent {
@@ -22,10 +22,10 @@ export function eventScope(v:{service:string;environment:string;team:string}):Sc
 export function eventFilter(raw:unknown):EventFilter {
  const v=object(raw),out:EventFilter={}
  for(const [k,value]of Object.entries(v)) {
-  if(!['source','sourceId','service','environment','team','severity','text','correlationKey','from','through'].includes(k))fail('invalid_event_filter',400)
+  if(!['source','sourceId','service','environment','team','severity','resource','tag','text','correlationKey','from','through'].includes(k))fail('invalid_event_filter',400)
   if(value==='')continue
   const key=k as keyof EventFilter
-  out[key]=['from','through'].includes(k)?timestamp(value).padStart(20,'0'):['source','service','environment','team'].includes(k)?scopeLabel(value):label(value,k==='text'?300:200)
+  out[key]=['from','through'].includes(k)?timestamp(value).padStart(20,'0'):['source','service','environment','team'].includes(k)?scopeLabel(value):label(value,k==='text'?300:k==='tag'?120:200)
  }
  if(out.severity&&!['info','warning','error'].includes(out.severity)||out.from&&out.through&&BigInt(out.from)>BigInt(out.through))fail('invalid_event_filter',400)
  return out
@@ -35,4 +35,15 @@ export function representation(row:EventRow) {return {id:row.id,...customEvent(J
 export async function validateEventRow(row:Record<string,unknown>) {
  const v=customEvent(JSON.parse(String(row.body)))
  if(row.source!==v.source||row.source_id!==v.sourceId||row.service!==v.service||row.environment!==v.environment||row.team!==v.team||row.occurred_ns!==v.occurredAt||await eventDigest(v)!==row.digest||!Number.isSafeInteger(row.sequence)||Number(row.sequence)<1||!Number.isSafeInteger(row.received_at)||!Number.isSafeInteger(row.actor_revision)||Number(row.actor_revision)<1||!['active','quarantined'].includes(String(row.state))||![row.id,row.actor_ref].every(x=>typeof x==='string'&&/^[a-f0-9-]{36}$/.test(x)))fail('archive_semantics_invalid',422)
+}
+
+/** Counts describe only the released page, never an unseen or incomplete corpus. */
+export function eventFacets(events:ReturnType<typeof representation>[]) {
+ const counts:Record<string,{value:string;count:number}[]>={}
+ for(const field of ['source','service','environment','team','severity','resource','tag'] as const) {
+  const values=new Map<string,number>()
+  for(const event of events)for(const value of field==='tag'?event.tags:[event[field]])if(value)values.set(value,(values.get(value)??0)+1)
+  counts[field]=[...values].sort(([a],[b])=>a.localeCompare(b)).map(([value,count])=>({value,count}))
+ }
+ return {scope:'page' as const,counts}
 }

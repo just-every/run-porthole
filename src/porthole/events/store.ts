@@ -1,6 +1,6 @@
 import type {Bindings} from '../../auth.server'
 import {authority,fail,scopeWithin,type Authority} from '../security/authority'
-import {eventScope,eventDigest,representation,type EventRow,type CustomEvent,type EventFilter} from './model'
+import {eventScope,eventDigest,representation,eventFacets,type EventRow,type CustomEvent,type EventFilter} from './model'
 import {canonical} from '../ingest/model'
 import {digest} from '../audit/store'
 import {timestamp} from '../dashboards/model'
@@ -15,7 +15,7 @@ export function visible(actor:Authority,alias='e') {
 export async function release(env:Bindings,actor:Authority,ids:string[]=[] ) {
  if(!await env.DB.prepare(`SELECT 1 WHERE ${actor.fence}`).bind(...actor.args).first())fail('authority_changed',409)
  if(ids.length) {
-  const gate=visible(actor),found=await env.DB.prepare(`SELECT COUNT(*) AS n FROM porthole_custom_events e WHERE e.id IN (${ids.map(()=>'?').join(',')}) AND ${gate.sql}`).bind(...ids,...gate.args).first<{n:number}>()
+  const gate=visible(actor),found=await env.DB.prepare(`SELECT COUNT(*) AS n FROM porthole_custom_events e WHERE e.id IN (SELECT value FROM json_each(?)) AND ${gate.sql}`).bind(JSON.stringify(ids),...gate.args).first<{n:number}>()
   if(found?.n!==new Set(ids).size)fail('event_evidence_changed',409)
  }
 }
@@ -49,7 +49,7 @@ async function unpack(env:Bindings,value:string):Promise<Cursor> {
   const parts=value.split('.');if(parts.length!==2||value.length>2000)throw Error()
   const raw=decode(parts[0]);if(!await crypto.subtle.verify('HMAC',await key(env),decode(parts[1]),raw))throw Error()
   const v=JSON.parse(new TextDecoder().decode(raw)) as Cursor
-  if(!Number.isSafeInteger(v.snapshot)||v.snapshot<0||timestamp(v.time)!==v.time||!/^[a-f0-9-]{36}$/.test(v.id)||typeof v.binding!=='string')throw Error()
+  if(!Number.isSafeInteger(v.snapshot)||v.snapshot<0||typeof v.binding!=='string'||!(v.time===''&&v.id===''||timestamp(v.time)===v.time&&/^[a-f0-9-]{36}$/.test(v.id)))throw Error()
   return v
  }catch{fail('invalid_event_cursor',400)}
 }
@@ -64,15 +64,18 @@ export async function searchEvents(env:Bindings,actor:Authority,filter:EventFilt
   if(name==='from'||name==='through') {clauses.push(`e.occurred_ns${name==='from'?'>=':'<='}?`);args.push(value)}
   else if(name==='text') {clauses.push(`(instr(lower(json_extract(e.body,'$.title')),lower(?))>0 OR instr(lower(json_extract(e.body,'$.text')),lower(?))>0)`);args.push(value,value)}
   else if(name==='sourceId') {clauses.push('e.source_id=?');args.push(value)}
-  else if(['severity','correlationKey'].includes(name)) {clauses.push(`json_extract(e.body,'$.${name}')=?`);args.push(value)}
+  else if(name==='tag') {clauses.push("EXISTS(SELECT 1 FROM json_each(e.body,'$.tags') tag WHERE tag.value=?)");args.push(value)}
+  else if(['severity','resource','correlationKey'].includes(name)) {clauses.push(`json_extract(e.body,'$.${name}')=?`);args.push(value)}
   else {clauses.push(`e.${name}=?`);args.push(value)}
  }
- if(current) {clauses.push('(e.occurred_ns>? OR (e.occurred_ns=? AND e.id>?))');args.push(current.time,current.time,current.id)}
+ if(current?.time) {clauses.push('(e.occurred_ns>? OR (e.occurred_ns=? AND e.id>?))');args.push(current.time,current.time,current.id)}
  const rows=(await env.DB.prepare(`SELECT e.* FROM porthole_custom_events e WHERE ${clauses.join(' AND ')} ORDER BY e.occurred_ns,e.id LIMIT ?`).bind(...args,limit+1).all<EventRow>()).results
  const selected=rows.slice(0,limit),last=selected.at(-1)
  const next=rows.length>limit&&last?await pack(env,{snapshot,time:last.occurred_ns,id:last.id,binding}):null
+ const pageCursor=cursor??await pack(env,{snapshot,time:'',id:'',binding})
  await release(env,actor,selected.map(row=>row.id))
- return {events:selected.map(representation),snapshot,cursor:next}
+ const events=selected.map(representation)
+ return {events,snapshot,cursor:next,pageCursor,facets:eventFacets(events)}
 }
 export async function overlayRows(request:Request,env:Bindings,ids:string[]) {
  if(!ids.length)return []

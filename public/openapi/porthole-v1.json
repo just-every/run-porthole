@@ -86,7 +86,7 @@
           }
         },
         "summary": "Search native custom events",
-        "description": "Native sessions only. Current service, environment and team scopes apply before search. Events are ordered by original occurrence time and event ID, at a receipt sequence snapshot. The opaque cursor is bound to the exact filter, native session and current member revision. Late arrivals enter a fresh search. No provider, event-export or event-monitor authority is supplied.",
+        "description": "Native sessions only. Current service, environment and team scopes apply before search. Events are ordered by original occurrence time and event ID, at a receipt sequence snapshot. The opaque cursor is bound to the exact filter, native session and current member revision. Late arrivals enter a fresh search. pageCursor reopens the displayed page at its original receipt snapshot, including the first page. Facet counts cover the returned page only, after current authority and erasure fences. Resource and tag predicates match exact values. No provider or event-monitor authority is supplied.",
         "parameters": [
           {
             "name": "source",
@@ -125,6 +125,20 @@
           },
           {
             "name": "severity",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "resource",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tag",
             "in": "query",
             "schema": {
               "type": "string"
@@ -367,6 +381,216 @@
         }
       }
     },
+    "/api/porthole/v1/events/export": {
+      "get": {
+        "security": [
+          {
+            "NativeSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bounded page, empty when no current event matches. Continue until the next cursor is empty.",
+            "headers": {
+              "x-porthole-records": {
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "x-porthole-snapshot": {
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "x-porthole-next-cursor": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/x-ndjson": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Correct the rejected input; expression errors include field and hint when available.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sign in or supply a valid live credential.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Use an authorized scope and action. Native writes require the configured same-origin Origin header.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Check the identifier and current access; inaccessible objects may be hidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Refresh current authority and revision; reuse an idempotency key only for the identical request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Restore service availability and retry; a failed request is not evidence of acceptance.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Download one currently authorized native event page",
+        "description": "NDJSON of the same immutable event representations and occurrence order as search. Use the identical predicates, private filter, limit and cursor as search; the signed cursor fixes the receipt snapshot. Follow x-porthole-next-cursor until empty. Each request rechecks native membership, scope and erased actors; no export job, detached cache, provider permission or delegated credential action is created.",
+        "parameters": [
+          {
+            "name": "source",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sourceId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "service",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "environment",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "team",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "severity",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "resource",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tag",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "text",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "correlationKey",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "through",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50
+            }
+          }
+        ]
+      }
+    },
     "/api/porthole/v1/events/{id}": {
       "parameters": [
         {
@@ -603,6 +827,12 @@
                         "type": "string"
                       },
                       "severity": {
+                        "type": "string"
+                      },
+                      "resource": {
+                        "type": "string"
+                      },
+                      "tag": {
                         "type": "string"
                       },
                       "text": {

@@ -35,13 +35,23 @@ export async function eventJourney({origin,freshOwner,signIn,restartWorker,withE
  const post=(path,data,session=cookie,extra={})=>fetch(origin+path,{...form(origin,session,data),headers:{...form(origin,session,data).headers,...extra}})
  const get=(path,session=cookie,headers={})=>fetch(origin+path,{headers:{cookie:session,...headers}})
  const value=async(response,status=200)=>{assert.equal(response.status,status,await response.clone().text());return response.json()}
+ const download=async(response)=>{
+  assert.equal(response.status,200,await response.clone().text())
+  assert.match(response.headers.get('content-type'),/^application\/x-ndjson/)
+  assert.match(response.headers.get('content-disposition'),/^attachment;/)
+  assert.match(response.headers.get('cache-control'),/no-store/)
+  const text=await response.text(),events=text?text.trimEnd().split('\n').map(line=>JSON.parse(line)):[]
+  assert.equal(Number(response.headers.get('x-porthole-records')),events.length)
+  return {events,snapshot:Number(response.headers.get('x-porthole-snapshot')),cursor:response.headers.get('x-porthole-next-cursor')}
+ }
+ assert.equal((await get(api+'/export','')).status,401)
  const beforeEffects=await sql('SELECT (SELECT COUNT(*) FROM porthole_monitor_evaluations) AS evaluations,(SELECT COUNT(*) FROM porthole_health_notices) AS notices,(SELECT COUNT(*) FROM porthole_dashboard_publications) AS publications')
  assert.equal((await get(api,'')).status,401)
  const source=await value(await post('/app/settings/credentials/mint',{name:'Local execution telemetry',class:'ingest',scope:{...scope,signals:['logs','metrics','traces'],actions:['telemetry.write']}}),201)
  const reports=[]
- for(const command of [['pnpm','run','typecheck'],[process.execPath,'--check','cli/porthole.mjs'],[process.execPath,'tests/porthole/polyglot/otlp.cjs']]) {
-  const result=await execute(process.execPath,['scripts/porthole/event-run.mjs',origin,'checkout','production','commerce','--',...command],{env:{...process.env,PORTHOLE_SESSION:cookie,PORTHOLE_OTLP_ENDPOINT:origin,PORTHOLE_OTLP_SECRET:source.secret,PORTHOLE_OTLP_SERVICE:'checkout',PORTHOLE_OTLP_ENVIRONMENT:'production',PORTHOLE_OTLP_TEAM:'commerce'},timeout:120000})
-  const report=JSON.parse(result.stdout);assert.equal(report.exit.code,0);assert.equal(report.events.length,2);reports.push(report)
+ for(const [command,code] of [[['pnpm','run','typecheck'],0],[[process.execPath,'--check','cli/porthole.mjs'],0],[[process.execPath,'tests/porthole/polyglot/otlp.cjs'],0],[[process.execPath,'-e','process.exit(process.env.PORTHOLE_SESSION ? 9 : 7)'],7]]) {
+  const result=await execute(process.execPath,['scripts/porthole/event-run.mjs',origin,'checkout','production','commerce','--',...command],{env:{...process.env,PORTHOLE_SESSION:cookie,PORTHOLE_OTLP_ENDPOINT:origin,PORTHOLE_OTLP_SECRET:source.secret,PORTHOLE_OTLP_SERVICE:'checkout',PORTHOLE_OTLP_ENVIRONMENT:'production',PORTHOLE_OTLP_TEAM:'commerce'},timeout:120000}).catch(error=>{assert.equal(error.code,code);return error})
+  const report=JSON.parse(result.stdout);assert.equal(report.exit.code,code);assert.equal(report.events.length,2);reports.push(report)
  }
  await value(await post('/api/porthole/v1/ingest/drain',{}))
  const telemetry=await value(await get('/api/porthole/v1/ingest/records?signal=logs&service=checkout'))
@@ -52,6 +62,10 @@ export async function eventJourney({origin,freshOwner,signIn,restartWorker,withE
  assert.equal(original.event.occurredAt,input.occurredAt.padStart(20,'0'));assert.ok(original.event.receivedAt>=Number(BigInt(input.occurredAt)/1000000n))
  const first=await value(await get(api+'?source=native-command&limit=2'))
  assert.equal(first.events.length,2);assert.ok(first.cursor)
+ assert.deepEqual(first.facets.counts.source,[{value:'native-command',count:2}])
+ const firstExport=await download(await get(api+'/export?source=native-command&limit=2'))
+ assert.equal(firstExport.snapshot,first.snapshot);assert.ok(firstExport.cursor)
+ assert.deepEqual(firstExport.events,first.events)
  // A later received execution fact keeps its original older occurrence time,
  // and cannot move the first search's receipt watermark.
  const lateInput={...input,sourceId:randomUUID(),occurredAt:String(BigInt(input.occurredAt)-1n),title:'Late local execution evidence'}
@@ -65,6 +79,23 @@ export async function eventJourney({origin,freshOwner,signIn,restartWorker,withE
  assert.deepEqual(observed.map(row=>row.id),expected.map(row=>row.id))
  assert.deepEqual(observed.map(row=>row.sourceId),expected.map(row=>row.input.sourceId))
  assert.equal(new Set(observed.map(row=>row.id)).size,submitted.length)
+ for(const receipt of submitted) {
+  const event=observed.find(row=>row.id===receipt.id)
+  for(const [key,expectedValue]of Object.entries(receipt.input))assert.deepEqual(event[key],key==='occurredAt'?expectedValue.padStart(20,'0'):expectedValue)
+ }
+ const anchored=await download(await get(api+'/export?source=native-command&limit=2&cursor='+encodeURIComponent(first.pageCursor)))
+ assert.deepEqual(anchored.events,first.events,'exporting a displayed first page keeps its original snapshot after late arrivals')
+ const exported=[...firstExport.events];let exportCursor=firstExport.cursor
+ while(exportCursor) {
+  const page=await download(await get(api+'/export?source=native-command&limit=2&cursor='+encodeURIComponent(exportCursor)))
+  assert.equal(page.snapshot,firstExport.snapshot);exported.push(...page.events);exportCursor=page.cursor
+ }
+ assert.deepEqual(exported,observed,'export reconciles every original field and provenance against independent command receipts, across restart and late arrival')
+ assert.equal(new Set(exported.map(event=>event.id)).size,submitted.length)
+ assert.equal((await get(api+'/export?source=other&cursor='+encodeURIComponent(firstExport.cursor))).status,409)
+ for(const query of ['?cursor=broken','?limit=201','?source=a&source=b']) {
+  const refused=await get(api+'/export'+query);assert.equal(refused.status,400);assert.equal(refused.headers.has('content-disposition'),false)
+ }
  for(const item of [...submitted].reverse()) {
   const result=await value(await post(api,item.input),201)
   assert.equal(result.event.id,item.id);assert.equal(result.replayed,true)
@@ -85,24 +116,43 @@ export async function eventJourney({origin,freshOwner,signIn,restartWorker,withE
  assert.equal(newSearch.events[0].id,late.event.id);assert.equal(newSearch.events.length,submitted.length+2)
  const filtered=await value(await get(api+'?service=checkout&text=completed&correlationKey='+reports[0].runId+'&from='+reports[0].events[0].input.occurredAt+'&through='+reports[0].events[1].input.occurredAt))
  assert.deepEqual(filtered.events.map(row=>row.id),[reports[0].events[1].id])
- const filter=await value(await post(api+'/filters',{name:'My checkout executions',definition:{service:'checkout',text:'completed',team:'commerce'}}),201)
- assert.equal((await value(await get(api+'?filter='+filter.id))).events.length,3)
+ const completed=await value(await get(api+'?tag=execution%3Acompleted&resource=local-command&limit=200'))
+ assert.deepEqual(completed.events.map(event=>event.id),reports.map(report=>report.events[1].id))
+ assert.deepEqual(completed.facets.counts.tag,[{value:'execution:completed',count:reports.length}])
+ assert.deepEqual(completed.facets.counts.severity,[{value:'error',count:1},{value:'info',count:reports.length-1}])
+ const failures=await download(await get(api+'/export?severity=error&tag=execution%3Acompleted&resource=local-command'))
+ assert.deepEqual(failures.events.map(event=>event.id),[reports.at(-1).events[1].id])
+ assert.match(failures.events[0].text,/Exit code 7/)
+ const absent=await download(await get(api+'/export?tag=execution%3Acomplete'))
+ assert.deepEqual(absent.events,[]);assert.equal(absent.cursor,'')
+ const filter=await value(await post(api+'/filters',{name:'My checkout executions',definition:{service:'checkout',text:'completed',team:'commerce',resource:'local-command',tag:'execution:completed'}}),201)
+ assert.equal((await value(await get(api+'?filter='+filter.id))).events.length,reports.length)
  await value(await post(api+'/filters',{id:filter.id,revision:filter.revision,name:'My completed runs',definition:filter.definition}),201)
  assert.equal((await post(api+'/filters',{id:filter.id,revision:filter.revision,name:'Stale filter',definition:{}})).status,409)
  await restartWorker()
  assert.deepEqual((await value(await get(api+'/'+original.event.id))).event,original.event)
- assert.equal((await value(await get(api+'?filter='+filter.id))).events.length,3)
- const foreign=await value(await post(api,{...input,sourceId:randomUUID(),team:'payments',title:'Restricted payment event'}),201)
+ assert.equal((await value(await get(api+'?filter='+filter.id))).events.length,reports.length)
+ const filteredExport=await download(await get(api+'/export?filter='+filter.id+'&limit=200'))
+ assert.deepEqual(filteredExport.events.map(event=>event.id),reports.map(report=>report.events[1].id))
+ const foreign=await value(await post(api,{...input,sourceId:randomUUID(),team:'payments',tags:['restricted:payment'],resource:'private-payment-worker',title:'Restricted payment event'}),201)
  await value(await post('/app/settings/members/invite',{email:address(2601),displayName:'Event contractor',role:'restricted contractor',scope}),202)
  let restricted=await signIn(address(2601))
  const members=await sql('SELECT operator_id FROM porthole_members m JOIN oa_operators o ON o.id=m.operator_id WHERE o.email='+literal(address(2601))),restrictedId=members[0].operator_id
  const scoped=await value(await get(api+'?limit=200',restricted));assert.ok(scoped.events.length>0);assert.ok(!scoped.events.some(row=>row.id===foreign.event.id))
  assert.equal((await get(api+'/'+foreign.event.id,restricted)).status,404)
+ const scopedExport=await download(await get(api+'/export?limit=200',restricted))
+ assert.deepEqual(scopedExport.events,scoped.events)
+ assert.ok(!JSON.stringify(scoped.facets).includes('restricted:payment'))
+ assert.ok(!JSON.stringify(scoped.facets).includes('private-payment-worker'))
+ assert.deepEqual((await value(await get(api+'?tag=restricted%3Apayment',restricted))).events,[])
+ assert.equal((await get(api+'/export?team=payments',restricted)).status,403)
+ assert.equal((await get(api+'/export?filter='+filter.id,restricted)).status,404)
  assert.equal((await get(api+'?team=payments',restricted)).status,403)
  assert.equal((await post(api,{...input,sourceId:randomUUID()},restricted)).status,403)
  assert.equal((await get(api+'?filter='+filter.id,restricted)).status,404)
  assert.deepEqual((await value(await get(api+'/filters',restricted))).filters,[])
  assert.equal((await get(api,cookie,{authorization:'Bearer synthetic-porthole-2602'})).status,403)
+ assert.equal((await get(api+'/export',cookie,{authorization:'Bearer synthetic-porthole-2602'})).status,403)
  assert.equal((await post(api,{...input,sourceId:randomUUID()},cookie,{authorization:'Bearer synthetic-porthole-2602'})).status,403)
  assert.deepEqual(await sql('SELECT (SELECT COUNT(*) FROM porthole_monitor_evaluations) AS evaluations,(SELECT COUNT(*) FROM porthole_health_notices) AS notices,(SELECT COUNT(*) FROM porthole_dashboard_publications) AS publications'),beforeEffects,'custom submissions have no monitor, notice or publication effects')
  const {eventDashboardJourney}=await import('./dashboard-api.mjs')
@@ -112,6 +162,14 @@ export async function eventJourney({origin,freshOwner,signIn,restartWorker,withE
  cookie=await freshOwner()
  await eventBrowser({origin,cookie,path:'/app/events?source=native-command&team=commerce',name:'events-complete',exercise:async page=>{
   assert.equal(await page.locator('[data-event]').count(),submitted.length+2)
+  const facet=page.getByRole('region',{name:'Facets on this page'})
+  assert.match(await facet.innerText(),new RegExp('execution:completed \\('+reports.length+'\\)'))
+  const resource=facet.getByRole('link',{name:'local-command ('+(submitted.length+2)+')',exact:true})
+  await resource.focus();await Promise.all([page.waitForURL('**resource=local-command**'),resource.press('Enter')])
+  assert.equal(await page.getByLabel('resource',{exact:true}).inputValue(),'local-command')
+  const downloadLink=page.getByRole('link',{name:'Export this page as NDJSON'})
+  const downloaded=await download(await get(await downloadLink.getAttribute('href')))
+  assert.equal(downloaded.events.length,submitted.length+2)
   const search=page.getByRole('button',{name:'Search events',exact:true});await search.focus();assert.equal(await search.evaluate(el=>el===document.activeElement),true)
   await page.getByLabel('text',{exact:true}).fill('No such execution')
   await Promise.all([page.waitForURL('**text=No+such+execution**'),search.press('Enter')])
@@ -133,8 +191,10 @@ export async function eventJourney({origin,freshOwner,signIn,restartWorker,withE
  cookie=await freshOwner()
  await value(await post('/app/settings/members/change',{operatorId:restrictedId,role:'restricted contractor',scope:{...scope,services:['another-service']}}))
  assert.ok([401,409].includes((await get(api+'?limit=1&cursor='+encodeURIComponent(partial.cursor),restricted)).status))
+ assert.ok([401,409].includes((await get(api+'/export?limit=1&cursor='+encodeURIComponent(partial.cursor),restricted)).status))
  restricted=await signIn(address(2601))
  assert.deepEqual((await value(await get(api,restricted))).events,[])
+ assert.deepEqual((await download(await get(api+'/export',restricted))).events,[])
  assert.equal((await get(api+'?filter='+scopedFilter.id,restricted)).status,403,'saved filters never preserve revoked scope')
  assert.equal((await get(api+'/'+original.event.id,restricted)).status,404)
  assert.ok(!(await (await get('/app/dashboards/'+dashboard.id,restricted)).text()).includes(original.event.title))
@@ -153,8 +213,28 @@ export async function eventJourney({origin,freshOwner,signIn,restartWorker,withE
  await value(await post('/app/settings/members/remove',{operatorId:author.id}))
  await value(await post('/api/porthole/v1/actors/erase',{actorRef:author.id,confirm:'erase'}))
  assert.equal((await get(api+'/'+authored.event.id)).status,404)
+ assert.deepEqual((await download(await get(api+'/export?sourceId='+encodeURIComponent(authored.event.sourceId)))).events,[])
+ assert.deepEqual((await value(await get(api+'?sourceId='+encodeURIComponent(authored.event.sourceId)))).facets.counts.tag,[])
  assert.ok(!(await (await get('/app/dashboards/'+dashboard.id)).text()).includes(authored.event.title))
  assert.equal((await post(api,{...input,sourceId:authored.event.sourceId})).status,409,'erased event identity cannot be resurrected by replay')
+ // A full allowed page is populated by actual local syntax-check executions.
+ // This exercises the public upper page bound rather than only tiny fixtures.
+ const batch=[]
+ for(let i=0;i<205;i++) {
+  await execute(process.execPath,['--check','cli/porthole.mjs'],{timeout:10000})
+  const execution={...input,source:'native-batch',sourceId:randomUUID(),title:'Syntax check completed',occurredAt:String(BigInt(Date.now())*1000000n),tags:['execution:completed']}
+  const receipt=await value(await post(api,execution),201);batch.push({id:receipt.event.id,input:execution})
+ }
+ const expectedBatch=[...batch].sort((a,b)=>BigInt(a.input.occurredAt)<BigInt(b.input.occurredAt)?-1:BigInt(a.input.occurredAt)>BigInt(b.input.occurredAt)?1:a.id.localeCompare(b.id))
+ const batchFirst=await download(await get(api+'/export?source=native-batch&limit=200'))
+ assert.equal(batchFirst.events.length,200);assert.ok(batchFirst.cursor)
+ await restartWorker()
+ const batchLast=await download(await get(api+'/export?source=native-batch&limit=200&cursor='+encodeURIComponent(batchFirst.cursor)))
+ assert.equal(batchLast.events.length,5);assert.equal(batchLast.cursor,'');assert.equal(batchLast.snapshot,batchFirst.snapshot)
+ assert.deepEqual([...batchFirst.events,...batchLast.events].map(event=>event.id),expectedBatch.map(receipt=>receipt.id))
+ const batchSearch=await value(await get(api+'?source=native-batch&limit=200'))
+ assert.deepEqual(batchSearch.events,batchFirst.events)
+ assert.deepEqual(batchSearch.facets.counts.tag,[{value:'execution:completed',count:200}])
  const {eventArchiveJourney}=await import('./archive.mjs')
  await eventArchiveJourney({origin,freshOwner,withEmptyDestination,eventIds:[original.event.id,late.event.id],dashboardId:dashboard.id,filterId:filter.id,publicationPaths:publication.paths,value})
  cookie=await freshOwner()
@@ -162,12 +242,14 @@ export async function eventJourney({origin,freshOwner,signIn,restartWorker,withE
  await mutate('ALTER TABLE porthole_custom_events RENAME TO porthole_events_unavailable')
  try {
   assert.equal((await get(api)).status,503)
+  assert.equal((await get(api+'/export')).status,503)
   await eventBrowser({origin,cookie,path:'/app/events',name:'events-unavailable',status:503})
  }finally{await mutate('ALTER TABLE porthole_events_unavailable RENAME TO porthole_custom_events')}
  assert.deepEqual(await sql('SELECT COUNT(*) AS n FROM porthole_custom_events'),stable)
  const afterEffects=await sql('SELECT (SELECT COUNT(*) FROM porthole_monitor_evaluations) AS evaluations,(SELECT COUNT(*) FROM porthole_health_notices) AS notices')
  assert.equal(afterEffects[0].evaluations,beforeEffects[0].evaluations);assert.equal(afterEffects[0].notices,beforeEffects[0].notices)
- console.log('PROBE PORT-069 native execution: real typecheck and syntax checks -> six immutable paginated execution events alongside stock SDK request evidence with reconciled IDs, order and provenance')
+ console.log('PROBE PORT-069 native execution: real typecheck and syntax checks -> eight immutable paginated execution events alongside stock SDK request evidence with reconciled IDs, order and provenance')
+ console.log('PROBE PORT-069 export and facets: 205 actual syntax checks in 200 and 5 record NDJSON pages, exact resource and tag predicates, failure exit 7, private filter, erased author and revoked membership -> reconciled immutable fields and page counts with refused exposure')
  console.log('PROBE PORT-069 replay and authority: concurrent and reordered retries, forged provider fields, private filters, changed scope and erased author -> one logical event and refused exposure')
  console.log('PROBE PORT-069 overlays and custody: native dashboard revisions, public source fences, restart and inactive archive -> authorized reference resolution with no revived public address')
  console.log('PROBE PORT-069 browser: native Events, Settings, empty, invalid, restricted and unavailable states -> keyboard completion and captured 1440 and 390 screens')

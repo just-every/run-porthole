@@ -2,7 +2,7 @@ import {spawn} from 'node:child_process'
 import {randomUUID} from 'node:crypto'
 
 // Run an actual local command, and send its execution facts through the native
-// versioned API. The native session stays in the child environment only.
+// versioned API. The native session is withheld from the executed command.
 const [origin,service,environment,team,...args]=process.argv.slice(2)
 if(args[0]!=='--'||args.length<2||!process.env.PORTHOLE_SESSION)throw Error('Usage: event-run.mjs ORIGIN SERVICE ENVIRONMENT TEAM -- COMMAND [ARG...] with PORTHOLE_SESSION')
 const runId=randomUUID(),epoch=BigInt(Date.now())*1000000n,start=process.hrtime.bigint()

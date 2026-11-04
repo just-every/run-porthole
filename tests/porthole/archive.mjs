@@ -1127,6 +1127,9 @@ export async function eventArchiveJourney({origin,freshOwner,withEmptyDestinatio
   await value(await post(origin,owner,`${api}/restores/${start.id}/commit`,{confirm:source.manifest.rootHash}))
   const root='/api/porthole/v1/events'
   assert.deepEqual((await value(await get(origin,owner,root))).events,[])
+  const inactiveExport=await get(origin,owner,root+'/export')
+  assert.equal(inactiveExport.status,200);assert.equal(await inactiveExport.text(),'')
+  assert.equal(inactiveExport.headers.get('x-porthole-records'),'0')
   assert.deepEqual((await value(await get(origin,owner,root+'/filters'))).filters,[])
   for(const id of eventIds)assert.equal((await get(origin,owner,root+'/'+id)).status,404)
   const inert=events.find(row=>row.row.id===eventIds[0]).row
@@ -1139,7 +1142,9 @@ export async function eventArchiveJourney({origin,freshOwner,withEmptyDestinatio
   const restored=again.rows.filter(row=>row.table==='porthole_custom_events')
   assert.deepEqual(restored.map(row=>({...row.row,state:'active'})),events.map(row=>({...row.row,state:'active'})),'re-export preserves every immutable event field and original receipt')
   assert.ok(restored.every(row=>row.row.state==='quarantined'))
-  assert.ok(again.rows.filter(row=>row.table==='porthole_event_filters').every(row=>row.row.state==='quarantined'))
+  const restoredFilters=again.rows.filter(row=>row.table==='porthole_event_filters')
+  assert.ok(restoredFilters.every(row=>row.row.state==='quarantined'))
+  assert.deepEqual(restoredFilters.map(row=>({...row.row,state:'active'})),filters.map(row=>({...row.row,state:'active'})),'private resource and tag filters retain their definition without becoming active')
   await destination.restartWorker();owner=await destination.freshOwner()
   assert.deepEqual((await value(await get(origin,owner,root))).events,[])
   assert.equal((await get(origin,cookie,root)).status,401)
