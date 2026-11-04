@@ -48,6 +48,22 @@ export async function servicesJourney({origin,freshOwner,signIn,sql,restartWorke
   }
  }
  const checkout=view.services.find(s=>s.service==='checkout'),fulfillment=view.services.find(s=>s.service==='fulfillment')
+ const database=checkout.associations.filter(a=>a.kind==='database')
+ assert.equal(proof.receipts.reduce((n,r)=>n+r.databaseQueries,0),36,'application independently counts every successful database query')
+ assert.equal(database.length,1);assert.equal(database[0].system,'postgresql');assert.equal(database[0].target,'synthetic_porthole_8400');assert.equal(database[0].address,'127.0.0.1');assert.equal(database[0].port,proof.databasePort)
+ const databaseSpans=proof.spans.filter(s=>s.kind===3&&(s.attributes['db.system.name']??s.attributes['db.system'])==='postgresql')
+ assert.equal(database[0].observations,databaseSpans.length,'database association includes every stock client span, including the initial connection')
+ assert.equal(databaseSpans.filter(s=>s.name!=='pg.connect').length,36,'stock query operations reconcile with the independent application counter')
+ assert.equal(fulfillment.associations.filter(a=>a.kind==='database').length,0,'database association does not cross service scope')
+ for(const service of [checkout,fulfillment]){
+  const spans=proof.spans.filter(s=>s.resource['service.name']===service.service),hosts=[...new Set(spans.map(s=>s.resource['host.id']??s.resource['host.name']).filter(Boolean))]
+  assert.ok(hosts.length,'stock resource detection reports the actual host')
+  assert.deepEqual(service.associations.filter(a=>a.kind==='infrastructure'&&a.system==='host').map(a=>a.target).sort(),hosts.sort())
+  const messaging=service.associations.filter(a=>a.kind==='messaging')
+  assert.equal(messaging.reduce((n,a)=>n+a.observations,0),36,'each actual queue send or receive contributes exactly one observed association')
+  assert.ok(messaging.every(a=>a.system==='kafka'&&a.target===proof.topic&&a.relation===(service===checkout?'produces':'consumes')))
+  for(const association of service.associations)assert.ok(spans.some(s=>BigInt(s.startNs)+BigInt(s.durationNs)===BigInt(association.lastSeenNs)),'association freshness comes from the original stock export')
+ }
  const {serviceTopologyProof}=await import('./traces.mjs')
  await serviceTopologyProof({read,proof,view,checkout,fulfillment})
  await servicesBrowser({origin,cookie,path:'/app/services/'+checkout.id+query,contains:'Observed requests',name:'services-summary',dispatch:browserDispatch,observed:checkout.summary})
@@ -58,6 +74,7 @@ export async function servicesJourney({origin,freshOwner,signIn,sql,restartWorke
  await send('/api/porthole/v1/ingest/drain',{})
  const replayed=await read(api+query)
  assert.deepEqual(replayed.services.map(s=>s.summary),view.services.map(s=>s.summary),'replaying the original stock export never adds requests')
+ assert.deepEqual(replayed.services.map(s=>s.associations),view.services.map(s=>s.associations),'replay cannot add association evidence')
  assert.deepEqual(replayed.edges,view.edges)
  const partial=await read(api+query+'&budget=200');assert.equal(partial.coverage.scanComplete,false,'multi-page bounded scans stay partial')
  await servicesBrowser({origin,cookie,path:'/app/services'+query+'&budget=200',contains:'Partial scan',name:'services-partial',dispatch:browserDispatch})
@@ -89,14 +106,36 @@ export async function servicesJourney({origin,freshOwner,signIn,sql,restartWorke
  assert.equal(assigned.metadata.owner_ref,eligible.id);assert.deepEqual(assigned.history.map(r=>r.revision),[2,1])
  assert.equal(assigned.history[1].owner_ref,owner.id)
  assert.equal((await grants()).find(m=>m.operator_id===eligible.id).role,'responder')
+ // Use the existing count-monitor door; no new detection or delivery is enabled.
+ const alertScope={services:['checkout'],environments:['production'],teams:['commerce']}
+ const alert=await send('/api/porthole/v1/objects',{kind:'monitor',name:'synthetic-porthole-8401',scope:alertScope,body:{signal:'traces',operator:'above',threshold:0,windowSeconds:3600}},201)
+ await send('/api/porthole/v1/objects/activate',{id:alert.id,revision:alert.revision,confirm:'activate'})
+ const broad=await send('/api/porthole/v1/objects',{kind:'monitor',name:'synthetic-porthole-8403',scope,body:{signal:'traces',operator:'above',threshold:0,windowSeconds:3600}},201)
+ await send('/api/porthole/v1/objects/activate',{id:broad.id,revision:broad.revision,confirm:'activate'})
+ const heartbeat=await call('/api/v1/health/heartbeat',{method:'POST',headers:{authorization:'Bearer '+source.secret,'content-type':'application/json'},body:JSON.stringify({collectorId:'synthetic-porthole-8402',service:'checkout',environment:'production',team:'commerce',signal:'traces'})})
+ assert.equal(heartbeat.status,200,await heartbeat.clone().text())
+ const tick=await send('/api/v1/health/tick',{})
+ const fired=tick.monitors.monitors.find(m=>m.monitorId===alert.id)
+ assert.equal(fired.status,'Firing',JSON.stringify(fired));assert.ok(fired.firingEpisode)
+ const ownerAlerts=(await read(api+'/'+checkout.id+query)).alerts
+ assert.ok(ownerAlerts.some(a=>a.monitorId===broad.id),'owner can read the complete multi-service monitor context')
+ const originalAlert=ownerAlerts.find(a=>a.monitorId===alert.id)
+ assert.equal(originalAlert.firingEpisode,fired.firingEpisode);assert.equal(originalAlert.metadataAtFirstFiring.revision,2);assert.equal(originalAlert.currentMetadata.revision,2)
+ assert.equal((await read(api+'/'+fulfillment.id+query,restricted)).alerts.length,0,'foreign service reader sees no checkout or multi-service alert identity')
  console.log('Services: scoped metadata refusal checks passed; checking native Settings')
  await servicesBrowser({origin,cookie,path:'/app/settings/services/'+checkout.id+query,contains:'Review service metadata',name:'services-settings',dispatch:browserDispatch,save:true})
  const changed=await read(api+'/'+checkout.id+query)
  assert.equal(changed.metadata.revision,3);assert.equal(changed.metadata.criticality,'critical');assert.equal(changed.metadata.runbook,'https://restricted.example/runbooks/reviewed')
+ const alertContext=changed.alerts.find(a=>a.monitorId===alert.id)
+ assert.equal(alertContext.metadataAtFirstFiring.revision,2);assert.equal(alertContext.metadataAtFirstFiring.runbook,values.runbook);assert.equal(alertContext.currentMetadata.revision,3);assert.equal(alertContext.currentMetadata.runbook,changed.metadata.runbook);assert.equal(alertContext.currentMetadata.criticality,'critical');assert.equal(alertContext.currentMetadata.owner_ref,eligible.id);assert.equal(alertContext.delivery,'not-requested')
+ const responderAlerts=(await read(api+'/'+checkout.id+query,eligibleCookie)).alerts
+ assert.deepEqual(responderAlerts,[alertContext],'responder sees exact checkout metadata but cannot learn a monitor covering another service')
+ assert.deepEqual(await grants(),grantsBeforeReassignment,'firing context and metadata edits create no grants')
  assert.equal((await sql("SELECT COUNT(*) AS n FROM porthole_audit_entries WHERE json_extract(entry,'$.action')='services.revise' AND json_extract(entry,'$.phase')='committed'"))[0].n,3,'each immutable revision has an atomic audit fact')
  await restartWorker();cookie=await freshOwner()
  const reloaded=await read(api+'/'+checkout.id+query)
  assert.deepEqual(reloaded.metadata,changed.metadata);assert.deepEqual(reloaded.history,changed.history)
+ assert.deepEqual(reloaded.alerts,changed.alerts);assert.deepEqual(reloaded.associations,checkout.associations)
  if(withPinnedClock){const at=Number(end/1000000n)+300001;await withPinnedClock(at,async()=>{const stale=await read(api+query);assert.ok(stale.services.every(s=>s.freshness==='stale'));assert.equal(stale.services.find(s=>s.id===checkout.id).metadata.owner_ref,eligible.id);await servicesBrowser({origin,cookie,path:'/app/services'+query,contains:'Freshness: stale',name:'services-freshness-stale',dispatch:browserDispatch})})}
  await servicesBrowser({origin,cookie:eligibleCookie,path:'/app/services/'+checkout.id+query,contains:'critical',name:'services-responder',dispatch:browserDispatch,follow:true})
  await send('/app/settings/members/change',{operatorId:eligible.id,role:'responder',scope:{services:['fulfillment'],environments:['production'],teams:['fulfillment']}})
@@ -126,6 +165,8 @@ export async function servicesJourney({origin,freshOwner,signIn,sql,restartWorke
  console.log('PROBE PORT-008 summaries: 36 counted checkout requests, eight errors and eight slow requests -> exact observed counts, rates, endpoint values and p50, p95 and p99 from captured stock spans; client spans excluded')
  console.log('PROBE PORT-008 metadata: native reviewed owner reassignment, Settings edit, reload and restart -> three immutable audited revisions; stale, foreign, bearer and forbidden writes leave metadata unchanged')
  console.log('PROBE PORT-008 authority: restricted and revoked native readers -> hidden services absent and unresolved parent links; metadata grants no access; external runbook remains private')
+ console.log('PROBE PORT-008 associations: 36 real PostgreSQL queries and 36 real Kafka sends and receives -> exact scoped database, messaging and detected host identities; replay adds no observations')
+ console.log('PROBE PORT-008 fired-context: existing activated count monitor over actual checkout traces -> Firing episode with service revision 2; edit and restart -> original revision preserved and exact current revision 3 for owner and scoped responder, without grants or delivery')
  console.log('servicesJourney passed '+(analytical?'analytical':'local')+': source counters and stock spans, multi-page bounds, ownership and native browser states')
  return {view,query,checkoutId:checkout.id}
 }
@@ -139,6 +180,7 @@ export async function servicesBrowser({origin,cookie='',path,contains,name,statu
   const page=await context.newPage(),response=await page.goto(origin+path)
   assert.equal(response.status(),status);assert.ok((await page.locator('body').innerText()).includes(contains))
   if(observed){const body=await page.locator('body').innerText();assert.ok(body.includes(observed.requests+' requests · '+observed.errors+' errors'));for(const name of ['p50','p95','p99'])assert.ok(body.includes(name+' '+(Number(observed[name+'Ns'])/1e6).toFixed(2)+' ms'),'Services shows the independently reconciled '+name);const href=await page.getByRole('link',{name:'Read this snapshot as JSON',exact:true}).getAttribute('href');const linked=await page.goto(origin+href);assert.equal(linked.status(),200);const json=await linked.json();assert.equal(json.summary.requests,observed.requests);assert.equal(json.summary.errors,observed.errors);assert.equal(json.summary.p95Ns,observed.p95Ns);await page.goto(origin+path)}
+  if(observed){assert.match(await page.locator('body').innerText(),/database.*postgresql.*synthetic_porthole_8400/);assert.match(await page.locator('body').innerText(),/messaging.*kafka/)}
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'native Services reflows')
   assert.equal(await page.locator('button').evaluateAll(nodes=>nodes.filter(n=>!n.textContent.trim()).length),0,'every control has a text label')
   assert.ok(await page.locator('main').evaluate(node=>[...node.querySelectorAll('p,a,button,label,input,select,dt,dd,li')].every(n=>parseFloat(getComputedStyle(n).fontSize)>=13)),'ordinary text is at least 13px')
@@ -156,10 +198,12 @@ export async function servicesBrowser({origin,cookie='',path,contains,name,statu
    await stale.close()
   }
   if(follow){
+   const text=await page.locator('body').innerText();assert.ok(text.includes('synthetic-porthole-8401'));assert.ok(text.includes('Current service revision 3 · critical'));assert.ok(text.includes('service revision 2'))
    let requestHeaders
    await context.route('https://restricted.example/**',async route=>{requestHeaders=route.request().headers();await route.fulfill({status:401,body:'Private runbook: authorization required'})})
    await page.getByRole('link',{name:'Open runbook',exact:true}).click();assert.ok((await page.locator('body').innerText()).includes('authorization required'));assert.ok(!requestHeaders.cookie,'native session is never sent to the runbook destination')
    await page.goto(origin+path)
+   await page.getByRole('link',{name:'Open alert runbook',exact:true}).click();assert.ok((await page.locator('body').innerText()).includes('authorization required'));assert.ok(!requestHeaders.cookie,'firing context cannot grant document access');await page.goto(origin+path)
   }
   // Assertions run once at 1440. The same changed state is captured at both
   // widths; 390 is browser evidence, not a second permanent assertion suite.

@@ -1,6 +1,7 @@
 import { canonical } from '../ingest/model'
 import { fail } from '../security/authority'
 import type { TraceRecord } from '../traces/graph'
+import {associations,mergeAssociations,type Association} from './associations'
 
 export const metadataColumns=['id','service','environment','team','revision','owner_ref','repository','runbook','criticality','author_ref','created_at','state']
 export interface Metadata {
@@ -29,7 +30,7 @@ export function attributes(value:unknown):Record<string,unknown> {
 }
 const identity=(row:{service:string;environment:string;team:string})=>canonical([row.service,row.environment,row.team])
 export function catalog(records:TraceRecord[],from:string,through:string,truncated:boolean,now:number) {
- const services=new Map<string,{service:string;environment:string;team:string;versions:Set<string>;lastSeenNs:bigint;spanCount:number;requests:{duration:bigint;error:boolean;endpoint:string}[]}>()
+ const services=new Map<string,{service:string;environment:string;team:string;versions:Set<string>;lastSeenNs:bigint;spanCount:number;requests:{duration:bigint;error:boolean;endpoint:string}[];associations:Association[]}>()
  const variants=new Map<string,Map<string,TraceRecord>>()
  for(const row of records){
   const key=row.trace_id+':'+row.span_id,group=variants.get(key)??new Map<string,TraceRecord>()
@@ -42,10 +43,11 @@ export function catalog(records:TraceRecord[],from:string,through:string,truncat
  for(const [key,group]of variants){
   if(group.size!==1){conflicts++;continue}
   const row=unique.get(key)!,raw=row.payload.record,resource=attributes(row.payload.resource),attrs=attributes(raw),id=identity(row)
-  const service=services.get(id)??{service:row.service,environment:row.environment,team:row.team,versions:new Set<string>(),lastSeenNs:0n,spanCount:0,requests:[]}
+  const service=services.get(id)??{service:row.service,environment:row.environment,team:row.team,versions:new Set<string>(),lastSeenNs:0n,spanCount:0,requests:[],associations:[]}
   const version=resource['service.version'];if(typeof version==='string')service.versions.add(version)
   const start=BigInt(String(raw.startTimeUnixNano)),end=BigInt(String(raw.endTimeUnixNano)),kind=Number(raw.kind)
   service.spanCount++;if(end>service.lastSeenNs)service.lastSeenNs=end
+  service.associations.push(...associations(resource,attrs,kind,end))
   if(kind===2||kind===5){
    const status=raw.status as {code?:number}|undefined,http=Number(attrs['http.response.status_code']??attrs['http.status_code']??0),rpc=Number(attrs['rpc.grpc.status_code']??0)
    const endpoint=String(attrs['http.route']??(attrs['rpc.service']?String(attrs['rpc.service'])+'.'+String(attrs['rpc.method']??''):raw.name??'(unnamed)')).slice(0,240)
@@ -71,7 +73,7 @@ export function catalog(records:TraceRecord[],from:string,through:string,truncat
   const percentile=(p:number)=>durations.length?durations[Math.max(0,Math.ceil(durations.length*p)-1)].toString():null
   return {requests:requests.length,errors:requests.filter(r=>r.error).length,requestsPerSecond:requests.length/seconds,p50Ns:percentile(.5),p95Ns:percentile(.95),p99Ns:percentile(.99)}
  }
- return {coverage:{population:'observed-retained-spans',fullTraffic:false,scanComplete:!truncated,conflictingIdentities:conflicts,missing:['upstream sampling and loss are unknown','full-traffic stats unavailable','infrastructure associations unavailable','default detection unavailable','fired-alert continuity unavailable']},
-  services:[...services.entries()].sort(([a],[b])=>a.localeCompare(b)).map(([key,s])=>({key,service:s.service,environment:s.environment,team:s.team,versions:[...s.versions].sort(),spanCount:s.spanCount,lastSeenNs:s.lastSeenNs.toString(),freshness:BigInt(now)*1000000n-s.lastSeenNs>300000000000n?'stale':'recent',summary:summarize(s.requests),endpoints:[...new Set(s.requests.map(r=>r.endpoint))].sort().map(endpoint=>({endpoint,...summarize(s.requests.filter(r=>r.endpoint===endpoint))}))})),edges:[...edges.values()]}
+ return {coverage:{population:'observed-retained-spans',fullTraffic:false,scanComplete:!truncated,conflictingIdentities:conflicts,missing:['upstream sampling and loss are unknown','full-traffic stats unavailable','associations describe observed identities, not complete infrastructure inventory','default detection unavailable','outbound alert continuity unavailable']},
+  services:[...services.entries()].sort(([a],[b])=>a.localeCompare(b)).map(([key,s])=>({key,service:s.service,environment:s.environment,team:s.team,versions:[...s.versions].sort(),spanCount:s.spanCount,lastSeenNs:s.lastSeenNs.toString(),freshness:BigInt(now)*1000000n-s.lastSeenNs>300000000000n?'stale':'recent',associations:mergeAssociations(s.associations),summary:summarize(s.requests),endpoints:[...new Set(s.requests.map(r=>r.endpoint))].sort().map(endpoint=>({endpoint,...summarize(s.requests.filter(r=>r.endpoint===endpoint))}))})),edges:[...edges.values()]}
 }
 export type Catalog=ReturnType<typeof catalog>

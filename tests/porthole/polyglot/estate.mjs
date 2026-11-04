@@ -77,7 +77,7 @@ export async function polyglotEstate(){
  * Counts come from application handlers; durations come from independently
  * captured stock spans before the stock OTLP exporter sends its wire bytes. */
 export async function serviceCatalogEstate({origin,secret,dispatch}) {
- const children=[],packets=[],name='porthole-services-'+randomUUID().slice(0,8),topic='synthetic-porthole-8200-'+randomUUID().replaceAll('-','').replace(/[0-9]/g,digit=>String.fromCharCode(97+Number(digit))),kafkaPort=await freePort(),controller=await freePort()
+ const children=[],packets=[],name='porthole-services-'+randomUUID().slice(0,8),topic='synthetic-porthole-8200-'+randomUUID().replaceAll('-','').replace(/[0-9]/g,digit=>String.fromCharCode(97+Number(digit))),kafkaPort=await freePort(),controller=await freePort(),databasePort=await freePort(),databaseName=name+'-postgres'
  const gateway=httpServer(async(req,res)=>{
   try{const chunks=[];for await(const chunk of req)chunks.push(chunk);const body=Buffer.concat(chunks),type=req.headers['content-type']??'application/x-protobuf';packets.push({body,type});const response=await dispatch(req.url,{method:'POST',headers:{'content-type':type,authorization:'Bearer '+secret},body});res.writeHead(response.status,{'content-type':response.headers.get('content-type')??'application/x-protobuf'});res.end(Buffer.from(await response.arrayBuffer()))}catch{res.writeHead(503);res.end()}
  })
@@ -87,21 +87,26 @@ export async function serviceCatalogEstate({origin,secret,dispatch}) {
  }
  try {
   await execute('docker',['run','--detach','--name',name,'--network','host','-e','KAFKA_NODE_ID=1','-e','KAFKA_PROCESS_ROLES=broker,controller','-e',`KAFKA_LISTENERS=PLAINTEXT://:${kafkaPort},CONTROLLER://:${controller}`,'-e',`KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://127.0.0.1:${kafkaPort}`,'-e','KAFKA_CONTROLLER_QUORUM_VOTERS=1@127.0.0.1:'+controller,'-e','KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER','-e','KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT','-e','KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT','-e','KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1','-e','KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1','-e','KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1','apache/kafka:3.9.1'],{timeout:120000})
+  await execute('docker',['run','--detach','--name',databaseName,'--network','host','-e','POSTGRES_HOST_AUTH_METHOD=trust','-e','POSTGRES_DB=synthetic_porthole_8400','postgres:17.7-alpine','-c','listen_addresses=127.0.0.1','-c','port='+databasePort],{timeout:120000})
+  let databaseReady=false
+  for(let attempt=0;attempt<100&&!databaseReady;attempt++){databaseReady=await execute('docker',['exec',databaseName,'pg_isready','-h','127.0.0.1','-p',String(databasePort),'-U','postgres']).then(()=>true,()=>false);if(!databaseReady)await pause(200)}
+  if(!databaseReady)throw Error('Actual database did not become ready')
   await new Promise(resolve=>gateway.listen(0,'127.0.0.1',resolve))
   // Create the topic before the consumer subscribes, without sending telemetry.
   const {Kafka,logLevel}=await import('kafkajs'),admin=new Kafka({brokers:['127.0.0.1:'+kafkaPort],logLevel:logLevel.NOTHING,retry:{retries:20,initialRetryTime:200,maxRetryTime:2000}}).admin()
   await admin.connect();await admin.createTopics({topics:[{topic,numPartitions:1,replicationFactor:1}]});await admin.disconnect()
-  const fulfillment=await start('fulfillment'),checkout=await start('checkout',{PORTHOLE_NEXT:'http://127.0.0.1:'+fulfillment.port}),statuses=[]
+  const fulfillment=await start('fulfillment'),checkout=await start('checkout',{PORTHOLE_NEXT:'http://127.0.0.1:'+fulfillment.port,PGHOST:'127.0.0.1',PGPORT:String(databasePort),PGUSER:'postgres',PGDATABASE:'synthetic_porthole_8400'}),statuses=[]
   for(let i=0;i<36;i++){const mode=i<20?'work':i<28?'error':'slow',response=await fetch('http://127.0.0.1:'+checkout.port+'/checkout?mode='+mode+'&id=synthetic-porthole-'+(8300+i));statuses.push(response.status);await response.text()}
   let stats
   for(let attempt=0;attempt<100;attempt++){const pending=message(fulfillment.child,'stats');fulfillment.child.send('stats');stats=await pending;if(stats.received.length===36)break;await pause(50)}
   if(stats.received.length!==36)throw Error('Actual Kafka delivery did not reconcile')
   const receipts=[]
   for(const child of children){const pending=message(child,'receipt');child.send('stop');receipts.push(await pending);await new Promise(resolve=>child.exitCode===null?child.once('exit',resolve):resolve())}
-  return {statuses,receipts,packets,spans:receipts.flatMap(r=>r.spans)}
+  return {statuses,receipts,packets,spans:receipts.flatMap(r=>r.spans),topic,databasePort}
  }finally{
   for(const child of children)if(child.exitCode===null){const stopped=new Promise(resolve=>child.once('exit',resolve));child.kill('SIGTERM');await stopped}
   await execute('docker',['stop','--time','5',name]).catch(()=>{});await execute('docker',['rm','-f',name]).catch(()=>{})
+  await execute('docker',['stop','--time','5',databaseName]).catch(()=>{});await execute('docker',['rm','-f',databaseName]).catch(()=>{})
   if(gateway.listening)await new Promise(resolve=>gateway.close(resolve))
  }
 }
