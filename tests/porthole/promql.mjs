@@ -136,7 +136,26 @@ const mixed=metricPacket([{...rows[0],labels:{__name__:'synthetic_porthole_units
  await value(await send('/v1/metrics',mixed,{authorization:'Bearer '+source.secret}));await post('/api/porthole/v1/ingest/drain',{})
  assert.equal((await value(await query({expression:'synthetic_porthole_units',time:reference.end}))).evaluation.result.length,2)
  const grouped=await query({expression:'sum by (team) (synthetic_porthole_units)',time:reference.end});assert.equal(grouped.status,400);assert.equal((await grouped.json()).error,'incompatible_metric_units')
- return types.length+3
+ const start=String(at-20000000000n),end=at.toString(),settings={start,end,step:20,lookback:5}
+ const rangeName='synthetic_porthole_range_units',compatibleName='synthetic_porthole_range_same_units'
+ const rangeRows=[
+  {labels:{__name__:rangeName,lane:'a'},kind:'gauge',unit:'ms',samples:[{time:start,value:100}]},
+  {labels:{__name__:rangeName,lane:'b'},kind:'gauge',unit:'s',samples:[{time:end,value:1}]},
+ ]
+ await value(await send('/v1/metrics',metricPacket([...rangeRows,...rangeRows.map(row=>({...row,labels:{...row.labels,__name__:compatibleName},unit:'ms'}))]),{authorization:'Bearer '+source.secret}))
+ await post('/api/porthole/v1/ingest/drain',{})
+ const separate=await value(await query({expression:rangeName,...settings}))
+ assert.deepEqual(separate.evaluation.result.map(row=>({lane:row.metric.lane,unit:row.unit,values:row.values})),[
+  {lane:'a',unit:'ms',values:[[start,100]]},{lane:'b',unit:'s',values:[[end,1]]},
+ ],'separate lanes retain their own units and absent intervals')
+ const compatible=await value(await query({expression:`sum by (team) (${compatibleName})`,...settings}))
+ assert.equal(compatible.evaluation.state,'complete');assert.equal(compatible.evaluation.result.length,1)
+ assert.deepEqual(compatible.evaluation.result[0],{metric:{team:'commerce'},unit:'ms',values:[[start,100],[end,1]]},'range sums across different lanes with the same unit remain supported')
+ const rangeGroup=await query({expression:`sum by (team) (${rangeName})`,...settings}),body=await rangeGroup.json()
+ console.log('PROBE PORT-014 A '+JSON.stringify({backend:separate.analytical?.role??'local',door:'/api/porthole/v1/query',input:{expression:`sum by (team) (${rangeName})`,...settings},status:rangeGroup.status,output:body}))
+ assert.equal(rangeGroup.status,400,'range sum refuses incompatible units at nonoverlapping evaluation instants')
+ assert.equal(body.error,'incompatible_metric_units');assert.ok(!JSON.stringify(body).includes('"state":"complete"'))
+ return types.length+4
 }
 async function promqlBrowser({context,reference,initial,backend,snapshot}) {
  const {chromium}=await import('@playwright/test'),{origin,cookie,call}=context
@@ -159,6 +178,9 @@ async function promqlBrowser({context,reference,initial,backend,snapshot}) {
    if(width===1440){assert.equal(response.status(),name==='invalid'?400:200);if(name!=='invalid')assert.deepEqual(JSON.parse(await page.locator('pre').innerText()).evaluation.result,[]);else assert.ok(await page.getByRole('alert').isVisible())}
    await capture(name)
   }
+  const unitResponse=await page.goto(origin+'/app/explore?'+new URLSearchParams({dialect:'promql',expression:'sum by (team) (synthetic_porthole_range_units)',start:String(BigInt(reference.end)-20000000000n),end:reference.end,step:'20',lookback:'5'}))
+  assert.equal(unitResponse.status(),400);assert.match(await page.getByRole('alert').innerText(),/incompatible.metric.units/)
+  await capture('incompatible-range-units')
   const small=await page.locator('main').evaluate(element=>[...element.querySelectorAll('p,a,label,input,select,textarea,button,pre,summary')].filter(node=>parseFloat(getComputedStyle(node).fontSize)<13).map(node=>node.tagName));assert.deepEqual(small,[])
   await state.clearCookies();const response=await page.goto(origin+'/app/explore?'+new URLSearchParams({dialect:'promql',expression:'synthetic_porthole_queue',time:reference.end}));if(width===1440)assert.equal(response.status(),401);await capture('unauthorized')
   await state.close()

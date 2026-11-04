@@ -93,6 +93,7 @@ export function evaluate(rows:Row[],plan:Plan,settings:Evaluation) {
    if(!Number.isFinite(group.value))reject('non_finite_promql_result','Evaluation produced a non-finite value.')
    if(++cells>10000)reject('promql_result_budget_exceeded','Select at most 10000 output samples.')
    let result=output.get(key)
+   if(result&&(result.unit!==group.unit||result.kind!==group.kind))reject('incompatible_metric_units','An output series must keep its unit and scalar type across evaluation instants.')
    if(!result){result={metric:group.metric,unit:group.unit,kind:group.kind,values:[]};output.set(key,result)}
    result.values.push([at.toString(),group.value])
   }
