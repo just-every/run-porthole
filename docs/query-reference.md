@@ -146,6 +146,9 @@ An erasure or content change during the scan returns `cluster_custody_changed`
 Revoked credentials refuse, and storage outages return 503 without a local
 fallback. Invalid input returns 400, unsupported methods 405, invalid media
 415, oversized input 413, and credential quotas 429 with Retry-After.
+Malformed expressions include the parser's `field` and correction `hint` in
+the API response; native Explore shows the same hint. Diagnostics do not echo
+rejected expression values.
 Existing custody and inactive archive-restore rules remain unchanged.
 
 This bounded functional door supplies no one-TB latency, full-retention,

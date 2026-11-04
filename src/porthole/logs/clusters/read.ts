@@ -62,16 +62,27 @@ export async function clusters(request:Request,env:Bindings,data:Record<string,u
   const active=analytical?analyticalFence(config):{sql:'EXISTS(SELECT 1 FROM porthole_analytical_configuration WHERE singleton=1 AND revision=? AND changed_at=?)',args:[config.revision,config.changed_at]}
   const condition=`(${latest.fence.sql}) AND (${active.sql})`,args=[...latest.fence.args,...active.args]
   const checks=[env.DB.prepare(`SELECT 1 AS live WHERE ${condition}`).bind(...args)]
-  for(let start=0;start<rows.length;start+=200){
-   const chunk=rows.slice(start,start+200)
+  // D1 limits each bound value independently of the scan budget. Keep every
+  // custody check bounded by encoded bytes as well as record count, while all
+  // checks still execute in the same final transaction.
+  const chunks:{payload:string;count:number}[]=[]
+  let chunk:string[]=[],chunkBytes=2
+  const flush=()=>{if(chunk.length)chunks.push({payload:'['+chunk.join(',')+']',count:chunk.length});chunk=[];chunkBytes=2}
+  for(const row of rows){
+   const candidate=JSON.stringify({id:row.id,payload:row.payload}),size=new TextEncoder().encode(candidate).length+1
+   if(chunk.length&&(chunk.length>=200||chunkBytes+size>512*1024))flush()
+   chunk.push(candidate);chunkBytes+=size
+  }
+  flush()
+  for(const chunk of chunks){
    checks.push(env.DB.prepare(`SELECT COUNT(*) AS live FROM json_each(?) j JOIN porthole_telemetry_records r ON r.id=json_extract(j.value,'$.id') JOIN porthole_ingest_batches b ON b.id=r.batch_id
     WHERE ${condition} AND b.state='complete' AND b.completion_sequence<=? AND json(r.payload)=json(json_extract(j.value,'$.payload'))
     AND NOT EXISTS(SELECT 1 FROM porthole_erased_batches e WHERE e.id=b.id OR e.content_digest=b.digest)`)
-    .bind(JSON.stringify(chunk.map(row=>({id:row.id,payload:JSON.stringify(row.payload)}))),...args,snapshot))
+    .bind(chunk.payload,...args,snapshot))
   }
   const verified=await env.DB.batch<{live:number}>(checks)
   if(!verified[0].results.length)fail('authority_changed',409)
-  if(verified.slice(1).some((result,index)=>result.results[0]?.live!==Math.min(200,rows.length-index*200)))fail('cluster_custody_changed',409)
+  if(verified.slice(1).some((result,index)=>result.results[0]?.live!==chunks[index].count))fail('cluster_custody_changed',409)
   return {...result,actorRef:String(latest.identity[0]),actorRevision:Number(latest.identity[1])}
  }
  const parameters={...normalized.parameters,snapshot,dialect:normalized.source.dialect,expression:normalized.source.text}

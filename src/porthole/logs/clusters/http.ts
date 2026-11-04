@@ -4,6 +4,7 @@ import {CredentialLimit} from '../../credentials/verify'
 import {authority,fail} from '../../security/authority'
 import {input} from '../../security/input'
 import {operationDocument as document,escape,privateHeaders} from '../../document'
+import {ExplorationError} from '../../explore/normalize'
 import {clusters} from './read'
 const api='/api/porthole/v1/logs/clusters',page='/app/explore/clusters'
 export async function clusterResponse(request:Request,env:Bindings):Promise<Response|null> {
@@ -31,6 +32,7 @@ export async function clusterResponse(request:Request,env:Bindings):Promise<Resp
   view.headers.set('x-porthole-actor',actorRef);view.headers.set('x-porthole-actor-revision',String(actorRevision));return view
  }catch(error){
   const known=error instanceof AuthError||error instanceof CredentialLimit,code=known?error.code:'clusters_unavailable',status=known?error.status:503
-  return browser?document('Log patterns unavailable',`<p role="alert">${escape(code.replaceAll('_',' '))}</p><p><a href="${page}">New pattern search</a></p>`,status,{forms:true}):Response.json({error:code},{status,headers:{...privateHeaders,...(error instanceof CredentialLimit?{'retry-after':String(error.retryAfter)}:{})}})
+  const diagnostic=error instanceof ExplorationError?{field:error.field,hint:error.hint}:{}
+  return browser?document('Log patterns unavailable',`<p role="alert">${escape(code.replaceAll('_',' '))}${diagnostic.hint?': '+escape(diagnostic.hint):''}</p><p><a href="${page}">New pattern search</a></p>`,status,{forms:true}):Response.json({error:code,...diagnostic},{status,headers:{...privateHeaders,...(error instanceof CredentialLimit?{'retry-after':String(error.retryAfter)}:{})}})
  }
 }
