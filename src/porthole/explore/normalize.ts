@@ -6,8 +6,8 @@ import {metricName,reject,type Dialect,type NormalizedExploration,type Parameter
 export {ExplorationError} from './model'
 export type {Aggregate,Dialect,NormalizedExploration,Parameters,LogSearchPlan} from './model'
 
-const nativeKeys=['signal','service','environment','team','from','through','cursor','limit','snapshot','trace','metric']
-const optional=new Set(['metric','from','through','cursor','snapshot','trace','limit'])
+const nativeKeys=['signal','service','environment','team','from','through','cursor','limit','snapshot','trace','metric','record']
+const optional=new Set(['metric','from','through','cursor','snapshot','trace','limit','record'])
 export function normalizeExploration(input:Record<string,unknown>):NormalizedExploration {
  if(!input||typeof input!=='object'||Array.isArray(input))reject('invalid_exploration','Supply a query object.','query')
  if(Object.keys(input).some(key=>!nativeKeys.includes(key)&&!['dialect','expression'].includes(key)))reject('unsupported_query_filter','Remove unsupported query fields.','query')
