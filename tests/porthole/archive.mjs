@@ -1111,3 +1111,26 @@ export async function genaiArchiveJourney({origin,cookie,withEmptyDestination,tr
  })
  console.log('genaiArchiveJourney passed: complete metadata-only wire and retained custody, independent inactive restore and re-export, no inherited sessions or credentials')
 }
+
+/** Stock runtime bytes and three correlated signals keep the same inactive
+ * archive boundary as the existing profile and trace journeys. */
+export async function otlpLanguageArchiveJourney({origin,cookie,withEmptyDestination,expected,sourceId,reconcile,pages}) {
+ const saved=await savedExport(origin,cookie,await post(origin,cookie,api+'/exports',{}))
+ const tables=['porthole_ingest_batches','porthole_telemetry_records','porthole_telemetry_archive']
+ const originals=saved.rows.filter(row=>tables.includes(row.table))
+ assert.ok(originals.some(row=>row.table==='porthole_ingest_batches'&&row.row.source_id===sourceId&&row.row.wire_base64),'original stock wire stays in owner archive')
+ await withEmptyDestination(async destination=>{
+  const acting=await destination.freshOwner(),restore=await value(await post(destination.origin,acting,api+'/restores',{manifest:saved.manifest}),201)
+  for(const chunk of saved.chunks)await value(await post(destination.origin,acting,`${api}/restores/${restore.id}/chunks`,{chunk}))
+  await value(await post(destination.origin,acting,`${api}/restores/${restore.id}/commit`,{confirm:saved.manifest.rootHash}))
+  const actual={};for(const signal of ['traces','logs','metrics'])actual[signal]=await pages(destination.origin,acting,signal)
+  reconcile(expected,actual,sourceId)
+  assert.equal((await destination.sql('SELECT paused FROM porthole_ingest_control'))[0].paused,1)
+  assert.equal((await destination.sql('SELECT COUNT(*) AS n FROM porthole_credentials'))[0].n,0,'no source authority restored')
+  assert.equal((await get(destination.origin,cookie,'/api/porthole/v1/ingest/records?signal=logs')).status,401,'old owner session cannot read restored data')
+  await destination.restartWorker()
+  const reexport=await savedExport(destination.origin,await destination.freshOwner(),await post(destination.origin,await destination.freshOwner(),api+'/exports',{}))
+  assert.deepEqual(reexport.rows.filter(row=>tables.includes(row.table)),originals,'stock bytes, payloads, nanoseconds and archive copies survive inactive restore and re-export')
+ })
+ console.log('PROBE PORT-001 inactive archive: owner export, independent restore, restart and re-export -> original stock bytes and all three signals preserved; collection paused, credentials absent and old session refused')
+}

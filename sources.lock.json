@@ -517,7 +517,7 @@
       "executable": false
     },
     "instrumentation/polyglot/build.sh": {
-      "sha256": "fe759f5d37bb39242f5f779ab7d27aa094ad55d1c63daacfb9d351e45a0b26e1",
+      "sha256": "11233bc9235432096bca143686a3851eb4dd3f485772e8cb22d80ad607a5bacf",
       "executable": false
     },
     "instrumentation/polyglot/Dockerfile": {
@@ -533,15 +533,15 @@
       "executable": false
     },
     "instrumentation/polyglot/dotnet/Program.cs": {
-      "sha256": "f7423e7d989078bce312a2d9b991b02c87032159178901dde13c5a5043fb8721",
+      "sha256": "29293aa8d5d9278717bb88c712276bce0d5937851cf1ae2df924648a24ae15f6",
       "executable": false
     },
     "instrumentation/polyglot/go/go.mod": {
-      "sha256": "efb66cf4666da799290723b2890f75500766e7b8d3a92a55fdc56a95208458ff",
+      "sha256": "e269d02f2aeaa0be1ec846734e23d934f6353e1f5f7ac9e27fb51b6de076c5f9",
       "executable": false
     },
     "instrumentation/polyglot/go/main.go": {
-      "sha256": "93f02d0b5b77792d58ec3849a9fc7e96ad06811b3c90d42733378e5da40a4dfd",
+      "sha256": "347c4d76ca2547d43ecf070c16c49f7f9b0e8b9292426cbe400a30efacb8d2c7",
       "executable": false
     },
     "instrumentation/polyglot/go/policy.go": {
@@ -549,7 +549,7 @@
       "executable": false
     },
     "instrumentation/polyglot/java/App.java": {
-      "sha256": "a132bc5155070bb8d104e10e86a53c9998cae9400c0d27092393e5f81c81cb5c",
+      "sha256": "8ad6c453cb74b3b368ca5a1cb442bf8cc22f62fc5d457ea761878ef5ca9d00f3",
       "executable": false
     },
     "instrumentation/polyglot/java/PortholePolicy.java": {
@@ -569,7 +569,7 @@
       "executable": false
     },
     "instrumentation/polyglot/python/app.py": {
-      "sha256": "5b3885bac4ecf190076c68ce54432d258dc485387ebeefd961e397d2be0262c8",
+      "sha256": "04e9d9592878f5cf282ea902d02ef1d137672f37c742c990891c45fb5dcd42e0",
       "executable": false
     },
     "instrumentation/polyglot/python/porthole_policy.py": {
@@ -5517,7 +5517,7 @@
       "executable": false
     },
     "tests/porthole/archive.mjs": {
-      "sha256": "9114ce1388f00d608a411938a0a69550c022ef73e7a96cee63f39ddf8684ebe8",
+      "sha256": "fc706c6ca7c678d4b91750ea60f76f0b0fd18f735861e987d0e745a92c41e09c",
       "executable": false
     },
     "tests/porthole/audit.mjs": {
@@ -5628,6 +5628,10 @@
       "sha256": "57744f901a92f4ae3397fe53c9a1033b38cadfc37c85946f189366b2ef4a19fc",
       "executable": false
     },
+    "tests/porthole/otlp-languages.mjs": {
+      "sha256": "67640a2de4b9ef0a5eae1c3dd9f9572ca5b71254f6c9c795c4188e01cfe80ca5",
+      "executable": false
+    },
     "tests/porthole/pipelines-analytical.mjs": {
       "sha256": "9efbd001d2b30761f4653e864401339d448de2a9e8b8c7dc6926012c99c2bf2f",
       "executable": false
@@ -5661,7 +5665,7 @@
       "executable": false
     },
     "tests/porthole/polyglot/estate.mjs": {
-      "sha256": "497dd9ca0a9c6ffee0519a58a02934f6d7eb389c00aea9eeacafc9bd53231fe9",
+      "sha256": "c89817263f67f144c270c388d6356cc892b5cd0e0518422964664bf5d9ec024b",
       "executable": false
     },
     "tests/porthole/polyglot/node.cjs": {
@@ -5733,7 +5737,7 @@
       "executable": false
     },
     "tests/runtime.mjs": {
-      "sha256": "4bc9079d867b5cfadb5b2a8d4fb879680da6f28cfe0b94b04ec8831609c1f6c6",
+      "sha256": "bc96eaa1b6088e2cb697ae1746c86d587b06ec655b5be0d17e56abfa23c0ea11",
       "executable": false
     },
     "tests/typecheck-checks.mjs": {

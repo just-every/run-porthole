@@ -3,6 +3,9 @@ import {promisify} from 'node:util'
 import {createServer} from 'node:net'
 import {createServer as httpServer} from 'node:http'
 import {randomUUID} from 'node:crypto'
+import {mkdtemp,writeFile,rm} from 'node:fs/promises'
+import {tmpdir} from 'node:os'
+import {join} from 'node:path'
 const execute=promisify(execFile),pause=ms=>new Promise(resolve=>setTimeout(resolve,ms))
 async function freePort(){const socket=createServer();await new Promise(resolve=>socket.listen(0,'127.0.0.1',resolve));const port=socket.address().port;await new Promise(resolve=>socket.close(resolve));return port}
 
@@ -71,4 +74,99 @@ export async function polyglotEstate(){
   }
  }
  return {environment,stop,probe,diagnostics,restartServices}
+}
+
+
+/** Real four-language, three-signal producers and the unchanged official
+ * Collector. The forwarding edge records bytes and receipts, never telemetry
+ * or expected product results. No production connection or provider is used. */
+export async function otlpLanguageEstate({origin,secret,transport='http'}) {
+ const scratch=await mkdtemp(join(tmpdir(),'porthole-otlp-')),names=[],captures=new Map(),failures=[]
+ const prefix='porthole-otlp-'+randomUUID().slice(0,8),ports=Object.fromEntries(await Promise.all(['http','grpc','python','java','go','dotnet'].map(async name=>[name,await freePort()])))
+ const {receiver}=await import('../../../scripts/porthole/otlp-grpc.mjs')
+ const gateway=httpServer(async(req,res)=>{
+  try {
+   const parts=[];for await(const part of req)parts.push(part)
+   const wire=Buffer.concat(parts),headers={'content-type':req.headers['content-type'],authorization:'Bearer '+secret,...(req.headers['content-encoding']?{'content-encoding':req.headers['content-encoding']}:{})}
+   const response=await fetch(origin+req.url,{method:'POST',headers,body:wire,signal:AbortSignal.timeout(30000)})
+   const id=response.headers.get('x-porthole-batch')
+   if(response.ok&&id&&!captures.has(id))captures.set(id,{signal:req.url.slice(4),wire,headers:{'content-type':headers['content-type'],...(headers['content-encoding']?{'content-encoding':headers['content-encoding']}:{})},count:Number(response.headers.get('x-porthole-accepted'))})
+   if(!response.ok)failures.push({signal:req.url,status:response.status,error:response.headers.get('x-porthole-error')})
+   res.writeHead(response.status,{'content-type':response.headers.get('content-type')??'application/x-protobuf'});res.end(Buffer.from(await response.arrayBuffer()))
+  }catch(error){failures.push({error:error.code??'forwarding_unavailable'});res.writeHead(503);res.end()}
+ })
+ await new Promise(resolve=>gateway.listen(0,'127.0.0.1',resolve))
+ const gatewayOrigin='http://127.0.0.1:'+gateway.address().port
+ const grpcReceiver=await receiver({upstream:gatewayOrigin,listen:'127.0.0.1:0'})
+ const exporter=transport==='grpc'?'otlp':'otlphttp'
+ const endpoint=transport==='grpc'?'127.0.0.1:'+grpcReceiver.port:gatewayOrigin
+ const config=`receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 127.0.0.1:${ports.http}
+      grpc:
+        endpoint: 127.0.0.1:${ports.grpc}
+exporters:
+  ${exporter}:
+    endpoint: ${endpoint}
+    ${transport==='grpc'?'tls:\n      insecure: true':'encoding: proto'}
+    compression: none
+    headers:
+      authorization: \${env:PORTHOLE_COLLECTOR_AUTHORIZATION}
+    sending_queue:
+      enabled: false
+    retry_on_failure:
+      enabled: true
+      initial_interval: 100ms
+      max_interval: 1s
+      max_elapsed_time: 30s
+service:
+  telemetry:
+    logs:
+      level: error
+  pipelines:
+    traces:
+      receivers: [otlp]
+      exporters: [${exporter}]
+    logs:
+      receivers: [otlp]
+      exporters: [${exporter}]
+    metrics:
+      receivers: [otlp]
+      exporters: [${exporter}]
+`
+ await writeFile(join(scratch,'collector.yaml'),config)
+ async function container(name,args){names.push(name);await execute('docker',['run','--detach','--name',name,'--network','host',...args],{maxBuffer:1024*1024})}
+ async function stop(){
+  for(const name of [...names].reverse())await execute('docker',['stop','--time','3',name]).catch(()=>{})
+  for(const name of names)await execute('docker',['rm','-f',name]).catch(()=>{})
+  await grpcReceiver.close()
+  await new Promise(resolve=>{gateway.close(resolve);gateway.closeAllConnections()})
+  await rm(scratch,{recursive:true,force:true})
+ }
+ try {
+  await container(prefix+'-collector',['--mount','type=bind,src='+scratch+',dst=/config,readonly','-e','PORTHOLE_COLLECTOR_AUTHORIZATION=Bearer '+secret,'otel/opentelemetry-collector-contrib:0.135.0@sha256:89107a3a8f4636a396927edf7025bb9614b8da2d92f4cc3f43109e8d115736e2','--config=/config/collector.yaml'])
+  for(const language of ['python','java','go','dotnet']){
+   const variables={PORT:String(ports[language]),NEXT_URL:'',OTEL_SERVICE_NAME:language,OTEL_RESOURCE_ATTRIBUTES:'deployment.environment.name=production,team.name=commerce,service.version=synthetic-porthole-1001',OTEL_EXPORTER_OTLP_ENDPOINT:'http://127.0.0.1:'+ports[language==='dotnet'?'grpc':'http'],OTEL_EXPORTER_OTLP_PROTOCOL:language==='dotnet'?'grpc':'http/protobuf',OTEL_PROPAGATORS:'tracecontext',OTEL_TRACES_SAMPLER:'always_on',OTEL_BSP_SCHEDULE_DELAY:'100',OTEL_BLRP_SCHEDULE_DELAY:'100',OTEL_METRIC_EXPORT_INTERVAL:'1000',OTEL_METRICS_EXPORTER:'otlp',OTEL_LOGS_EXPORTER:'otlp',OTEL_INSTRUMENTATION_HTTP_SERVER_EXCLUDE_URLS:'.*/health',OTEL_DOTNET_EXPERIMENTAL_ASPNETCORE_DISABLE_URL_QUERY_REDACTION:'true'}
+   await container(prefix+'-'+language,[...Object.entries(variables).flatMap(([key,value])=>['-e',key+'='+value]),'porthole-c7-'+language])
+  }
+  for(const language of ['python','java','go','dotnet']){
+   let ready=false
+   for(let attempt=0;attempt<120;attempt++){
+    const states=await execute('docker',['inspect','--format','{{.Name}} {{.State.Running}}',...names])
+    const exited=states.stdout.split('\n').find(line=>line.endsWith(' false'))
+    if(exited)throw Error('OTLP estate process exited: '+exited.split(' ')[0])
+    try{if((await fetch('http://127.0.0.1:'+ports[language]+'/health')).status===200){ready=true;break}}catch{}
+    await pause(250)
+   }
+   if(!ready)throw Error(language+' readiness failed')
+  }
+  return {captures,failures,ports,stop,async stopProducers(){
+   // Stop exporters after their periodic metrics have run, then drain their
+   // final batches while the stock Collector and real intake remain alive.
+   for(const language of ['python','java','go','dotnet'])await execute('docker',['stop','--time','3',prefix+'-'+language])
+   await pause(500)
+  },async diagnostics(){return Promise.all(names.map(async name=>{const result=await execute('docker',['logs',name]);return {name,output:(result.stdout+result.stderr).split(secret).join('[redacted]')}}))}}
+ }catch(error){console.log(JSON.stringify(await Promise.all(names.map(async name=>{const result=await execute('docker',['logs',name]).catch(()=>({stdout:'',stderr:''}));return {name,output:(result.stdout+result.stderr).split(secret).join('[redacted]')}}))));await stop();throw error}
 }

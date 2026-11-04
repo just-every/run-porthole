@@ -179,7 +179,10 @@ try {
     return await run({origin,cookie:destinationCookie,persist,...destinationHelpers,restartWorker})
    } finally {await restartWorker(()=>{persist=savedStore;ownerEmail=savedOwner})}
   }
-  if(process.env.PORTHOLE_PIPELINES_ONLY==='1') {
+  if(process.env.PORTHOLE_OTLP_LANGUAGES_ONLY==='1') {
+   const {otlpLanguagesJourney}=await import('./porthole/otlp-languages.mjs')
+   await otlpLanguagesJourney({origin,cookie,persist,restartWorker,withEmptyDestination,...helpers})
+  } else if(process.env.PORTHOLE_PIPELINES_ONLY==='1') {
    const {pipelineJourney,pipelineReadJourney}=await import('./porthole/pipelines.mjs')
    await pipelineJourney({origin,cookie,restartWorker,withEmptyDestination,withPinnedClock,...helpers})
    await pipelineReadJourney({origin,restartWorker,...helpers})
