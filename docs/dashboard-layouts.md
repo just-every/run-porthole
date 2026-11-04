@@ -51,7 +51,8 @@ that records a new pack revision and advances all bound consumer revisions.
 Bind from the dashboard form using the pack ID and current revision. The server
 copies the reviewed native widgets into a group with a `powerpack` reference
 containing `id` and `revision`, and prefixes child IDs with the group ID. Bindings
-retain their group title, position, size, collapse state and variable overrides.
+retain their group title, position, size, collapse state, service and variable
+overrides across later reviewed pack updates.
 The referenced pack version supplies its child layout and widgets. Editing
 those children in a consumer definition is refused explicitly without saving a
 revision; change the reusable definition in Settings and review all consumers.

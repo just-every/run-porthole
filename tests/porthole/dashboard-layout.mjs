@@ -76,7 +76,7 @@ export async function dashboardLayoutJourney({origin,freshOwner,signIn,restartWo
  await withPinnedClock(next.expires_at+1,async()=>{assert.ok([403,409].includes((await post(packs+'/approve',{id:next.id,digest:next.digest,confirm:'apply-private-powerpack'})).status))})
  await restartWorker();one=await value(await get(api+'/'+first.id));assert.equal(one.body.layout[1].powerpack.revision,2)
  const preserved=await value(await get(api+'/'+second.id));assert.deepEqual(preserved.body.layout[0].variables,{team:'payments',environment:'staging'});assert.deepEqual(preserved.body.range,{from,through})
- await boundConsumerBrowser({origin,cookie,id:second.id,from,through,service:scope.services[1]})
+ await boundConsumerBrowser({origin,cookie,id:second.id,otherId:first.id,from,through,service:scope.services[1]})
  for(const packet of packets){const retry=await fetch(origin+packet.path,{method:'POST',headers:packet.headers,body:packet.body});assert.equal(retry.status,200);assert.equal(retry.headers.get('x-porthole-duplicate'),'true')}
  await value(await post('/api/porthole/v1/ingest/drain',{}))
  assert.equal((await value(await get('/api/porthole/v1/ingest/records?'+params('logs')))).records.length,3)
@@ -85,7 +85,7 @@ export async function dashboardLayoutJourney({origin,freshOwner,signIn,restartWo
  const packFact=committed.find(entry=>entry.action==='dashboards.powerpack-change'&&entry.entityRef===pack.id&&entry.revision===2)
  assert.ok(packFact?.actorRef,'the reviewed owner update has an attributed durable fact')
  for(const [id,revision] of [[first.id,4],[second.id,3]])assert.ok(committed.some(entry=>entry.action==='dashboards.change'&&entry.entityRef===id&&entry.revision===revision&&entry.operationRef===packFact.operationRef),'both consumer facts share the exact pack update transaction')
- await layoutBrowser({origin,cookie,id:first.id,reader,expected:{p95,from,through},withPinnedClock})
+ await layoutBrowser({origin,cookie,id:first.id,reader,expected:{p95,from,through,service:scope.services[1]},withPinnedClock})
  const {layoutArchiveJourney}=await import('./archive.mjs')
  await layoutArchiveJourney({origin,freshOwner,withEmptyDestination,ids:[first.id,second.id],packId:pack.id,publicPaths})
  cookie=await freshOwner()
@@ -94,11 +94,11 @@ export async function dashboardLayoutJourney({origin,freshOwner,signIn,restartWo
  for(const packet of packets)assert.equal((await fetch(origin+packet.path,{method:'POST',headers:packet.headers,body:packet.body})).status,401)
  assert.deepEqual(await sql('SELECT id,record_count,state FROM porthole_ingest_batches ORDER BY id'),retainedBefore,'revoked source retries cannot persist another capture')
  console.log('PROBE PORT-068 layout: real stock HTTP traffic through three-signal intake -> 3 logs, 6 spans, request metric 3; nested order, scope, source links and rendered values agree')
- console.log('PROBE PORT-068 packs: native owner exact review -> both consumers reference pack revision 2 with immutable history; stale, expired, foreign and delegated attempts refuse without writes')
+ console.log('PROBE PORT-068 packs: native owner exact review -> both consumers reflect reviewed updates with immutable history and preserved scope bindings; stale, expired, foreign and delegated attempts refuse without writes')
  console.log('PROBE PORT-068 publication: bind, pack update, replay, restart and inactive restore -> old TV, embed and image addresses remain refused')
  console.log('dashboardLayoutJourney passed')
 }
-async function boundConsumerBrowser({origin,cookie,id,from,through,service}) {
+async function boundConsumerBrowser({origin,cookie,id,otherId,from,through,service}) {
  const {chromium}=await import('@playwright/test'),browser=await chromium.launch({headless:true,...(process.env.PORTHOLE_CHROMIUM?{executablePath:process.env.PORTHOLE_CHROMIUM}:{}),args:['--no-sandbox','--use-mock-keychain','--password-store=basic']})
  try {
   for(const width of [1440,390]) {
@@ -196,6 +196,31 @@ async function boundConsumerBrowser({origin,cookie,id,from,through,service}) {
     await saveBindings({Service:'',Team:'payments',Environment:'staging'})
     assert.match(await group.locator('[data-panel="consumer:logs"]').innerText(),/2 records/)
     assert.deepEqual((await (await context.request.get(origin+api+'/'+id+'?version='+afterBindings.revision)).json()).body,afterBindings.body,'later binding edits preserve the exact earlier revision')
+    // A later reviewed update must preserve each consumer's form-edited scope,
+    // not replace it with the reusable definition's own variable defaults.
+    await saveBindings({Service:service,Team:'payments',Environment:'staging'})
+    const consumerBefore=await (await context.request.get(origin+api+'/'+id)).json(),otherBefore=await (await context.request.get(origin+api+'/'+otherId)).json()
+    const packId=consumerBefore.body.layout[0].powerpack.id,packBefore=await (await context.request.get(origin+packs+'/'+packId)).json(),definition=JSON.parse(packBefore.body)
+    definition.layout[0].children=[definition.layout[0].children[2],definition.layout[0].children[0],definition.layout[0].children[1]]
+    const reviewResponse=await context.request.post(origin+packs+'/preview',{headers:{origin},data:{id:packId,revision:packBefore.revision,name:packBefore.name,scope:JSON.parse(packBefore.scope),body:definition}})
+    assert.equal(reviewResponse.status(),201,await reviewResponse.text())
+    const review=await reviewResponse.json(),applied=await context.request.post(origin+packs+'/approve',{headers:{origin},data:{id:review.id,digest:review.digest,confirm:'apply-private-powerpack'}})
+    assert.equal(applied.status(),200,await applied.text())
+    for(const [before,count] of [[consumerBefore,5],[otherBefore,3]]) {
+     const after=await (await context.request.get(origin+api+'/'+before.id)).json(),prior=before.body.layout.find(item=>item.powerpack),current=after.body.layout.find(item=>item.powerpack)
+     const binding=({children,powerpack,...rest})=>rest
+     assert.equal(after.revision,before.revision+1)
+     assert.equal(current.powerpack.revision,packBefore.revision+1)
+     assert.deepEqual(binding(current),binding(prior))
+     assert.deepEqual(current.children[0].children.map(item=>item.panel.split(':').at(-1)),['logs','traces','requests'])
+     await page.goto(origin+'/app/dashboards/'+after.id)
+     const consumer=page.locator('[data-layout-group]').filter({has:page.locator(`[data-panel="${current.id}:logs"]`)}).first()
+     assert.match(await consumer.locator(`[data-panel="${current.id}:logs"]`).innerText(),new RegExp(count+' records'))
+     assert.match(await consumer.locator(`[data-panel="${current.id}:requests"]`).innerText(),new RegExp(count+' requests'))
+     assert.deepEqual((await (await context.request.get(origin+api+'/'+before.id+'?version='+before.revision)).json()).body,before.body)
+    }
+    await page.goto(path)
+    await saveBindings({Service:'',Team:'payments',Environment:'staging'})
     // Keep the second consumer distinct for the final two viewport captures.
     await page.getByText('Edit dashboard',{exact:true}).click()
     const restored=JSON.parse(await editor.inputValue());restored.layout[0].variables={team:'payments',environment:'staging'}
@@ -218,7 +243,7 @@ async function boundConsumerBrowser({origin,cookie,id,from,through,service}) {
    await context.close()
   }
  } finally {await browser.close()}
- console.log('PROBE PORT-068 child-bindings: independently emitted commerce production and payments staging traffic -> updated consumers preserve distinct metric, log and trace values, order, original ranges and source links after restart; native JSON save retains consumer variables and refuses unreviewed child edits without writes; keyboard group binding forms switch service and variables, clear overrides to inherit, and reject stale, foreign and reviewed-child changes without writes')
+ console.log('PROBE PORT-068 child-bindings: independently emitted commerce production and payments staging traffic -> updated consumers preserve distinct metric, log and trace values, order, original ranges and source links after restart; native JSON save retains consumer variables and refuses unreviewed child edits without writes; keyboard group binding forms switch service and variables, clear overrides to inherit, survive a later reviewed two-consumer update, and reject stale, foreign and reviewed-child changes without writes')
 }
 
 async function layoutBrowser({origin,cookie,id,reader,expected,withPinnedClock}) {
@@ -239,6 +264,18 @@ async function layoutBrowser({origin,cookie,id,reader,expected,withPinnedClock})
    await controls.getByText('Layout settings',{exact:true}).click();await submit(controls.getByRole('button',{name:'Collapse group'}));assert.equal(await group.locator(':scope > details').first().getAttribute('open'),null);await page.reload();assert.equal(await group.locator(':scope > details').first().getAttribute('open'),null)
    await controls.getByText('Layout settings',{exact:true}).click();await submit(controls.getByRole('button',{name:'Expand group'}),false)
    const child=page.locator('[data-layout-panel="logs"] > .porthole-layout-controls');await child.getByText('Layout settings',{exact:true}).click();await submit(child.getByRole('button',{name:'Move down'}));assert.deepEqual(await group.locator('[data-panel]').evaluateAll(nodes=>nodes.map(n=>n.dataset.panel)),['traces','logs','requests'])
+   const nested=page.locator('[data-layout-group="nested"]'),nestedSettings=nested.locator(':scope > .porthole-layout-controls')
+   await nestedSettings.getByText('Layout settings',{exact:true}).click()
+   for(const [name,value] of Object.entries({Service:expected.service,Team:'payments',Environment:'staging'}))await nestedSettings.getByLabel(name+' binding',{exact:true}).fill(value)
+   await submit(nestedSettings.getByRole('button',{name:'Save bindings',exact:true}))
+   assert.match(await nested.locator('[data-panel="traces"]').innerText(),/10 records/)
+   assert.match(await group.locator('[data-panel="logs"]').innerText(),/3 records/)
+   await nestedSettings.getByText('Layout settings',{exact:true}).click()
+   for(const name of ['Service','Team','Environment'])await nestedSettings.getByLabel(name+' binding',{exact:true}).fill('')
+   await submit(nestedSettings.getByRole('button',{name:'Save bindings',exact:true}));await page.reload()
+   assert.match(await nested.locator('[data-panel="traces"]').innerText(),/6 records/)
+   const inheritedLink=new URL(await nested.getByRole('link',{name:'Open underlying traces query'}).getAttribute('href'),origin)
+   assert.equal(inheritedLink.searchParams.get('team'),'commerce');assert.equal(inheritedLink.searchParams.get('environment'),'production');assert.equal(inheritedLink.searchParams.get('service'),'synthetic-porthole-6800')
    assert.equal(await page.locator('button,a').evaluateAll(nodes=>nodes.filter(n=>!n.textContent.trim()).length),0,'all touched controls have text labels')
    assert.ok(await page.locator('main p,main button,main label,main summary').evaluateAll(nodes=>nodes.every(n=>parseFloat(getComputedStyle(n).fontSize)>=13)))
   }

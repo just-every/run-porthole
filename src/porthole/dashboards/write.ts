@@ -38,6 +38,7 @@ export async function writeDashboard(request:Request,env:Bindings,actor:Authorit
     body=dashboardBody({...body,layout:[...(body.layout??body.panels.map(p=>({panel:p.id,width:12,height:1}))),{id:crypto.randomUUID(),title:label(data.title),width:12,height:1,collapsed:false,children:[],powerpack:{id:data.packId,revision:Number(data.packRevision)}}]})
    }
    if(url.pathname.endsWith('/layout')) {
+    if(!body.layout&&data.binding!==undefined)fail('dashboard_layout_required',400)
     if(!body.layout&&data.group==='all')body=dashboardBody({...body,layout:[{id:crypto.randomUUID(),title:previous.name,width:12,height:1,collapsed:false,children:body.panels.map(p=>({panel:p.id,width:12,height:1}))}]})
     else {
     if(!body.layout)fail('dashboard_layout_required',400)
