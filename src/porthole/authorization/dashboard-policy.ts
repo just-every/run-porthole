@@ -18,8 +18,8 @@ export async function releaseDashboards(env:Bindings,live:{sql:string;args:unkno
  const gate=dashboardPolicy('d',person,edit)
  const results=await env.DB.batch([
   env.DB.prepare(`SELECT 1 AS live WHERE ${live.sql}`).bind(...live.args),
-  ...rows.map(row=>env.DB.prepare(`SELECT d.id FROM porthole_dashboards d WHERE d.id=? AND d.revision=? AND ${live.sql} AND ${gate.sql}`).bind(row.id,row.revision,...live.args,...gate.args)),
+  env.DB.prepare(`SELECT COUNT(*) AS n FROM json_each(?) expected JOIN porthole_dashboards d ON d.id=json_extract(expected.value,'$.id') AND d.revision=json_extract(expected.value,'$.revision') WHERE ${live.sql} AND ${gate.sql}`).bind(JSON.stringify(rows),...live.args,...gate.args),
  ])
- if(results.some(result=>!result.results.length))fail('revision_or_authority_changed',409)
+ if(!results[0].results.length||(results[1].results[0] as {n:number}).n!==rows.length)fail('revision_or_authority_changed',409)
 }
 export const nativeRelease=(env:Bindings,actor:Authority,rows:{id:string;revision:number}[],edit=false)=>releaseDashboards(env,{sql:actor.fence,args:actor.args},actor.member.operatorId,rows,edit)

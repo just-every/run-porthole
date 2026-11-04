@@ -68,7 +68,8 @@ export async function dashboardReadResponse(request:Request,env:Bindings,princip
     return statements(fence)
    }})
    results=auth.results
-   live=(await credential({action:'definitions.read',scope:emptyScope,dataScope:allScope,inspectOnly:true})).fence
+   const released=(await credential({action:'definitions.read',scope:emptyScope,dataScope:allScope,inspectOnly:true})).fence
+   live={sql:`(${live.sql}) AND (${released.sql})`,args:[...live.args,...released.args]}
   } else results=await env.DB.batch(statements(live))
   const rows=results[0].results as unknown as DashboardRow[],headers={'x-porthole-actor':actorRef,'x-porthole-actor-revision':String(actorRevision)}
   await releaseDashboards(env,live,person,rows.slice(0,id?1:limit))
@@ -82,7 +83,7 @@ export async function dashboardReadResponse(request:Request,env:Bindings,princip
   const selected=version===undefined?rows[0]:(results[2].results as unknown as DashboardRow[])[0]
   if(!selected)fail('dashboard_version_not_found',404)
   const row=rows[0].state==='quarantined'?{...selected,state:'quarantined'}:selected
-  return json({...representation(row,scope,signals),versions:results[1].results.map(row=>(row as {revision:number}).revision)},200,{...headers,etag:`"${row.revision}"`,'x-porthole-entity':id})
+  return json({...representation(row,scope,signals),versions:results[1].results.map(row=>(row as {revision:number}).revision)},200,{...headers,etag:`"${row.revision}"`,'x-porthole-current-revision':String(rows[0].revision),'x-porthole-entity':id})
  } catch(error) {
   const known=error instanceof AuthError||error instanceof CredentialLimit,status=known?error.status:503,code=known?error.code:'dashboards_unavailable'
   return json({error:code,details:{code,status,requestId}},status,error instanceof CredentialLimit?{'retry-after':String(error.retryAfter)}:{})

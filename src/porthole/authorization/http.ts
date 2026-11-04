@@ -78,17 +78,19 @@ export async function dashboardPolicyResponse(request:Request,env:Bindings):Prom
    const id=url.searchParams.get('id')
    if(!id) {
     const rows=(await env.DB.prepare(`SELECT * FROM porthole_dashboards WHERE ${actor.fence}`).bind(...actor.args).all<{id:string;name:string;scope:string;revision:number}>()).results.filter(row=>scopeWithin(JSON.parse(row.scope),actor.member.scope))
+    const response=await document('Dashboard access',`${settingsNav}<p>Restrict dashboards for eligible native maintainers. These policies grant no role, credential, membership or telemetry rights.</p>${rows.map(row=>`<p><a href="${root}?id=${row.id}">${escape(row.name)}</a></p>`).join('')}`,200,{forms:true})
     await nativeRelease(env,actor,rows)
-    return document('Dashboard access',`${settingsNav}<p>Restrict dashboards for eligible native maintainers. These policies grant no role, credential, membership or telemetry rights.</p>${rows.map(row=>`<p><a href="${root}?id=${row.id}">${escape(row.name)}</a></p>`).join('')}`,200,{forms:true})
+    return response
    }
    const dashboard=await currentDashboard(env,actor,id),current=await policy(env,id)
    const members=(await env.DB.prepare("SELECT m.operator_id,m.revision,m.scope,o.display_name FROM porthole_members m JOIN oa_operators o ON o.id=m.operator_id WHERE m.role='maintainer' AND o.role='member' AND o.status='active'").all<{operator_id:string;revision:number;scope:string;display_name:string}>()).results.filter(row=>scopeWithin(JSON.parse(dashboard.scope),JSON.parse(row.scope)))
+   const response=await document('Dashboard access',`${settingsNav}<h2>${escape(dashboard.name)}</h2><p>Policy ${current?.revision??0} · ${escape(current?.state??'Inherited role access')}. Owners and admins retain existing authority. Entries apply only while the member revision and current scope still match.</p><h2>Eligible maintainers</h2>${members.map(row=>`<p>${escape(row.display_name)}: ${escape(row.operator_id)} · member revision ${row.revision}</p>`).join('')||'<p>No eligible maintainers.</p>'}<form method="post" action="${root}/preview">${hidden('dashboardId',id)}${hidden('dashboardRevision',dashboard.revision)}${hidden('policyRevision',current?.revision??0)}<label>Restrictions JSON<textarea name="entries" rows="10" required>${escape(current?.entries??'[]')}</textarea></label><p>Each entry uses operatorId, memberRevision and access: viewer or editor. Omitted members lose access. Empty entries keep access with owners and admins only.</p><button>Review restrictions</button></form>`,200,{forms:true})
    await nativeRelease(env,actor,[dashboard])
-   return document('Dashboard access',`${settingsNav}<h2>${escape(dashboard.name)}</h2><p>Policy ${current?.revision??0} · ${escape(current?.state??'Inherited role access')}. Owners and admins retain existing authority. Entries apply only while the member revision and current scope still match.</p><h2>Eligible maintainers</h2>${members.map(row=>`<p>${escape(row.display_name)}: ${escape(row.operator_id)} · member revision ${row.revision}</p>`).join('')||'<p>No eligible maintainers.</p>'}<form method="post" action="${root}/preview">${hidden('dashboardId',id)}${hidden('dashboardRevision',dashboard.revision)}${hidden('policyRevision',current?.revision??0)}<label>Restrictions JSON<textarea name="entries" rows="10" required>${escape(current?.entries??'[]')}</textarea></label><p>Each entry uses operatorId, memberRevision and access: viewer or editor. Omitted members lose access. Empty entries keep access with owners and admins only.</p><button>Review restrictions</button></form>`,200,{forms:true})
+   return response
   }
   if(request.method!=='POST')fail('method_not_allowed',405)
   const data=await input(request)
-  if(url.pathname.endsWith('/preview')) {const review=await preview(request,env,actor,data);return form?reviewPage(review):json(review,201)}
+  if(url.pathname.endsWith('/preview')) {const review=await preview(request,env,actor,data),response=form?await reviewPage(review):json(review,201);await nativeRelease(env,actor,[{id:review.dashboard_id,revision:review.dashboard_revision}]);return response}
   if(url.pathname.endsWith('/apply')) {const result=await apply(env,actor,data);return form?new Response(null,{status:303,headers:{...privateHeaders,location:root+'?id='+result.id}}):json(result)}
   fail('method_not_allowed',405)
  }catch(error) {

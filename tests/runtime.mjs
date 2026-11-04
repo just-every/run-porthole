@@ -51,7 +51,7 @@ async function withPinnedClock(now, run) {
   await command('Runtime.disable')
   const [,id]=await Promise.all([command('Runtime.enable'),context]);contextId=id
   await evaluate(`globalThis.__journeyDateNow=Date.now;Date.now=()=>${now}`);pinned=true
-  return await run(at=>evaluate(`Date.now=()=>${at}`))
+  return await run(at=>evaluate(`Date.now=()=>${at}`),evaluate)
  } finally {if(pinned)await evaluate('Date.now=globalThis.__journeyDateNow;delete globalThis.__journeyDateNow');connection.close()}
 }
 // The installed homepage reads the claim state from D1: run the emitted Worker
@@ -135,7 +135,7 @@ try {
   const setupPage=await fetch(`${origin}/setup`, { headers: { cookie } })
   assert.equal(setupPage.status,200)
   assert.match(await setupPage.text(),/Independent notices off — incomplete coverage/)
-  if(!process.env.PORTHOLE_PIPELINES_ONLY && !process.env.PORTHOLE_GENAI_ONLY && !process.env.PORTHOLE_NOTEBOOKS_ONLY && !process.env.PORTHOLE_METRIC_RULES_ONLY && !process.env.PORTHOLE_SLO_ONLY && !process.env.PORTHOLE_ERASURE_ONLY && !process.env.PORTHOLE_API_ONLY && !process.env.PORTHOLE_DASHBOARD_ONLY && !process.env.PORTHOLE_EXPORT_ONLY && !process.env.PORTHOLE_MIGRATION_ONLY && !process.env.PORTHOLE_PROTOCOL_ONLY && !process.env.PORTHOLE_INGEST_ONLY && !process.env.PORTHOLE_ACCESS_ONLY && !process.env.PORTHOLE_TRACE_ONLY && (process.env.PORTHOLE_HEALTH_ONLY==='1' || !process.env.PORTHOLE_AUDIT_ONLY && !process.env.PORTHOLE_STOCK_ONLY)) {
+  if(!process.env.PORTHOLE_OBJECT_GRANTS_ONLY && !process.env.PORTHOLE_PIPELINES_ONLY && !process.env.PORTHOLE_GENAI_ONLY && !process.env.PORTHOLE_NOTEBOOKS_ONLY && !process.env.PORTHOLE_METRIC_RULES_ONLY && !process.env.PORTHOLE_SLO_ONLY && !process.env.PORTHOLE_ERASURE_ONLY && !process.env.PORTHOLE_API_ONLY && !process.env.PORTHOLE_DASHBOARD_ONLY && !process.env.PORTHOLE_EXPORT_ONLY && !process.env.PORTHOLE_MIGRATION_ONLY && !process.env.PORTHOLE_PROTOCOL_ONLY && !process.env.PORTHOLE_INGEST_ONLY && !process.env.PORTHOLE_ACCESS_ONLY && !process.env.PORTHOLE_TRACE_ONLY && (process.env.PORTHOLE_HEALTH_ONLY==='1' || !process.env.PORTHOLE_AUDIT_ONLY && !process.env.PORTHOLE_STOCK_ONLY)) {
    const {healthBrowser}=await import('./porthole/health.mjs')
    await healthBrowser({origin,cookie,name:'setup-notices-off',path:'/setup',contains:'Independent notices off — incomplete coverage'})
   }
@@ -179,7 +179,10 @@ try {
     return await run({origin,cookie:destinationCookie,persist,...destinationHelpers,restartWorker})
    } finally {await restartWorker(()=>{persist=savedStore;ownerEmail=savedOwner})}
   }
-  if(process.env.PORTHOLE_PIPELINES_ONLY==='1') {
+  if(process.env.PORTHOLE_OBJECT_GRANTS_ONLY==='1') {
+   const {objectGrantsJourney}=await import('./porthole/object-grants.mjs')
+   await objectGrantsJourney({origin,cookie,restartWorker,withEmptyDestination,withPinnedClock,...helpers})
+  } else if(process.env.PORTHOLE_PIPELINES_ONLY==='1') {
    const {pipelineJourney,pipelineReadJourney}=await import('./porthole/pipelines.mjs')
    await pipelineJourney({origin,cookie,restartWorker,withEmptyDestination,withPinnedClock,...helpers})
    await pipelineReadJourney({origin,restartWorker,...helpers})
@@ -221,6 +224,8 @@ try {
   } else if(process.env.PORTHOLE_DASHBOARD_ONLY==='1') {
    const {dashboardJourney}=await import('./porthole/dashboards.mjs')
    await dashboardJourney({origin,cookie,restartWorker,withEmptyDestination,...helpers})
+   const {objectGrantsJourney}=await import('./porthole/object-grants.mjs')
+   await objectGrantsJourney({origin,cookie,restartWorker,withEmptyDestination,withPinnedClock,...helpers})
    const {nativeLogSearchJourney}=await import('./porthole/explore.mjs')
    await nativeLogSearchJourney({origin,cookie:await helpers.freshOwner()})
   } else if(process.env.PORTHOLE_API_ONLY==='1') {

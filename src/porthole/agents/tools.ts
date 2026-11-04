@@ -4,7 +4,9 @@ import type { Bindings } from '../../auth.server'
 import { queryResponse } from '../query/http'
 import { apiResponse } from '../api/http'
 import { dashboardReadResponse } from '../dashboards/api-read'
-import { agentReadAuthority } from '../security/agent-read'
+import { agentReadAuthority,agentCredential } from '../security/agent-read'
+import {releaseDashboards} from '../authorization/dashboard-policy'
+import {allScope,emptyScope} from '../security/authority'
 import { CredentialLimit } from '../credentials/verify'
 
 const querySchema = {
@@ -23,6 +25,17 @@ async function nativeResult(response:Response|null) {
   throw new ToolRefusal(typeof value.error==='string'?value.error:'native_refusal',undefined,Number.isSafeInteger(retryAfter)&&retryAfter>0?{retryAfter}:{})
  }
  return {result:value}
+}
+/** Hold the original sponsor and credential revisions through result release. */
+async function dashboardFence(env:Bindings,ctx:ToolContext) {
+ const who=principal(ctx),actor=await agentReadAuthority(env,who)
+ const inspect=()=>agentCredential(new Request(env.AUTH_ORIGIN+'/mcp'),env,who,{action:'definitions.read',scope:emptyScope,dataScope:allScope,inspectOnly:true})
+ const initial=who.clientId?(await inspect()).fence:null
+ return async(rows:{id:string;revision:number}[])=>{
+  let live={sql:actor.fence,args:actor.args}
+  if(initial) {const current=(await inspect()).fence;live={sql:`(${live.sql}) AND (${initial.sql}) AND (${current.sql})`,args:[...live.args,...initial.args,...current.args]}}
+  await releaseDashboards(env,live,actor.member.operatorId,rows)
+ }
 }
 export function readTools(env:Bindings):ToolDefinition[] {
  const shared={readOnly:true,classes:['sensitive' as const],untrusted:true,
@@ -47,12 +60,16 @@ export function readTools(env:Bindings):ToolDefinition[] {
    const url=new URL(root+(args.id===undefined?'':'/'+args.id),env.AUTH_ORIGIN)
    for(const key of ['cursor','limit','version'])if(args[key]!==undefined)url.searchParams.set(key,String(args[key]))
    const request=new Request(url)
-   return nativeResult(args.collection==='dashboards'?await dashboardReadResponse(request,env,principal(ctx)):await apiResponse(request,env,principal(ctx)))
+   if(args.collection!=='dashboards')return nativeResult(await apiResponse(request,env,principal(ctx)))
+   const release=await dashboardFence(env,ctx),response=await dashboardReadResponse(request,env,principal(ctx)),answer=await nativeResult(response)
+   const value=answer.result as {objects?:{id:string;revision:number}[];id:string;revision:number}
+   await release(value.objects??[{id:value.id,revision:Number(response.headers.get('x-porthole-current-revision'))}])
+   return answer
   },
  },{name:'porthole.workspace.snapshot',title:'Read visible workspace fingerprint',description:'Fingerprint the current sponsor-visible native definitions without returning their content.',scope:'definitions.read',readOnly:true,classes:['standard'],clauses:['PORT-026','PORT-033'],inputSchema:{type:'object',additionalProperties:false,properties:{}},outputSchema:{type:'object',required:['definitions'],properties:{definitions:{type:'object'}}},
   async classify(_args:Record<string,unknown>,ctx:ToolContext){await agentReadAuthority(env,principal(ctx));return [{class:'standard',facts:{measure:1}}]},
   async run(_args:Record<string,unknown>,ctx:ToolContext){
-   const definitions:Record<string,unknown>={}
+   const definitions:Record<string,unknown>={},dashboardRows:{id:string;revision:number}[]=[],release=await dashboardFence(env,ctx)
    for(const collection of ['monitors','repairs','dashboards']){
     const objects:unknown[]=[];let cursor:string|null=null
     do {
@@ -61,10 +78,12 @@ export function readTools(env:Bindings):ToolDefinition[] {
      const response=collection==='dashboards'?await dashboardReadResponse(new Request(url),env,principal(ctx)):await apiResponse(new Request(url),env,principal(ctx))
      const {result}=await nativeResult(response),page=result as {objects:unknown[];cursor:string|null}
      objects.push(...page.objects);cursor=page.cursor
+     if(collection==='dashboards')dashboardRows.push(...page.objects as {id:string;revision:number}[])
     }while(cursor)
     const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify(objects)))
     definitions[collection]={rows:objects.length,sha256:Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join('')}
    }
+   await release(dashboardRows)
    return {result:{definitions}}
   },
  }]

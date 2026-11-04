@@ -86,3 +86,30 @@ async function nativeEdits({origin,cookie,width,monitorId,dashboardId,previousMo
   if(process.env.PORTHOLE_EVIDENCE_DIR)await page.screenshot({path:join(process.env.PORTHOLE_EVIDENCE_DIR,`terraform-dashboard-${width}.png`),fullPage:true})
  }finally{await browser.close()}
 }
+
+/** Actual provider applies an editor change and refuses the viewer write unchanged. */
+export async function dashboardPolicyTerraform({origin,session,a,b,definition}) {
+ const directory=await mkdtemp(join(tmpdir(),'porthole-policy-terraform-')),binary=process.env.PORTHOLE_TERRAFORM??'terraform',provider=resolve(process.env.PORTHOLE_TERRAFORM_PROVIDER??'.cache/toolchains/terraform-provider-porthole')
+ const configuration={terraform:{required_providers:{porthole:{source,version:'0.1.0'}}},provider:{porthole:{origin}},resource:{porthole_dashboard:{a:{name:a.name,scope_json:JSON.stringify(a.scope),definition_json:JSON.stringify(a.body)},b:{name:b.name,scope_json:JSON.stringify(b.scope),definition_json:JSON.stringify(b.body)}}}}
+ try {
+  const target=join(directory,'providers',source,'0.1.0',platform()==='darwin'?'darwin_'+(arch()==='arm64'?'arm64':'amd64'):'linux_'+(arch()==='arm64'?'arm64':'amd64'))
+  await mkdir(target,{recursive:true});await copyFile(provider,join(target,'terraform-provider-porthole_v0.1.0'))
+  const cliConfig=join(directory,'terraform.rc');await writeFile(cliConfig,`provider_installation {\n filesystem_mirror {\n path = ${JSON.stringify(join(directory,'providers'))}\n include = [${JSON.stringify(source)}]\n }\n}\n`)
+  const env={...process.env,TF_CLI_CONFIG_FILE:cliConfig,TF_IN_AUTOMATION:'1',TF_INPUT:'0',TF_LOG:'',TF_LOG_PATH:'',PORTHOLE_SESSION:session,GOMAXPROCS:'2'}
+  delete env.PORTHOLE_CREDENTIAL
+  const tf=async(args)=>execute(binary,['-chdir='+directory,...args],{env,maxBuffer:4*1024*1024,timeout:60000}).then(value=>({...value,code:0}),error=>({stdout:error.stdout??'',stderr:error.stderr??'',code:error.code}))
+  const ok=async args=>{const result=await tf(args);assert.equal(result.code,0,result.stdout+'\n'+result.stderr);assert.ok(!result.stdout.includes(session)&&!result.stderr.includes(session));return result}
+  const save=()=>writeFile(join(directory,'main.tf.json'),JSON.stringify(configuration))
+  await save();await ok(['init','-no-color'])
+  await ok(['import','-no-color','porthole_dashboard.a',a.id]);await ok(['import','-no-color','porthole_dashboard.b',b.id])
+  await ok(['plan','-no-color','-detailed-exitcode'])
+  configuration.resource.porthole_dashboard.a.name='Policy A changed by Terraform';await save()
+  await ok(['apply','-no-color','-auto-approve','-parallelism=1'])
+  const unchanged=await (await fetch(origin+'/api/porthole/v1/dashboards/'+b.id,{headers:{cookie:session}})).json()
+  configuration.resource.porthole_dashboard.b.name='Policy B forbidden Terraform edit';await save()
+  const denied=await tf(['apply','-no-color','-auto-approve','-parallelism=1'])
+  assert.equal(denied.code,1);assert.match(denied.stderr,/dashboard_not_found/)
+  assert.deepEqual(await (await fetch(origin+'/api/porthole/v1/dashboards/'+b.id,{headers:{cookie:session}})).json(),unchanged)
+  const state=await readFile(join(directory,'terraform.tfstate'),'utf8');assert.ok(!state.includes(session))
+ }finally{await rm(directory,{recursive:true,force:true})}
+}

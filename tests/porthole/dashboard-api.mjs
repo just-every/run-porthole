@@ -113,3 +113,23 @@ export async function dashboardApiJourney({origin,cookie,freshOwner,signIn}) {
  assert.equal((await cli(['list','dashboards','--all'],{secret:all.secret})).code,1)
  console.log('Dashboard API journey passed: scoped HTTP, CLI and MCP, panel signal and historical authority, durable native mutations, quota and revocation')
 }
+
+/** The CLI uses the same native policy as UI and REST; it cannot widen roles. */
+export async function dashboardPolicyTransports({origin,cookie,session,a,b,definition}) {
+ const cli=(args,body)=>new Promise((resolve,reject)=>{
+  const childEnv={...process.env,PORTHOLE_SESSION:session};delete childEnv.PORTHOLE_CREDENTIAL
+  const child=spawn(process.execPath,['cli/porthole.mjs',origin,...args],{env:childEnv,stdio:['pipe','pipe','pipe']})
+  let stdout='',stderr='';child.stdout.on('data',chunk=>stdout+=chunk);child.stderr.on('data',chunk=>stderr+=chunk);child.on('error',reject);child.on('exit',code=>resolve({code,stdout,stderr}));child.stdin.end(body?JSON.stringify(body):'')
+ })
+ const current=await cli(['get','dashboards',a.id]);assert.equal(current.code,0,current.stderr)
+ const changed=await cli(['update','dashboards',a.id,'--revision',String(a.revision),'--key',randomUUID()],definition('Policy A changed by CLI'))
+ assert.equal(changed.code,0,changed.stderr)
+ const denied=await cli(['update','dashboards',b.id,'--revision',String(b.revision),'--key',randomUUID()],definition('Policy B denied by CLI'))
+ assert.equal(denied.code,1);assert.match(denied.stderr,/404/)
+ const history=await cli(['get','dashboards',b.id,'--version','1']);assert.equal(history.code,0,history.stderr)
+ const mint=await fetch(origin+'/app/settings/credentials/mint',{method:'POST',headers:{origin,cookie:session,'content-type':'application/json'},body:JSON.stringify({})});assert.equal(mint.status,403,'object editor cannot mint a credential')
+ await localAgentPolicy(origin,cookie)
+ const {policyAgentRefusals}=await import('../agent-door/journey.mjs')
+ await policyAgentRefusals({origin,cookie,session,dashboardId:b.id})
+ return JSON.parse(changed.stdout)
+}

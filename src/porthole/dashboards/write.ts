@@ -19,7 +19,14 @@ export async function writeDashboard(request:Request,env:Bindings,actor:Authorit
   const fingerprint=canonical({path:url.pathname,data})
   const lookup=()=>env.DB.prepare(`SELECT fingerprint,response FROM porthole_api_idempotency WHERE actor_ref=? AND request_key=? AND ${actor.fence}`).bind(actor.member.operatorId,key,...actor.args).first<{fingerprint:string;response:string}>()
   const cached=key?await lookup():null
-  if(cached) {if(cached.fingerprint!==fingerprint)fail('idempotency_conflict',409);const value=JSON.parse(cached.response);const source=await currentDashboard(env,actor,typeof data.id==='string'?data.id:value.id,true);await nativeRelease(env,actor,[source],true);return result(value,true)}
+  if(cached) {
+   if(cached.fingerprint!==fingerprint)fail('idempotency_conflict',409)
+   const value=JSON.parse(cached.response),source=await currentDashboard(env,actor,typeof data.id==='string'?data.id:value.id,true)
+   const target=source.id===value.id?source:await currentDashboard(env,actor,value.id)
+   await nativeRelease(env,actor,[source],true)
+   if(target.id!==source.id)await nativeRelease(env,actor,[target])
+   return result(value,true)
+  }
   const previous=typeof data.id==='string'?await currentDashboard(env,actor,data.id,true):null,now=Date.now()
   if(previous&&Number(data.revision)!==previous.revision)fail('revision_or_authority_changed',409)
   let body:Dashboard,name:string,scope:Scope,state='active',id=previous?.id??crypto.randomUUID(),revision=(previous?.revision??0)+1
