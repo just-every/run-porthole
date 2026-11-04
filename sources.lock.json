@@ -348,6 +348,18 @@
       "sha256": "50eb423f2ced958ca6053c13f281977276eca09a238dc0276aecbb82d8c80599",
       "executable": false
     },
+    "collectors/database/collector.mjs": {
+      "sha256": "cca1159d03b033fdaa78ed65f8d6a07d21c3d84b839c7c6b3abec81a36b6cbdf",
+      "executable": false
+    },
+    "collectors/database/privacy.d.mts": {
+      "sha256": "22edc67a5861182ce0e2084ec3091b9da236b0407833d021586bc9c480379fa7",
+      "executable": false
+    },
+    "collectors/database/privacy.mjs": {
+      "sha256": "34328c9bae99aa84e2e1b8993182e19acbc8c06d7efe3b11db5421f29043b86b",
+      "executable": false
+    },
     "collectors/heartbeat/process.mjs": {
       "sha256": "811a054c35c37aca8a72b2222094709d5b0794cde2c13a848ea31aae6bc5c7ee",
       "executable": false
@@ -381,7 +393,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "b1130a9935bd8022ef392d41ce58103d31518b410ccde78d85344a43025da20d",
+      "sha256": "14f9307a968e108ca7a76500abd9f10d2ffe37d4b164543c3c564d7ebbc2bb77",
       "executable": false
     },
     "DEMO.md": {
@@ -836,6 +848,10 @@
       "sha256": "4c29df9b94811714e649393cb7e6167c894824d117c1f5bf67674fca1fd4b9b2",
       "executable": false
     },
+    "migrations/core/0060_porthole_database.sql": {
+      "sha256": "7ab7cc9b2ad79729cf45262b3598c68a2d475a2f4fff3ed5f4c772f25b8abcd1",
+      "executable": false
+    },
     "ONBOARDING.md": {
       "sha256": "3bfe0cb88ac22d51ebe29ff54d0143219096c0ac07eb3b2b81c574c5baf57332",
       "executable": false
@@ -849,7 +865,7 @@
       "executable": false
     },
     "package.json": {
-      "sha256": "07fcd55201f629a7d40fb6978a7b0d9dca4a8487df0688fc1e70ce15d87aa2c6",
+      "sha256": "763d76ae097f2542092bb870fd191013f6572283407dfbfab020d7a4aab100c4",
       "executable": false
     },
     "packaging.json": {
@@ -857,7 +873,7 @@
       "executable": false
     },
     "pnpm-lock.yaml": {
-      "sha256": "69ced966a25d1370aa875a2c6bef6b596bb767fcaae75c01b9135e1d9d6c4319",
+      "sha256": "4e197e1128a1da27d901e2b0f2eebcdc0b0100ff458b85b4fffed9d8f96a15ff",
       "executable": false
     },
     "public/brand/apple-touch-icon.png": {
@@ -4604,8 +4620,20 @@
       "sha256": "759e59ea16afd555471c090a23d7f195a09f319d5be884618a41844a99d4c811",
       "executable": false
     },
+    "src/porthole/database/http.ts": {
+      "sha256": "1fb161818f754baa4a2257f6819d210d6c0fdf425303495ddf50405e5ad64587",
+      "executable": false
+    },
+    "src/porthole/database/model.ts": {
+      "sha256": "38fe5702e20b93adf4652d040d1e3d91cc5b47f6edcd5ce213ce908778d6be3d",
+      "executable": false
+    },
+    "src/porthole/database/privacy.ts": {
+      "sha256": "8419306ba7d07a3308a50fa2b39741e2a1ee9129a4b215b171ecf15b40d94501",
+      "executable": false
+    },
     "src/porthole/document.ts": {
-      "sha256": "4db0d96559bf7750933564a19918507911da460ed0b150c16dbee84428392d9a",
+      "sha256": "a0e8ccd6016f343b339a7568d74f7a774abc64eb2b4041dfd41f443e47b4fcf0",
       "executable": false
     },
     "src/porthole/explore/lucene.ts": {
@@ -4705,7 +4733,7 @@
       "executable": false
     },
     "src/porthole/http.ts": {
-      "sha256": "4fc2dec2e703d1ac6a17989364a61e7eb0d5273a798e3cebb7486ae007a7fda5",
+      "sha256": "2ff726f2036646072f01d5c9298a5d40359d1ee1a68d3dc35d6b6a30f7e44bc5",
       "executable": false
     },
     "src/porthole/ingest/http.ts": {
@@ -4741,7 +4769,7 @@
       "executable": false
     },
     "src/porthole/ingest/store.ts": {
-      "sha256": "2bd18fc5af978288c44cd8bd5a3a178381e60bd1005080a7714fbf9dd114bd23",
+      "sha256": "161e8d13632637ce2d4d10e7f59fb994fe92737ddb9e9503804b4dbe03212396",
       "executable": false
     },
     "src/porthole/ingest/vendor.ts": {
@@ -5037,7 +5065,7 @@
       "executable": false
     },
     "src/porthole/pipelines/intake.ts": {
-      "sha256": "4d0d8d7868e568d8a8c523514a6367c0aecaabb9889d045206ec24f6c80546fc",
+      "sha256": "f95c33eed16155015386bb0b689837f0961989dc618f2d00c0f75abb836dcfa8",
       "executable": false
     },
     "src/porthole/pipelines/model.ts": {

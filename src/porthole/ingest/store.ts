@@ -8,7 +8,7 @@ import { allScope, emptyScope } from '../security/authority'
 import { authorizeRecords } from './normalize'
 import { base64, canonical, IntakeError, type Signal, type TelemetryRecord } from './model'
 
-interface Envelope { id: string; digest: string; identity: string; signal: Signal; protocol: string; wire: Uint8Array; records: TelemetryRecord[] }
+interface Envelope { id: string; digest: string; identity: string; signal: Signal; protocol: string; wire: Uint8Array; records: TelemetryRecord[]; gate?: {sql:string;args:unknown[]} }
 interface Fence { sql: string; args: unknown[] }
 const groups = (records: TelemetryRecord[], scope: CredentialScope) => {
  const grouped = new Map<string,{team:string;service:string;environment:string;count:number|null}>()
@@ -67,9 +67,9 @@ export async function acceptEnvelope(request: Request, env: Bindings, envelope: 
     const duplicateArgs = [hash,envelope.signal,envelope.identity,envelope.digest]
     const pressure = '(SELECT COALESCE(SUM(byte_count),0) FROM porthole_ingest_batches WHERE state=\'pending\')+?>(SELECT max_pending_bytes FROM porthole_ingest_control WHERE singleton=1)'
     return [env.DB.prepare(`INSERT INTO porthole_ingest_batches(id,sequence,source_id,signal,identity,digest,protocol,accepted_at,byte_count,record_count,wire_base64,records)
-     SELECT ?,(SELECT COALESCE(MAX(sequence),0)+1 FROM porthole_ingest_batches),c.id,?,?,?,?,?,?,?,?,? FROM porthole_credentials c WHERE c.secret_hash=? AND ${fence.sql}
+     SELECT ?,(SELECT COALESCE(MAX(sequence),0)+1 FROM porthole_ingest_batches),c.id,?,?,?,?,?,?,?,?,? FROM porthole_credentials c WHERE c.secret_hash=? AND ${fence.sql} AND (${envelope.gate?.sql??'1'})
      AND ${journalAvailable?'NOT EXISTS(SELECT 1 FROM porthole_erased_batches WHERE content_digest=?)':"NOT EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name='porthole_erased_batches')"} AND ${pipeline?.available?'COALESCE((SELECT MAX(revision) FROM porthole_pipeline_versions),0)='+pipeline.revision:'1'} AND NOT (${pressure}) ON CONFLICT(source_id,signal,identity) DO NOTHING`)
-     .bind(envelope.id,envelope.signal,envelope.identity,envelope.digest,envelope.protocol,now,bufferedBytes,envelope.records.length,encodedWire,encodedRecords,hash,...fence.args,...(journalAvailable?[envelope.digest]:[]),bufferedBytes),
+     .bind(envelope.id,envelope.signal,envelope.identity,envelope.digest,envelope.protocol,now,bufferedBytes,envelope.records.length,encodedWire,encodedRecords,hash,...fence.args,...(envelope.gate?.args??[]),...(journalAvailable?[envelope.digest]:[]),bufferedBytes),
      ...eventStatements(env,hash,envelope.signal,envelope.records,scope,'duplicate','batch_retried',null,fence,`${same} AND NOT EXISTS(SELECT 1 FROM porthole_ingest_batches WHERE id=?)`,[...duplicateArgs,envelope.id]),
      ...eventStatements(env,hash,envelope.signal,envelope.records,scope,'rejected','batch_identity_conflict',null,fence,`${exists} AND NOT (${same})`,[hash,envelope.signal,envelope.identity,...duplicateArgs]),
      ...eventStatements(env,hash,envelope.signal,envelope.records,scope,'rejected','queue_pressure',null,fence,`NOT (${exists}) AND ${pressure}`,[hash,envelope.signal,envelope.identity,bufferedBytes]),
@@ -81,6 +81,7 @@ export async function acceptEnvelope(request: Request, env: Bindings, envelope: 
   const erased=journalAvailable&&await env.DB.prepare('SELECT 1 FROM porthole_erased_batches WHERE content_digest=?').bind(envelope.digest).first()
   if(erased)throw new IntakeError('erased_batch_refused',409)
   if (!row) {
+   if(envelope.gate&&!await env.DB.prepare(`SELECT 1 WHERE ${envelope.gate.sql}`).bind(...envelope.gate.args).first())throw new IntakeError('database_review_changed',409)
    if(pipeline?.available&&(await current(env)).revision!==pipeline.revision)throw new IntakeError('pipeline_revision_changed',409)
    throw new IntakeError('queue_pressure',429,5)
   }
