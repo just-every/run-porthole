@@ -111,10 +111,15 @@ export async function analyticalEstate() {
    await execute(process.execPath,[wrangler,'d1','migrations','apply','DB','--local','--config',server.config,'--persist-to',server.persist],{cwd:scratch,env});await start(server)
   }
   const find=role=>servers.find(server=>server.role===role)
-  const services=Object.fromEntries(servers.map(server=>['ANALYTICS_'+server.role.toUpperCase(),request=>analyticalTransport(server.origin,request)]))
+  let afterQuery
+  const services=Object.fromEntries(servers.map(server=>['ANALYTICS_'+server.role.toUpperCase(),async request=>{
+   const response=await analyticalTransport(server.origin,request)
+   if(afterQuery&&new URL(request.url).pathname==='/v1/query'){const run=afterQuery;afterQuery=undefined;await run(response.clone())}
+   return response
+  }]))
   const bindings=Object.fromEntries(servers.map(server=>['ANALYTICS_'+server.role.toUpperCase()+'_TOKEN',server.token]))
   const inspect=async role=>JSON.parse((await execute(process.execPath,[wrangler,'d1','execute','DB','--local','--config',find(role).config,'--persist-to',find(role).persist,'--json','--command','SELECT * FROM analytics_records'],{cwd:scratch,env})).stdout).flatMap(result=>result.results??[])
-  return {inspect,bindings,services,stop:role=>stop(find(role)),start:role=>start(find(role)),dispose,origin:role=>find(role).origin}
+  return {afterQuery:run=>{afterQuery=run},inspect,bindings,services,stop:role=>stop(find(role)),start:role=>start(find(role)),dispose,origin:role=>find(role).origin}
  }catch(error){await dispose();throw error}
 }
 
@@ -285,6 +290,8 @@ export async function analyticalConnectionJourney() {
    } finally {await destination.dispose()}
    const {nativeLogSearchJourney}=await import('./explore.mjs')
    await nativeLogSearchJourney({origin,cookie:nextOwner,call,backend:'analytical'})
+   const {logClusterAnalyticalProof}=await import('./log-clusters.mjs')
+   await logClusterAnalyticalProof({context,estate,cookie:nextOwner})
    const candidate=(await promisify(execFile)('git',['rev-parse','HEAD'])).stdout.trim()
    console.log('PORTHOLE_ANALYTICAL_RUN '+JSON.stringify({runId:'sx-porthole-c7-recovery-20261022',head:candidate,result:'passed'}))
    console.log('analyticalConnectionJourney passed: real independent primary/standby processes, product query/health/monitor, collector outage and direct provider-edge notice, behind refusal, explicit failover/failback, bounded 20/3 backlog, original ns and no duplicate records/notices')
@@ -292,3 +299,40 @@ export async function analyticalConnectionJourney() {
  }finally{if(collector?.exitCode===null&&collector.signalCode===null){const stopped=new Promise(resolve=>collector.once('exit',resolve));collector.kill('SIGTERM');await stopped}await estate.dispose()}
 }
 if(process.argv[1]===new URL(import.meta.url).pathname)await analyticalKernelJourney()
+
+/** The same stock estate is read through actual primary and standby Workers. */
+export async function servicesAnalyticalJourney() {
+ const estate=await analyticalEstate()
+ try{
+  const {recipientMailJourney}=await import('./health.mjs'),{fixture}=await import('./fixture.mjs')
+  await recipientMailJourney({bindings:estate.bindings,services:estate.services,run:async context=>{
+   const {origin,call,post,getDb,restart,sessionSecret,ownerEmail}=context
+   const sql=async statement=>(await getDb().prepare(statement).all()).results
+   const restartWorker=async change=>{await change?.();await restart()}
+   const helpers=fixture({origin,sql,restartWorker,sessionSecret,ownerEmail,call})
+   let cookie=await helpers.freshOwner()
+   const read=async path=>{const response=await call(path,{headers:{cookie}});assert.equal(response.status,200,await response.clone().text());return response.json()}
+   const configure=async role=>{const c=await read('/api/porthole/v1/analytics/configuration');await post('/api/porthole/v1/analytics/configuration',{revision:c.revision,role,enabled:true,confirm:'connect-analytical-workers'})}
+   await configure('primary')
+   await post('/api/porthole/v1/analytics/reconcile',{})
+   const {servicesJourney,servicesBrowser}=await import('./services.mjs')
+   const result=await servicesJourney({origin,call,sql,restartWorker,...helpers,analytical:true,browserDispatch:(url,options)=>call(new URL(url).pathname+new URL(url).search,options)})
+   cookie=await helpers.freshOwner()
+   const primary=await read('/api/porthole/v1/services'+result.query)
+   assert.equal(primary.backend.role,'primary')
+   const checkout=primary.services.find(service=>service.id===result.checkoutId)
+   assert.ok(checkout.associations.some(row=>row.kind==='database'&&row.observations>=36),'the selected primary supplies actual database evidence')
+   assert.ok(checkout.alerts.every(row=>row.currentMetadata.revision===3&&row.metadataAtFirstFiring.revision===2),'control-plane firing context retains both reviewed revisions with analytical reads')
+   assert.equal(checkout.alerts.length,2,'both actually firing scoped monitors survive restart')
+   await configure('standby')
+   const standby=await read('/api/porthole/v1/services'+result.query)
+   assert.equal(standby.backend.role,'standby');assert.deepEqual(standby.services,primary.services);assert.deepEqual(standby.edges,primary.edges)
+   await estate.stop('standby')
+   assert.equal((await call('/api/porthole/v1/services'+result.query,{headers:{cookie}})).status,503,'no fabricated local fallback when selected analytical process is stopped')
+   await servicesBrowser({origin,cookie,path:'/app/services'+result.query,contains:'analytics',status:503,name:'services-storage-unavailable',dispatch:(url,options)=>call(new URL(url).pathname+new URL(url).search,options)})
+   await estate.start('standby')
+   assert.deepEqual((await read('/api/porthole/v1/services'+result.query)).services,primary.services)
+   console.log('PROBE PORT-008 backends: selected real primary and standby -> identical source-checked catalog; stopped selected process -> 503; restart -> exact history and counters')
+  }})
+ }finally{await estate.dispose()}
+}

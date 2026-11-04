@@ -1,8 +1,8 @@
 import {readFileSync,writeFileSync,mkdirSync,existsSync} from 'node:fs'
 import {parseContract} from '../../src/base/seed-contract.mjs'
 
-// Preserve the legacy contract until ct's judged conversion. This adapter only
-// refreshes selected journey status, evidence and gaps, plus derived counts.
+// Preserve legacy journey bytes while reading standard bodies from the parser.
+// Refresh selected journey status, evidence and gaps, plus derived counts.
 const [command,...args]=process.argv.slice(2)
 const selected=(args[0]==='--clauses'?args.slice(1):args).flatMap(ids=>ids.split(','))
 if(!['write','check'].includes(command)||!selected.length)throw Error('Use write or check with clause IDs, or --clauses followed by comma-separated clause IDs.')
@@ -23,9 +23,8 @@ acceptance=acceptance.replace(/\d+ are \*\*done\*\*, \d+ are \*\*partial\*\* and
 for(const id of selected){
  const clause=contract.clauses.find(clause=>clause.id===id)
  if(!clause)throw Error('Unknown clause: '+id)
- const definition=source.split('\n').find(line=>line.startsWith('**'+id+' — '))
- if(!definition?.includes('**Acceptance evidence:** '))throw Error('Selected clause needs its existing acceptance evidence: '+id)
- const outcome=definition.split('**Acceptance evidence:** ')[1]
+ const definition=source.split('\n')[clause.line-1]
+ const outcome=definition.includes('**Acceptance evidence:** ')?definition.split('**Acceptance evidence:** ')[1]:clause.text
  const cells=source.split('\n').find(line=>line.startsWith('| `'+id+'` |')).split(/(?<!\\)\|/).map(cell=>cell.trim())
  const rows=acceptance.split('\n');let index=rows.findIndex(line=>line.startsWith('- **'+id+' — '))
  if(index<0){

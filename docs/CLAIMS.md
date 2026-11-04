@@ -3,15 +3,15 @@
 
 | Claim | Section | Clauses | Status |
 | --- | --- | --- | --- |
-| Porthole collects every trace, metric, log and profile | 01 hero | `PORT-001` partial; `PORT-009` missing; `PORT-011` missing; `PORT-014` missing; `PORT-015` missing | partial |
+| Porthole collects every trace, metric, log and profile | 01 hero | `PORT-001` partial; `PORT-009` missing; `PORT-011` partial; `PORT-014` missing; `PORT-015` missing | partial |
 | It follows each slow request to the query or deploy behind it | 01, 03 | `PORT-009` missing; `PORT-016` missing; `PORT-022` missing | missing |
 | It readies the fix (a rollback a named person approves) and proves recovery against the SLO | 01, 04 | `PORT-028` missing; `PORT-029` missing; `PORT-021` partial | partial |
 | Logs are archived in the customer's own bucket (R2, Parquet), readable without Porthole | 01, 09, 11 | `PORT-013` missing; `PORT-061` partial | partial |
 | An alternative to Datadog, New Relic and Grafana Cloud | 01 | `PORT-024` missing; `PORT-039` missing; `PORT-040` missing; `PORT-041` missing | missing |
-| Every service is discovered from its own traffic with owner, rate, p95 and errors, on one service map | 02 | `PORT-008` missing; `PORT-001` partial | partial |
+| Every service is discovered from its own traffic with owner, rate, p95 and errors, on one service map | 02 | `PORT-008` partial; `PORT-001` partial | partial |
 | Services keep their OpenTelemetry SDKs and the Datadog Agent unchanged | 02, 10 | `PORT-001` partial; `PORT-002` missing | partial |
 | A trace opens down to its slow span, the query, its plan (Seq Scan, rows removed) and the deploy that changed it | 03 | `PORT-009` missing; `PORT-016` missing; `PORT-022` missing | missing |
-| A log line is linked to its trace by traceparent | 03, 09 | `PORT-011` missing | missing |
+| A log line is linked to its trace by traceparent | 03, 09 | `PORT-011` partial | partial |
 | A profile shows where the slow span's time went (off-CPU, pgx Query) | 03 | `PORT-015` missing | missing |
 | Slow traces are compared with the baseline by attribute (db.statement, service.version) | 03 | `PORT-009` missing; `PORT-085` missing | missing |
 | A p95 monitor fires and pages the on-call through Oncall and Slack | 04 | `PORT-019` missing; `PORT-020` missing; `PORT-051` missing; `PORT-066` missing | missing |
@@ -21,7 +21,7 @@
 | Lamp's status component and Vector's follow-up get the incident's evidence | 04 | `PORT-051` missing; `PORT-053` missing; `PORT-059` done | partial |
 | Kubernetes OOM kills arrive as events with pod memory, owner and cluster | 05 | `PORT-007` missing | missing |
 | The agent explains a quiet failure without paging and opens the resize pull request a team merges | 05, 06 | `PORT-020` missing; `PORT-028` missing; `PORT-029` missing; `PORT-082` missing | missing |
-| The agent instruments an untraced service by pull request; coverage goes to 46 of 46 | 07 | `PORT-030` missing; `PORT-004` done; `PORT-008` missing | partial |
+| The agent instruments an untraced service by pull request; coverage goes to 46 of 46 | 07 | `PORT-030` missing; `PORT-004` done; `PORT-008` partial | partial |
 | Noisy monitors are retuned by pull request after a replay against history | 07 | `PORT-030` missing; `PORT-019` missing; `PORT-026` partial | partial |
 | A tag that multiplies a metric's series is caught and fixed by a merged pull request | 08 | `PORT-023` missing; `PORT-083` missing; `PORT-014` missing | missing |
 | A debug log nobody reads is dropped by an approved rule, error lines kept | 08 | `PORT-023` missing; `PORT-012` missing; `PORT-030` missing | missing |
@@ -41,7 +41,7 @@
 
 These are contract statuses, not a claim that a partial or missing capability is complete. Read the [product contract](/docs/contract) for requirements, named journeys and remaining work.
 
-10 done, 18 partial, 70 missing; 98 total.
+10 done, 20 partial, 69 missing; 99 total.
 
 | Clause | Capability | Status |
 | --- | --- | --- |
@@ -67,13 +67,14 @@ These are contract statuses, not a claim that a partial or missing capability is
 | PORT-005 | Cloud and serverless integrations | missing |
 | PORT-006 | Technology integration library | missing |
 | PORT-007 | Infrastructure and Kubernetes explorer | missing |
-| PORT-008 | APM and service catalog | missing |
+| PORT-008 | APM and service catalog | partial |
 | PORT-009 | Trace explorer | missing |
 | PORT-010 | Sampling that keeps what matters | partial |
-| PORT-011 | Log management | missing |
+| PORT-011 | Log management | partial |
 | PORT-012 | Log pipelines | missing |
 | PORT-013 | Tiered storage and archives | missing |
 | PORT-014 | Metrics engine | missing |
+| PORT-099 | Range-wide metric unit semantics | missing |
 | PORT-015 | Continuous profiling | missing |
 | PORT-016 | Database monitoring | missing |
 | PORT-017 | Frontend and mobile performance | missing |
