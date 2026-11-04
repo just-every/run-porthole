@@ -24,23 +24,14 @@ A nonempty expression with the visual dialect refuses. Explicit empty optional
 metric, from, through, cursor, limit, snapshot and trace fields mean unset;
 unknown fields always refuse. Native validators still check native values.
 
-PromQL support is limited to bare selector exploration:
-
-```text
-checkout_cpu{service="checkout",environment="production",team="commerce"}
-{__name__="checkout.cpu",service="checkout",environment="production",team="commerce"}
-```
-
-The selector chooses one named metric and optionally exact service, environment
-and team labels. The second form selects dotted native metric names through
-the standard `__name__` label. PromQL strings support unescaped double-quoted
-values only. Returned records are retained raw samples within the native range.
-This does not implement Prometheus instant or stepped range evaluation,
-lookback, staleness, series reduction or time alignment. `avg(...)` and all other
-functions, range selectors, grouping, regular-expression matchers, negative
-matchers and arithmetic refuse before any read. See the primary
-[Prometheus selector reference](https://prometheus.io/docs/prometheus/latest/querying/basics/)
-for the semantics that remain outside this slice.
+PromQL without evaluation timestamps preserves the existing raw selector
+exploration. Explicit `time`, or `start`, `end` and `step`, selects the bounded
+scalar evaluator under [../query/promql/plan.ts](../query/promql/plan.ts).
+It supports exact label-preserving selectors, `sum by`, `rate` and `increase`
+with lookback, counter resets and explicit missing evidence. The normalizer
+returns a parsed plan and settings; execution reuses native metered reads.
+See [../../../docs/query-reference.md](../../../docs/query-reference.md) for
+input, output and refused semantics. Full upstream compatibility remains open.
 
 SQL supports only these statement families, with case-insensitive keywords:
 

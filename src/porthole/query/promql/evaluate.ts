@@ -21,11 +21,14 @@ function decode(row:Row,plan:Plan) {
  if(Object.entries(plan.matchers).some(([key,value])=>(labels[key]??'')!==value))return null
  let kind:Series['kind']
  if(payload.metricKind==='gauge')kind='gauge'
- else if(payload.metricKind==='sum'&&object(metric.sum).isMonotonic===true&&[2,'AGGREGATION_TEMPORALITY_CUMULATIVE'].includes(object(metric.sum).aggregationTemporality as number|string))kind='counter'
+ else if(payload.metricKind==='sum') {
+  if(object(metric.sum).isMonotonic!==true||![2,'AGGREGATION_TEMPORALITY_CUMULATIVE'].includes(object(metric.sum).aggregationTemporality as number|string))reject('unsupported_promql_temporality','Only monotonic cumulative sums can be evaluated.')
+  kind='counter'
+ }
  else reject('unsupported_promql_metric_type','Evaluation supports scalar gauges and monotonic cumulative counters only.')
  const missing=record.stale===true||(Number(record.flags??0)&1)!==0
  const raw=record.asDouble??record.asInt??record.value,value=missing?null:Number(raw)
- if(value!==null&&(!Number.isFinite(value)||raw===undefined||raw===null||typeof raw==='string'&&/^[+-]?\d+$/.test(raw)&&!Number.isSafeInteger(value)))reject('non_numeric_promql_sample','Selected samples must contain finite, safely represented scalar values.')
+ if(value!==null&&(!['number','string'].includes(typeof raw)||typeof raw==='string'&&!/^[+-]?\d+$/.test(raw)||!Number.isFinite(value)||raw===undefined||raw===null||typeof raw==='string'&&/^[+-]?\d+$/.test(raw)&&!Number.isSafeInteger(value)))reject('non_numeric_promql_sample','Selected samples must contain finite, safely represented scalar values.')
  if(kind==='counter'&&value!==null&&value<0)reject('unsupported_promql_counter','Cumulative counter values must be nonnegative.')
  if(typeof metric.unit!=='string'&&metric.unit!==undefined)reject('incompatible_metric_units','Metric units must be declared as text.')
  return {labels:ordered(labels),unit:metric.unit as string??'',kind,sample:{time:BigInt(row.event_time_ns),value}}

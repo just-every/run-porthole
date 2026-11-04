@@ -9,8 +9,8 @@ export function remoteWrite(input: Uint8Array, headers: Headers): TelemetryRecor
  const request=fields(input)
  for(const field of request.filter(field=>field.number===3)) {
   const parts=fields(bytes(field)),name=parts.find(p=>p.number===2),type=parts.find(p=>p.number===1),unit=parts.find(p=>p.number===5)
-  if(!name||!type)return invalid('invalid_remote_write_metadata')
-  const key=utf8(bytes(name)),value={type:Number(uint(type)),unit:unit?utf8(bytes(unit)):''},prior=metadata.get(key)
+  if(!name)continue
+  const key=utf8(bytes(name)),value={type:type?Number(uint(type)):0,unit:unit?utf8(bytes(unit)):''},prior=metadata.get(key)
   if(prior&&(prior.type!==value.type||prior.unit!==value.unit))return invalid('conflicting_remote_write_metadata')
   metadata.set(key,value)
  }

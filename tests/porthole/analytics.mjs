@@ -292,3 +292,19 @@ export async function analyticalConnectionJourney() {
  }finally{if(collector?.exitCode===null&&collector.signalCode===null){const stopped=new Promise(resolve=>collector.once('exit',resolve));collector.kill('SIGTERM');await stopped}await estate.dispose()}
 }
 if(process.argv[1]===new URL(import.meta.url).pathname)await analyticalKernelJourney()
+
+/** The same stock-reference corpus runs on real independently persisted analytical Workers. */
+export async function promqlAnalyticalJourney(reference) {
+ const estate=await analyticalEstate();let hook=null
+ try {
+  const services={...estate.services,ANALYTICS_PRIMARY:async request=>{if(new URL(request.url).pathname==='/v1/query'&&hook)await hook();return estate.services.ANALYTICS_PRIMARY(request)}}
+  const {recipientMailJourney}=await import('./health.mjs'),{promqlNativeJourney}=await import('./promql.mjs')
+  await recipientMailJourney({bindings:estate.bindings,services,run:async context=>{
+   await promqlNativeJourney(context,reference,{backend:'analytical',onQuery:callback=>{hook=callback}})
+   await estate.stop('primary')
+   const response=await context.call('/api/porthole/v1/query',{method:'POST',headers:{origin:context.origin,cookie:context.cookie,'content-type':'application/json'},body:JSON.stringify({dialect:'promql',expression:'synthetic_porthole_queue',time:reference.end})})
+   assert.equal(response.status,503);assert.ok(!(await response.text()).includes('"state":"complete"'),'unavailable analytical storage never becomes a complete result')
+   await context.browser('/app/explore?'+new URLSearchParams({dialect:'promql',expression:'synthetic_porthole_queue',time:reference.end}),'promql-unavailable','analytics_unreachable',context.cookie,503)
+  }})
+ }finally{await estate.dispose()}
+}

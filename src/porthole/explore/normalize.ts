@@ -35,6 +35,7 @@ export function normalizeExploration(input:Record<string,unknown>):NormalizedExp
  if(settings&&dialect!=='promql')reject('promql_dialect_required','Evaluation timestamps apply only to PromQL.','dialect')
  if(settings&&['from','through','cursor','limit','trace'].some(key=>parameters[key]!==undefined))reject('conflicting_promql_time','Evaluation owns its scan range and pages; remove native bounds, cursor, limit and trace.','time')
  const plan=settings?parsePromql(expression):undefined
+ if(plan)for(const key of ['service','environment','team'])if(parameters[key]!==undefined&&plan.matchers[key]!==undefined&&parameters[key]!==plan.matchers[key])reject('conflicting_query_filter','Native and expression scope filters must agree.',key)
  const parsed=settings?{parameters:planParameters(plan!)}:dialect==='promql'?promql(expression):dialect==='sql'?sql(expression):lucene(expression)
  for(const [key,value] of Object.entries(parsed.parameters)) {
   if(Object.hasOwn(parameters,key)&&parameters[key]!==value)reject('conflicting_query_filter','Native and expression filters must select the same exact value.',key)

@@ -2253,7 +2253,7 @@
       ],
       "get": {
         "summary": "Replay stored native filters at their completion watermark",
-        "description": "No URL query parameters. Rechecks current authority. Replay retains native scope, range, cursor, limit, trace and metric filters, but does not retain text-dialect source or aggregate intent.",
+        "description": "No URL query parameters. Rechecks current authority. Replay retains native scope, range, cursor, limit, trace and metric filters, and text source. Explicit PromQL evaluation settings replay at the same watermark with current authority and custody; page-only SQL aggregates are re-evaluated over the retained page.",
         "security": [
           {
             "NativeSession": []
@@ -6818,7 +6818,43 @@
           "expression": {
             "type": "string",
             "maxLength": 2048,
-            "description": "Visual requires empty text. PromQL supports one bare metric selector with exact scope labels. SQL supports COUNT(*) on logs, AVG(value) on metrics with one exact metric, or discrete p95 duration on traces, with exact scope equalities. Lucene supports exact log scope terms joined by AND. No general query-language execution; unsupported syntax refuses."
+            "description": "Visual requires empty text. PromQL with explicit time, or start, end and step, evaluates exact scalar selectors, sum by, rate and increase. Without evaluation fields, a bare selector returns raw records. See the bounded reference for unsupported semantics. SQL supports COUNT(*) on logs, AVG(value) on metrics with one exact metric, or discrete p95 duration on traces, with exact scope equalities. Lucene supports exact log scope terms joined by AND. No general query-language execution; unsupported syntax refuses."
+          },
+          "time": {
+            "type": "string",
+            "pattern": "^[0-9]{1,20}$",
+            "description": "PromQL instant evaluation timestamp in Unix nanoseconds. Mutually exclusive with start, end and step."
+          },
+          "start": {
+            "type": "string",
+            "pattern": "^[0-9]{1,20}$",
+            "description": "PromQL range start, inclusive Unix nanoseconds."
+          },
+          "end": {
+            "type": "string",
+            "pattern": "^[0-9]{1,20}$",
+            "description": "PromQL range end, inclusive only if reached by a step."
+          },
+          "step": {
+            "type": [
+              "string",
+              "number"
+            ],
+            "description": "Positive PromQL range step in seconds, millisecond precision; at most 1000 instants."
+          },
+          "lookback": {
+            "type": [
+              "string",
+              "number"
+            ],
+            "description": "Positive selector lookback in seconds, default 300; the left boundary is excluded."
+          },
+          "scanLimit": {
+            "type": [
+              "string",
+              "number"
+            ],
+            "description": "PromQL sample scan ceiling from 1 through 5000. Exceeding it refuses the whole evaluation with HTTP 413."
           },
           "signal": {
             "enum": [
@@ -6949,6 +6985,79 @@
                 "string",
                 "number"
               ]
+            }
+          },
+          "evaluation": {
+            "type": "object",
+            "description": "Present only for explicit PromQL evaluation. Complete means the bounded retained scan finished; it does not establish full source coverage or health. Result timestamps are decimal Unix nanoseconds. Empty series are absent. No detached raw telemetry is stored.",
+            "properties": {
+              "state": {
+                "const": "complete"
+              },
+              "resultType": {
+                "enum": [
+                  "vector",
+                  "matrix"
+                ]
+              },
+              "timestampUnit": {
+                "const": "unix-nanoseconds"
+              },
+              "result": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "metric": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "unit": {
+                      "type": "string"
+                    },
+                    "value": {
+                      "type": "array",
+                      "prefixItems": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "number"
+                        }
+                      ],
+                      "minItems": 2,
+                      "maxItems": 2
+                    },
+                    "values": {
+                      "type": "array",
+                      "items": {
+                        "type": "array",
+                        "prefixItems": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "number"
+                          }
+                        ],
+                        "minItems": 2,
+                        "maxItems": 2
+                      }
+                    }
+                  }
+                }
+              },
+              "scannedSamples": {
+                "type": "integer"
+              },
+              "settings": {
+                "type": "object"
+              },
+              "plan": {
+                "type": "object"
+              }
             }
           },
           "aggregate": {

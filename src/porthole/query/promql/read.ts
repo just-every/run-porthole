@@ -13,10 +13,13 @@ import type {Parameters} from '../../explore/model'
 // Refuse the accumulated read if it changed while any page was in flight.
 const erasureEpoch='(SELECT COUNT(*) FROM porthole_erased_batches)'
 export async function evaluateTelemetry(request:Request,env:Bindings,parameters:Parameters,plan:Plan,settings:Evaluation,source:{dialect:string;text:string},descriptor:Record<string,unknown>,principal?:ReadPrincipal):Promise<Response> {
+ const initialAuthority=principal?.clientId?await agentCredential(request,env,principal,{action:'telemetry.read',scope:emptyScope,dataScope:allScope,inspectOnly:true}):request.headers.has('authorization')?await verifyCredential(request,env,{action:'telemetry.read',scope:emptyScope,dataScope:allScope,inspectOnly:true}):null
+ const nativeAuthority=initialAuthority?null:principal?await agentReadAuthority(env,principal):await authority(request,env)
+ const originalFence=initialAuthority?.fence??{sql:nativeAuthority!.fence,args:nativeAuthority!.args}
  const epoch=await env.DB.prepare(`SELECT ${erasureEpoch} AS n`).first<{n:number}>()
  const config=await configuration(env),configured=selected(env,config)
- const horizon=BigInt(Math.max(settings.lookbackSeconds,plan.windowSeconds)*1000)*1000000n
- const start=BigInt(settings.start),from=(start>horizon?start-horizon:0n).toString(),through=settings.end
+ const horizon=BigInt((plan.operation==='select'?settings.lookbackSeconds:plan.windowSeconds)*1000)*1000000n
+ const lower=BigInt(settings.start)-horizon,from=(lower>=0n?lower+1n:0n).toString(),through=settings.end
  const rows:Row[]=[],seen=new Set<string>();let bytes=0,cursor:string|null=null,snapshot:unknown=parameters.snapshot,first:Record<string,unknown>|undefined,actor:string|undefined,revision:string|undefined
  do {
   const url=new URL('/api/porthole/v1/ingest/records',request.url)
@@ -50,7 +53,7 @@ export async function evaluateTelemetry(request:Request,env:Bindings,parameters:
   live={sql:acting.fence,args:acting.args}
  }
  const analytical=configured?analyticalFence(config):{sql:'1',args:[]}
- const condition=`(${live.sql}) AND (${analytical.sql}) AND EXISTS(SELECT 1 FROM porthole_analytical_configuration WHERE singleton=1 AND revision=? AND enabled=? AND source_identity=?) AND ${erasureEpoch}=?`,args=[...live.args,...analytical.args,config.revision,config.enabled,config.source_identity,epoch!.n]
+ const condition=`(${live.sql}) AND (${originalFence.sql}) AND (${analytical.sql}) AND EXISTS(SELECT 1 FROM porthole_analytical_configuration WHERE singleton=1 AND revision=? AND enabled=? AND source_identity=?) AND ${erasureEpoch}=?`,args=[...live.args,...originalFence.args,...analytical.args,config.revision,config.enabled,config.source_identity,epoch!.n]
  const queryRef=crypto.randomUUID(),scope=JSON.stringify({...Object.fromEntries(Object.entries(parameters).filter(([key])=>['service','environment','team','metric'].includes(key))),...descriptor,dialect:source.dialect,expression:source.text})
  const results=await env.DB.batch([
   env.DB.prepare(`SELECT 1 AS live WHERE ${condition}`).bind(...args),

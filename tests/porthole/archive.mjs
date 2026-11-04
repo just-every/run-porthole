@@ -1111,3 +1111,38 @@ export async function genaiArchiveJourney({origin,cookie,withEmptyDestination,tr
  })
  console.log('genaiArchiveJourney passed: complete metadata-only wire and retained custody, independent inactive restore and re-export, no inherited sessions or credentials')
 }
+
+/** Evaluation descriptors survive a real inactive restore without copying read authority. */
+export async function promqlArchiveJourney({context,reference,replay,expected,backend}) {
+ const saved=await analyticalArchiveSnapshot({context,cookie:context.cookie})
+ const ref=replay.split('/').at(-1)
+ assert.ok(saved.rows.some(item=>item.table==='porthole_query_snapshots'&&item.row.id===ref&&JSON.parse(item.row.scope).time===reference.end),'archive retains explicit evaluation time and expression')
+ const {recipientMailJourney}=await import('./health.mjs')
+ const {analyticalEstate}=await import('./analytics.mjs')
+ const estate=backend==='analytical'?await analyticalEstate():null
+ try {
+  await recipientMailJourney({...(estate?{bindings:estate.bindings,services:estate.services}:{}),run:async destination=>{
+   const {post,call,cookie,getDb,restart}=destination
+   const restoring=await value(await post(api+'/restores',{manifest:saved.manifest},201),201)
+   for(const chunk of saved.chunks)await value(await post(`${api}/restores/${restoring.id}/chunks`,{chunk}))
+   await value(await post(`${api}/restores/${restoring.id}/commit`,{confirm:saved.manifest.rootHash}))
+   assert.equal((await getDb().prepare('SELECT COUNT(*) AS n FROM porthole_credentials').first()).n,0)
+   assert.equal((await getDb().prepare('SELECT paused FROM porthole_ingest_control').first()).paused,1)
+   assert.equal((await call(replay,{headers:{cookie:context.cookie}})).status,401,'source session conveys no destination authority')
+   if(estate) {
+    assert.equal((await call(replay,{headers:{cookie}})).status,503,'restored analytical connection remains inactive')
+    const config=await value(await call('/api/porthole/v1/analytics/configuration',{headers:{cookie}}))
+    await value(await post('/api/porthole/v1/analytics/configuration',{revision:config.revision,role:'primary',enabled:true,confirm:'connect-analytical-workers'}))
+    for(let n=0;n<3;n++)await value(await post('/api/porthole/v1/analytics/reconcile',{}))
+   }
+   const restored=await value(await call(replay,{headers:{cookie}}))
+   assert.deepEqual(restored.evaluation,expected,'same scalar labels, instants, units, numeric results and scan counts after independent restore')
+   await restart()
+   assert.deepEqual((await value(await call(replay,{headers:{cookie}}))).evaluation,expected)
+   const exported=await analyticalArchiveSnapshot({context:destination,cookie})
+   assert.ok(exported.rows.some(item=>item.table==='porthole_query_snapshots'&&item.row.id===ref))
+   assert.equal((await getDb().prepare('SELECT COUNT(*) AS n FROM porthole_credentials').first()).n,0,'re-export has not resumed source credentials')
+  }})
+ }finally{await estate?.dispose()}
+ console.log('promqlArchiveJourney passed ('+backend+'): exact descriptor, inactive authority, independent restore, restart and re-export')
+}

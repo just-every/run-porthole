@@ -7,7 +7,7 @@ export function duration(value:string):number {
  const match=/^(\d+(?:\.\d+)?)(ms|s|m|h|d|w|y)$/.exec(value.trim())
  if(!match)reject('unsupported_promql_duration','Use one positive duration with ms, s, m, h, d, w or y.')
  const seconds=Number(match[1])*({ms:.001,s:1,m:60,h:3600,d:86400,w:604800,y:31536000}[match[2]]!)
- if(!Number.isFinite(seconds)||seconds<=0||seconds>2678400)reject('unsupported_promql_duration','Duration must be positive and at most 31 days.')
+ if(!Number.isFinite(seconds)||!Number.isSafeInteger(seconds*1000)||seconds<=0||seconds>2678400)reject('unsupported_promql_duration','Duration must be positive and at most 31 days.')
  return seconds
 }
 export function parsePromql(expression:string):Plan {
@@ -28,6 +28,7 @@ export function parsePromql(expression:string):Plan {
  }
  const selected=/^([a-zA-Z_:][a-zA-Z0-9_:]{0,119})?\s*(?:\{([\s\S]*)\})?$/.exec(text)
  if(!selected||!selected[1]&&selected[2]===undefined)reject('unsupported_promql_expression','Use an exact selector, sum by, rate or increase from the declared scalar subset.')
+ if(selected[1]&&['bool','on','ignoring','group_left','group_right'].includes(selected[1]))reject('unsupported_promql_expression','Use an exact __name__ matcher for reserved metric names.')
  let metric=selected[1]??'',tail=selected[2]?.trim()??''
  const matchers:Record<string,string>=Object.create(null)
  while(tail) {
