@@ -381,7 +381,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "cfee3652e67f98f4a4213b4a7d47293e12bd13ddedff0de35944d71032bd00e1",
+      "sha256": "3e12eedd0de0857023b972e73b9a1b56d666e55283ad3a02d66bbfa1a698167c",
       "executable": false
     },
     "DEMO.md": {
@@ -481,7 +481,7 @@
       "executable": false
     },
     "docs/services.md": {
-      "sha256": "1bb855806a3bd6a66fe585fa9242104ab417fcd3973763dc47c97c099c8302e4",
+      "sha256": "c206b748539207bb34f9bba2859be36fbd3ec1311c1fe1b15108d9c55bf22eb0",
       "executable": false
     },
     "docs/signal-exports.md": {
@@ -857,7 +857,7 @@
       "executable": false
     },
     "package.json": {
-      "sha256": "07fcd55201f629a7d40fb6978a7b0d9dca4a8487df0688fc1e70ce15d87aa2c6",
+      "sha256": "80f1309754fc3108493539893039d2ba7e140b2256721889feee51d28114be7e",
       "executable": false
     },
     "packaging.json": {
@@ -865,7 +865,7 @@
       "executable": false
     },
     "pnpm-lock.yaml": {
-      "sha256": "69ced966a25d1370aa875a2c6bef6b596bb767fcaae75c01b9135e1d9d6c4319",
+      "sha256": "9991a4acd07c7e99f5fe28235e57dd204824fd4f2d90e08adf923cfd449dd9aa",
       "executable": false
     },
     "public/brand/apple-touch-icon.png": {
@@ -989,7 +989,7 @@
       "executable": false
     },
     "public/openapi/porthole-v1.json": {
-      "sha256": "8ca90c7964bd0488cbb4c6e582ef252fb85a2387647379942dfb723935a89683",
+      "sha256": "80e147a10ea707610860a6a7826eb46b184998857d0eede07c3af7b18d84ea39",
       "executable": false
     },
     "public/porthole/dashboards.js": {
@@ -5180,24 +5180,28 @@
       "sha256": "9b4586ed4a6e776202516e2d1e0c283763afd8cfc7ac1c2a4b6f08e2311e8551",
       "executable": false
     },
+    "src/porthole/services/associations.ts": {
+      "sha256": "54187492b62df57320b83dd77f7677903b75c81c9c9acb084478cb6d03a792cc",
+      "executable": false
+    },
     "src/porthole/services/http.ts": {
       "sha256": "5a8b39d05b3e7e98f3bcaaa81e97cfc30bb557b94504c7f2d5ecec2094b8ba02",
       "executable": false
     },
     "src/porthole/services/model.ts": {
-      "sha256": "138ac2d3dd7f199ac5e4eab38757166e29bbf1db26ad5e47bebca6b76548b4bc",
+      "sha256": "6ceb6f38d19c5555769f1fcc2c796329b2127a20ee02bbcfc02ec6bda8e21345",
       "executable": false
     },
     "src/porthole/services/openapi.ts": {
-      "sha256": "b71a7671ac0c59927e5736393dbf9c98e7d849eadb8f6147ce4751df7d5ef788",
+      "sha256": "ca75b4a661819e32089d904c0a9b7f45490fcadb3362086bf2ace9f3ff352413",
       "executable": false
     },
     "src/porthole/services/page.ts": {
-      "sha256": "0ff5c5a691e3a9f62a486d6413d009e315fb2f68dd0ff0fa60ed70a892d3ea88",
+      "sha256": "2a4e068931175c3d203eb1203eb9d43fefd160d39a6b53f5c4589fb340ebb9cc",
       "executable": false
     },
     "src/porthole/services/read.ts": {
-      "sha256": "88bbbcfea98f3484fbaf3b99896920c4f1c25c99d29f9d03b74ad57c7f6e877b",
+      "sha256": "2ebb3f3e8b3fe67c9213dee052bfea9a48e283c83b66c68db00dad6107bf26b5",
       "executable": false
     },
     "src/porthole/signals/formats/otlp.ts": {
@@ -5553,7 +5557,7 @@
       "executable": false
     },
     "tests/porthole/archive.mjs": {
-      "sha256": "0116b2ffc06eb562f55fc37115fc2279c69cefaf6ad519d03941aad20a25efbd",
+      "sha256": "4bc413d5771f99ec6f3763ea920b2603c41fcbc9d913e5ac68ee1b59e93b4c21",
       "executable": false
     },
     "tests/porthole/audit.mjs": {
@@ -5701,7 +5705,7 @@
       "executable": false
     },
     "tests/porthole/polyglot/estate.mjs": {
-      "sha256": "8cfefac8a51d6375fb7898712e7f7fbcef1b58e54883e1c300b435e3b261813f",
+      "sha256": "f89dc9fdfa25885fd1ec20d7588650b1ecd409f213c38b957c46e3fc7a13d5b9",
       "executable": false
     },
     "tests/porthole/polyglot/node.cjs": {
@@ -5729,11 +5733,11 @@
       "executable": false
     },
     "tests/porthole/services.mjs": {
-      "sha256": "bc33e8707dd305a3ad4262c3c6751d2109193adf8f9bdb6928e335a1593aad49",
+      "sha256": "f9ba02cc3161364e7c9d4ad8ff6331e6bc035f47fa12afef429df7bc6c749461",
       "executable": false
     },
     "tests/porthole/services/producer.cjs": {
-      "sha256": "f02027c193e7c95f685f952b8cac9b10fe5208264823d305cfd0459c8fbbc910",
+      "sha256": "1be5166228ab6a6ff7f3a34ee8b3d893a79b5dd29b50a6327fb76aba9140932c",
       "executable": false
     },
     "tests/porthole/spl/logs.cjs": {
