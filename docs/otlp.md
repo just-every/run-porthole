@@ -241,7 +241,8 @@ real request counters and latency histograms, and a separate stock reference
 TSDB. It compares more than 200 actual samples through paginated native reads,
 then the primary and standby analytical configurations. It includes source
 staleness, normal NaN, complete labels, original bits and timestamps, metadata,
-actual pressure and interrupted acknowledgments, restart, revoked and foreign
+actual pressure and interrupted acknowledgments, source restart on its existing
+TSDB and WAL, receiver restart, revoked and foreign
 credentials, unavailable analytical storage, inactive restore and re-export.
 This is local stock-source qualification. It establishes neither Datadog
 continuity, full Prometheus wire support, query equivalence nor capacity.

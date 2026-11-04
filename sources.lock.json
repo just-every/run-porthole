@@ -381,7 +381,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "371e1331ac9a09b92df86b0a13d1cbeed322f6a3a2791fdaddcfa88aa3c78978",
+      "sha256": "e08368bf7f02967cb29fa111a5d1f66b5c7c4772054f0e44fe25b0b7c7778b5e",
       "executable": false
     },
     "DEMO.md": {
@@ -457,7 +457,7 @@
       "executable": false
     },
     "docs/otlp.md": {
-      "sha256": "3662baada14e08c5c783b511b658292aedb7a7cd91ecfaec8e9e49ba13880c18",
+      "sha256": "8bff8418390f082949d5e1b2fce8b63a0ab8d94e3a4c88af5291011472f304fa",
       "executable": false
     },
     "docs/product-docs.md": {
@@ -5581,7 +5581,7 @@
       "executable": false
     },
     "tests/porthole/ingest.mjs": {
-      "sha256": "6b17db17d9f422ea7f3fe748bbe99bc6d3ab63a70dbaf45b3873a3041cc0e71d",
+      "sha256": "87dbc512645875ec589ae515db50701ea9449dca28bfd939500b2a7851636fab",
       "executable": false
     },
     "tests/porthole/intake-interrupt.mjs": {
@@ -5673,7 +5673,7 @@
       "executable": false
     },
     "tests/porthole/prometheus-stock.mjs": {
-      "sha256": "f6238faa75ad5577f5765177b3b2130833f773f88e61059d3d5672fef8a72224",
+      "sha256": "22569ed08b67559ad54ae83feac77c80ae1357cac27ab7c5ce3d1177e4ce6b98",
       "executable": false
     },
     "tests/porthole/public-docs-site.mjs": {

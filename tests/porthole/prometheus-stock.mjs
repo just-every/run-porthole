@@ -201,6 +201,13 @@ export async function prometheusStockJourney() {
    assert.ok(Number(attempts.find(a=>a.status===429).retry)>0,'pressure supplies retry advice')
    await post(root+'/control',{paused:true,maxPendingBytes:33554432})
    await until(()=>attempts.some(a=>a.duplicate==='true'),'stock sender retries after its durable acknowledgement is interrupted')
+   await until(()=>emitter.scrapes>=5&&[...captures.values()].flatMap(c=>decodeWrite(c.wire).samples).length>120,'real stock samples arrive before source restart')
+   const beforeRestart=emitter.scrapes,lastBeforeRestart=Math.max(...[...captures.values()].flatMap(c=>decodeWrite(c.wire).samples).map(s=>Number(s.timestamp)))
+   // Restart the actual source with its existing TSDB and WAL, unchanged
+   // producer, scrape configuration and destination queue settings.
+   await sender.stop()
+   sender=await launch(binary,scratch,'sender',config)
+   await until(()=>emitter.scrapes>=beforeRestart+5&&[...captures.values()].some(c=>decodeWrite(c.wire).samples.some(s=>Number(s.timestamp)>lastBeforeRestart)),'stock source resumes collection from the existing TSDB and WAL')
    await until(()=>emitter.scrapes>=10&&[...captures.values()].flatMap(c=>decodeWrite(c.wire).samples).length>250,'more than 200 real stock samples accepted')
    sourceMetadata=(await (await fetch(sender.origin+'/api/v1/metadata')).json()).data
    // Stop collection by reloading only the scrape target list. Both stock
@@ -249,7 +256,7 @@ export async function prometheusStockJourney() {
    await prometheusRefusals({context,source,capture:savedWire.find(c=>decodeWrite(c.wire).samples.length),samples:page.records.length})
    const {prometheusArchiveJourney}=await import('./archive.mjs')
    await prometheusArchiveJourney({context,expected:page.records,readPages:nativePages,recipientMailJourney})
-   console.log('PROBE PORT-002 stock-source: Prometheus '+version+' real requests -> '+samples.length+' reference-matched source samples; '+metadata.length+' metadata descriptors; '+page.pages+' native pages; actual 429 retry, interrupted ACK, restart and inactive archive passed')
+   console.log('PROBE PORT-002 stock-source: Prometheus '+version+' real requests -> '+samples.length+' reference-matched source samples; '+metadata.length+' metadata descriptors; '+page.pages+' native pages; actual 429 retry, interrupted ACK, source TSDB and WAL restart, receiver restart and inactive archive passed')
   }})
   const estate=await analyticalEstate()
   try {await recipientMailJourney({bindings:estate.bindings,services:estate.services,run:async context=>{
