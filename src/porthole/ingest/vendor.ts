@@ -30,13 +30,43 @@ export function remoteWrite(input: Uint8Array, headers: Headers): TelemetryRecor
  }
  return result
 }
+// Loki's protobuf label set uses Go quoted strings, including byte escapes
+// that JSON.parse does not support. Decode bytes before UTF-8 so adjacent
+// escaped bytes retain the original Unicode rather than becoming codepoints.
+function labelValue(text: string): string {
+ const result: number[] = [], encoder = new TextEncoder()
+ const append = (point: number) => {
+  if (point > 0x10ffff || point >= 0xd800 && point <= 0xdfff) return invalid('invalid_loki_label_escape')
+  result.push(...encoder.encode(String.fromCodePoint(point)))
+ }
+ for (let i = 1; i < text.length - 1; i++) {
+  if (text[i] !== '\\') {
+   const point = text.codePointAt(i)!
+   if (point < 32) return invalid('invalid_loki_label_escape')
+   append(point); if (point > 0xffff) i++
+   continue
+  }
+  const escape = text[++i], short: Record<string,number> = { a:7,b:8,f:12,n:10,r:13,t:9,v:11,'\\':92,'"':34 }
+  if (Object.hasOwn(short,escape)) { result.push(short[escape]); continue }
+  const digits = escape === 'x' ? 2 : escape === 'u' ? 4 : escape === 'U' ? 8 : /[0-7]/.test(escape) ? 3 : 0
+  const octal = /[0-7]/.test(escape), start = octal ? i : i + 1, encoded = text.slice(start,start + digits)
+  if (!digits || encoded.length !== digits || !(octal ? /^[0-7]+$/ : /^[a-fA-F0-9]+$/).test(encoded)) return invalid('invalid_loki_label_escape')
+  const point = Number.parseInt(encoded,octal ? 8 : 16)
+  if (octal || escape === 'x') {
+   if (point > 255) return invalid('invalid_loki_label_escape')
+   result.push(point)
+  } else append(point)
+  i = start + digits - 1
+ }
+ return utf8(new Uint8Array(result))
+}
 function labels(text: string): Record<string,string> {
  if (!text.startsWith('{') || !text.endsWith('}')) return invalid('invalid_loki_labels')
  const result: Record<string,string> = Object.create(null); let tail = text.slice(1,-1).trim()
  while (tail) {
   const match = /^([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*("(?:\\.|[^"\\])*")\s*(?:,\s*|$)/.exec(tail)
   if (!match || Object.hasOwn(result,match[1])) return invalid('invalid_loki_labels')
-  try { result[match[1]] = JSON.parse(match[2]) as string } catch { return invalid('invalid_loki_label_escape') }
+  result[match[1]] = labelValue(match[2])
   tail = tail.slice(match[0].length)
  }
  return result

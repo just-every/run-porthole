@@ -12,13 +12,15 @@ const snappy=b=>{let n=b.length-1;const size=[];while(n){size.push(n&255);n>>>=8
 // Loki v3.5.0 pkg/push/push.proto: PushRequest, StreamAdapter,
 // EntryAdapter and LabelPairAdapter. This is a schema edge, never a stock shipper.
 export function lokiWire(streams){return snappy(Buffer.concat(streams.map(({stream,values})=>msg(1,Buffer.concat([
- str(1,'{'+Object.entries(stream).map(([k,value])=>k+'='+JSON.stringify(value)).join(',')+'}'),
+ str(1,typeof stream==='string'?stream:'{'+Object.entries(stream).map(([k,value])=>k+'='+JSON.stringify(value)).join(',')+'}'),
  ...values.map(([at,line,metadata={}])=>msg(2,Buffer.concat([
   msg(1,Buffer.concat([uint(1,BigInt(at)/1000000000n),uint(2,BigInt(at)%1000000000n)])),str(2,line),
   ...(Array.isArray(metadata)?metadata:Object.entries(metadata)).map(([key,value])=>msg(3,Buffer.concat([str(1,key),...(value?[str(2,value)]:[])]))),
  ]))),
 ])))))}
 export const streamLabels=extra=>({service:lokiScope.services[0],environment:lokiScope.environments[0],team:lokiScope.teams[0],...extra})
+const escapedLabel='bell:\x07 vertical:\x0b byte:\x01 emoji:😀 bytes:é quote:" slash:\\'
+const quotedLabels=labels=>'{'+Object.entries(labels).map(([key,value])=>key+'='+JSON.stringify(value)).join(',')+String.raw`,escaped="bell:\a vertical:\v byte:\x01 emoji:\U0001F600 bytes:\303\251 quote:\" slash:\\"}`
 export async function readLokiPages({origin,cookie,service=lokiScope.services[0],archive=false}){
  const records=[];let cursor,snapshot
  do {
@@ -45,6 +47,12 @@ export async function lokiSchemaJourney({origin,freshOwner,restartWorker}){
  wires.push(Buffer.from(JSON.stringify(packets.at(-1))));formats.push({})
  // One equal-nanosecond pair crosses wire encodings and separate envelopes.
  wires[0]=Buffer.from(wires[0]);packets[2].streams[0].values[0][2]={empty:''};wires[2]=lokiWire(packets[2].streams)
+ // The official protobuf stream carries a Go quoted label set. These valid
+ // byte, octal, short-control and wide Unicode escapes are not JSON escapes.
+ const escaped=entry(at+3n,'synthetic-porthole-18716',{detail:'quoted label edge'})
+ escaped.streams[0].stream.escaped=escapedLabel
+ const quoted=quotedLabels(streamLabels())
+ packets.push(escaped);wires.push(lokiWire([{stream:quoted,values:escaped.streams[0].values}]));formats.push({'content-type':'application/x-protobuf'})
  for(let i=0;i<wires.length;i++){const r=await send(wires[i],formats[i]);assert.equal(r.status,204,await r.text());assert.equal(r.headers.get('x-porthole-accepted'),'1')}
  await restartWorker();cookie=await freshOwner()
  for(let i=wires.length-1;i>=0;i--){const r=await send(wires[i],formats[i]);assert.equal(r.status,204);assert.equal(r.headers.get('x-porthole-duplicate'),'true')}
@@ -68,6 +76,10 @@ export async function lokiSchemaJourney({origin,freshOwner,restartWorker}){
  assert.equal((await send(Buffer.from('synthetic-porthole-18711'),{'content-encoding':'gzip'})).status,400)
  assert.equal((await send(Buffer.from([255]),{'content-type':'application/x-protobuf'})).status,400)
  assert.equal((await send(packets[0],{'content-encoding':'snappy'})).status,415)
+ for(const escape of [String.raw`\xGG`,String.raw`\uD800`,String.raw`\U00110000`,String.raw`\400`]){
+  const invalidLabels='{'+Object.entries(streamLabels()).map(([key,value])=>key+'='+JSON.stringify(value)).join(',')+',escaped="'+escape+'"}'
+  assert.equal((await send(lokiWire([{stream:invalidLabels,values:[[String(at),'synthetic-porthole-18717']]}]),{'content-type':'application/x-protobuf'})).status,400,'malformed Go label escape refuses without persistence')
+ }
  const repeated=lokiWire([{stream:streamLabels(),values:[[String(at),'synthetic-porthole-18715',[['detail','first'],['detail','second']]]]}])
  const repeatedReply=await send(repeated,{'content-type':'application/x-protobuf'});assert.equal(repeatedReply.status,400);assert.equal((await repeatedReply.json()).error,'duplicate_loki_metadata')
  assert.equal((await post(root+'/control',{paused:true,maxPendingBytes:1})).status,200)
@@ -75,7 +87,7 @@ export async function lokiSchemaJourney({origin,freshOwner,restartWorker}){
  assert.equal((await post(root+'/control',{paused:false,maxPendingBytes:33554432})).status,200)
  assert.deepEqual((await readLokiPages({origin,cookie})).map(row=>row.id),before.map(row=>row.id),'all refused writes change no retained data')
  const status=await (await fetch(origin+root+'/status',{headers:{cookie}})).json(),rows=status.sources.filter(row=>row.sourceId===source.credential.id)
- assert.equal(rows.reduce((n,row)=>n+row.accepted,0),5)
+ assert.equal(rows.reduce((n,row)=>n+row.accepted,0),6)
  const reasons=rows.flatMap(row=>row.reasons)
  assert.ok(reasons.some(row=>row.reason==='loki_timestamp_older_than_two_hours'&&row.count===2),JSON.stringify(reasons))
  assert.ok(reasons.some(row=>row.reason==='queue_pressure'&&row.count===1))
@@ -83,7 +95,7 @@ export async function lokiSchemaJourney({origin,freshOwner,restartWorker}){
  assert.equal((await post('/app/settings/credentials/revoke',{id:source.credential.id})).status,200)
  assert.equal((await send(wires[0],formats[0])).status,401,'next request cannot replay a revoked source')
  assert.deepEqual((await readLokiPages({origin,cookie})).map(row=>row.id),before.map(row=>row.id))
- console.log('PROBE PORT-087 schema: JSON, gzip JSON and Snappy protobuf -> exact Unicode, empty metadata, ns ties, delayed input, reordered retries, refusal accounting and next-request revocation')
+ console.log('PROBE PORT-087 schema: JSON, gzip JSON and Snappy protobuf -> exact Unicode, Go quoted labels, empty metadata, ns ties, delayed input, reordered retries, refusal accounting and next-request revocation')
 }
 
 const jsonText=value=>JSON.stringify(value)
@@ -185,6 +197,15 @@ export async function lokiShipperJourney({origin,freshOwner,restartWorker,withEm
  const until=async(check,message,process,ms=120000)=>{const end=Date.now()+ms;while(Date.now()<end){if(process&&process.child.exitCode!==null)assert.fail(message+': '+process.output());if(await check())return;await delay(200)}assert.fail(message+(process?': '+process.output():''))}
  try {
   for(const key of ['LOKI','ALLOY','PROMTAIL','FLUENT_BIT'])assert.ok(process.env['PORTHOLE_'+key+'_BIN'],'provide verified stock '+key+' binary')
+  // Read the supplied executables, rather than reporting the expected pins as
+  // observed source versions. A different binary cannot qualify this corpus.
+  const actual={}
+  for(const [key,flag,pattern]of [['loki','-version',/^loki, version (\S+)/m],['alloy','--version',/^alloy, version v(\S+)/m],['promtail','-version',/^promtail, version (\S+)/m],['fluent','--version',/^Fluent Bit v(\S+)/m]]){
+   const binary=process.env['PORTHOLE_'+(key==='fluent'?'FLUENT_BIT':key.toUpperCase())+'_BIN']
+   const output=execFileSync(binary,[flag],{encoding:'utf8',timeout:30000})
+   actual[key]=pattern.exec(output)?.[1];assert.equal(actual[key],versions[key],'stock '+key+' version must match the declared qualification target')
+  }
+  console.log('LOKI_SOURCE_VERSIONS '+JSON.stringify(actual))
   const lokiPort=await port(),grpc=await port(),reference='http://127.0.0.1:'+lokiPort
   await mkdir(join(scratch,'loki'))
   const config=`auth_enabled: true
@@ -232,6 +253,16 @@ analytics: {reporting_enabled: false}
   await writeFile(join(scratch,'loki.yaml'),config)
   const loki=run(process.env.PORTHOLE_LOKI_BIN,['-config.file='+join(scratch,'loki.yaml')])
   await until(()=>fetch(reference+'/ready').then(r=>r.ok).catch(()=>false),'Loki readiness',loki)
+  // Independently confirm the escaped-label wire fixture against the stock
+  // source parser before comparing its native retained result in the edge run.
+  const edgeAt=String(BigInt(Date.now())*1000000n-1000000n),edgeLabels=streamLabels({service:'synthetic-porthole-18720'})
+  const edge=await fetch(reference+'/loki/api/v1/push',{method:'POST',headers:{'content-type':'application/x-protobuf','x-scope-orgid':lokiScope.teams[0]},body:lokiWire([{stream:quotedLabels(edgeLabels),values:[[edgeAt,'synthetic-porthole-18721']]}])})
+  assert.equal(edge.status,204,await edge.text())
+  const edgeQuery=new URLSearchParams({query:'{service="synthetic-porthole-18720"}',start:edgeAt,end:String(BigInt(edgeAt)+1000000n),direction:'forward'})
+  const edgeRead=await fetch(reference+'/loki/api/v1/query_range?'+edgeQuery,{headers:{'x-scope-orgid':lokiScope.teams[0]}});assert.equal(edgeRead.status,200)
+  const edgeResult=(await edgeRead.json()).data.result;assert.equal(edgeResult.length,1)
+  assert.deepEqual(edgeResult[0].stream,{...edgeLabels,escaped:escapedLabel});assert.deepEqual(edgeResult[0].values,[[edgeAt,'synthetic-porthole-18721']])
+  console.log('PROBE PORT-087 source schema: Go quoted protobuf labels -> stock Loki retains exact control bytes, Unicode and nanoseconds')
   const minted=await post('/app/settings/credentials/mint',{name:'synthetic-porthole-18800',class:'ingest',scope:lokiScope,acceptedBytesPerMinute:100*1024*1024,requestsPerMinute:10000});assert.equal(minted.status,201)
   const source=await minted.json()
   assert.equal((await post(root+'/control',{paused:true,maxPendingBytes:128*1024*1024})).status,200)
@@ -253,6 +284,10 @@ analytics: {reporting_enabled: false}
    const state=join(scratch,kind);await mkdir(state);const file=join(state,'producer.log');await writeFile(file,'')
    const ports={http:await port()},endpoints=[reference,destination]
    const config=shipperConfig(kind,{file,state,ports,endpoints}),path=join(state,kind==='alloy'?'config.alloy':kind==='promtail'?'config.yaml':'config.conf')
+   if(process.env.PORTHOLE_EVIDENCE_DIR){
+    await mkdir(process.env.PORTHOLE_EVIDENCE_DIR,{recursive:true})
+    for(const [name,url]of [['reference',reference],['porthole',destination]])await writeFile(join(process.env.PORTHOLE_EVIDENCE_DIR,kind+'-'+name+'.conf'),shipperConfig(kind,{file,state,ports,endpoints:[url]}),{mode:0o600})
+   }
    await writeFile(path,config,{mode:0o600})
    if(kind==='fluent')await writeFile(join(state,'parsers.conf'),'[PARSER]\n    Name producer\n    Format json\n    Time_Key ts\n    Time_Format %Y-%m-%dT%H:%M:%S.%LZ\n    Time_Keep On\n')
    const binary=process.env['PORTHOLE_'+(kind==='fluent'?'FLUENT_BIT':kind.toUpperCase())+'_BIN']
