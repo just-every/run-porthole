@@ -381,7 +381,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "b0628b86c06706b87df16034d1125115edad2260a3fc561996d930ad178b388e",
+      "sha256": "163b161c28a9fa239d2d94d121dbca2b13631f0395bb1aeb263640dac8a58752",
       "executable": false
     },
     "DEMO.md": {
@@ -5601,7 +5601,7 @@
       "executable": false
     },
     "tests/porthole/log-clusters.mjs": {
-      "sha256": "d7253d1cd7e6574df155ccff63098f672f79e04215cee1f0ce5d8ac05b75daad",
+      "sha256": "4a41b9674c0dbdc508a4287bf4fe236468ee4d7b7d9480db6faa3ca8937e5a0f",
       "executable": false
     },
     "tests/porthole/log-search-corpus.mjs": {

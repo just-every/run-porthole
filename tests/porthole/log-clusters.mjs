@@ -256,6 +256,14 @@ export async function logClusterAnalyticalProof({context,estate,cookie}){
  for(const cluster of all){let cursor;do{const page=await value(await search({snapshot:query.snapshot,cluster:cluster.id,limit:100,...(cursor?{cursor}:{})}));standbyMembers.push(...page.records);cursor=page.cursor}while(cursor)}
  assert.deepEqual(standbyMembers.map(row=>row.id).sort(),members.map(row=>row.id).sort())
  for(let offset=0;offset<standbyMembers.length;offset+=2)await Promise.all(standbyMembers.slice(offset,offset+2).map(async row=>{const page=await value(await post('/api/porthole/v1/query',Object.fromEntries(new URL(row.pivot,origin).searchParams)));assert.deepEqual(page.records.map(item=>[item.id,item.payload]),[[row.id,row.payload]])}))
+ // A reviewed connection change after the last real page must invalidate
+ // the accumulated response, even when both stores have identical records.
+ const switchAfterLast=async response=>{assert.equal(response.status,200);const page=await response.json();if(page.cursor)estate.afterQuery(switchAfterLast);else await connect('primary')}
+ estate.afterQuery(switchAfterLast)
+ const switched=await search({snapshot:query.snapshot})
+ assert.equal(switched.status,409);assert.deepEqual(await switched.json(),{error:'authority_changed'})
+ assert.equal((await value(await search({snapshot:query.snapshot}))).totalRecords,236,'a fresh read uses the newly reviewed connection')
+ await connect('standby')
  const scope={services:[clusterScope.service],environments:[clusterScope.environment],teams:[clusterScope.team],signals:['logs'],actions:['telemetry.read']}
  const reader=await value(await post('/app/settings/credentials/mint',{name:'Mid-scan pattern reader',class:'read',scope}),201)
  // Intercept only after a real analytical page has returned. The authority
@@ -274,6 +282,17 @@ export async function logClusterAnalyticalProof({context,estate,cookie}){
  assert.equal(changed.status,409);assert.deepEqual(await changed.json(),{error:'cluster_custody_changed'})
  const columns=Object.keys(stored)
  await getDb().prepare('INSERT INTO porthole_telemetry_records('+columns.join(',')+') VALUES('+columns.map(()=>'?').join(',')+')').bind(...columns.map(key=>stored[key])).run()
+ // Exercise the journal fence independently of physical removal. This is
+ // a custody fault injection: analytical erasure remains unsupported, and
+ // no new owner erasure operation is enabled by the pattern reader.
+ const batch=await getDb().prepare('SELECT id,digest FROM porthole_ingest_batches WHERE id=?').bind(row.batch_id).first()
+ const journalAfterLast=async response=>{assert.equal(response.status,200);const page=await response.json();if(page.cursor)estate.afterQuery(journalAfterLast);else await getDb().prepare('INSERT INTO porthole_erased_batches(id,content_digest,erased_at) VALUES(?,?,?)').bind(batch.id,batch.digest,Date.now()).run()}
+ estate.afterQuery(journalAfterLast)
+ try{
+  const journaled=await search({snapshot:query.snapshot})
+  assert.equal(journaled.status,409);assert.deepEqual(await journaled.json(),{error:'cluster_custody_changed'})
+  assert.equal(await getDb().prepare('SELECT COUNT(*) AS n FROM porthole_telemetry_records WHERE id=?').bind(row.id).first('n'),1,'retained bytes alone cannot override the erasure journal')
+ }finally{await getDb().prepare('DELETE FROM porthole_erased_batches WHERE id=?').bind(batch.id).run()}
  await estate.stop('standby')
  try{
   const outage=await value(await search({snapshot:query.snapshot}),503)
@@ -282,7 +301,7 @@ export async function logClusterAnalyticalProof({context,estate,cookie}){
  }finally{await estate.start('standby')}
  assert.equal((await value(await search({snapshot:query.snapshot}))).totalRecords,236)
  await connect('primary')
- console.log('PROBE PORT-011 analytical: primary and standby -> all 236 memberships and singleton pivots agree; real mid-read revoke -> 401; retained custody loss -> 409 with no accumulated results; stopped selected store -> 503')
+ console.log('PROBE PORT-011 analytical: primary and standby -> all 236 memberships and singleton pivots agree; real mid-read revoke -> 401; reviewed connection change -> 409; retained custody loss and journaled erasure -> 409 with no accumulated results; stopped selected store -> 503')
  await byteBudgetJourney({origin,cookie,call,post,value,backend:'analytical primary'})
  await connect('standby')
  const byteScope={...clusterScope,service:'synthetic-porthole-11601'}
