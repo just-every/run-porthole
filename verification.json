@@ -93,7 +93,8 @@
         "pnpm run build",
         "PORTHOLE_DASHBOARD_ONLY=1 pnpm run test:runtime",
         "pnpm exec rer build --site",
-        "PORTHOLE_API_ONLY=1 pnpm run test:runtime"
+        "PORTHOLE_API_ONLY=1 pnpm run test:runtime",
+        "PORTHOLE_EVENTS_ONLY=1 pnpm run test:runtime"
       ]
     },
     {

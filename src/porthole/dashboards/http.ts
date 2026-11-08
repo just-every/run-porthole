@@ -1,3 +1,4 @@
+import {dashboardOverlays} from '../events/overlays'
 import type {Bindings} from '../../auth.server'
 import {AuthError} from '../../modules/operator-auth/index.mjs'
 import {authority,fail,parseScope,scopeWithin,type Authority,type Scope} from '../security/authority'
@@ -13,7 +14,7 @@ const json=(value:unknown,status=200)=>Response.json(value,{status,headers:priva
 export async function dashboardResponse(request:Request,env:Bindings):Promise<Response|null> {
  const url=new URL(request.url),page=url.pathname.startsWith(app),requestId=crypto.randomUUID()
  if(!page&&!url.pathname.startsWith(api))return null
- if(![app,api,app+'/save',app+'/reorder',app+'/clone',app+'/archive',app+'/panel',app+'/annotation',api+'/archive'].includes(url.pathname)&&!new RegExp('^('+app+'|'+api+')/[a-f0-9-]{36}$').test(url.pathname))return null
+ if(![app,api,app+'/save',app+'/reorder',app+'/clone',app+'/archive',app+'/panel',app+'/annotation',app+'/event',api+'/archive'].includes(url.pathname)&&!new RegExp('^('+app+'|'+api+')/[a-f0-9-]{36}$').test(url.pathname))return null
  try {
   if(!page&&request.method==='GET')return await dashboardReadResponse(request,env)
   const actor=await authority(request,env,{post:request.method==='POST'}),canEdit=['owner','admin','maintainer'].includes(actor.member.role)
@@ -30,7 +31,7 @@ export async function dashboardResponse(request:Request,env:Bindings):Promise<Re
    const versions=(await env.DB.prepare(`SELECT * FROM porthole_dashboard_versions WHERE id=? AND ${actor.fence} ORDER BY revision DESC`).bind(row.id,...actor.args).all<DashboardRow>()).results.filter(v=>scopeWithin(JSON.parse(v.scope),actor.member.scope))
    if(url.searchParams.has('version')) {const version=Number(url.searchParams.get('version'));row=versions.find(v=>v.revision===version)??fail('dashboard_version_not_found',404)}
    if(quarantined)row={...row,state:'quarantined'}
-   return await dashboardPage(row,row.state==='quarantined'?[]:await dashboardResults(request,env,row),canEdit&&!url.searchParams.has('version'),url,versions,actor.member.role==='owner')
+   return await dashboardPage(row,row.state==='quarantined'?[]:await dashboardResults(request,env,row),canEdit&&!url.searchParams.has('version'),url,versions,actor.member.role==='owner',await dashboardOverlays(request,env,row))
   }
   if(request.method!=='POST')fail('method_not_allowed',405)
   if(!canEdit)fail('definition_change_forbidden')

@@ -1,3 +1,4 @@
+import {dashboardOverlays} from '../events/overlays'
 import {agentReadAuthority,agentCredential,type ReadPrincipal} from '../security/agent-read'
 import type {Bindings} from '../../auth.server'
 import {AuthError} from '../../modules/operator-auth/index.mjs'
@@ -24,6 +25,7 @@ function permitted(alias:string,scope:Scope,signals:string[]|null) {
 function representation(row:DashboardRow,scope:Scope,signals:string[]|null) {
  const selected=parseScope(JSON.parse(row.scope)),body=dashboardBody(JSON.parse(row.body))
  if(!scopeWithin(selected,scope)||signals&&body.panels.some(panel=>!signals.includes(panel.signal))||body.panels.some(panel=>!scopeWithin({services:[panel.service],environments:[body.variables.environment],teams:[body.variables.team]},selected)))fail('authority_changed',409)
+ if(signals)delete body.eventOverlays
  return {...row,scope:selected,body}
 }
 /** A whole definition and every returned historical revision remain subject
@@ -79,7 +81,8 @@ export async function dashboardReadResponse(request:Request,env:Bindings,princip
   const selected=version===undefined?rows[0]:(results[2].results as unknown as DashboardRow[])[0]
   if(!selected)fail('dashboard_version_not_found',404)
   const row=rows[0].state==='quarantined'?{...selected,state:'quarantined'}:selected
-  return json({...representation(row,scope,signals),versions:results[1].results.map(row=>(row as {revision:number}).revision)},200,{...headers,etag:`"${row.revision}"`,'x-porthole-entity':id})
+  const eventOverlays=bearer?[]:await dashboardOverlays(request,env,row)
+  return json({...representation(row,scope,signals),eventOverlays,versions:results[1].results.map(row=>(row as {revision:number}).revision)},200,{...headers,etag:`"${row.revision}"`,'x-porthole-entity':id})
  } catch(error) {
   const known=error instanceof AuthError||error instanceof CredentialLimit,status=known?error.status:503,code=known?error.code:'dashboards_unavailable'
   return json({error:code,details:{code,status,requestId}},status,error instanceof CredentialLimit?{'retry-after':String(error.retryAfter)}:{})

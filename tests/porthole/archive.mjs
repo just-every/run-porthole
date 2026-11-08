@@ -1171,6 +1171,47 @@ export async function databaseArchiveJourney({origin,cookie,withEmptyDestination
  console.log('PROBE PORT-016 safe export: admitted password predicate -> unchanged [REDACTED] in product archive, inactive restored records and re-export')
 }
 
+/** The existing private product archive carries event history without making
+ * restored evidence, filters or dashboard references live. */
+export async function eventArchiveJourney({origin,freshOwner,withEmptyDestination,eventIds,dashboardId,filterId,publicationPaths}) {
+ const cookie=await freshOwner(),source=await savedExport(origin,cookie,await post(origin,cookie,api+'/exports',{}))
+ const events=source.rows.filter(row=>row.table==='porthole_custom_events'),filters=source.rows.filter(row=>row.table==='porthole_event_filters')
+ for(const id of eventIds)assert.ok(events.some(row=>row.row.id===id))
+ assert.ok(filters.some(row=>row.row.id===filterId))
+ assert.ok(!source.rows.some(row=>row.table==='oa_sessions'||row.table==='porthole_credentials'))
+ await withEmptyDestination(async destination=>{
+  let owner=await destination.freshOwner()
+  const start=await value(await post(origin,owner,api+'/restores',{manifest:source.manifest}),201)
+  for(const chunk of source.chunks)await value(await post(origin,owner,`${api}/restores/${start.id}/chunks`,{chunk}))
+  await value(await post(origin,owner,`${api}/restores/${start.id}/commit`,{confirm:source.manifest.rootHash}))
+  const root='/api/porthole/v1/events'
+  assert.deepEqual((await value(await get(origin,owner,root))).events,[])
+  const inactiveExport=await get(origin,owner,root+'/export')
+  assert.equal(inactiveExport.status,200);assert.equal(await inactiveExport.text(),'')
+  assert.equal(inactiveExport.headers.get('x-porthole-records'),'0')
+  assert.deepEqual((await value(await get(origin,owner,root+'/filters'))).filters,[])
+  for(const id of eventIds)assert.equal((await get(origin,owner,root+'/'+id)).status,404)
+  const inert=events.find(row=>row.row.id===eventIds[0]).row
+  assert.equal((await post(origin,owner,root,JSON.parse(inert.body))).status,409,'restored source identity cannot become live by retry')
+  assert.equal((await get(origin,owner,root+'?filter='+filterId)).status,404)
+  const dashboard=await value(await get(origin,owner,'/api/porthole/v1/dashboards/'+dashboardId))
+  assert.equal(dashboard.state,'quarantined');assert.ok(dashboard.eventOverlays.every(item=>item===null))
+  for(const path of publicationPaths)assert.equal((await fetch(origin+path,{headers:{origin:'https://display.example'}})).status,404)
+  const again=await savedExport(origin,owner,await post(origin,owner,api+'/exports',{}))
+  const restored=again.rows.filter(row=>row.table==='porthole_custom_events')
+  assert.deepEqual(restored.map(row=>({...row.row,state:'active'})),events.map(row=>({...row.row,state:'active'})),'re-export preserves every immutable event field and original receipt')
+  assert.ok(restored.every(row=>row.row.state==='quarantined'))
+  const restoredFilters=again.rows.filter(row=>row.table==='porthole_event_filters')
+  assert.ok(restoredFilters.every(row=>row.row.state==='quarantined'))
+  assert.deepEqual(restoredFilters.map(row=>({...row.row,state:'active'})),filters.map(row=>({...row.row,state:'active'})),'private resource and tag filters retain their definition without becoming active')
+  await destination.restartWorker();owner=await destination.freshOwner()
+  assert.deepEqual((await value(await get(origin,owner,root))).events,[])
+  assert.equal((await get(origin,cookie,root)).status,401)
+  assert.equal((await destination.sql('SELECT COUNT(*) AS n FROM porthole_monitor_evaluations'))[0].n,0)
+  assert.equal((await destination.sql('SELECT COUNT(*) AS n FROM porthole_health_notices'))[0].n,0)
+ })
+}
+
 /** Pattern pages are recomputed, not archived caches or restored authority. */
 export async function clusterArchiveJourney({origin,freshOwner,withEmptyDestination,query,all,members}) {
  const cookie=await freshOwner(),saved=await savedExport(origin,cookie,await post(origin,cookie,api+'/exports',{}))

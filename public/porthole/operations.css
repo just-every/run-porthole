@@ -20,3 +20,6 @@
 .rer-themed .porthole-notebook-cells { padding-left: 24px; }
 .rer-themed .porthole-notebook-cells article { min-width: 0; margin: 24px 0; overflow-wrap: anywhere; }
 .rer-themed .porthole-notebook-cells svg { max-width: 600px; }
+
+.rer-themed .porthole-event { min-width: 0; overflow-wrap: anywhere; }
+.rer-themed .porthole-event dd { margin-left: 0; }

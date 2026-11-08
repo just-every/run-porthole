@@ -113,3 +113,54 @@ export async function dashboardApiJourney({origin,cookie,freshOwner,signIn}) {
  assert.equal((await cli(['list','dashboards','--all'],{secret:all.secret})).code,1)
  console.log('Dashboard API journey passed: scoped HTTP, CLI and MCP, panel signal and historical authority, durable native mutations, quota and revocation')
 }
+
+/** Event overlays remain native references in the dashboard's exact revisions. */
+export async function eventDashboardJourney({origin,cookie,restricted,eventIds,foreignId,scope,value}) {
+ const post=(path,data,session=cookie)=>fetch(origin+path,{method:'POST',redirect:'manual',headers:{origin,cookie:session,'content-type':'application/json'},body:JSON.stringify(data)})
+ const get=(path,session=cookie)=>fetch(origin+path,{headers:{cookie:session}})
+ const kinds=['query_value','timeseries','table','top_list','distribution','heatmap','pie','treemap','list','log_stream','notes']
+ const events=await Promise.all(eventIds.map(async id=>(await value(await get('/api/porthole/v1/events/'+id))).event))
+ const logs=(await value(await get('/api/porthole/v1/ingest/records?signal=logs&service=checkout'))).records
+ assert.equal(logs.length,1,'overlay graphs consume the actual stock SDK request')
+ const times=[...events.map(e=>BigInt(e.occurredAt)),...logs.map(row=>BigInt(row.event_time_ns))]
+ const from=String(times.reduce((a,b)=>a<b?a:b)-1n),through=String(times.reduce((a,b)=>a>b?a:b)+1n)
+ const definition={name:'Native execution dashboard',scope,body:{panels:kinds.map(widget=>({id:widget,title:'Checkout '+widget.replaceAll('_',' '),signal:'logs',aggregate:'count',service:'checkout',unit:'records',widget,...(widget==='notes'?{note:'Local execution evidence'}:{})})),variables:{team:'commerce',environment:'production'},range:{from,through},annotations:[],eventOverlays:eventIds}}
+ const created=await value(await post('/api/porthole/v1/dashboards',definition),201),path='/api/porthole/v1/dashboards/'+created.id
+ const read=await value(await get(path))
+ assert.deepEqual(read.body.eventOverlays,eventIds)
+ assert.deepEqual(read.eventOverlays.map(e=>e.id),eventIds)
+ assert.deepEqual((await value(await get(path,restricted))).eventOverlays.map(e=>e.id),eventIds)
+ assert.equal((await post('/api/porthole/v1/dashboards',{...definition,id:read.id,revision:read.revision,body:{...definition.body,eventOverlays:[foreignId]}})).status,403)
+ assert.deepEqual(await value(await get(path)),read,'foreign-scope overlay refusal changes no definition or revision')
+ assert.equal((await post('/api/porthole/v1/dashboards',{...definition,id:read.id,revision:0})).status,409)
+ const {eventBrowser}=await import('./events.mjs')
+ await eventBrowser({origin,cookie,path:'/app/dashboards/'+created.id,name:'events-dashboard',exercise:async page=>{
+  assert.equal(await page.locator('[data-overlay]').count(),eventIds.length*kinds.length)
+  for(const kind of kinds) {
+   const panel=page.locator('[data-panel="'+kind+'"]')
+   assert.deepEqual(await panel.locator('[data-overlay] a').evaluateAll(items=>items.map(a=>a.getAttribute('href'))),eventIds.map(id=>'/app/events/'+id))
+   if(kind!=='notes')assert.match(await panel.getByRole('status').first().innerText(),/complete|stale/)
+   const query=panel.getByRole('link',{name:'Open underlying logs query'})
+   if(kind!=='notes') {const link=new URL(await query.getAttribute('href'),origin);assert.equal(link.searchParams.get('from'),from);assert.equal(link.searchParams.get('through'),through);assert.equal(link.searchParams.get('service'),'checkout')}
+   if(['timeseries','heatmap'].includes(kind)) {
+    assert.equal(await panel.locator('[data-event-marker]').count(),eventIds.length,'authorized events use the actual graph time axis')
+    assert.deepEqual(await panel.locator('[data-event-marker]').evaluateAll(items=>items.map(el=>el.getAttribute('data-occurrence-ns'))),events.map(e=>e.occurredAt))
+    const x=await panel.locator('[data-event-marker] circle').evaluateAll(items=>items.map(el=>Number(el.getAttribute('cx'))))
+    for(let i=0;i<events.length;i++)assert.ok(Math.abs(x[i]-(40+Number(BigInt(events[i].occurredAt)-BigInt(from))/Number(BigInt(through)-BigInt(from))*220))<1e-9)
+   }else assert.equal(await panel.locator('[data-event-marker]').count(),0,'a value or category axis is never presented as time')
+  }
+  assert.ok(await page.locator('[data-panel="timeseries"] svg polyline').count()>0,'the graph contains stock SDK telemetry rather than an empty fixture')
+  assert.equal(await page.locator('[data-panel="heatmap"] rect[data-count]').evaluateAll(items=>items.reduce((n,item)=>n+Number(item.getAttribute('data-count')),0)),1)
+  const link=page.locator('[data-panel="timeseries"] [data-overlay] a').first();await link.focus();await Promise.all([page.waitForURL('**/app/events/*'),link.press('Enter')])
+  assert.equal(await page.locator('[data-event]').getAttribute('data-event'),eventIds[0])
+ }})
+ assert.equal((await get(path+'?from='+events[1].occurredAt+'&through='+events[1].occurredAt)).status,400,'definition reads reject unsupported range overrides')
+ await eventBrowser({origin,cookie,path:'/app/dashboards/'+created.id+'?from='+events[1].occurredAt+'&through='+events[1].occurredAt,name:'events-dashboard-range',exercise:async page=>{
+  for(const kind of kinds) {
+   const panel=page.locator('[data-panel="'+kind+'"]')
+   assert.deepEqual(await panel.locator('[data-overlay] a').evaluateAll(items=>items.map(a=>a.getAttribute('href'))),['/app/events/'+eventIds[1]])
+   assert.equal(await panel.locator('[data-event-marker]').count(),0,'empty graphs do not invent telemetry to place an event marker')
+  }
+ }})
+ return {...created,definition}
+}

@@ -179,3 +179,34 @@ async function publicationBrowser({origin,cookie,dashboardId,allowed,labels,sour
   await anonymous.close();await context.close()
  }}finally{await browser.close()}
 }
+
+/** A private event reference is never an anonymous publication capability. */
+export async function eventPublicationJourney({origin,cookie,freshOwner,dashboard,eventId,value}) {
+ cookie=await freshOwner()
+ const post=(path,data)=>fetch(origin+path,form(origin,cookie,data))
+ const get=path=>fetch(origin+path,{headers:{cookie}})
+ const source=await value(await get('/api/porthole/v1/dashboards/'+dashboard.id))
+ const draft=await post(root+'/preview',{dashboardId:source.id,sourceRevision:source.revision,publicTitle:'Reviewed checkout count',labels:{[source.body.panels.find(panel=>panel.widget!=='notes').id]:'Execution evidence count'},allowedOrigins:['https://display.example'],expiresAt:Date.now()+3600000})
+ assert.equal(draft.status,303,await draft.clone().text())
+ const reviewPath=draft.headers.get('location'),packet=await (await get(reviewPath)).text()
+ const values=Object.fromEntries([...packet.matchAll(/<input type="hidden" name="([^"]+)" value="([^"]*)">/g)].map(([,name,value])=>[name,value.replaceAll('&#34;','"').replaceAll('&#38;','&').replaceAll('&#39;',"'")]))
+ const approved=await post(root+'/approve',{...values,confirm:'reviewed-public-snapshot',reviewTv:'reviewed',reviewEmbed:'reviewed',reviewImages:'reviewed'})
+ assert.equal(approved.status,303,await approved.clone().text())
+ const publicationPage=await (await get(reviewPath)).text(),paths=[...publicationPage.matchAll(/href="(\/published\/[^"]+)"/g)].map(match=>match[1])
+ assert.equal(paths.length,3)
+ for(const path of paths) {
+  const response=await fetch(origin+path,{headers:{origin:'https://display.example'}})
+  assert.equal(response.status,200)
+  const text=await response.text()
+  for(const id of source.body.eventOverlays)assert.ok(!text.includes(id),'public numeric output contains no event reference')
+  assert.ok(!text.includes('Local command'));assert.ok(!text.includes('native-command'))
+ }
+ const changed=await value(await post('/api/porthole/v1/dashboards',{id:source.id,revision:source.revision,name:source.name,scope:source.scope,body:{...source.body,eventOverlays:[...source.body.eventOverlays,eventId]}}),201)
+ for(const path of paths)assert.equal((await fetch(origin+path,{headers:{origin:'https://display.example'}})).status,404,'an overlay edit invalidates every old public surface')
+ await value(await post('/api/porthole/v1/dashboards',{id:source.id,revision:changed.revision,name:source.name,scope:source.scope,body:source.body}),201)
+ for(const path of paths)assert.equal((await fetch(origin+path,{headers:{origin:'https://display.example'}})).status,404,'removing the overlay never revives an old address')
+ const after=await (await get(reviewPath)).text()
+ assert.ok(after.includes(new Date(Number(values.expiresAt)).toISOString()),'overlay changes never renew publication expiry')
+ assert.equal((await post(root+'/approve',{...values,confirm:'reviewed-public-snapshot',reviewTv:'reviewed',reviewEmbed:'reviewed',reviewImages:'reviewed'})).status,409,'old consent cannot renew a changed source')
+ return {paths}
+}
