@@ -1,0 +1,16 @@
+verify:runtime
+Heavy job admitted: Porthole verify:runtime:suite [bd10c5cf6021]
+Recipient fixture: parsing migrations
+Recipient fixture: migrations parsed
+Recipient fixture: starting emitted Worker
+Recipient fixture: D1 ready
+Recipient fixture: native bootstrap
+Stock scrape generations {"scrapes":15,"timestamps":[1794177689191,1794177695661,1794177697201,1794177698626,1794177700146],"counter":[{"metric":{"__name__":"synthetic_scrape_requests_total","environment":"production","instance":"127.0.0.1:38527","job":"synthetic-porthole-6100","producer":"synthetic-porthole-6200","service":"synthetic-porthole-6100","team":"commerce"},"values":[[1794177689.191,"1"],[1794177695.661,"2"],[1794177697.201,"3"],[1794177698.626,"4"],[1794177700.146,"5"]]}]}
+PROBE PORT-061 standard metrics: stock Prometheus 3.5.0 remote_read evaluates twelve fixed expressions over real scrape and stock OTLP input -> exact reference series, labels, timestamps and values
+(node:22797) TimeoutNegativeWarning: -1794177766208 is a negative number.
+Timeout duration was set to 1.
+(Use `node --trace-warnings ...` to show where the warning was created)
+STANDARD_READ_RESULT {"metricSeries":214,"metricSamples":1092,"traceIds":3,"selectedTraceSpans":8,"prometheus":"3.5.0","tempoClient":"2.8.2","result":"passed"}
+PROBE PORT-061 standard traces: captured stock HTTP and Kafka spans -> official OTLP binary reader exact spans and stock Tempo CLI; restricted span set and explicit partial evidence; restart and inactive restore
+PROBE PORT-061 analytical schema: exact mappings and legacy quotas; analytical erasure refuses unchanged; prior-journal fixture fences both stores and replay; complete row and byte budget refusals
+PROBE PORT-061 authority: both real analytical backends -> same stock samples; mid-read revoke and expiry -> 401; narrowing and custody change -> 409; quota -> 429; excluded records absent; unavailable backend -> 503

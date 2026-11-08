@@ -1,0 +1,16 @@
+{
+  "name": "typecheck",
+  "head": "4a86b252865d95d341e2a54d5b5b88e98c40bdd4",
+  "command": [
+    "pnpm",
+    "run",
+    "typecheck"
+  ],
+  "exit": 0,
+  "started": "2026-11-08T22:42:34.382640+00:00",
+  "finished": "2026-11-08T22:42:34.735966+00:00",
+  "seconds": 0.353,
+  "log": "typecheck.log",
+  "log_sha256": "4b777a5bb00be862403c94c1042ec3802a40ec9b1191b48bdf4b8ca1218ca915",
+  "worktree_clean": true
+}

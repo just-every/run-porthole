@@ -1,0 +1,19 @@
+{
+  "name": "first-party",
+  "head": "4a86b252865d95d341e2a54d5b5b88e98c40bdd4",
+  "command": [
+    "pnpm",
+    "exec",
+    "rer",
+    "check",
+    "--profile",
+    "first-party"
+  ],
+  "exit": 0,
+  "started": "2026-11-08T22:42:34.799795+00:00",
+  "finished": "2026-11-08T22:42:35.439119+00:00",
+  "seconds": 0.639,
+  "log": "first-party.log",
+  "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "worktree_clean": true
+}

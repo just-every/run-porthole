@@ -1,0 +1,16 @@
+{
+  "name": "contract-views",
+  "head": "4a86b252865d95d341e2a54d5b5b88e98c40bdd4",
+  "command": [
+    "bash",
+    "-c",
+    "node scripts/porthole/contract-docs.mjs write PORT-061 && node scripts/porthole/contract-docs.mjs check PORT-061; result=$?; git checkout origin/main -- ACCEPTANCE.md docs/CLAIMS.md; exit \"$result\""
+  ],
+  "exit": 0,
+  "started": "2026-11-08T22:42:33.465572+00:00",
+  "finished": "2026-11-08T22:42:33.638336+00:00",
+  "seconds": 0.173,
+  "log": "contract-views.log",
+  "log_sha256": "63c4bb474f33299d05c8eac698589afa4f0af59e2dd804869c0de0ecab472385",
+  "worktree_clean": true
+}

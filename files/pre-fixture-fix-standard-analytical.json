@@ -1,0 +1,21 @@
+{
+  "name": "standard-analytical",
+  "head": "7fbd259eef519fed2a0b6f203d81437c071810b3",
+  "command": [
+    "timeout",
+    "1200",
+    "env",
+    "PORTHOLE_STANDARD_ANALYTICAL_ONLY=1",
+    "node",
+    "tests/runtime.mjs"
+  ],
+  "exit": 1,
+  "started": "2026-11-08T22:25:46.574245+00:00",
+  "finished": "2026-11-08T22:31:38.880428+00:00",
+  "seconds": 352.306,
+  "log": "pre-fixture-fix-standard-analytical.log",
+  "log_sha256": "7c916cce71bb17b366565655b6bae450e37c04086fedb0affb38415336440417",
+  "worktree_clean": true,
+  "original_log_name": "standard-analytical.log",
+  "artifact_renamed": true
+}

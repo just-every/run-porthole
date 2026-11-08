@@ -1,0 +1,24 @@
+{
+  "baseline": {
+    "head": "ff590be64b7cac3eaf2128c9833c641072cd8fb5",
+    "nativeExit": 0,
+    "verifyRun": 42526716070,
+    "verifyStatus": "completed",
+    "verifyConclusion": "success"
+  },
+  "uncommittedDevelopmentTrials": [
+    {
+      "command": "PORTHOLE_STANDARD_ONLY=1 node tests/runtime.mjs",
+      "exit": 1,
+      "assertion": "disjoint native windows reconcile the complete stock reference capture",
+      "cause": "The final stock shutdown collection occurred after the reference instant."
+    },
+    {
+      "command": "PORTHOLE_STANDARD_ANALYTICAL_ONLY=1 node tests/runtime.mjs",
+      "exit": 1,
+      "assertion": "disjoint native windows reconcile the complete stock reference capture",
+      "cause": "Same development fixture boundary, corrected before the final candidate."
+    }
+  ],
+  "resolution": "Finish the stock provider shutdown before freezing the reference instant; compare every captured sample rather than only the gauge."
+}

@@ -1,0 +1,17 @@
+{
+  "name": "build",
+  "head": "4a86b252865d95d341e2a54d5b5b88e98c40bdd4",
+  "command": [
+    "npx",
+    "-y",
+    "@runeditrun/rer",
+    "build"
+  ],
+  "exit": 0,
+  "started": "2026-11-08T22:40:28.560564+00:00",
+  "finished": "2026-11-08T22:40:35.392235+00:00",
+  "seconds": 6.832,
+  "log": "build.log",
+  "log_sha256": "82eedc566512beef013caaf438d0d3580158494c7544451bbaf1c13c36c4d678",
+  "worktree_clean": true
+}

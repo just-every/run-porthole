@@ -1,0 +1,21 @@
+{
+  "name": "standard-native",
+  "head": "7fbd259eef519fed2a0b6f203d81437c071810b3",
+  "command": [
+    "timeout",
+    "1200",
+    "env",
+    "PORTHOLE_STANDARD_ONLY=1",
+    "node",
+    "tests/runtime.mjs"
+  ],
+  "exit": 0,
+  "started": "2026-11-08T22:25:45.391705+00:00",
+  "finished": "2026-11-08T22:29:30.626181+00:00",
+  "seconds": 225.234,
+  "log": "pre-fixture-fix-standard-native.log",
+  "log_sha256": "3a7ad88934402c1ed5ae6d7026d151ff07b3462f0ebe600c5a80c1985eef79b9",
+  "worktree_clean": true,
+  "original_log_name": "standard-native.log",
+  "artifact_renamed": true
+}

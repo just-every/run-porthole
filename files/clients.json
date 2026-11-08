@@ -1,0 +1,20 @@
+{
+  "head": "4a86b252865d95d341e2a54d5b5b88e98c40bdd4",
+  "clients": {
+    "prometheus": {
+      "sha256": "4ee49f574d80682b6571f017c8f42f2532aa3603b725b51ecb0cb864f06c2282",
+      "bytes": 159425376
+    },
+    "tempo-cli": {
+      "sha256": "1a2f052303ef134f986d8624981a8f8df77d9028cdafe13ed98f5944b6cdc498",
+      "bytes": 80413529
+    }
+  },
+  "readers": {
+    "opentelemetry-proto": "1.45.1",
+    "protobuf": "6.33.6",
+    "pyarrow": "19.0.1",
+    "duckdb": "1.3.2"
+  },
+  "script": "scripts/porthole/standard-clients.mjs"
+}

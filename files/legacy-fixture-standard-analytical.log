@@ -1,0 +1,38 @@
+verify:runtime
+Heavy job admitted: Porthole verify:runtime:suite [bd10c5cf6021]
+Recipient fixture: parsing migrations
+Recipient fixture: migrations parsed
+Recipient fixture: starting emitted Worker
+Recipient fixture: D1 ready
+Recipient fixture: native bootstrap
+Stock scrape generations {"scrapes":15,"timestamps":[1794177253278,1794177259743,1794177261168,1794177262690,1794177264207],"counter":[{"metric":{"__name__":"synthetic_scrape_requests_total","environment":"production","instance":"127.0.0.1:35095","job":"synthetic-porthole-6100","producer":"synthetic-porthole-6200","service":"synthetic-porthole-6100","team":"commerce"},"values":[[1794177253.278,"1"],[1794177259.743,"2"],[1794177261.168,"3"],[1794177262.69,"4"],[1794177264.207,"5"]]}]}
+PROBE PORT-061 standard metrics: stock Prometheus 3.5.0 remote_read evaluates twelve fixed expressions over real scrape and stock OTLP input -> exact reference series, labels, timestamps and values
+(node:16877) TimeoutNegativeWarning: -1794177330869 is a negative number.
+Timeout duration was set to 1.
+(Use `node --trace-warnings ...` to show where the warning was created)
+STANDARD_READ_RESULT {"metricSeries":214,"metricSamples":1092,"traceIds":3,"selectedTraceSpans":8,"prometheus":"3.5.0","tempoClient":"2.8.2","result":"passed"}
+PROBE PORT-061 standard traces: captured stock HTTP and Kafka spans -> official OTLP binary reader exact spans and stock Tempo CLI; restricted span set and explicit partial evidence; restart and inactive restore
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: {"error":"analytical_erasure_not_supported"}
+
+409 !== 200
+
+    at value (file://[REDACTED]/tests/porthole/standard-reads.mjs:22:49)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async standardSchemaProof (file://[REDACTED]/tests/porthole/standard-reads.mjs:490:2)
+    at async Object.run (file://[REDACTED]/tests/porthole/standard-reads.mjs:380:3)
+    at async recipientMailJourney (file://[REDACTED]/tests/porthole/health.mjs:332:4)
+    at async standardAnalyticalJourney (file://[REDACTED]/tests/porthole/standard-reads.mjs:312:6)
+    at async file://[REDACTED]/tests/runtime.mjs:13:137 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: 409,
+  expected: 200,
+  operator: 'strictEqual',
+  diff: 'simple'
+}
+
+Node.js v24.19.0

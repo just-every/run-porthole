@@ -1,0 +1,16 @@
+{
+  "name": "source-lock",
+  "head": "4a86b252865d95d341e2a54d5b5b88e98c40bdd4",
+  "command": [
+    "pnpm",
+    "run",
+    "source:check"
+  ],
+  "exit": 0,
+  "started": "2026-11-08T22:42:33.755068+00:00",
+  "finished": "2026-11-08T22:42:34.317027+00:00",
+  "seconds": 0.562,
+  "log": "source-lock.log",
+  "log_sha256": "556aabbdfd7169a4daf58e3d809930d816a5c4251fead11979146028de80c57c",
+  "worktree_clean": true
+}

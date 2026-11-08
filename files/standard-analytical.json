@@ -1,0 +1,19 @@
+{
+  "name": "standard-analytical",
+  "head": "4a86b252865d95d341e2a54d5b5b88e98c40bdd4",
+  "command": [
+    "timeout",
+    "1200",
+    "env",
+    "PORTHOLE_STANDARD_ANALYTICAL_ONLY=1",
+    "node",
+    "tests/runtime.mjs"
+  ],
+  "exit": 0,
+  "started": "2026-11-08T22:41:17.259221+00:00",
+  "finished": "2026-11-08T22:43:31.109420+00:00",
+  "seconds": 133.85,
+  "log": "standard-analytical.log",
+  "log_sha256": "1b2fdafff23a153ee8d141bd0af197c8733e1e8b7a743011ea2a94d012d1e481",
+  "worktree_clean": true
+}

@@ -1,0 +1,204 @@
+{
+  "schema": 1,
+  "tag": "sx-porthole-c-f463",
+  "repository": "just-every/run-porthole",
+  "branch": "cloud/sx-porthole-c-f463",
+  "head": "4a86b252865d95d341e2a54d5b5b88e98c40bdd4",
+  "recorded_at": "2026-11-08T22:50:02.099079+00:00",
+  "product_custody": "PUSHED",
+  "push_guard": "cloud-push.py",
+  "push_exit": 0,
+  "push_attempts": 1,
+  "verify": {
+    "conclusion": null,
+    "event": "push",
+    "head_sha": "4a86b252865d95d341e2a54d5b5b88e98c40bdd4",
+    "html_url": "https://github.com/just-every/run-porthole/actions/runs/42531988910",
+    "id": 42531988910,
+    "name": "Verify",
+    "status": "in_progress"
+  },
+  "local_checks": [
+    {
+      "name": "build",
+      "head": "4a86b252865d95d341e2a54d5b5b88e98c40bdd4",
+      "command": [
+        "npx",
+        "-y",
+        "@runeditrun/rer",
+        "build"
+      ],
+      "exit": 0,
+      "started": "2026-11-08T22:40:28.560564+00:00",
+      "finished": "2026-11-08T22:40:35.392235+00:00",
+      "seconds": 6.832,
+      "log": "build.log",
+      "log_sha256": "82eedc566512beef013caaf438d0d3580158494c7544451bbaf1c13c36c4d678",
+      "worktree_clean": true
+    },
+    {
+      "name": "typecheck",
+      "head": "4a86b252865d95d341e2a54d5b5b88e98c40bdd4",
+      "command": [
+        "pnpm",
+        "run",
+        "typecheck"
+      ],
+      "exit": 0,
+      "started": "2026-11-08T22:42:34.382640+00:00",
+      "finished": "2026-11-08T22:42:34.735966+00:00",
+      "seconds": 0.353,
+      "log": "typecheck.log",
+      "log_sha256": "4b777a5bb00be862403c94c1042ec3802a40ec9b1191b48bdf4b8ca1218ca915",
+      "worktree_clean": true
+    },
+    {
+      "name": "first-party",
+      "head": "4a86b252865d95d341e2a54d5b5b88e98c40bdd4",
+      "command": [
+        "pnpm",
+        "exec",
+        "rer",
+        "check",
+        "--profile",
+        "first-party"
+      ],
+      "exit": 0,
+      "started": "2026-11-08T22:42:34.799795+00:00",
+      "finished": "2026-11-08T22:42:35.439119+00:00",
+      "seconds": 0.639,
+      "log": "first-party.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "worktree_clean": true
+    },
+    {
+      "name": "contract-views",
+      "head": "4a86b252865d95d341e2a54d5b5b88e98c40bdd4",
+      "command": [
+        "bash",
+        "-c",
+        "node scripts/porthole/contract-docs.mjs write PORT-061 && node scripts/porthole/contract-docs.mjs check PORT-061; result=$?; git checkout origin/main -- ACCEPTANCE.md docs/CLAIMS.md; exit \"$result\""
+      ],
+      "exit": 0,
+      "started": "2026-11-08T22:42:33.465572+00:00",
+      "finished": "2026-11-08T22:42:33.638336+00:00",
+      "seconds": 0.173,
+      "log": "contract-views.log",
+      "log_sha256": "63c4bb474f33299d05c8eac698589afa4f0af59e2dd804869c0de0ecab472385",
+      "worktree_clean": true
+    },
+    {
+      "name": "source-lock",
+      "head": "4a86b252865d95d341e2a54d5b5b88e98c40bdd4",
+      "command": [
+        "pnpm",
+        "run",
+        "source:check"
+      ],
+      "exit": 0,
+      "started": "2026-11-08T22:42:33.755068+00:00",
+      "finished": "2026-11-08T22:42:34.317027+00:00",
+      "seconds": 0.562,
+      "log": "source-lock.log",
+      "log_sha256": "556aabbdfd7169a4daf58e3d809930d816a5c4251fead11979146028de80c57c",
+      "worktree_clean": true
+    },
+    {
+      "name": "public-schema",
+      "head": "4a86b252865d95d341e2a54d5b5b88e98c40bdd4",
+      "command": [
+        "node",
+        "scripts/porthole/public-schema.mjs",
+        "--check"
+      ],
+      "exit": 0,
+      "started": "2026-11-08T22:42:35.497929+00:00",
+      "finished": "2026-11-08T22:42:36.267010+00:00",
+      "seconds": 0.769,
+      "log": "public-schema.log",
+      "log_sha256": "59450c15ddc9aa20226afa14d2e17fe7163e9c036617283e0185497a8c085d37",
+      "worktree_clean": true
+    },
+    {
+      "name": "standard-native",
+      "head": "4a86b252865d95d341e2a54d5b5b88e98c40bdd4",
+      "command": [
+        "timeout",
+        "1200",
+        "env",
+        "PORTHOLE_STANDARD_ONLY=1",
+        "node",
+        "tests/runtime.mjs"
+      ],
+      "exit": 0,
+      "started": "2026-11-08T22:41:18.898700+00:00",
+      "finished": "2026-11-08T22:47:05.961032+00:00",
+      "seconds": 347.062,
+      "log": "standard-native.log",
+      "log_sha256": "9a45c1c595860d52c2b018ef1ee0fbfabec5a147b26ef3b4e1e5872327a3e528",
+      "worktree_clean": true
+    },
+    {
+      "name": "standard-analytical",
+      "head": "4a86b252865d95d341e2a54d5b5b88e98c40bdd4",
+      "command": [
+        "timeout",
+        "1200",
+        "env",
+        "PORTHOLE_STANDARD_ANALYTICAL_ONLY=1",
+        "node",
+        "tests/runtime.mjs"
+      ],
+      "exit": 0,
+      "started": "2026-11-08T22:41:17.259221+00:00",
+      "finished": "2026-11-08T22:43:31.109420+00:00",
+      "seconds": 133.85,
+      "log": "standard-analytical.log",
+      "log_sha256": "1b2fdafff23a153ee8d141bd0af197c8733e1e8b7a743011ea2a94d012d1e481",
+      "worktree_clean": true
+    }
+  ],
+  "counts_before": {
+    "done": 10,
+    "partial": 20,
+    "missing": 69
+  },
+  "counts_after": {
+    "done": 10,
+    "partial": 20,
+    "missing": 69
+  },
+  "status_rows": 99,
+  "clause": "PORT-061",
+  "status_before": "PARTIAL",
+  "status_after": "PARTIAL",
+  "proven_acceptance_points": [
+    1,
+    2
+  ],
+  "complete_new_acceptance_points": [],
+  "metric_series": 214,
+  "metric_samples": 1092,
+  "stock_trace_cases": 3,
+  "selected_trace_spans": 8,
+  "analytical_erasure": "unsupported; refused unchanged; prior-journal fixture proves read fencing only",
+  "publication_scan": {
+    "state": "not run in cloud",
+    "required_at_landing": true
+  },
+  "run_site": {
+    "state": "not run on cloud branch",
+    "required_at_landing": true
+  },
+  "main_at_final_fetch": "ff590be64b7cac3eaf2128c9833c641072cd8fb5",
+  "main_equals_candidate": false,
+  "pr": null,
+  "published_history_rewritten": false,
+  "candidate_commits": [
+    "4a86b252865d95d341e2a54d5b5b88e98c40bdd4",
+    "aa0f692c24994ab09be63bf2d504dc72df1c07ad",
+    "7fbd259eef519fed2a0b6f203d81437c071810b3",
+    "300ce4e272f8d3739fe839e45b310905a666c8fd",
+    "710ff8d1fd15c87e013f5e10b06149ca6f0f947e"
+  ]
+}

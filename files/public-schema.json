@@ -1,0 +1,16 @@
+{
+  "name": "public-schema",
+  "head": "4a86b252865d95d341e2a54d5b5b88e98c40bdd4",
+  "command": [
+    "node",
+    "scripts/porthole/public-schema.mjs",
+    "--check"
+  ],
+  "exit": 0,
+  "started": "2026-11-08T22:42:35.497929+00:00",
+  "finished": "2026-11-08T22:42:36.267010+00:00",
+  "seconds": 0.769,
+  "log": "public-schema.log",
+  "log_sha256": "59450c15ddc9aa20226afa14d2e17fe7163e9c036617283e0185497a8c085d37",
+  "worktree_clean": true
+}

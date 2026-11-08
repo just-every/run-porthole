@@ -1,0 +1,17 @@
+verify:runtime
+Heavy job admitted: Porthole verify:runtime:suite [bd10c5cf6021]
+▲ [WARNING] Proxy environment variables detected. We'll use your proxy for fetch requests.
+
+
+Installed owner claim rejects missing/wrong setup tokens and request demo flags
+HTTP-001 passed against emitted local Worker: health, the installed homepage, HTTP and document 404s
+Stock scrape generations {"scrapes":15,"timestamps":[1794176790944,1794176797517,1794176798936,1794176800457,1794176801982],"counter":[{"metric":{"__name__":"synthetic_scrape_requests_total","environment":"production","instance":"127.0.0.1:44905","job":"synthetic-porthole-6100","producer":"synthetic-porthole-6200","service":"synthetic-porthole-6100","team":"commerce"},"values":[[1794176790.944,"1"],[1794176797.517,"2"],[1794176798.936,"3"],[1794176800.457,"4"],[1794176801.982,"5"]]}]}
+PROBE PORT-061 standard metrics: stock Prometheus 3.5.0 remote_read evaluates twelve fixed expressions over real scrape and stock OTLP input -> exact reference series, labels, timestamps and values
+(node:11451) TimeoutNegativeWarning: -1794176868131 is a negative number.
+Timeout duration was set to 1.
+(Use `node --trace-warnings ...` to show where the warning was created)
+PROBE PORT-061 restore: inactive owner installation restore -> original samples with newly minted destination authority, no imported credentials, intake remains paused
+PROBE PORT-061 schema and erasure: cumulative gauges, sums, buckets and summaries map exactly; raw float bits survive; delta and exponential inputs refuse; erased subject and replay remain absent after restart
+STANDARD_READ_RESULT {"metricSeries":214,"metricSamples":1092,"traceIds":3,"selectedTraceSpans":8,"prometheus":"3.5.0","tempoClient":"2.8.2","result":"passed"}
+PROBE PORT-061 standard traces: captured stock HTTP and Kafka spans -> official OTLP binary reader exact spans and stock Tempo CLI; restricted span set and explicit partial evidence; restart and inactive restore
+APP-HOME passed against emitted local Worker: /app behind sign-in and setup, then the trace view with its stylesheets

@@ -1,0 +1,21 @@
+{
+  "name": "standard-native",
+  "head": "710ff8d1fd15c87e013f5e10b06149ca6f0f947e",
+  "command": [
+    "timeout",
+    "1200",
+    "env",
+    "PORTHOLE_STANDARD_ONLY=1",
+    "node",
+    "tests/runtime.mjs"
+  ],
+  "exit": 0,
+  "started": "2026-11-08T22:21:14.263398+00:00",
+  "finished": "2026-11-08T22:25:05.917490+00:00",
+  "seconds": 231.654,
+  "log": "development-native.log",
+  "log_sha256": "5d38d98f6cddf5a74c0477e982883ffa6e18c70ec606bdf2ac37e44234376c00",
+  "worktree_clean": true,
+  "original_log_name": "standard-native.log",
+  "artifact_renamed": true
+}
