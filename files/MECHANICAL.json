@@ -1,0 +1,31 @@
+{
+  "productHead": "e2cfaedd2f158ea90c0f0176b9ea43fcee0fdffa",
+  "lock": {
+    "command": "pnpm run source:lock; pnpm run source:check",
+    "exit": 0,
+    "sha256": "0bafb8e51a2df55263f6e42006f716883b14f84d910bff6ecc179543118b57bc"
+  },
+  "views": {
+    "command": "node scripts/porthole/contract-docs.mjs write PORT-054; node scripts/porthole/contract-docs.mjs check PORT-054",
+    "exit": 0,
+    "restoredFrom": "7d576ff6aeef20ac77549589830a4d4a91ea9d3e",
+    "committed": false
+  },
+  "schema": {
+    "command": "node scripts/porthole/public-schema.mjs --check",
+    "exit": 0
+  },
+  "typecheck": {
+    "command": "pnpm run typecheck",
+    "exit": 0
+  },
+  "firstParty": {
+    "command": "npx -y @runeditrun/rer check --profile first-party",
+    "exit": 0
+  },
+  "ledger": {
+    "command": "Wrangler local migration application followed by migrationLedgerShape, applied-name equality and foreign_key_check",
+    "exit": 0,
+    "receipt": "MIGRATION-LEDGER.json"
+  }
+}

@@ -1,0 +1,28 @@
+verify:runtime
+Heavy job admitted: Porthole verify:runtime:suite [94c9ff1ec523]
+▲ [WARNING] Proxy environment variables detected. We'll use your proxy for fetch requests.
+
+
+Installed owner claim rejects missing/wrong setup tokens and request demo flags
+HTTP-001 passed against emitted local Worker: health, the installed homepage, HTTP and document 404s
+PROBE PORT-054 boundaries: running router, built pages and current OpenAPI -> no marketing funnel, CMDB, security case, whole-cloud bill or duplicated compliance-program workflow
+Public documentation journey passed: signed-out versioned guides and schema, exact rendered intake, query and CLI examples, permission guidance, scoped refusals and revoked replay; 1440 and 390 navigation
+Configuration API journey passed: native revisions and drift, durable idempotency, CLI pagination, scoped MCP definitions, quota, refusal, revocation and audited archival
+Dashboard API journey passed: scoped HTTP, CLI and MCP, panel signal and historical authority, durable native mutations, quota and revocation
+
+node:internal/fs/promises:679
+  return await PromisePrototypeThen(
+         ^
+
+Error: ENOENT: no such file or directory, copyfile '[REDACTED]/.cache/toolchains/terraform-provider-porthole' -> '/tmp/porthole-terraform-iV6H65/providers/registry.terraform.io/just-every/porthole/0.1.0/linux_amd64/terraform-provider-porthole_v0.1.0'
+    at async copyFile (node:internal/fs/promises:679:10)
+    at async terraformJourney (file://[REDACTED]/tests/porthole/terraform.mjs:23:40)
+    at async file://[REDACTED]/tests/runtime.mjs:256:4 {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'copyfile',
+  path: '[REDACTED]/.cache/toolchains/terraform-provider-porthole',
+  dest: '/tmp/porthole-terraform-iV6H65/providers/registry.terraform.io/just-every/porthole/0.1.0/linux_amd64/terraform-provider-porthole_v0.1.0'
+}
+
+Node.js v24.19.0

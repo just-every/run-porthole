@@ -1,0 +1,269 @@
+{
+  "status": "pass",
+  "shape": "wrangler",
+  "applied": 65,
+  "unique": 65,
+  "foreignKeys": [],
+  "migrations": [
+    {
+      "name": "0001_owner.sql",
+      "sha256": "e4cf66f7258c5b85876c16f18fb78fe3c9bd998244634ee267bb921403d01912"
+    },
+    {
+      "name": "0002_outbox.sql",
+      "sha256": "45d6b03eadfe1e91737763ae85cdff74e7216f859869e34431550bba48294996"
+    },
+    {
+      "name": "0003_portability.sql",
+      "sha256": "c7db9042f6d5c571e10297c02df858ad2f3466beb4fa85649fee407cc228747b"
+    },
+    {
+      "name": "0004_first_run.sql",
+      "sha256": "aef92de36233195e5a03cce67b192c5c0c38033b695f7ebce6062fc89152c2a9"
+    },
+    {
+      "name": "0005_identity_providers.sql",
+      "sha256": "f879fb86b079e591dfe4a8513752a8e0394e252b940aa35d3f7430f27b7382c6"
+    },
+    {
+      "name": "0006_provider_control.sql",
+      "sha256": "f19cc7a792538a8ff36d87760a3cad58fccab0316984488d1834af14fbf37cfe"
+    },
+    {
+      "name": "0007_dependencies.sql",
+      "sha256": "3481d8aef870a9eda153a1617e99bb71a408e61a25dea92bb132efa7dd1c2526"
+    },
+    {
+      "name": "0008_owner_claim.sql",
+      "sha256": "c3ffe653727bb4867b064dc2489df5013613f08f4b5998d2fe2b6a8485cdb815"
+    },
+    {
+      "name": "0009_idp_owner.sql",
+      "sha256": "a870102648a2226b18a2fe8168d096389b698af88333d112fa8137e582fc2b33"
+    },
+    {
+      "name": "0010_provider_pins.sql",
+      "sha256": "f0cfb6b3740869fd098ee449efb25807f8b1ef51c353fd07bafeb00ce38aeb63"
+    },
+    {
+      "name": "0011_dependency_setup.sql",
+      "sha256": "7b36f7e1fb0991fe3e808613d911393bbad3386ead06427082c69a48c5738108"
+    },
+    {
+      "name": "0012_dependency_approval.sql",
+      "sha256": "7d3742369189b69ea28bdc000097f150f83221c6474f7e177c7b5590691b67e9"
+    },
+    {
+      "name": "0013_erasure.sql",
+      "sha256": "44fd4fac1aee4fda0d1d580373cbed9ef3da837e0186e7fe2130fb68dfceadbe"
+    },
+    {
+      "name": "0014_owner_signin.sql",
+      "sha256": "98da904e768e35b43fb1be83d9dcc9c9b5d86ab3a795234ed5223c4fddc567d9"
+    },
+    {
+      "name": "0015_command_receipts.sql",
+      "sha256": "8064fe877c22bf0500ff5c20d274cbd4e8b2e0dea986fa9e3e4fef4faf2c54a0"
+    },
+    {
+      "name": "0016_porthole_audit.sql",
+      "sha256": "2360ca59eb912bca4d7c7d6b7f4d2d374d8fdc05d0de08b02b8ac78a3f3e03ed"
+    },
+    {
+      "name": "0017_porthole_members.sql",
+      "sha256": "e83f43122707d52972e797762d00fb5777f99016723978a6eae5f83d6a98c640"
+    },
+    {
+      "name": "0018_porthole_credentials.sql",
+      "sha256": "09cd65aedcd007549f584675f5e7a6cf35b0a8ede73abd7bcf3437d79e3e2e92"
+    },
+    {
+      "name": "0019_porthole_audit_facts.sql",
+      "sha256": "a99d63375e41a18eb498af0f9071fb0bcd94d07d17badf7bdbc5cf79d7b3d41e"
+    },
+    {
+      "name": "0020_porthole_objects.sql",
+      "sha256": "6f8eba2d9819b4190d65a3bb93530444140d08ddce8d5a219f9e2d0cac28ba56"
+    },
+    {
+      "name": "0021_porthole_ingest.sql",
+      "sha256": "52e6807d24ec185f7480aa57381c24f33c3f233864e5da740ac7d27964ca8ec1"
+    },
+    {
+      "name": "0022_porthole_archive.sql",
+      "sha256": "2fa282edb37870289c6c4857f893db5f52b585af47f36bc501d39822b809483f"
+    },
+    {
+      "name": "0023_porthole_health.sql",
+      "sha256": "d97ca703ac1e36e0df6dfaffafbdcc05668873b37b3088cf6d2c2e6eb298e31e"
+    },
+    {
+      "name": "0024_porthole_native_audit.sql",
+      "sha256": "728c5966b63456fe246650e0083333adad7ab23c535d68c5d0d5cb92aa8c44c6"
+    },
+    {
+      "name": "0025_porthole_bucket_history.sql",
+      "sha256": "d22bdb33b6ec97105196a1a46f7a068d0a3476d551c8650a5965aad1d05e8f50"
+    },
+    {
+      "name": "0026_porthole_notice_recipients.sql",
+      "sha256": "442067f96bba8f5cbef9c25e1e9ddf610f2713593fcef3b3cf31a433a1d1d8eb"
+    },
+    {
+      "name": "0027_porthole_trace_lookup.sql",
+      "sha256": "7a7941468da9e965c0499c3c3f9b5ee7341c420b0ce96efe1dd3a5c8400e4882"
+    },
+    {
+      "name": "0028_porthole_analytical_connection.sql",
+      "sha256": "d73bf4ed44f9a20a9218d9debe5933359a4148fca23461cde7fb3689243fa522"
+    },
+    {
+      "name": "0029_porthole_profiles.sql",
+      "sha256": "b997b80c75f6aa5d07324310c0998cd8eb27a7dd3b5362bb1073714d0870fcf2"
+    },
+    {
+      "name": "0030_porthole_import_kit.sql",
+      "sha256": "923cb0bdd67e6c1b2cc976abda355db7179d77e04c1cb3367eb641771e2c76ca"
+    },
+    {
+      "name": "0031_porthole_import_door.sql",
+      "sha256": "f283391452eb4c683c45eda188df1593ec6efcfc6c41c76de63bb2d1681b42eb"
+    },
+    {
+      "name": "0032_porthole_migration_records.sql",
+      "sha256": "d977bbc3a5b31da3417d9ab54a35be81b5ac29952ae2c6d5f7ccaf881d2b8b17"
+    },
+    {
+      "name": "0033_porthole_signal_exports.sql",
+      "sha256": "5ee7b8680e103d7b40d5827284b64e8514d3246bee8b30ae5894c2e82dc3a6a8"
+    },
+    {
+      "name": "0034_porthole_export_exclusions.sql",
+      "sha256": "72ccab159157aa61f62c040663a7e8f1e3c63c44b1fed6edd7c0f5e3247d5612"
+    },
+    {
+      "name": "0035_porthole_dashboards.sql",
+      "sha256": "f9ac427698c564a37fefae46f8a6cf689f4eec3119381be8546ee080c285c5e9"
+    },
+    {
+      "name": "0036_porthole_configuration_api.sql",
+      "sha256": "6b8f75250b79634fa8381dfc4d88c193b0a27632f7bb1d1aa2c3f0ec9209b048"
+    },
+    {
+      "name": "0037_porthole_dashboard_publication.sql",
+      "sha256": "665107a3f19159c8cf7b6306d7ad496396800da24c68011f876c1b74666f1808"
+    },
+    {
+      "name": "0038_dependency_keys_sealed.sql",
+      "sha256": "9c8fa5f94c48a230f326cd4d666cbc2bd1e7d5a18327b89e65b339ac6a533d9a"
+    },
+    {
+      "name": "0039_porthole_baggage.sql",
+      "sha256": "c03fbc98e3f035ab5b8805d9ea9c2769adaeb5a9f4bd60de60525af3f7ab499e"
+    },
+    {
+      "name": "0040_porthole_notice_uncertainty.sql",
+      "sha256": "4e330cbb5a2e012eae3eeb1f5de01e502b2cf9b5274b315782bb4688a523b06f"
+    },
+    {
+      "name": "0041_porthole_notice_grant.sql",
+      "sha256": "e6b26276c80bf3f5bdbaceaf981768393a902aa1388bba165f50b0f6912e2551"
+    },
+    {
+      "name": "0042_porthole_notice_reconciliation.sql",
+      "sha256": "1ceeb2fce0834caeb52cadc1c989cff5990dfd29100c9670e31de28615f6f42b"
+    },
+    {
+      "name": "0043_porthole_subject_erasure.sql",
+      "sha256": "32a1e57555c635047055768efdf36b868381f91adf500a7f5aae5f5c2407fd25"
+    },
+    {
+      "name": "0044_porthole_retention.sql",
+      "sha256": "dca8dd21aeb124b2290da1a8c00e3118be740a5b2b912fcd01d65806c772c33a"
+    },
+    {
+      "name": "0045_porthole_follow_up.sql",
+      "sha256": "c723969252101284929e6249242460f1c1d4f438cd290932135daadb95e70564"
+    },
+    {
+      "name": "0046_porthole_follow_up_authority.sql",
+      "sha256": "eefdc6692e1552c994399e3c11177b405cb8f6f51b1cf9f9ff3d8da35d1dcb44"
+    },
+    {
+      "name": "0047_porthole_slos.sql",
+      "sha256": "a4925455b492f20d1853a8cca9ad204513feae90412e9e4cc81c22aa5402216a"
+    },
+    {
+      "name": "0048_porthole_migration_custody.sql",
+      "sha256": "fbaf9e83f32d2654ac346379cc268d397832bc8973c118d149b57a997583fdd0"
+    },
+    {
+      "name": "0049_porthole_import_erasure.sql",
+      "sha256": "4305fa856bfa891f6e74f61ff069c5a7c962477f043e48e7d6e436928b9778e4"
+    },
+    {
+      "name": "0050_porthole_span_metrics.sql",
+      "sha256": "f4dcf6379cf2adbcfae88575d00068054e7796fdf708e95286d0dad5cc7ed4c1"
+    },
+    {
+      "name": "0051_porthole_notebooks.sql",
+      "sha256": "ea607c9b51a00d1b06cb4b31c2ec93abf9d5cbe4d6cea883c4033f1b0d05d6c0"
+    },
+    {
+      "name": "0052_porthole_notebook_publications.sql",
+      "sha256": "863f5ef8af46c5df516a247414e437c1f31d46174c933accaa3e845327f28b13"
+    },
+    {
+      "name": "0053_porthole_host_monitors.sql",
+      "sha256": "eedc05757a95d78dc53b6f5f2a328ab8056660e7d95a7154a043570f7df91f96"
+    },
+    {
+      "name": "0054_agent_door.sql",
+      "sha256": "016d8a98b964385f5c4a13447361c3c783910a76aaf4606b0e0081482bc819cc"
+    },
+    {
+      "name": "0055_business_settings.sql",
+      "sha256": "a16f736a781aa3fe02a2e090c993f8c360c904f9fb6d86126acdab6e1f24e773"
+    },
+    {
+      "name": "0056_business_people.sql",
+      "sha256": "51aa39622d866b987d71b6e37c9a8300e7f24c54a55611edaab669ed051b01cd"
+    },
+    {
+      "name": "0057_porthole_agent_activity.sql",
+      "sha256": "bde899989f2e2b3a97b1cb34eb8afdf633626283b4e0837af0bb7b964f5da001"
+    },
+    {
+      "name": "0058_porthole_agent_archive_semantics.sql",
+      "sha256": "c7afa66fcb1bc8fdabc6be7ce28b21c93d209aaa341bc19f8629f1b7e2efb49d"
+    },
+    {
+      "name": "0059_porthole_pipelines.sql",
+      "sha256": "4c29df9b94811714e649393cb7e6167c894824d117c1f5bf67674fca1fd4b9b2"
+    },
+    {
+      "name": "0060_porthole_services.sql",
+      "sha256": "bdc9c646145d34ba2063572e0c39e0a13190c8b420631e14a3953c6cff278f08"
+    },
+    {
+      "name": "0061_porthole_events.sql",
+      "sha256": "705b229e134a95acc43532483ec8cfdff256287d60ee006adfc077a8caf3688f"
+    },
+    {
+      "name": "0062_porthole_database.sql",
+      "sha256": "1f7dcbde9b34448bbd786742fe7b3cc9875838955f7263f1a726d19471a697f2"
+    },
+    {
+      "name": "0063_porthole_handoffs.sql",
+      "sha256": "30d97146fe0b70431c02570e74b626142bf15f6906a40f99b52105688767b0ac"
+    },
+    {
+      "name": "0064_porthole_handoff_audit_reference.sql",
+      "sha256": "032e939dcc513a6acba6c712ded0fb87d821bfdca11b66606b26a4e52bf01de6"
+    },
+    {
+      "name": "0065_porthole_handoff_portable_reference.sql",
+      "sha256": "0759b32a7877ab759a4e4a877dce8224de973f9c6504e67dadd0ed6ada9ede85"
+    }
+  ]
+}

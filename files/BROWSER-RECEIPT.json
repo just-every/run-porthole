@@ -1,0 +1,280 @@
+{
+  "productHead": "e2cfaedd2f158ea90c0f0176b9ea43fcee0fdffa",
+  "status": "pass",
+  "assertionWidth": 1440,
+  "captureWidths": [
+    1440,
+    390
+  ],
+  "publicDoors": [
+    "Help",
+    "Integrations",
+    "Services",
+    "Handoff Settings",
+    "Service evidence"
+  ],
+  "roles": [
+    "owner",
+    "maintainer",
+    "scoped responder",
+    "restricted contractor"
+  ],
+  "files": [
+    {
+      "path": "screens/handoff-public-boundary-1440.png",
+      "viewportWidth": 1440,
+      "imageWidth": 1440,
+      "imageHeight": 1345,
+      "bytes": 187489,
+      "sha256": "8d45bda9c86ebac97dcfcfe1ae6afe88b6963e9e1b2671ba7de0e699b45a5420"
+    },
+    {
+      "path": "screens/handoff-public-boundary-390.png",
+      "viewportWidth": 390,
+      "imageWidth": 390,
+      "imageHeight": 1572,
+      "bytes": 150729,
+      "sha256": "0580c9db37d5ddfda9b961df190d5e1354d6b52060f4c98971542cfd3c27a07f"
+    },
+    {
+      "path": "screens/handoffs-empty-1440.png",
+      "viewportWidth": 1440,
+      "imageWidth": 1440,
+      "imageHeight": 900,
+      "bytes": 79414,
+      "sha256": "22a4b6444a99aae4208b1643fd458b31e1e683a2ff6787b1ee7e64a0360da93f"
+    },
+    {
+      "path": "screens/handoffs-empty-390.png",
+      "viewportWidth": 390,
+      "imageWidth": 390,
+      "imageHeight": 844,
+      "bytes": 60538,
+      "sha256": "a72bfeeb8f11c76b21b38fd826175380797d4131f818557cda20773c90a79e2d"
+    },
+    {
+      "path": "screens/help-configured-0-1440.png",
+      "viewportWidth": 1440,
+      "imageWidth": 1440,
+      "imageHeight": 1456,
+      "bytes": 201783,
+      "sha256": "fceacf4abe14f4b52100e39dfc32f6beb74bc7b0cf84996510bba9d9a9444ae5"
+    },
+    {
+      "path": "screens/help-configured-0-390.png",
+      "viewportWidth": 390,
+      "imageWidth": 390,
+      "imageHeight": 1757,
+      "bytes": 166521,
+      "sha256": "5ffad953b98a2cd89ea903438e1ea670e1e29a0f4c23d8d6b3958138af153056"
+    },
+    {
+      "path": "screens/integrations-configured-1-1440.png",
+      "viewportWidth": 1440,
+      "imageWidth": 1440,
+      "imageHeight": 1456,
+      "bytes": 201783,
+      "sha256": "fceacf4abe14f4b52100e39dfc32f6beb74bc7b0cf84996510bba9d9a9444ae5"
+    },
+    {
+      "path": "screens/integrations-configured-1-390.png",
+      "viewportWidth": 390,
+      "imageWidth": 390,
+      "imageHeight": 1757,
+      "bytes": 166521,
+      "sha256": "5ffad953b98a2cd89ea903438e1ea670e1e29a0f4c23d8d6b3958138af153056"
+    },
+    {
+      "path": "screens/service-handoffs-2-1440.png",
+      "viewportWidth": 1440,
+      "imageWidth": 1440,
+      "imageHeight": 3484,
+      "bytes": 465377,
+      "sha256": "ad3cdae457dd6bd7631b6e3f91e15698ac823e4b5120714328aa63622ee658b3"
+    },
+    {
+      "path": "screens/service-handoffs-2-390.png",
+      "viewportWidth": 390,
+      "imageWidth": 390,
+      "imageHeight": 4157,
+      "bytes": 388667,
+      "sha256": "8d1746ca1fe823b473a91ee00451bf1887cec4878cdb33aa86dcffe5e19d9715"
+    },
+    {
+      "path": "screens/service-handoffs-3-1440.png",
+      "viewportWidth": 1440,
+      "imageWidth": 1440,
+      "imageHeight": 3139,
+      "bytes": 403768,
+      "sha256": "b1b2f9cd36ff1265f60cdf70e4131aae1d9205fa747dec9ccd304059c266de6d"
+    },
+    {
+      "path": "screens/service-handoffs-3-390.png",
+      "viewportWidth": 390,
+      "imageWidth": 390,
+      "imageHeight": 3639,
+      "bytes": 337273,
+      "sha256": "a7bc8cff72a3105f05dad1d01d65a5cd0dd2212e2e670ea3ef5a463c47185581"
+    },
+    {
+      "path": "screens/handoffs-settings-1440.png",
+      "viewportWidth": 1440,
+      "imageWidth": 1440,
+      "imageHeight": 6756,
+      "bytes": 711134,
+      "sha256": "8cb0d83f46072278e9af079799f44982e9417244380ef5608b13f96c454797fc"
+    },
+    {
+      "path": "screens/handoffs-settings-390.png",
+      "viewportWidth": 390,
+      "imageWidth": 390,
+      "imageHeight": 7282,
+      "bytes": 591310,
+      "sha256": "37d3947eef948caea92e2984763eef04e0f1ae0aaf8df9a24c073f3057f08bf1"
+    },
+    {
+      "path": "screens/handoffs-invalid-1440.png",
+      "viewportWidth": 1440,
+      "imageWidth": 1440,
+      "imageHeight": 900,
+      "bytes": 82295,
+      "sha256": "290f119c2967e897b3853de8d7b14fad5840851fa1a00f734351d6cfc5e0bdd0"
+    },
+    {
+      "path": "screens/handoffs-invalid-390.png",
+      "viewportWidth": 390,
+      "imageWidth": 390,
+      "imageHeight": 864,
+      "bytes": 63245,
+      "sha256": "dc151718bb575ee4e0f89c5fd1d3d88c879b591440c65f824ddda1c79c2bbab2"
+    },
+    {
+      "path": "screens/handoffs-stale-revision-1440.png",
+      "viewportWidth": 1440,
+      "imageWidth": 1440,
+      "imageHeight": 900,
+      "bytes": 82236,
+      "sha256": "4f5a2fb0017eacc288d1b0e1111c982263ca194d16959bd70686da353b423655"
+    },
+    {
+      "path": "screens/handoffs-stale-revision-390.png",
+      "viewportWidth": 390,
+      "imageWidth": 390,
+      "imageHeight": 864,
+      "bytes": 63186,
+      "sha256": "c686ff0a323cceb62055ce3b4ecc3dd487f2bb33509d3596cd39c106bcaff987"
+    },
+    {
+      "path": "screens/evidence-selection-1440.png",
+      "viewportWidth": 1440,
+      "imageWidth": 1440,
+      "imageHeight": 900,
+      "bytes": 76328,
+      "sha256": "d1beb528ffb160fca28a61d3c3b83d6ff617cab9409a62e25af25885bdb562d3"
+    },
+    {
+      "path": "screens/evidence-selection-390.png",
+      "viewportWidth": 390,
+      "imageWidth": 390,
+      "imageHeight": 844,
+      "bytes": 57530,
+      "sha256": "ae43b24775f2f90cc45dd39dc8ed206276f72e383fe3c26c4919f02b405b1a37"
+    },
+    {
+      "path": "screens/evidence-preview-1440.png",
+      "viewportWidth": 1440,
+      "imageWidth": 1440,
+      "imageHeight": 2831,
+      "bytes": 295832,
+      "sha256": "914face0641a1e5cec99b5ee18c93a39367623702be37bd1bb162c82a5b4f969"
+    },
+    {
+      "path": "screens/evidence-preview-390.png",
+      "viewportWidth": 390,
+      "imageWidth": 390,
+      "imageHeight": 3968,
+      "bytes": 293067,
+      "sha256": "7e54b1a2eb85c94dec207d65216afc9d590b97d388d7d8e8a0c7193d23de11c8"
+    },
+    {
+      "path": "screens/evidence-cancelled-1440.png",
+      "viewportWidth": 1440,
+      "imageWidth": 1440,
+      "imageHeight": 900,
+      "bytes": 76742,
+      "sha256": "5aa8dcd3a912f43caf3b3534b8277a3ef20efbed444b11c9f2e09d05131f7e8b"
+    },
+    {
+      "path": "screens/evidence-cancelled-390.png",
+      "viewportWidth": 390,
+      "imageWidth": 390,
+      "imageHeight": 844,
+      "bytes": 57830,
+      "sha256": "ab55dfed28eaba07457a786d91e006e5a337a18fe4ff961e38ae81ce124fdc7e"
+    },
+    {
+      "path": "screens/evidence-empty-1440.png",
+      "viewportWidth": 1440,
+      "imageWidth": 1440,
+      "imageHeight": 2608,
+      "bytes": 271239,
+      "sha256": "689d8f512bc5d341f488f52f9c4687662d46d1847f459743335d46959fa20998"
+    },
+    {
+      "path": "screens/evidence-empty-390.png",
+      "viewportWidth": 390,
+      "imageWidth": 390,
+      "imageHeight": 2928,
+      "bytes": 218293,
+      "sha256": "40c6e4b82a68d94657d2eb63546f888ac831d182a99e33a5be983a3d20366da8"
+    },
+    {
+      "path": "screens/evidence-unauthorized-1440.png",
+      "viewportWidth": 1440,
+      "imageWidth": 1440,
+      "imageHeight": 900,
+      "bytes": 77633,
+      "sha256": "d6d05f889f8dbb4cab9b90c67251d3ced2660ee52159946a9f0e5cf165b9ab45"
+    },
+    {
+      "path": "screens/evidence-unauthorized-390.png",
+      "viewportWidth": 390,
+      "imageWidth": 390,
+      "imageHeight": 844,
+      "bytes": 59053,
+      "sha256": "43ea4ec19ffdc9fb7d9a3efc93e945238b1c0815c96d71035f1e450339e1cf4d"
+    },
+    {
+      "path": "screens/evidence-unavailable-1440.png",
+      "viewportWidth": 1440,
+      "imageWidth": 1440,
+      "imageHeight": 900,
+      "bytes": 78039,
+      "sha256": "5cd3f327d34254127900ec4adc480a48c4ef9b5787f3783af388ac6bc094e8be"
+    },
+    {
+      "path": "screens/evidence-unavailable-390.png",
+      "viewportWidth": 390,
+      "imageWidth": 390,
+      "imageHeight": 844,
+      "bytes": 59392,
+      "sha256": "010cb4be28797ab0d0eecbf4ef0decf17b2a99eafae87433a5f685a642dccb55"
+    },
+    {
+      "path": "screens/services-inactive-restored-1440.png",
+      "viewportWidth": 1440,
+      "imageWidth": 1440,
+      "imageHeight": 2730,
+      "bytes": 321731,
+      "sha256": "78e0aa8863ca0ca601ee630c19cc475d7f4954a3fa1d47d548fd1ec4ec98f74d"
+    },
+    {
+      "path": "screens/services-inactive-restored-390.png",
+      "viewportWidth": 390,
+      "imageWidth": 390,
+      "imageHeight": 3156,
+      "bytes": 267748,
+      "sha256": "d9268c2a6172f467da20b6a70482ea21e13708279b44fc6c482758d41567b585"
+    }
+  ]
+}

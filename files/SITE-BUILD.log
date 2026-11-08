@@ -1,0 +1,8 @@
+Using project Node 22.20.0 (current Node 24.19.0).
+Heavy job admitted: Porthole build:workflow [94c9ff1ec523]
+Checking pinned pnpm
+10.12.4
+Building the run site
+{"pages":106,"assets":8,"styles":1}
+Run site written to dist/site (106 pages, 205 files): [REDACTED]/dist/site
+build: complete (exit 0)

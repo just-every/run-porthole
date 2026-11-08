@@ -1,0 +1,37 @@
+{
+  "productHead": "e2cfaedd2f158ea90c0f0176b9ea43fcee0fdffa",
+  "services": {
+    "command": "PORTHOLE_CHROMIUM_PATH=/usr/bin/chromium PORTHOLE_SERVICES_ONLY=1 node tests/runtime.mjs",
+    "exit": 0,
+    "covers": [
+      "local native journey",
+      "primary analytical journey",
+      "standby equality",
+      "inactive archive restoration",
+      "erasure and replay",
+      "Help and Integrations",
+      "digest-bound service packet",
+      "1440 and 390 browser proof"
+    ]
+  },
+  "publicDocs": {
+    "entryCommand": "PORTHOLE_API_ONLY=1 node tests/runtime.mjs",
+    "journeysPassed": [
+      "publicDocsJourney",
+      "apiJourney",
+      "dashboardApiJourney"
+    ],
+    "entryExit": 1,
+    "limitation": "untouched Terraform journey could not start: missing compiled test provider; CI builds it in its existing preparation step"
+  },
+  "mainControl": {
+    "head": "7d576ff6aeef20ac77549589830a4d4a91ea9d3e",
+    "command": "PORTHOLE_SERVICES_ONLY=1 node tests/runtime.mjs",
+    "exit": 0
+  },
+  "runtimeRepair": {
+    "observed": "spawnSync ENOBUFS, masked by ERR_SERVER_NOT_RUNNING during repeated disposal",
+    "change": "increase migration subprocess capture to the existing 128 MiB SQL-helper bound",
+    "assertionsRemoved": false
+  }
+}

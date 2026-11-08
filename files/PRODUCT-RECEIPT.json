@@ -1,0 +1,25 @@
+{
+  "repository": "just-every/run-porthole",
+  "branch": "cloud/sx-porthole-c-f461",
+  "head": "e2cfaedd2f158ea90c0f0176b9ea43fcee0fdffa",
+  "remoteHead": "e2cfaedd2f158ea90c0f0176b9ea43fcee0fdffa",
+  "pushed": true,
+  "base": "7d576ff6aeef20ac77549589830a4d4a91ea9d3e",
+  "pr": null,
+  "fullHistory": true,
+  "commitIdentityCheck": "all candidate author and committer identities are fleet; no disallowed trailers",
+  "commits": [
+    "e2cfaedd2f158ea90c0f0176b9ea43fcee0fdffa Verify service handoffs and scoped evidence across native doors",
+    "877815638e666850d29c996dae8366e093caa7c5 Fence packet release and preserve inactive portable handoff history [skip ci]",
+    "60c6317b256836b675f5bc54ef577e2c2a501a35 Exercise scoped handoffs and service packet custody through native journeys [skip ci]",
+    "b5c157d1840c3daede98c071cf1098ad1415b2b6 Add native service handoffs and reviewed evidence selection [skip ci]"
+  ],
+  "publicationScan": {
+    "status": "not-run-cloud",
+    "commit": "e2cfaedd2f158ea90c0f0176b9ea43fcee0fdffa",
+    "complete": null,
+    "historyScanned": null,
+    "findings": null,
+    "owner": "Mac guarded lander"
+  }
+}
