@@ -6,8 +6,6 @@ export function fingerprint(sql) {
  const tokens=[]
  while(i<sql.length){
   const tail=sql.slice(i),c=sql[i]
-  // Pipeline masks are already safe atoms and must survive archive validation.
-  if(tail.startsWith('[REDACTED]')){tokens.push('[REDACTED]');i+=10;continue}
   if(tail.startsWith('--')||c==='#'){const end=sql.indexOf('\n',i);i=end<0?sql.length:end;continue}
   if(tail.startsWith('/*')){let depth=1;i+=2;while(i<sql.length&&depth){if(sql.slice(i,i+2)==='/*'){depth++;i+=2}else if(sql.slice(i,i+2)==='*/'){depth--;i+=2}else i++}if(depth)return '[sample withheld]';continue}
   const dollar=/^\$(?:[a-zA-Z_][a-zA-Z0-9_]*)?\$/.exec(tail)
@@ -18,8 +16,10 @@ export function fingerprint(sql) {
   const bind=/^\$[0-9]+/.exec(tail),number=/^(?:0x[0-9a-fA-F]+|0b[01]+|(?:[0-9]+\.?[0-9]*|\.[0-9]+)(?:e[+-]?[0-9]+)?)/i.exec(tail)
   if(bind){i+=bind[0].length;tokens.push('?');continue}
   if(number){i+=number[0].length;tokens.push('?');continue}
-  const word=/^[a-zA-Z_][a-zA-Z0-9_$]*/.exec(tail)
-  if(word){tokens.push(word[0].toLowerCase());i+=word[0].length;continue}
+  // A pipeline mask can replace part of an identifier. Keep its remaining
+  // structure in the same token so archive rechecks preserve the safe sample.
+  const word=/^(?:[a-zA-Z_]|\[REDACTED\])(?:[a-zA-Z0-9_$]|\[REDACTED\])*/.exec(tail)
+  if(word){tokens.push(word[0].split('[REDACTED]').map(part=>part.toLowerCase()).join('[REDACTED]'));i+=word[0].length;continue}
   if(!/[\s(),.*+\-/<>=!?%:;[\]|&^~]/.test(c))return '[sample withheld]'
   if(!/\s/.test(c))tokens.push(c)
   i++

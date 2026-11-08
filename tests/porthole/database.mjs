@@ -194,6 +194,7 @@ export async function databaseJourney({origin,freshOwner,restartWorker,sql,signI
   await restartWorker();cookie=await freshOwner();await post('/api/porthole/v1/ingest/control',{paused:false});await post('/api/porthole/v1/ingest/drain',{})
   const masked=(await read()).captures.find(c=>c.sourceId==='masked-mysql')
   assert.ok(masked.queries.some(q=>q.fingerprint.includes('as [REDACTED] where')))
+  assert.ok(masked.queries.some(q=>q.fingerprint.includes('as [REDACTED]_orders where')),'partial identifier masks survive capture and the following archive round trip')
   assert.equal(masked.queries.find(q=>q.queryId===capture.queries[0].queryId).calls,capture.queries[0].calls,'masking preserves the measured counter')
   await databaseArchiveJourney({origin,cookie,withEmptyDestination,marker,expected:(await read()).captures})
   cookie=await freshOwner()

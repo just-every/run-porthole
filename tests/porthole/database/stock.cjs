@@ -33,6 +33,7 @@ const server=http.createServer(async(req,res)=>{
   }else{
    for(let i=0;i<6;i++){const result=await query(engine,c,'SELECT count(*) FROM porthole_orders WHERE customer='+(engine==='postgresql'?'$1':'?'),[cfg.marker]);counts[engine]++}
    await query(engine,c,'SELECT count(*) FROM porthole_orders AS private_tenant WHERE customer='+(engine==='postgresql'?'$1':'?'),[cfg.marker])
+   await query(engine,c,'SELECT count(*) FROM porthole_orders AS private_tenant_orders WHERE customer='+(engine==='postgresql'?'$1':'?'),[cfg.marker])
    await query(engine,c,"SELECT password = 'value' FROM (SELECT 'value' AS password) AS sample")
    if(engine==='postgresql')await c.query(String.raw`SELECT '\' AS separator, '${cfg.marker}#tag' AS customer`)
   }
