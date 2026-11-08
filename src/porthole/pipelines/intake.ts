@@ -1,3 +1,5 @@
+import { databasePrivacy } from '../database/privacy'
+import type { Capture } from '../database/model'
 import type { Bindings } from '../../auth.server'
 import { canonical, IntakeError, type TelemetryRecord } from '../ingest/model'
 import { definition, type Definition } from './model'
@@ -17,9 +19,15 @@ export function processed(record:TelemetryRecord,d:Definition|null,revision:numb
  // rather than routing them to a new or unpermitted destination.
  if([record.team,record.service,record.environment].some(value=>sanitize(value)!==value))throw new IntakeError('sensitive_resource_scope',400)
  const active=d&&applies(record,d)?d:null
- const safe={...record,payload:sanitizePayload(record.payload,active?.redaction,!!active)}
+ const safe={...record,payload:sanitizePayload(databasePrivacy(record.payload),active?.redaction,!!active)}
  const result=parse&&active?transform(safe,active,revision):safe
  result.payload=sanitizePayload(result.payload,active?.redaction,!!active)
+ if(record.payload.databaseCapture){
+  const safe=databasePrivacy(record.payload).databaseCapture as Capture
+  // Preserve validated counters, clocks and opaque identities as typed data.
+  // Samples must keep the approved masks, including masks on object names.
+  result.payload.databaseCapture={...safe,queries:safe.queries.map(query=>({...query,fingerprint:sanitize(query.fingerprint,active?.redaction,!!active)}))}
+ }
  if(parse&&active) {
   const p=result.payload.pipeline as Record<string,unknown>
   p.metrics=metricMatches(result,active)

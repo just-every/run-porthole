@@ -1,4 +1,5 @@
 import {rangeKeys} from '../query/range/model'
+import { databasePrivacy,assertDatabaseWire } from '../database/privacy'
 import {validateEventRow,eventFilter} from '../events/model'
 import {validateMetadata} from '../services/model'
 import {serviceId} from '../services/read'
@@ -187,7 +188,8 @@ export async function validateRow(payload: PortableRow, state: Validation): Prom
   if(row.singleton!==1||![0,1].includes(row.paused as number)||!integer(row.max_pending_bytes,1)||!integer(row.revision,1)||!integer(row.changed_at))bad()
  } else if(item.table==='porthole_ingest_batches') {
   required('id','source_id','identity','protocol'); if(!str(row.wire_base64))bad();try{atob(String(row.wire_base64))}catch{return bad()}; if(!['traces','metrics','logs','profiles'].includes(String(row.signal))||!hex(row.digest)||!integer(row.accepted_at)||!integer(row.byte_count)||!integer(row.record_count)||!integer(row.sequence,1)||row.completion_sequence!==null&&!integer(row.completion_sequence,1)||!['pending','complete'].includes(String(row.state))||row.completed_at!==null&&!integer(row.completed_at))bad()
-  const records=json(row.records);if(!Array.isArray(records)||records.length!==row.record_count)bad();try{assertGenAIMetadata(records)}catch{fail('archive_genai_content_not_authorized',422)}
+  const records=json(row.records);if(!Array.isArray(records)||records.length!==row.record_count)bad();if(canonicalTelemetry(databasePrivacy(records))!==canonicalTelemetry(records))fail('archive_database_content_not_redacted',422);try{assertGenAIMetadata(records)}catch{fail('archive_genai_content_not_authorized',422)}
+  try{await assertDatabaseWire(String(row.wire_base64),String(row.protocol),String(row.signal))}catch{fail('archive_database_content_not_redacted',422)}
   try{await assertGenAIWire(String(row.wire_base64),String(row.protocol),row.signal as Signal)}catch{fail('archive_genai_content_not_authorized',422)}
   const erased=row.identity==='erased:'+row.id&&row.wire_base64===''&&row.records==='[]'&&row.record_count===0&&row.byte_count===0
   if(!erased&&/;stored=porthole\.sanitized-(?:log|trace)-envelope\.v1$/.test(String(row.protocol))) {
@@ -209,7 +211,7 @@ export async function validateRow(payload: PortableRow, state: Validation): Prom
   }
  } else if(['porthole_telemetry_records','porthole_telemetry_archive'].includes(item.table)) {
   required('id','batch_id','source_id','team','service','environment');if(!integer(row.ordinal)||!['traces','metrics','logs','profiles'].includes(String(row.signal))||typeof row.event_time_ns!=='string'||!/^\d{20}$/.test(row.event_time_ns)||row.trace_id!==null&&!/^[a-f0-9]{32}$/.test(String(row.trace_id))||row.span_id!==null&&!/^[a-f0-9]{16}$/.test(String(row.span_id)))bad()
-  if(!object(json(row.payload)))bad();try{assertGenAIMetadata(json(row.payload))}catch{fail('archive_genai_content_not_authorized',422)}
+  if(!object(json(row.payload)))bad();if(canonicalTelemetry(databasePrivacy(json(row.payload)))!==canonicalTelemetry(json(row.payload)))fail('archive_database_content_not_redacted',422);try{assertGenAIMetadata(json(row.payload))}catch{fail('archive_genai_content_not_authorized',422)}
   if(item.table==='porthole_telemetry_records'&&(!integer(row.indexed_at)||![0,1].includes(row.late as number)||![0,1].includes(row.out_of_order as number))||item.table==='porthole_telemetry_archive'&&!integer(row.archived_at))bad()
  } else {
   required('id','source_id','reason');for(const key of ['team','service','environment'])if(!str(row[key]))bad();if(!['traces','metrics','logs','profiles'].includes(String(row.signal))||!['rejected','duplicate','source_loss','buffer_loss'].includes(String(row.kind))||!integer(row.occurred_at)||row.record_count!==null&&!integer(row.record_count))bad()

@@ -746,7 +746,9 @@ export async function nativeBackupErasureJourney() {await nativeBackupJourney(fa
 /** Isolated event-name refusal proof; no provider calls or erasure operations. */
 export async function nativeGenaiContentRefusalJourney() {await nativeBackupJourney(true)}
 
-async function nativeBackupJourney(contentRefusalOnly) {
+export async function nativeDatabaseBackupJourney(proof) {await nativeBackupJourney(false,proof)}
+
+async function nativeBackupJourney(contentRefusalOnly,databaseProof) {
  const {spawn}=await import('node:child_process')
  const {createServer}=await import('node:net')
  const {symlink}=await import('node:fs/promises')
@@ -824,6 +826,38 @@ async function run(source) {
  try {
   await start();cookie=await helpers.freshOwner()
   await fetch(origin+'/setup',{method:'POST',redirect:'manual',headers:{origin,cookie,'content-type':'application/x-www-form-urlencoded'},body:new URLSearchParams({confirm:'yes'})})
+  if(databaseProof) {
+   const dbscope={services:['database-checkout'],environments:['production'],teams:['commerce']},dbsource=await value(send('/app/settings/credentials/mint',{name:'Native database backup',class:'ingest',scope:{...dbscope,signals:['logs','traces'],actions:['telemetry.write']}}),201)
+   for(const capture of databaseProof.captures){
+    const review=await value(send('/api/porthole/v1/database/sources',{id:'native-'+capture.engine,revision:0,credentialId:dbsource.credential.id,engine:capture.engine,service:'database-checkout',environment:'production',team:'commerce',plans:databaseProof.plans,enabled:true,confirm:'review-read-only-database'}),201)
+    await value(fetch(origin+'/api/porthole/v1/database/captures',{method:'POST',headers:{authorization:'Bearer '+dbsource.secret,'content-type':'application/json'},body:JSON.stringify({id:review.id,revision:review.revision,planDigest:review.planDigest,capture})}),201)
+   }
+   for(const packet of databaseProof.packets)assert.equal((await fetch(origin+'/v1/traces',{method:'POST',headers:{authorization:'Bearer '+dbsource.secret,'content-type':'application/x-protobuf'},body:packet})).status,200)
+   await value(send('/api/porthole/v1/ingest/drain',{}))
+   const view=await value(fetch(origin+'/api/porthole/v1/database',{headers:{cookie}}));assert.equal(view.captures.length,2)
+   const expected=await sql(source,"SELECT payload FROM porthole_telemetry_records WHERE signal='logs' ORDER BY id")
+   await stop()
+   const archivePath=join(source,'exports','database.rer');await command(source,['export','--output',archivePath])
+   const {fileRecords}=await import('@runeditrun/rer/modules/portability/files'),records=[]
+   for await(const record of fileRecords(archivePath))records.push(record)
+   assert.ok(!JSON.stringify(records).includes(databaseProof.marker),'native installation export omits planted literals')
+   assert.ok(!JSON.stringify(records).includes(dbsource.secret),'native installation export omits source credentials')
+   const items=records.filter(record=>record.kind==='part').flatMap(record=>record.items)
+   assert.equal(items.filter(item=>item.kind==='row'&&item.table==='porthole_database_sources').length,0)
+   assert.equal(items.filter(item=>item.kind==='row'&&item.table==='porthole_credentials').length,0)
+   assert.ok(items.some(item=>item.kind==='row'&&item.table==='porthole_ingest_batches'))
+   for(const item of items.filter(item=>item.kind==='row'&&item.table==='porthole_ingest_batches'))assert.ok(!Buffer.from(item.row.wire_base64,'base64').includes(Buffer.from(databaseProof.marker)))
+   const destination=await clone('database-destination');await command(destination,['import','--input',archivePath,'--yes'])
+   assert.equal((await sql(destination,'SELECT COUNT(*) AS n FROM porthole_database_sources'))[0].n,0,'native restore cannot revive reviewed database collection')
+   assert.equal((await sql(destination,'SELECT COUNT(*) AS n FROM porthole_credentials'))[0].n,0)
+   assert.equal((await sql(destination,'SELECT paused FROM porthole_ingest_control'))[0].paused,1)
+   assert.deepEqual(await sql(destination,"SELECT payload FROM porthole_telemetry_records WHERE signal='logs' ORDER BY id"),expected)
+   const again=join(destination,'exports','database-restored.rer');await command(destination,['export','--output',again])
+   const restored=[];for await(const record of fileRecords(again))restored.push(record)
+   assert.ok(!JSON.stringify(restored).includes(databaseProof.marker));assert.ok(!JSON.stringify(restored).includes(dbsource.secret))
+   console.log('PROBE PORT-016 native installation archive: real engine captures and stock spans -> decoded export, inactive independent native import and re-export preserve diagnostics with no credentials, collection authority or planted literal')
+   return
+  }
   if(contentRefusalOnly) {
    const {genaiContentRefusalJourney}=await import('./genai.mjs')
    await genaiContentRefusalJourney({origin,cookie,sql:statement=>sql(source,statement),runtimeDiagnostics:()=>output,
@@ -1110,6 +1144,31 @@ export async function genaiArchiveJourney({origin,cookie,withEmptyDestination,tr
   assert.equal((await destination.sql('SELECT paused FROM porthole_ingest_control'))[0].paused,1)
  })
  console.log('genaiArchiveJourney passed: complete metadata-only wire and retained custody, independent inactive restore and re-export, no inherited sessions or credentials')
+}
+
+export async function databaseArchiveJourney({origin,cookie,withEmptyDestination,marker,expected}) {
+ const saved=await savedExport(origin,cookie,await post(origin,cookie,api+'/exports',{}))
+ assert.ok(saved.rows.some(row=>row.table==='porthole_telemetry_records'&&JSON.parse(row.row.payload).databaseCapture),'archive contains actual engine diagnostics')
+ assert.ok(saved.rows.some(row=>row.table==='porthole_telemetry_records'&&row.row.signal==='traces'&&row.row.payload.includes('password = [REDACTED]')),'safe password predicates remain exportable without changing their mask')
+ assert.ok(!JSON.stringify(saved).includes(marker))
+ assert.ok(!saved.rows.some(row=>row.table==='porthole_database_sources'||row.table==='porthole_credentials'),'collection grants and credentials are outside telemetry archives')
+ for(const row of saved.rows.filter(row=>row.table==='porthole_ingest_batches'))assert.ok(!Buffer.from(row.row.wire_base64,'base64').includes(Buffer.from(marker)))
+ await withEmptyDestination(async destination=>{
+  const acting=await destination.freshOwner(),restore=await value(await post(destination.origin,acting,api+'/restores',{manifest:saved.manifest}),201)
+  for(const chunk of saved.chunks)await value(await post(destination.origin,acting,`${api}/restores/${restore.id}/chunks`,{chunk}))
+  await value(await post(destination.origin,acting,`${api}/restores/${restore.id}/commit`,{confirm:saved.manifest.rootHash}))
+  const restored=await value(await get(destination.origin,acting,'/api/porthole/v1/database'))
+  assert.deepEqual(restored.captures.map(({collection,...capture})=>capture),expected.map(({collection,...capture})=>capture))
+  assert.ok(restored.captures.every(c=>c.collection==='inactive_history'));assert.deepEqual(restored.sources,[])
+  assert.equal((await destination.sql('SELECT COUNT(*) AS n FROM porthole_database_sources'))[0].n,0)
+  assert.equal((await destination.sql('SELECT COUNT(*) AS n FROM porthole_credentials'))[0].n,0)
+  assert.equal((await destination.sql('SELECT paused FROM porthole_ingest_control'))[0].paused,1)
+  const again=await savedExport(destination.origin,acting,await post(destination.origin,acting,api+'/exports',{}))
+  const captures=rows=>rows.filter(r=>r.table==='porthole_telemetry_records'&&JSON.parse(r.row.payload).databaseCapture).map(r=>r.row.payload).sort()
+  assert.deepEqual(captures(again.rows),captures(saved.rows));assert.ok(!JSON.stringify(again).includes(marker))
+ })
+ console.log('databaseArchiveJourney passed: actual PostgreSQL and MySQL diagnostics, sanitized pending and retained wire, inactive independent restore and exact re-export; no collection grant or credential transfer')
+ console.log('PROBE PORT-016 safe export: admitted password predicate -> unchanged [REDACTED] in product archive, inactive restored records and re-export')
 }
 
 /** The existing private product archive carries event history without making
