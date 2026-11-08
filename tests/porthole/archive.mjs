@@ -1293,7 +1293,7 @@ export async function servicesArchiveJourney({origin,freshOwner,restartWorker,wi
   await destination.restartWorker()
   assert.equal((await value(await get(destination.origin,await destination.freshOwner(),root+query))).metadata.state,'quarantined')
  })
- console.log('PROBE PORT-008 archive: actual native export, empty restore and re-export -> three exact inactive revisions; no source sessions, credentials or owner membership restored')
+ console.log('PROBE PORT-008 archive: actual native export, empty restore and re-export -> four exact inactive revisions; no source sessions, credentials or owner membership restored')
  console.log('PROBE PORT-008 archive-packets: largest stock-capture packet bytes='+Buffer.byteLength(JSON.stringify(largest))+' -> export retry and restore retry preserve its exact rows, digest and order')
  return {id:source.job.id,chunk:largest.index}
 }
