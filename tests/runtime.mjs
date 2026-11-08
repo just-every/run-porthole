@@ -235,11 +235,11 @@ try {
    const {dashboardJourney}=await import('./porthole/dashboards.mjs')
    await dashboardJourney({origin,cookie,restartWorker,withEmptyDestination,...helpers})
    const {metricRangeExplorationJourney}=await import('./porthole/explore.mjs')
-   await metricRangeExplorationJourney({origin,cookie:await helpers.freshOwner(),sql,restartWorker})
+   const metricRangeProof=await metricRangeExplorationJourney({origin,cookie:await helpers.freshOwner(),sql,restartWorker})
    const {nativeLogSearchJourney}=await import('./porthole/explore.mjs')
    await nativeLogSearchJourney({origin,cookie:await helpers.freshOwner()})
    const {logClusterNativeJourney}=await import('./porthole/log-clusters.mjs')
-   await logClusterNativeJourney({origin,restartWorker,withEmptyDestination,...helpers})
+   await logClusterNativeJourney({origin,restartWorker,withEmptyDestination,...helpers,metricRangeProof})
   } else if(process.env.PORTHOLE_API_ONLY==='1') {
    const {publicDocsJourney}=await import('./porthole/public-docs.mjs')
    await publicDocsJourney({origin,cookie,...helpers})

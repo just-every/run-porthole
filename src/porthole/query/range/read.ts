@@ -55,7 +55,7 @@ export async function readMetricRange(request:Request,env:Bindings,normalized:No
  }
  const writes=(live:{sql:string;args:unknown[]})=>{
   const condition=[`(${live.sql})`,`(${active.sql})`,...custody].join(' AND '),args=[...live.args,...active.args,...custodyArgs]
-  return [env.DB.prepare(`INSERT INTO porthole_query_snapshots SELECT ?,?,?,?,?,?,?,? WHERE ${condition}`).bind(queryRef,String(actor.identity[0]),JSON.stringify(parameters),'metrics',from,through,snapshot,Date.now(),...args),env.DB.prepare('SELECT 1 AS live FROM porthole_query_snapshots WHERE id=?').bind(queryRef)]
+  return [env.DB.prepare(`INSERT INTO porthole_query_snapshots SELECT ?,?,?,?,?,?,?,? WHERE ${condition}`).bind(queryRef,String(actor.identity[0]),JSON.stringify(Object.fromEntries(Object.entries(parameters).filter(([key])=>!['signal','snapshot'].includes(key)))),'metrics',from,through,snapshot,Date.now(),...args),env.DB.prepare('SELECT 1 AS live FROM porthole_query_snapshots WHERE id=?').bind(queryRef)]
  }
  let results:D1Result[]
  if(principal?.clientId||request.headers.has('authorization')){

@@ -5133,7 +5133,7 @@
       "executable": false
     },
     "src/porthole/portability/format.ts": {
-      "sha256": "894b65c64ac15b8314fc3ca51808ccaeb931172cf2a898442323450d4a2f18e6",
+      "sha256": "cbf12993dc9d9ca483c474a6f0428070d90e15eee6cb96c59fa8e027f8d5a776",
       "executable": false
     },
     "src/porthole/portability/health-history.ts": {
@@ -5197,7 +5197,7 @@
       "executable": false
     },
     "src/porthole/query/http.ts": {
-      "sha256": "87ed4f4b9a615b59e010a3cf727bebbb7d0d581c1ce4cf3c4c8186a230539a23",
+      "sha256": "1e062bb5934fcef4ee59e7313a502209da26275774b54876cf7baf1ae5ada6f8",
       "executable": false
     },
     "src/porthole/query/range/evaluate.ts": {
@@ -5209,7 +5209,7 @@
       "executable": false
     },
     "src/porthole/query/range/read.ts": {
-      "sha256": "bef682ceb04995d6c1320677f35a69964dbad134b665d754443401808d8337c4",
+      "sha256": "e73a8ae692b93c39425899e961c1c9e46da6f7032847717ac8c63e50e4d4d193",
       "executable": false
     },
     "src/porthole/recovery/mail.ts": {
@@ -5617,7 +5617,7 @@
       "executable": false
     },
     "tests/porthole/archive.mjs": {
-      "sha256": "7a8719e219981a70551ff5fbdebf3fd6d424ee4b419c590f23fc19c02c4bd655",
+      "sha256": "94123c2ce9a4f6ea4dcf8c900454dc75b6c9c74ae4f4bf857031bc3cdad2265f",
       "executable": false
     },
     "tests/porthole/audit.mjs": {
@@ -5697,7 +5697,7 @@
       "executable": false
     },
     "tests/porthole/log-clusters.mjs": {
-      "sha256": "c86932a71e8509c5530d72cbda7e4010dfc3305c5e662a93db5cf32539de6565",
+      "sha256": "5e9a25b35b0700a7a6a091b3f85af6cd94f12033c60f0f42ee5b9d341d960e94",
       "executable": false
     },
     "tests/porthole/log-search-corpus.mjs": {
@@ -5709,7 +5709,7 @@
       "executable": false
     },
     "tests/porthole/metric-units.mjs": {
-      "sha256": "62ca99b9171390d45d4ef64e323779159f78c3e9cc4adc93cf23c94f89b5d963",
+      "sha256": "831881421216184d2a5fad9884d2754f84016165b71c4da4640d986e718e0838",
       "executable": false
     },
     "tests/porthole/migration-collection.mjs": {
@@ -5853,7 +5853,7 @@
       "executable": false
     },
     "tests/runtime.mjs": {
-      "sha256": "bfd46e4180a549b5951d75ccbb6e0bbe94fdea691ed893d67102312d2cf15dd6",
+      "sha256": "6efb56dc37db837a81208a576e152be950a811e6fbdada64a2ebf760018a00cf",
       "executable": false
     },
     "tests/typecheck-checks.mjs": {

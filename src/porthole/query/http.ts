@@ -8,7 +8,7 @@ import { AuthError } from '../../modules/operator-auth/index.mjs'
 import { authority,fail,allScope,emptyScope } from '../security/authority'
 import { input } from '../security/input'
 import { readTelemetry } from '../ingest/read'
-import { verifyCredential } from '../credentials/verify'
+import { CredentialLimit, verifyCredential } from '../credentials/verify'
 import { operationDocument as document,escape,privateHeaders } from '../document'
 const keys=['dialect','expression','signal','service','environment','team','from','through','cursor','limit','snapshot','trace','metric','record',...rangeKeys]
 function queryRequest(request:Request,data:Record<string,unknown>):Request {
@@ -57,8 +57,11 @@ export async function queryResponse(request:Request,env:Bindings,principal?:Read
    const view=await document('Query results',`<p>Snapshot reference: ${reference}</p><p><a href="/api/porthole/v1/query/${reference}">Repeat this snapshot</a> · <a href="/app/explore">New query</a></p>${rows.cursor?`<p><a href="${escape(next.pathname+next.search)}">Next page</a></p>`:''}${normalized.range?rangeView(rows.range as Parameters<typeof rangeView>[0]):''}<pre>${escape(JSON.stringify(result,null,2))}</pre>`);view.headers.set('x-porthole-entity',reference);return view}
   return Response.json({...result,queryRef:reference,replay:`/api/porthole/v1/query/${reference}`},{headers})
  }catch(error) {
-  const code=error instanceof AuthError?error.code:'query_unavailable',status=error instanceof AuthError?error.status:503
-  return page?document('Query unavailable',`<p role="alert">${escape(code.replaceAll('_',' '))}${error instanceof ExplorationError?': '+escape(error.hint):''}</p><p><a href="/app/explore">Return to Explore</a></p>`,status,{forms:true}):Response.json({error:code,...(error instanceof ExplorationError?{field:error.field,hint:error.hint}:{})},{status,headers:privateHeaders})
+  const known=error instanceof AuthError||error instanceof CredentialLimit
+  const code=known?error.code:'query_unavailable',status=known?error.status:503
+  const response=page?await document('Query unavailable',`<p role="alert">${escape(code.replaceAll('_',' '))}${error instanceof ExplorationError?': '+escape(error.hint):''}</p><p><a href="/app/explore">Return to Explore</a></p>`,status,{forms:true}):Response.json({error:code,...(error instanceof ExplorationError?{field:error.field,hint:error.hint}:{})},{status,headers:privateHeaders})
+  if(error instanceof CredentialLimit)response.headers.set('retry-after',String(error.retryAfter))
+  return response
  }
 }
 

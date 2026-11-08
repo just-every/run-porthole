@@ -48,6 +48,9 @@ export async function metricUnitsJourney({origin,cookie,call=(path,options)=>fet
  const query={...scope,signal:'metrics',dialect:'visual',mode:'range',start:String(T),end:String(T+20000000000n),step:20,lookback:10,groupBy:'service,region',aggregation:'sum'}
  const run=(metric=names.same,extra={},headers)=>post('/api/porthole/v1/query',{...query,metric,...extra},headers)
  const expected=[{timestamp:String(T).padStart(20,'0'),value:400,contributors:1},{timestamp:String(T+20000000000n).padStart(20,'0'),value:3000,contributors:1}]
+ const turnoverRaw=await value(await post('/api/porthole/v1/query',{...scope,signal:'metrics',metric:names.turnover}))
+ assert.deepEqual(turnoverRaw.records.map(row=>[row.event_time_ns,row.payload.metric.unit,Number(row.payload.record.asDouble??row.payload.record.asInt)]),[[String(T).padStart(20,'0'),'ms',400],[String(T+20000000000n).padStart(20,'0'),'s',3]])
+ assert.equal(new Set(turnoverRaw.records.map(row=>row.payload.resource.attributes.find(attribute=>attribute.key==='service.instance.id').value.stringValue)).size,2,'two real stock producers contribute to one group at different instants')
  const same=await value(await run())
  assert.equal(same.range.state,'complete');assert.equal(same.cursor,null);assert.equal(same.range.series.length,1)
  assert.deepEqual(same.range.series[0],{labels:{service:scope.service,region:{stringValue:'us-east'}},unit:'ms',points:expected})
@@ -75,9 +78,19 @@ export async function metricUnitsJourney({origin,cookie,call=(path,options)=>fet
  if(restartWorker){await restartWorker();const replayed=await value(await call(same.replay,{headers:{cookie}}));assert.deepEqual(replayed.range,same.range)}
  const reader=await value(await post('/app/settings/credentials/mint',{name:'Range reader',class:'read',scope:{services:[scope.service],environments:[scope.environment],teams:[scope.team],signals:['metrics'],actions:['telemetry.read']}}),201)
  const headers={authorization:'Bearer '+reader.secret},bearer=await value(await run(names.same,{},headers));assert.deepEqual(bearer.range,same.range)
+ assert.equal((await run(names.same,{team:'synthetic-porthole-9999'},headers)).status,403,'bearer scope cannot expand through an owner cookie')
+ const limited=await value(await post('/app/settings/credentials/mint',{name:'Bounded gauge reader',class:'read',scope:{services:[scope.service],environments:[scope.environment],teams:[scope.team],signals:['metrics'],actions:['telemetry.read']},scannedBytesPerDay:1}),201)
+ const throttled=await run(names.same,{}, {authorization:'Bearer '+limited.secret})
+ assert.equal(throttled.status,429);assert.ok(Number(throttled.headers.get('retry-after'))>0);assert.deepEqual(await throttled.json(),{error:'credential_quota_exceeded'})
  await value(await post('/app/settings/credentials/revoke',{id:reader.credential.id}))
  assert.equal((await run(names.same,{},headers)).status,401);assert.equal((await call(bearer.replay,{headers})).status,401)
  assert.equal((await run(names.same,{team:'synthetic-porthole-9999'},headers)).status,401)
+ const exported=await value(await post('/api/porthole/v1/archive/exports',{}),201),savedRows=[]
+ for(let index=0;index<exported.totalChunks;index++){const chunk=await value(await call('/api/porthole/v1/archive/exports/'+exported.id+'/chunks/'+index,{headers:{cookie}}));savedRows.push(...chunk.rows)}
+ await value(await call('/api/porthole/v1/archive/exports/'+exported.id+'/manifest',{headers:{cookie}}))
+ const portable=savedRows.find(item=>item.table==='porthole_query_snapshots'&&item.row.id===same.queryRef)
+ assert.ok(portable,'a completed gauge range remains a valid installation archive snapshot')
+ const descriptor=JSON.parse(portable.row.scope);assert.equal(descriptor.mode,'range');assert.equal(descriptor.start,query.start);assert.equal(descriptor.end,query.end);assert.equal(descriptor.groupBy,query.groupBy);assert.equal(descriptor.aggregation,'sum')
  assert.ok(wire.some(packet=>JSON.stringify(packet).includes(names.turnover)))
  console.log('metricUnitsJourney passed ('+backend+'): stock OTLP producers, grouped 400 ms and 3 s turnover refusal, same-unit [400,3000] ms, 205 contributors, incompatible and unsupported no-effect refusals, immutable replay and revocation')
  return {query,same,expected}

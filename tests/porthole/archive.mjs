@@ -1154,13 +1154,14 @@ export async function eventArchiveJourney({origin,freshOwner,withEmptyDestinatio
 }
 
 /** Pattern pages are recomputed, not archived caches or restored authority. */
-export async function clusterArchiveJourney({origin,freshOwner,withEmptyDestination,query,all,members}) {
+export async function clusterArchiveJourney({origin,freshOwner,withEmptyDestination,query,all,members,rangeProof}) {
  const cookie=await freshOwner(),saved=await savedExport(origin,cookie,await post(origin,cookie,api+'/exports',{}))
  assert.ok(saved.rows.some(item=>item.table==='porthole_query_snapshots'&&JSON.parse(item.row.scope).record===members[0].id),'original pivots use the portable native query descriptor')
  await withEmptyDestination(async destination=>{
   const acting=await destination.freshOwner(),restore=await value(await post(destination.origin,acting,api+'/restores',{manifest:saved.manifest}),201)
   for(const chunk of saved.chunks)await value(await post(destination.origin,acting,`${api}/restores/${restore.id}/chunks`,{chunk}))
   await value(await post(destination.origin,acting,`${api}/restores/${restore.id}/commit`,{confirm:saved.manifest.rootHash}))
+  if(rangeProof){const restoredRange=await value(await get(destination.origin,acting,rangeProof.same.replay));assert.deepEqual(restoredRange.range,rangeProof.same.range,'inactive restore preserves gauge values, units, labels, instants and completion');assert.equal(restoredRange.snapshot,rangeProof.same.snapshot)}
   const request=body=>post(destination.origin,acting,'/api/porthole/v1/logs/clusters',body)
   const result=await value(await request({...query,limit:200}))
   assert.equal(result.state,'complete');assert.equal(result.totalRecords,236)
