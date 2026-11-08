@@ -38,7 +38,10 @@ export async function integrationJourney({origin,freshOwner,restartWorker,signIn
  const all=[]
  const select=async role=>{const current=await value(await get('/api/porthole/v1/analytics/configuration'));await value(await post('/api/porthole/v1/analytics/configuration',{revision:current.revision,role,enabled:true,confirm:'connect-analytical-workers'}))}
  await select('primary')
- for(const pack of catalog.packs) {
+ const requested=process.env.PORTHOLE_INTEGRATION_PACKS?.split(',')
+ const selected=requested?catalog.packs.filter(p=>requested.includes(p.id)):catalog.packs
+ if(requested)assert.equal(selected.length,new Set(requested).size,'every requested real-service case exists')
+ for(const pack of selected) {
   console.log('Integration matrix starting '+pack.id)
   cookie=await freshOwner()
   const service=await integrationService(pack),data={pack:pack.id,service:'pack-'+pack.id,environment:'test',team:'commerce',credentialId:source.credential.id,revision:0,confirm:'review-local-collection'}
@@ -113,8 +116,10 @@ export async function integrationJourney({origin,freshOwner,restartWorker,signIn
      await service.restoreFile(kind);await stop();await start()
      await wait(async()=>{const r=await value(await get(api+'/'+binding.id));return r.health.state==='Collecting'?r:null},'recovered-'+kind+'-file')
     }
-    const logs=await value(await get('/api/porthole/v1/ingest/records?signal=logs&service=pack-nginx'))
-    assert.equal(logs.records.filter(r=>!attrs(r.payload.record.attributes)['porthole.setup.failure']).length,9,'persistent stock file checkpoints prevent duplicate access and error logs after restarts')
+    const access=(await readFile(service.env.PORTHOLE_NGINX_ACCESS_LOG,'utf8')).trimEnd().split('\n').filter(Boolean),errors=(await readFile(service.env.PORTHOLE_NGINX_ERROR_LOG,'utf8')).trimEnd().split('\n').filter(Boolean),expected=[...access,...errors].sort()
+    assert.equal(access.length,8,'only the eight counted workload requests enter the access log')
+    const retained=await wait(async()=>{const logs=await value(await get('/api/porthole/v1/ingest/records?signal=logs&service=pack-nginx'));const lines=logs.records.filter(r=>!attrs(r.payload.record.attributes)['porthole.setup.failure']).map(r=>r.payload.record.body.stringValue).sort();return lines.length>=expected.length?lines:null},'all-source-log-lines')
+    assert.deepEqual(retained,expected,'persistent stock checkpoints reconcile every actual access and error line, including denied-status errors, without duplicates')
    }
    await stop()
    await withPinnedClock(Date.now()+30000,async()=>{assert.equal((await value(await get(api+'/'+binding.id))).health.state,'Unknown','stopped collector cannot retain healthy setup')})
@@ -129,21 +134,22 @@ export async function integrationJourney({origin,freshOwner,restartWorker,signIn
  assert.equal((await get('/api/porthole/v1/ingest/records?signal=metrics&service=pack-postgresql')).status,503,'a stopped selected analytical store cannot release a complete result')
  await eventBrowser({origin,cookie,path:app+'/'+all[0].binding.id,name:'integration-storage-unavailable'})
  await analytics.start('standby');await select('primary')
+ const delegated=all.find(row=>row.pack==='redis')??all[0]
  const before=await sql('SELECT * FROM porthole_integration_bindings ORDER BY id')
- await value(await post(api+'/enable',{pack:'redis',service:'pack-redis',environment:'test',team:'commerce',credentialId:source.credential.id,revision:0,confirm:'review-local-collection'}),409)
+ await value(await post(api+'/enable',{pack:delegated.pack,service:delegated.binding.service,environment:'test',team:'commerce',credentialId:source.credential.id,revision:0,confirm:'review-local-collection'}),409)
  assert.deepEqual(await sql('SELECT * FROM porthole_integration_bindings ORDER BY id'),before)
- const address=['synthetic-porthole-66100','example.com'].join(String.fromCharCode(64)),restrictedScope={services:['pack-redis'],environments:['test'],teams:['commerce']}
+ const address=['synthetic-porthole-66100','example.com'].join(String.fromCharCode(64)),restrictedScope={services:[delegated.binding.service],environments:['test'],teams:['commerce']}
  const invited=await value(await post('/app/settings/members/invite',{email:address,displayName:'Scoped integration reader',role:'read-only analyst',scope:restrictedScope}),202),reader=await signIn(address)
  assert.equal((await value(await get(api,reader))).packs.flatMap(p=>p.bindings).length,1)
- await value(await post(api+'/enable',{pack:'redis',service:'pack-redis',environment:'test',team:'commerce',credentialId:source.credential.id,revision:1,confirm:'review-local-collection'},reader),403)
+ await value(await post(api+'/enable',{pack:delegated.pack,service:delegated.binding.service,environment:'test',team:'commerce',credentialId:source.credential.id,revision:1,confirm:'review-local-collection'},reader),403)
  const hiddenCredentialName='synthetic-porthole-66102'
  await value(await post('/app/settings/credentials/mint',{name:hiddenCredentialName,class:'ingest',scope:{services:['other-integration-service'],environments:['test'],teams:['other-team'],signals:['metrics','logs'],actions:['telemetry.write']}}),201)
  const adminAddress=['synthetic-porthole-66101','example.com'].join(String.fromCharCode(64))
  await value(await post('/app/settings/members/invite',{email:adminAddress,displayName:'Scoped integration administrator',role:'admin',scope:restrictedScope}),202)
  const adminCookie=await signIn(adminAddress)
  const adminCatalog=await get(app,adminCookie);assert.equal(adminCatalog.status,200);assert.ok(!(await adminCatalog.text()).includes(hiddenCredentialName),'a scoped admin cannot discover names of foreign collection credentials')
- const redis=all.find(row=>row.pack==='redis').binding
- const reviewedId=await nativeEnable(origin,adminCookie,{pack:'redis',service:'pack-redis',environment:'test',team:'commerce',credentialId:source.credential.id,revision:redis.revision})
+ const redis=delegated.binding
+ const reviewedId=await nativeEnable(origin,adminCookie,{pack:delegated.pack,service:delegated.binding.service,environment:'test',team:'commerce',credentialId:source.credential.id,revision:redis.revision})
  assert.equal(reviewedId,redis.id);assert.equal((await value(await get(api+'/'+redis.id,adminCookie))).binding.revision,redis.revision+1,'a fresh scoped admin can review the native setup')
  cookie=await freshOwner()
  const admin=(await sql(`SELECT id FROM oa_operators WHERE email=${literal(adminAddress)}`))[0]
@@ -161,5 +167,5 @@ export async function integrationJourney({origin,freshOwner,restartWorker,signIn
  assert.equal((await value(await get(api+'/'+all[0].binding.id))).health.state,'Unknown')
  const {integrationArchiveJourney}=await import('./archive.mjs');await integrationArchiveJourney({origin,freshOwner,withEmptyDestination,bindings:all.map(r=>r.binding),secret:source.secret})
  if(process.env.PORTHOLE_EVIDENCE_DIR){await mkdir(process.env.PORTHOLE_EVIDENCE_DIR,{recursive:true});await writeFile(join(process.env.PORTHOLE_EVIDENCE_DIR,'integration-matrix.json'),JSON.stringify({services:all.map(({binding,...r})=>r),passed:true},null,2)+'\n')}
- console.log('PROBE PORT-006 local packs: eight pinned real services, native enablement and generated stock collector configurations -> independently reconciled metrics, native presets, denied and recovered scraper setup, stale evidence, restart, restricted and revoked reads, inactive restore')
+ console.log('PROBE PORT-006 local packs: '+all.length+' pinned real services, native enablement and generated stock collector configurations -> independently reconciled metrics, native presets, denied and recovered scraper setup, stale evidence, restart, restricted and revoked reads, inactive restore')
 }

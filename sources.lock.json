@@ -5805,7 +5805,7 @@
       "executable": false
     },
     "tests/porthole/integrations.mjs": {
-      "sha256": "72b7293224ec96e0234957697ac6b1edf80aa0a2f1dbe534b2cfd5a5120c2c7a",
+      "sha256": "b8e7f786628dd43b25de4b52283e5e6df8500944c3b456551df1506ac018fe8e",
       "executable": false
     },
     "tests/porthole/live-recovery.mjs": {
