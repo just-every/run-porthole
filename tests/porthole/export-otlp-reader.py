@@ -27,9 +27,12 @@ def ids(value, encode):
     return value
 
 
-if sys.argv[1] == '--trace':
+if sys.argv[1] in ('--trace', '--trace-json'):
     message = ExportTraceServiceRequest()
-    message.ParseFromString(Path(sys.argv[2]).read_bytes())
+    if sys.argv[1] == '--trace-json':
+        ParseDict(json.loads(Path(sys.argv[2]).read_text()), message)
+    else:
+        message.ParseFromString(Path(sys.argv[2]).read_bytes())
     print(json.dumps(ids(MessageToDict(message, use_integers_for_enums=True), False)))
     raise SystemExit(0)
 
