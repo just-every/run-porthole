@@ -5717,7 +5717,7 @@
       "executable": false
     },
     "tests/porthole/collector-install.mjs": {
-      "sha256": "1b7eeabcbc4be91461fb1d2b3983be11de6aa288fbc066a73b082ca68680efc9",
+      "sha256": "e358a1ac5e36611703420aacc12e9f91b4a62dce95c8aeebcff6e3c37f6175ca",
       "executable": false
     },
     "tests/porthole/collector-process.mjs": {

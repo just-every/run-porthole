@@ -69,6 +69,26 @@ export async function collectorInstallJourney({origin,freshOwner,signIn,sql,rest
   const container=found.payload.resource.attributes.find(a=>a.key==='container.id')
   assert.equal(container.value.stringValue,sourceInfo.Id,'the original producer container is named by its real Docker identity')
   assert.equal(found.service,scope.services[0]);assert.equal(found.payload.record.body.stringValue,original.log)
+  let exportedMetrics=[],receiverEvidence
+  const metricDeadline=Date.now()+30000
+  while(Date.now()<metricDeadline&&!receiverEvidence){
+   await post('/api/porthole/v1/ingest/drain',{})
+   const target=new URL('/api/porthole/v1/ingest/records?'+new URLSearchParams({signal:'metrics',service:scope.services[0],limit:'200'}),origin)
+   exportedMetrics=[];let cursor
+   do{const page=await get(target.pathname+target.search);exportedMetrics.push(...page.records);cursor=page.cursor;if(cursor){target.searchParams.set('cursor',cursor);target.searchParams.set('snapshot',String(page.snapshot))}}while(cursor)
+   const resource=row=>Object.fromEntries((row.payload.resource.attributes??[]).map(a=>[a.key,a.value.stringValue]))
+   const producerMetrics=exportedMetrics.filter(row=>resource(row)['container.id']===sourceInfo.Id)
+   const cpu=producerMetrics.find(row=>row.payload.metric.name==='container.cpu.usage.total'),memory=producerMetrics.find(row=>row.payload.metric.name==='container.memory.usage.total')
+   if(exportedMetrics.some(row=>row.payload.metric.name==='system.cpu.time')&&exportedMetrics.some(row=>row.payload.metric.name==='system.memory.usage')&&cpu&&memory){
+    const named=resource(memory)['container.name'];assert.ok([producer,'/'+producer].includes(named),'Docker stats preserves the actual producer name')
+    assert.ok(Number(memory.payload.record.asDouble??memory.payload.record.asInt)>0,'real producer memory is exported as measured bytes')
+    assert.ok(Number(cpu.payload.record.asDouble??cpu.payload.record.asInt)>=0,'real producer CPU counter is queryable')
+    receiverEvidence={cpu:cpu.payload.metric.name,memory:memory.payload.metric.name,container:named}
+   }
+   if(!receiverEvidence)await new Promise(r=>setTimeout(r,1000))
+  }
+  assert.ok(receiverEvidence,'official hostmetrics and Docker stats CPU and memory exports are queryable')
+  console.log('PROBE PORT-003 receivers: official hostmetrics CPU and memory plus Docker stats -> measured producer CPU and memory with its actual container identity; Infrastructure display remains held')
   let view=await get();for(let i=0;i<30&&!view.installs.length;i++){await new Promise(r=>setTimeout(r,200));view=await get()}
   assert.ok(view.installs.length,installerOutput)
   const entry=view.installs[0];assert.equal(entry.state,'active');assert.equal(entry.freshness,'recent');assert.equal(entry.report.platform,'docker');assert.deepEqual(entry.gaps,[])
