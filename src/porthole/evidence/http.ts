@@ -60,7 +60,11 @@ export async function evidenceResponse(request:Request,env:Bindings):Promise<Res
   const current=await packet(request,env,actor,selection(JSON.parse(job.selection)),job.snapshot,job.captured_at)
   if(current.digest!==job.digest)fail('evidence_changed',409)
   await release(env,actor,current.ids)
-  const live=await env.DB.prepare(`SELECT 1 FROM porthole_service_packets WHERE id=? AND state=? AND digest=? AND ${actor.fence}`).bind(job.id,job.state,job.digest,...actor.args).first()
+  const approvedSelection=selection(JSON.parse(job.selection))
+  const live=await env.DB.prepare(`SELECT 1 FROM porthole_service_packets WHERE id=? AND state=? AND digest=? AND ${actor.fence}
+   AND (SELECT COUNT(*) FROM porthole_telemetry_records WHERE id IN (SELECT value FROM json_each(?)))=?
+   AND NOT EXISTS(SELECT 1 FROM porthole_export_exclusions WHERE record_id IN (SELECT value FROM json_each(?)))
+   AND COALESCE((SELECT MAX(revision) FROM porthole_service_versions WHERE id=?),0)=?`).bind(job.id,job.state,job.digest,...actor.args,JSON.stringify(current.ids),current.ids.length,JSON.stringify(current.ids),approvedSelection.serviceId,approvedSelection.metadataRevision).first()
   if(!live)fail('evidence_state_changed',409)
   if(action==='download')return new Response(canonical({packet:current.body,digest:job.digest}),{headers:{...privateHeaders,'content-type':'application/json','content-disposition':'attachment; filename="porthole-service-evidence.json"'}})
   return html?evidencePage({job,body:current.body}):json({id:job.id,state:job.state,digest:job.digest,packet:current.body})

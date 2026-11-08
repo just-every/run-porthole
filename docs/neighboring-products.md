@@ -18,7 +18,8 @@ context remain distinct from specialist analysis.
 
 ## Configure and follow a handoff
 
-Signed-in readers open `/app/help` or `/app/integrations`. Owner configuration
+Signed-out visitors can read `/help` on the installation without exposing any
+configured destination. Signed-in readers open `/app/help` or `/app/integrations`. Owner configuration
 is under `/app/settings/integrations/handoffs`, also linked from the existing
 Integrations declarations. A current native owner verifies identity within five
 minutes and approves the exact destination and current revision. Every revision

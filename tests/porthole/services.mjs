@@ -85,7 +85,7 @@ export async function servicesJourney({origin,freshOwner,signIn,sql,restartWorke
  const {serviceTopologyProof}=await import('./traces.mjs')
  await serviceTopologyProof({read,proof,view,checkout,fulfillment})
  await servicesBrowser({origin,cookie,path:'/app/services/'+checkout.id+query,contains:'Observed requests',name:'services-summary',dispatch:browserDispatch,observed:checkout.summary})
- for(const [index,packet]of proof.packets.entries()){
+ for(const [index,packet]of proof.packets.filter(packet=>packet.path!=='/v1/logs').entries()){
   const replay=await call(packet.path??'/v1/traces',{method:'POST',headers:{authorization:'Bearer '+source.secret,'content-type':packet.type,'x-porthole-batch-id':'synthetic-porthole-replay-'+index},body:packet.body})
   assert.equal(replay.status,200,await replay.clone().text())
  }

@@ -23,6 +23,8 @@ export async function handoffJourney({origin,freshOwner,signIn,sql,call=(path,op
   assert.equal(saved.revision,1)
  }
  const configured=await read(root);assert.equal(configured.handoffs.length,names.length)
+ const publicGuide=await call('/help');assert.equal(publicGuide.status,200);const publicGuideText=await publicGuide.text();for(const [id]of names)assert.ok(!publicGuideText.includes('https://handoff.example/'+id),'signed-out guide never reads private destinations')
+ await handoffBrowser({origin,path:'/help',contains:'Installation destinations are private',name:'handoff-public-boundary',dispatch})
  const encodingSource=await send('/app/settings/credentials/mint',{name:'synthetic-porthole-8506',class:'ingest',scope:{services:[encodedName],environments:['production'],teams:['commerce'],signals:['traces'],actions:['telemetry.write']}},201)
  const encoded=await encodedService({origin,call,secret:encodingSource.secret});await send('/api/porthole/v1/ingest/drain',{})
  const encodedView=await read('/api/porthole/v1/services?'+new URLSearchParams(encoded)),encodedRecord=encodedView.services.find(row=>row.service===encodedName)
@@ -31,7 +33,7 @@ export async function handoffJourney({origin,freshOwner,signIn,sql,call=(path,op
  assert.equal((await call('/api/porthole/v1/services/'+encodedRecord.id+'?'+new URLSearchParams(encoded),{headers:{cookie:responders[0].cookie}})).status,404,'an out-of-scope encoded service has no handoff door')
  await send('/app/settings/credentials/revoke',{id:encodingSource.credential.id})
  const change={revision:1,destination:'https://handoff.example/vane',template:'https://handoff.example/vane/service/{service}?environment={environment}&from={from}&through={through}',confirm:'save-handoff'}
- for(const destination of ['http://handoff.example','javascript:alert(1)',['https://synthetic-porthole-1:synthetic-porthole-2','handoff.example/'].join(String.fromCharCode(64)),'https://handoff.example/?token=synthetic-porthole-1','https://handoff.example/%0a','https://handoff.example/%250d','https://handoff.example/?api_key=synthetic-porthole-1','https://handoff.example/#credential','https://handoff.example/\\evil'])await denied(root+'/vane',{...change,destination},400)
+ for(const destination of [origin.replace('http:','https:'),'http://handoff.example','javascript:alert(1)',['https://synthetic-porthole-1:synthetic-porthole-2','handoff.example/'].join(String.fromCharCode(64)),'https://handoff.example/?token=synthetic-porthole-1','https://handoff.example/%0a','https://handoff.example/%250d','https://handoff.example/?api_key=synthetic-porthole-1','https://handoff.example/#credential','https://handoff.example/\\evil'])await denied(root+'/vane',{...change,destination},400)
  for(const template of ['https://handoff.example/{team}','https://{service}.example/','https://different.example/{service}','http://handoff.example/{service}'])await denied(root+'/vane',{...change,template},400)
  await denied(root+'/vane',{...change,revision:0},409)
  await denied(root+'/vane',change,403,cookie,{authorization:'Bearer '+bearer})
@@ -88,21 +90,25 @@ export async function handoffJourney({origin,freshOwner,signIn,sql,call=(path,op
  await denied(packets,selected,403,cookie,{authorization:'Bearer '+bearer})
  await denied(packets+'/'+preview.id+'/approve',{confirm:preview.id,digest:'0'.repeat(64)},409)
  assert.equal((await call(packets+'/'+preview.id+'/download',{headers:{cookie}})).status,409)
+ await handoffBrowser({origin,cookie,path:'/app/services/'+service.id+query,contains:'Observed requests',name:'evidence-selection',dispatch,create:true})
  await handoffBrowser({origin,cookie,path:'/app/services/evidence/'+preview.id,contains:'Review exact packet',name:'evidence-preview',dispatch,approve:true})
  const download=await call(packets+'/'+preview.id+'/download',{headers:{cookie}});assert.equal(download.status,200);assert.match(download.headers.get('content-disposition'),/^attachment/)
  const downloaded=await download.json();assert.equal(downloaded.digest,preview.digest);assert.deepEqual(downloaded.packet,preview.packet)
  const scopedAddress=['synthetic-porthole-8505','example.com'].join(String.fromCharCode(64))
- await send('/app/settings/members/invite',{email:scopedAddress,displayName:'Scoped evidence owner',role:'owner',scope:{services:['checkout'],environments:['production'],teams:['commerce']}},202)
+ await send('/app/settings/members/invite',{email:scopedAddress,displayName:'Evidence reviewer owner',role:'responder',scope:{services:['checkout'],environments:['production'],teams:['commerce']}},202)
+ const invitedCookie=await signIn(scopedAddress),invitedActor=(await read('/auth/session',invitedCookie)).operator
+ cookie=await freshOwner()
+ await send('/app/settings/members/change',{operatorId:invitedActor.id,role:'owner',confirmEmail:scopedAddress})
  const scopedCookie=await signIn(scopedAddress),scopedActor=(await read('/auth/session',scopedCookie)).operator
  cookie=await freshOwner()
  const scoped=await send(packets,selected,201,scopedCookie)
- for(const key of ['identity','metadata','observedRed','coverage','traceReferences','logReferences'])assert.deepEqual(scoped.packet.fields[key],preview.packet.fields[key],'current scoped owner gets only the same one-service allowlist')
+ for(const key of ['identity','metadata','observedRed','coverage','traceReferences','logReferences'])assert.deepEqual(scoped.packet.fields[key],preview.packet.fields[key],'another current owner gets only the same one-service allowlist')
  await send(packets+'/'+scoped.id+'/approve',{confirm:scoped.id,digest:scoped.digest},200,scopedCookie)
- await send('/app/settings/members/change',{operatorId:scopedActor.id,role:'owner',scope:{services:['fulfillment'],environments:['production'],teams:['fulfillment']}})
+ await send('/app/settings/members/change',{operatorId:scopedActor.id,role:'responder',scope:{services:['fulfillment'],environments:['production'],teams:['fulfillment']}})
  assert.equal((await call(packets+'/'+scoped.id+'/download',{headers:{cookie:scopedCookie}})).status,401,'revoked owner session cannot reuse packet approval')
  const renewed=await signIn(scopedAddress);cookie=await freshOwner()
- assert.equal((await call(packets+'/'+scoped.id+'/download',{headers:{cookie:renewed}})).status,409,'new session cannot resurrect approval from the prior owner scope revision')
- await denied(packets,selected,404,renewed)
+ assert.equal((await call(packets+'/'+scoped.id+'/download',{headers:{cookie:renewed}})).status,403,'new session cannot resurrect approval after owner authority is withdrawn')
+ await denied(packets,selected,403,renewed)
  const selectedOnly=await send(packets,{...selected,fields:['identity']},201)
  assert.deepEqual(Object.keys(selectedOnly.packet.fields),['identity'],'owner-selected allowlist omits all other fields')
  await send(packets+'/'+selectedOnly.id+'/cancel',{confirm:selectedOnly.id,digest:selectedOnly.digest})
@@ -118,7 +124,7 @@ export async function handoffJourney({origin,freshOwner,signIn,sql,call=(path,op
  return history
 }
 
-export async function handoffBrowser({origin,cookie='',path,contains,name,dispatch,status=200,follow=false,edit=false,approve=false}) {
+export async function handoffBrowser({origin,cookie='',path,contains,name,dispatch,status=200,follow=false,edit=false,approve=false,create=false}) {
  const {chromium}=await import('@playwright/test'),browser=await chromium.launch({headless:true,executablePath:process.env.PORTHOLE_CHROMIUM_PATH,args:['--no-sandbox','--use-mock-keychain','--password-store=basic']})
  try{
   const context=await browser.newContext({viewport:{width:1440,height:900}})
@@ -132,7 +138,8 @@ export async function handoffBrowser({origin,cookie='',path,contains,name,dispat
   assert.equal(await page.locator('button').evaluateAll(nodes=>nodes.filter(n=>!n.textContent.trim()).length),0)
   if(follow){let count=0;await context.route('https://handoff.example/**',async route=>{const request=route.request();assert.ok(!request.headers().authorization&&!request.headers().cookie&&!request.headers().referer,'plain external navigation carries no authority');count++;await route.fulfill({status:401,body:'Destination permission required'})});for(const [,name]of names){await page.getByRole('link',{name:'Open '+name,exact:true}).click();assert.match(await page.locator('body').innerText(),/Destination permission required/);await page.goto(origin+path)}assert.equal(count,names.length)}
   if(edit){const form=page.locator('form').first(),stale=await context.newPage();await stale.goto(origin+path);await form.locator('input[name="confirm"]').check();await form.getByRole('button').click();assert.match(await page.locator('body').innerText(),/Revision 2/);await stale.locator('form').first().locator('input[name="confirm"]').check();const response=stale.waitForResponse(r=>r.request().method()==='POST');await stale.locator('form').first().getByRole('button').click();assert.equal((await response).status(),409);assert.match(await stale.locator('body').innerText(),/handoff revision changed/);await stale.close()}
-  if(approve){await page.getByLabel('Approve this exact packet and external reference').check();await page.getByRole('button',{name:'Approve packet',exact:true}).click();assert.match(await page.locator('body').innerText(),/State: approved/);assert.equal(await page.getByRole('link',{name:'Download approved packet',exact:true}).count(),1)}
+  if(create){await page.getByRole('link',{name:'Review service evidence packet',exact:true}).click();await page.getByLabel('External system reference',{exact:true}).fill('synthetic-porthole-8509');await page.getByRole('button',{name:'Preview packet',exact:true}).click();assert.match(await page.locator('body').innerText(),/Review exact packet/);await page.getByRole('button',{name:'Cancel packet',exact:true}).click();assert.match(await page.locator('body').innerText(),/State: cancelled/)}
+  if(approve){const references=page.locator('details').first();if(await references.count()){await references.locator('summary').focus();await page.keyboard.press('Enter');assert.equal(await references.getAttribute('open'),'');await page.keyboard.press('Enter')}await page.getByLabel('Approve this exact packet and external reference').check();await page.getByRole('button',{name:'Approve packet',exact:true}).click();assert.match(await page.locator('body').innerText(),/State: approved/);assert.equal(await page.getByRole('link',{name:'Download approved packet',exact:true}).count(),1)}
   if(process.env.PORTHOLE_EVIDENCE_DIR){await mkdir(process.env.PORTHOLE_EVIDENCE_DIR,{recursive:true});for(const width of [1440,390]){await page.setViewportSize({width,height:width===1440?900:844});await page.screenshot({path:join(process.env.PORTHOLE_EVIDENCE_DIR,name+'-'+width+'.png'),fullPage:true})}}
   await context.close()
  }finally{await browser.close()}
