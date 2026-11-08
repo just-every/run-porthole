@@ -5697,7 +5697,7 @@
       "executable": false
     },
     "tests/porthole/explore.mjs": {
-      "sha256": "fb46e8c540865c400bf1e55aa39e13c991a2f395cfad22916f9851b77ee471d8",
+      "sha256": "dd7be5c4a81745368e86914b4dbaa645b6b20ed20cec94015048c9acc347bb54",
       "executable": false
     },
     "tests/porthole/export-otlp-reader.py": {
