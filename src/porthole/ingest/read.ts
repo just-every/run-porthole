@@ -18,7 +18,7 @@ export function scopeWhere(scope: Scope, alias = 'r') {
  return { sql:parts.join(' AND '),args }
 }
 const json = (value:unknown,status=200,headers:Record<string,string>={}) => Response.json(value,{status,headers:{...privateHeaders,...headers}})
-export async function readTelemetry(request: Request, env: Bindings, options: {principal?:ReadPrincipal;archive?:boolean;logSearch?:LogSearchPlan;source?:{dialect:string;text:string}} = {}): Promise<Response> {
+export async function readTelemetry(request: Request, env: Bindings, options: {principal?:ReadPrincipal;archive?:boolean;logSearch?:LogSearchPlan;source?:{dialect:string;text:string};saveSnapshot?:boolean} = {}): Promise<Response> {
  try {
   const credential=(use:Parameters<typeof verifyCredential>[2])=>options.principal?.clientId?agentCredential(request,env,options.principal,use!):verifyCredential(request,env,use)
   const url = new URL(request.url), params = url.searchParams, archive = !!options.archive
@@ -82,7 +82,7 @@ export async function readTelemetry(request: Request, env: Bindings, options: {p
   const select=`SELECT r.* FROM ${table} r JOIN porthole_ingest_batches b ON b.id=r.batch_id WHERE ${clauses.join(' AND ')} AND `
   const queryRef=crypto.randomUUID(),queryScope=JSON.stringify({...Object.fromEntries([...params].filter(([key])=>['service','environment','team','cursor','limit','trace','metric','record'].includes(key))),...(options.source?{dialect:options.source.dialect,expression:options.source.text}:{})})
   const analytical=await analyticalConfiguration(env)
-  if(analyticalSelected(env,analytical))return await readAnalytical(request,env,analytical,{principal:options.principal,scope,actorRef,actorRevision,fence,snapshot,queryRef,queryScope,from,through,signal,limit,archive,logSearch:options.logSearch})
+  if(analyticalSelected(env,analytical))return await readAnalytical(request,env,analytical,{principal:options.principal,scope,actorRef,actorRevision,fence,snapshot,queryRef,queryScope,from,through,signal,limit,archive,logSearch:options.logSearch,saveSnapshot:options.saveSnapshot})
   const snapshotInsert=(live:{sql:string;args:unknown[]})=>env.DB.prepare(`INSERT INTO porthole_query_snapshots SELECT ?,?,?,?,?,?,?,? WHERE ${live.sql}`).bind(queryRef,actorRef,queryScope,signal,from,through,snapshot,Date.now(),...live.args)
   let rows: Record<string,unknown>[]
   if (options.principal?.clientId || request.headers.has('authorization')) {
@@ -90,10 +90,10 @@ export async function readTelemetry(request: Request, env: Bindings, options: {p
    const scanned=estimate.reduce((sum,row) => sum+new TextEncoder().encode(String(row.payload)).length,0)
    const auth=await credential({action:'telemetry.read',scope:emptyScope,dataScope:allScope,scannedBytes:scanned,writes(live,latest) {
     if (!latest.signals.includes(signal) || JSON.stringify(scope)!==JSON.stringify(latest)) fail('authority_changed',409)
-    return [env.DB.prepare(`${select}${live.sql} ORDER BY r.event_time_ns,r.id LIMIT ?`).bind(...args,...live.args,limit+1),snapshotInsert(live)]
+    return [env.DB.prepare(`${select}${live.sql} ORDER BY r.event_time_ns,r.id LIMIT ?`).bind(...args,...live.args,limit+1),...(options.saveSnapshot===false?[]:[snapshotInsert(live)])]
    }})
    rows=auth.results[0].results as Record<string,unknown>[]
-  } else rows=(await env.DB.batch<Record<string,unknown>>([env.DB.prepare(`${select}${fence.sql} ORDER BY r.event_time_ns,r.id LIMIT ?`).bind(...args,...fence.args,limit+1),snapshotInsert(fence)]))[0].results
+  } else rows=(await env.DB.batch<Record<string,unknown>>([env.DB.prepare(`${select}${fence.sql} ORDER BY r.event_time_ns,r.id LIMIT ?`).bind(...args,...fence.args,limit+1),...(options.saveSnapshot===false?[]:[snapshotInsert(fence)])]))[0].results
   const more=rows.length>limit;rows=rows.slice(0,limit)
   const last=rows.at(-1),cursor=more && last ? base64(new TextEncoder().encode(JSON.stringify([last.event_time_ns,last.id]))).replaceAll('+','-').replaceAll('/','_').replaceAll('=','') : null
   return json({snapshot,from,through,queryRef,records:rows.map(row=>({...row,payload:JSON.parse(String(row.payload))})),cursor,archive},200,{'x-porthole-entity':queryRef,'x-porthole-actor':actorRef,'x-porthole-actor-revision':String(actorRevision)})

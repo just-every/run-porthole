@@ -1,3 +1,4 @@
+import {rangeKeys,rangePlan} from '../query/range/model'
 import {promql} from './promql'
 import {sql} from './sql'
 import {lucene} from './lucene'
@@ -6,8 +7,8 @@ import {metricName,reject,type Dialect,type NormalizedExploration,type Parameter
 export {ExplorationError} from './model'
 export type {Aggregate,Dialect,NormalizedExploration,Parameters,LogSearchPlan} from './model'
 
-const nativeKeys=['signal','service','environment','team','from','through','cursor','limit','snapshot','trace','metric','record']
-const optional=new Set(['metric','from','through','cursor','snapshot','trace','limit','record'])
+const nativeKeys=['signal','service','environment','team','from','through','cursor','limit','snapshot','trace','metric','record',...rangeKeys]
+const optional=new Set([...rangeKeys,'metric','from','through','cursor','snapshot','trace','limit','record'])
 export function normalizeExploration(input:Record<string,unknown>):NormalizedExploration {
  if(!input||typeof input!=='object'||Array.isArray(input))reject('invalid_exploration','Supply a query object.','query')
  if(Object.keys(input).some(key=>!nativeKeys.includes(key)&&!['dialect','expression'].includes(key)))reject('unsupported_query_filter','Remove unsupported query fields.','query')
@@ -26,8 +27,12 @@ export function normalizeExploration(input:Record<string,unknown>):NormalizedExp
  if(typeof parameters.metric==='string')metricName(parameters.metric)
  if(dialect==='visual') {
   if(expression.trim())reject('unexpected_visual_expression','Select a text dialect to execute an expression.')
-  return {parameters,source:{dialect,text:expression}}
+  const range=rangePlan(input)
+  if(!range)for(const key of rangeKeys)delete parameters[key]
+  return {parameters,source:{dialect,text:expression},...(range?{range}:{})}
  }
+ if(rangeKeys.some(key=>input[key]!==undefined&&input[key]!==''&&!(key==='mode'&&input[key]==='records')))reject('invalid_metric_range','Range evaluation is available in the visual dialect only.','dialect')
+ for(const key of rangeKeys)delete parameters[key]
  if(!expression.trim())reject('exploration_expression_required','Enter an expression for the selected dialect.')
  const parsed=dialect==='promql'?promql(expression):dialect==='sql'?sql(expression):lucene(expression)
  for(const [key,value] of Object.entries(parsed.parameters)) {

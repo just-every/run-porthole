@@ -1,3 +1,5 @@
+import {readMetricRange} from './range/read'
+import {rangeKeys} from './range/model'
 import {agentReadAuthority,type ReadPrincipal} from '../security/agent-read'
 import {normalizeExploration,ExplorationError} from '../explore/normalize'
 import {aggregateRows} from './aggregate'
@@ -6,9 +8,9 @@ import { AuthError } from '../../modules/operator-auth/index.mjs'
 import { authority,fail,allScope,emptyScope } from '../security/authority'
 import { input } from '../security/input'
 import { readTelemetry } from '../ingest/read'
-import { verifyCredential } from '../credentials/verify'
+import { CredentialLimit, verifyCredential } from '../credentials/verify'
 import { operationDocument as document,escape,privateHeaders } from '../document'
-const keys=['dialect','expression','signal','service','environment','team','from','through','cursor','limit','snapshot','trace','metric','record']
+const keys=['dialect','expression','signal','service','environment','team','from','through','cursor','limit','snapshot','trace','metric','record',...rangeKeys]
 function queryRequest(request:Request,data:Record<string,unknown>):Request {
  const url=new URL('/api/porthole/v1/ingest/records',request.url)
  for(const [key,value] of Object.entries(data)) {
@@ -29,7 +31,7 @@ export async function queryResponse(request:Request,env:Bindings,principal?:Read
   if(principal)await agentReadAuthority(env,principal)
   else if(page || !request.headers.has('authorization'))await authority(request,env,{post:request.method==='POST'})
   else await verifyCredential(request,env,{action:'telemetry.read',scope:emptyScope,dataScope:allScope,inspectOnly:true})
-  if(page && request.method==='GET' && !url.search) return document('Explore telemetry',`<p><a href="/app/dashboards">Dashboards</a> · <a href="/app/explore/clusters">Log patterns</a></p><p>Read retained telemetry within your current service, environment and team scope. Each query has a reproducible, private snapshot reference in Audit.</p><form method="post" action="/app/explore"><label>Signal <select name="signal" aria-label="Signal"><option>logs</option><option>metrics</option><option>traces</option><option>profiles</option></select></label><label>Service <input name="service" required></label><label>Environment <input name="environment" required></label><label>Team <input name="team" required></label><label>Metric name <input name="metric"></label><label>From in nanoseconds <input name="from" inputmode="numeric"></label><label>Through in nanoseconds <input name="through" inputmode="numeric"></label><details><summary>Text query</summary><label>Dialect <select name="dialect" aria-label="Dialect"><option value="visual">Visual</option><option value="promql">PromQL selector</option><option value="sql">SQL</option><option value="lucene">Lucene</option></select></label><label>Expression <textarea name="expression" rows="5"></textarea></label><p>Text filters must agree with the selected signal and scope. Unsupported syntax refuses before execution.</p></details><button>Run query</button></form>`,200,{forms:true})
+  if(page && request.method==='GET' && !url.search) return document('Explore telemetry',`<p><a href="/app/dashboards">Dashboards</a> · <a href="/app/explore/clusters">Log patterns</a></p><p>Read retained telemetry within your current service, environment and team scope. Each query has a reproducible, private snapshot reference in Audit.</p><form method="post" action="/app/explore"><label>Signal <select name="signal" aria-label="Signal"><option>logs</option><option>metrics</option><option>traces</option><option>profiles</option></select></label><label>Service <input name="service" required></label><label>Environment <input name="environment" required></label><label>Team <input name="team" required></label><label>Metric name <input name="metric"></label><label>From in nanoseconds <input name="from" inputmode="numeric"></label><label>Through in nanoseconds <input name="through" inputmode="numeric"></label><details><summary>Gauge range</summary><p>Visual metrics only. Each group keeps one exact unit across the range; mixed units refuse without saving. Missing instants remain absent.</p><label>Evaluation <select name="mode" aria-label="Evaluation"><option value="records">Records</option><option value="range">Grouped gauge range</option></select></label><label>Start in nanoseconds <input name="start" inputmode="numeric"></label><label>End in nanoseconds <input name="end" inputmode="numeric"></label><label>Step in seconds <input name="step" inputmode="numeric"></label><label>Lookback in seconds <input name="lookback" inputmode="numeric"></label><label>Group labels <input name="groupBy" placeholder="service,region"></label><label>Aggregation <select name="aggregation" aria-label="Aggregation"><option value="">Select for range</option><option value="sum">Sum</option><option value="average">Average</option><option value="min">Minimum</option><option value="max">Maximum</option></select></label></details><details><summary>Text query</summary><label>Dialect <select name="dialect" aria-label="Dialect"><option value="visual">Visual</option><option value="promql">PromQL selector</option><option value="sql">SQL</option><option value="lucene">Lucene</option></select></label><label>Expression <textarea name="expression" rows="5"></textarea></label><p>Text filters must agree with the selected signal and scope. Unsupported syntax refuses before execution.</p></details><button>Run query</button></form>`,200,{forms:true})
   let data:Record<string,unknown>
   const id=url.pathname.split('/').at(-1)!
   if(page&&request.method==='GET')data=Object.fromEntries(url.searchParams)
@@ -37,14 +39,14 @@ export async function queryResponse(request:Request,env:Bindings,principal?:Read
    const previous=await env.DB.prepare('SELECT * FROM porthole_query_snapshots WHERE id=?').bind(id).first<{scope:string;signal:string;from_ns:string;through_ns:string;through_batch:number}>()
    if(!previous)fail('query_not_found',404)
    data={...JSON.parse(previous.scope),signal:previous.signal,snapshot:previous.through_batch}
-   if(previous.from_ns)data.from=previous.from_ns
-   if(previous.through_ns)data.through=previous.through_ns
+   if(data.mode!=='range'&&previous.from_ns)data.from=previous.from_ns
+   if(data.mode!=='range'&&previous.through_ns)data.through=previous.through_ns
   } else {
    if(request.method!=='POST')fail('method_not_allowed',405)
    data=await input(request)
   }
   const normalized=normalizeExploration(data)
-  const response=await readTelemetry(queryRequest(request,normalized.parameters),env,{principal,logSearch:normalized.logSearch,source:normalized.source})
+  const response=normalized.range?await readMetricRange(request,env,normalized,principal):await readTelemetry(queryRequest(request,normalized.parameters),env,{principal,logSearch:normalized.logSearch,source:normalized.source})
   if(!response.ok) {if(!page)return response;const error=await response.json() as {error:string;hint?:string};return document('Query unavailable',`<p role="alert">${escape(error.error)}${error.hint?': '+escape(error.hint):''}</p><p><a href="/app/explore">Return to Explore</a></p>`,response.status)}
   const rows=await response.json() as Record<string,unknown>
   const result={source:normalized.source,parameters:normalized.parameters,...(normalized.logSearch?{plan:normalized.logSearch}:{}),...rows,...(normalized.aggregate?{aggregate:aggregateRows(normalized.aggregate,rows)}:{})},reference=String(rows.queryRef)
@@ -52,10 +54,17 @@ export async function queryResponse(request:Request,env:Bindings,principal?:Read
   if(page) {
    const next=new URL('/app/explore',request.url)
    for(const [key,value] of Object.entries({...normalized.parameters,dialect:normalized.source.dialect,expression:normalized.source.text,snapshot:rows.snapshot,cursor:rows.cursor}))if(value!==null&&value!==undefined)next.searchParams.set(key,String(value))
-   const view=await document('Query results',`<p>Snapshot reference: ${reference}</p><p><a href="/api/porthole/v1/query/${reference}">Repeat this snapshot</a> · <a href="/app/explore">New query</a></p>${rows.cursor?`<p><a href="${escape(next.pathname+next.search)}">Next page</a></p>`:''}<pre>${escape(JSON.stringify(result,null,2))}</pre>`);view.headers.set('x-porthole-entity',reference);return view}
+   const view=await document('Query results',`<p>Snapshot reference: ${reference}</p><p><a href="/api/porthole/v1/query/${reference}">Repeat this snapshot</a> · <a href="/app/explore">New query</a></p>${rows.cursor?`<p><a href="${escape(next.pathname+next.search)}">Next page</a></p>`:''}${normalized.range?rangeView(rows.range as Parameters<typeof rangeView>[0]):''}<pre>${escape(JSON.stringify(result,null,2))}</pre>`);view.headers.set('x-porthole-entity',reference);return view}
   return Response.json({...result,queryRef:reference,replay:`/api/porthole/v1/query/${reference}`},{headers})
  }catch(error) {
-  const code=error instanceof AuthError?error.code:'query_unavailable',status=error instanceof AuthError?error.status:503
-  return page?document('Query unavailable',`<p role="alert">${escape(code.replaceAll('_',' '))}${error instanceof ExplorationError?': '+escape(error.hint):''}</p><p><a href="/app/explore">Return to Explore</a></p>`,status,{forms:true}):Response.json({error:code,...(error instanceof ExplorationError?{field:error.field,hint:error.hint}:{})},{status,headers:privateHeaders})
+  const known=error instanceof AuthError||error instanceof CredentialLimit
+  const code=known?error.code:'query_unavailable',status=known?error.status:503
+  const response=page?await document('Query unavailable',`<p role="alert">${escape(code.replaceAll('_',' '))}${error instanceof ExplorationError?': '+escape(error.hint):''}</p><p><a href="/app/explore">Return to Explore</a></p>`,status,{forms:true}):Response.json({error:code,...(error instanceof ExplorationError?{field:error.field,hint:error.hint}:{})},{status,headers:privateHeaders})
+  if(error instanceof CredentialLimit)response.headers.set('retry-after',String(error.retryAfter))
+  return response
  }
+}
+
+function rangeView(range:{state:string;series:{labels:Record<string,unknown>;unit:string;points:{timestamp:string;value:number;contributors:number}[]}[]}) {
+ return `<section aria-label="Gauge range result"><h2>Range ${escape(range.state)}</h2>${range.series.length?range.series.map(series=>`<h3>${escape(JSON.stringify(series.labels))}</h3><p>Unit: ${escape(series.unit||'unspecified')}</p><table><thead><tr><th>Unix nanoseconds</th><th>Value</th><th>Contributors</th></tr></thead><tbody>${series.points.map(point=>`<tr><td>${escape(point.timestamp)}</td><td>${point.value} ${escape(series.unit)}</td><td>${point.contributors}</td></tr>`).join('')}</tbody></table>`).join(''):'<p>No gauge points in the requested lookbacks.</p>'}</section>`
 }

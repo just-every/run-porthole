@@ -288,6 +288,7 @@ export async function analyticalConnectionJourney() {
      await restored.browser('/app/settings/analytics','analytics-inactive-destination','Connection authorized')
     }})
    } finally {await destination.dispose()}
+   await metricRangeAnalyticalProof({...context,cookie:nextOwner})
    const {nativeLogSearchJourney}=await import('./explore.mjs')
    await nativeLogSearchJourney({origin,cookie:nextOwner,call,backend:'analytical'})
    const {logClusterAnalyticalProof}=await import('./log-clusters.mjs')
@@ -369,4 +370,27 @@ export async function servicesAnalyticalJourney() {
    console.log('PROBE PORT-008 backends: selected real primary and standby -> identical source-checked catalog; stopped selected process -> 503; restart -> exact history and counters')
   }})
  }finally{await estate.dispose()}
+}
+
+export async function metricRangeAnalyticalProof({origin,cookie,call,getDb,reference,at=Date.now()-60000}) {
+ const {metricUnitsJourney}=await import('./metric-units.mjs')
+ if(!reference){
+  const {recipientMailJourney}=await import('./health.mjs')
+  await recipientMailJourney({run:async context=>{reference=await metricUnitsJourney({...context,at,screens:false,sql:async statement=>(await context.getDb().prepare(statement).all()).results})}})
+ }
+ const result=await metricUnitsJourney({origin,cookie,call,at,backend:'analytical',screens:false,sql:async statement=>(await getDb().prepare(statement).all()).results})
+ assert.deepEqual(result.same.range,reference.same.range,'identical stock producer values, labels, units, timestamps and completion through both supported backends')
+ return result
+}
+export async function metricRangeQualificationJourney() {
+ const {recipientMailJourney}=await import('./health.mjs')
+ const {metricRangeExplorationJourney}=await import('./explore.mjs')
+ const at=Date.now()-60000;let reference
+ await recipientMailJourney({run:async context=>{reference=await metricRangeExplorationJourney({...context,at,sql:async statement=>(await context.getDb().prepare(statement).all()).results,restartWorker:context.restart})}})
+ const estate=await analyticalEstate()
+ try{await recipientMailJourney({bindings:estate.bindings,services:estate.services,run:async context=>{
+  const configuration=await (await context.call('/api/porthole/v1/analytics/configuration',{headers:{cookie:context.cookie}})).json()
+  await context.post('/api/porthole/v1/analytics/configuration',{revision:configuration.revision,role:'primary',enabled:true,confirm:'connect-analytical-workers'},200)
+  await metricRangeAnalyticalProof({...context,at,reference})
+ }})}finally{await estate.dispose()}
 }

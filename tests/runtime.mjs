@@ -14,6 +14,7 @@ if(process.env.PORTHOLE_GENAI_CONTENT_ONLY==='1'){const {nativeGenaiContentRefus
 if(process.env.PORTHOLE_MAIL_ONLY==='1'){const {recipientMailJourney}=await import('./porthole/health.mjs');await recipientMailJourney();process.exit(0)}
 if(process.env.PORTHOLE_GENAI_ANALYTICAL_ONLY==='1'){const {genaiAnalyticalJourney}=await import('./porthole/genai.mjs');await genaiAnalyticalJourney();process.exit(0)}
 if(process.env.PORTHOLE_LOG_CLUSTERS_ANALYTICAL_ONLY==='1'){const {logClusterAnalyticalJourney}=await import('./porthole/log-clusters.mjs');await logClusterAnalyticalJourney();process.exit(0)}
+if(process.env.PORTHOLE_METRIC_UNITS_ONLY==='1'){const {metricRangeQualificationJourney}=await import('./porthole/analytics.mjs');await metricRangeQualificationJourney();process.exit(0)}
 if(process.env.PORTHOLE_ANALYTICAL_ONLY==='1'){const {analyticalConnectionJourney}=await import('./porthole/analytics.mjs');await analyticalConnectionJourney();process.exit(0)}
 
 // Standalone journeys own their runtime and HTTP transport. Load Wrangler only
@@ -240,10 +241,12 @@ try {
   } else if(process.env.PORTHOLE_DASHBOARD_ONLY==='1') {
    const {dashboardJourney}=await import('./porthole/dashboards.mjs')
    await dashboardJourney({origin,cookie,restartWorker,withEmptyDestination,...helpers})
+   const {metricRangeExplorationJourney}=await import('./porthole/explore.mjs')
+   const metricRangeProof=await metricRangeExplorationJourney({origin,cookie:await helpers.freshOwner(),sql,restartWorker})
    const {nativeLogSearchJourney}=await import('./porthole/explore.mjs')
    await nativeLogSearchJourney({origin,cookie:await helpers.freshOwner()})
    const {logClusterNativeJourney}=await import('./porthole/log-clusters.mjs')
-   await logClusterNativeJourney({origin,restartWorker,withEmptyDestination,...helpers})
+   await logClusterNativeJourney({origin,restartWorker,withEmptyDestination,...helpers,metricRangeProof})
   } else if(process.env.PORTHOLE_API_ONLY==='1') {
    const {publicDocsJourney}=await import('./porthole/public-docs.mjs')
    await publicDocsJourney({origin,cookie,...helpers})

@@ -148,7 +148,7 @@ export async function logClusterNativeJourney(context){
  const {origin,freshOwner,restartWorker,sql,withEmptyDestination}=context,cookie=await freshOwner()
  const result=await logClusterJourney({origin,cookie,restartWorker,archive:async proof=>{
   const {clusterArchiveJourney}=await import('./archive.mjs')
-  await clusterArchiveJourney({origin,freshOwner,withEmptyDestination,...proof})
+  await clusterArchiveJourney({origin,freshOwner,withEmptyDestination,...proof,rangeProof:context.metricRangeProof})
  }})
  const {query,first,search,post,value,subject,source,wire,members,retainedTotal}=result
  await restartWorker(()=>sql('ALTER TABLE porthole_telemetry_records RENAME TO porthole_cluster_unavailable'))
