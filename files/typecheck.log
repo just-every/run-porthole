@@ -1,0 +1,4 @@
+
+> @just-every/porthole@0.1.0 typecheck /home/agent/rer-consolidation/work/sx-porthole-c-f459/repo
+> tsc --build --incremental
+

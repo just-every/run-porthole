@@ -1,0 +1,33 @@
+{
+  "files": {
+    "docs/programmatic-access.md": "fbebdd598b72f41ded43f088cc12c542b142667908156dc8d032d3a8c211060e",
+    "docs/signal-exports.md": "6fb094e66c4d096152d3cec73b1e9cbe35fd0c4c92e1053de577f5b4972071ae",
+    "docs/standard-signal-apis.md": "a61584805111d698df28164c5fbfbda21f0a5c2445624fa7a9167380feb4f1e1",
+    "package.json": "5764715eb1fe725297af6521a48bac709d5fdb19f86a3e848afea45860990216",
+    "pnpm-lock.yaml": "92469b355189311dc1532cf2c8ae137abd18f2e86077b0bee9c3fef39d78f04c",
+    "public/openapi/porthole-v1.json": "71833f3b9b53b6c5abd1343eb3f758146834bd9a6c47f926148e5f4b98ef3de7",
+    "scripts/porthole/standard-clients.mjs": "16c6240697cc0c1578ce2701801eb296c9c3f7527373a863e707991f82dbd535",
+    "src/porthole/api/openapi.ts": "ed24075ccf31cb3eb53ffc1dcb2c19466877ecd7cd88998616acf6b15a4a2b75",
+    "src/porthole/audit/capture.ts": "ece52bbb3d336a01cd94e445dc86e731f5d6f592139c9df4ea94fc9c2f7243be",
+    "src/porthole/http.ts": "b458b1600b68331a488fd1e922b7091a8459854e7c45249772f6f5b394e771f2",
+    "src/porthole/ingest/otlp-proto.ts": "3e4b59e6c3808d79721249c3a9aef2bf3781d02477896189ea031f6bec44d420",
+    "src/porthole/ingest/vendor.ts": "faa609be8d8f38b060126ddb57a6e34158794284795b6286edcae1b48c312a5f",
+    "src/porthole/signals/standard/http.ts": "5fcea049a3216167973ef904c123b6b5311fd5297aef20d5aa15f3753cd61982",
+    "src/porthole/signals/standard/openapi.ts": "cc6a89f702eb43773631ed5d3d1592bdab8f9bfbdb65c56ffdb067a4963cc7d1",
+    "src/porthole/signals/standard/prometheus.ts": "59f90c274a53779300d3e318afa394722104858caf1e18589f32fdf26862ea61",
+    "src/porthole/signals/standard/protobuf.ts": "6bbd4fba7d91af847d6b317a9d20334005ca9943dba5f1d06ea6b5fa02c33145",
+    "src/porthole/signals/standard/read.ts": "03c64614b6eae3be86e61208ff7803ca1aec8a9fd6e67dd60277cde6b0c9ac38",
+    "src/porthole/signals/standard/tempo.ts": "0ec10004901fda0ee3f9eaecbc018ba6b50314a8deb08cfbb677d970338acc2f",
+    "tests/porthole/archive.mjs": "8f39035897253395e151edfb94bc45c66ffccbd94d6d44bb48ef44d9f1a0ed66",
+    "tests/porthole/credentials.mjs": "ec34fe7692e35a20d8f693a2ad071b0a64229dc3d0506dce4daa585726553d43",
+    "tests/porthole/export-otlp-reader.py": "7d9700faacc29c7f819f0d3f4e2afbe05f55941958841a958c31ef6f3de5f89c",
+    "tests/porthole/export-readers.txt": "c21c3b5d911f681dec0db2d947c38385933d6a1dc084ee4deb80e5087f9d4661",
+    "tests/porthole/standard-readers.txt": "fff83d94474b6869cfaf45fbf973f999e9db0c8eb8ffe413bb826aaff9931f96",
+    "tests/porthole/standard-reads.mjs": "bfbe1a92f2cd2f03a6d8ca4bf32e6c4288fb6aff91dbe76af3d30bef7fb7344a",
+    "tests/porthole/stock-ingest.mjs": "24ab7641c21c86db0d253c75d524591e63b8ae1b9be388f06f8809e4b3027e55",
+    "tests/porthole/traces.mjs": "89c52ad7623b6f10a46d57e231d273bcea46837950d72748cab3a5356b235f83",
+    "tests/runtime.mjs": "1a4b507b8d1ed00c5bec26acf1c6f187b43345a83e7d4a28e0140da020023a23",
+    "verification.json": "86c83377f27a4e17fbd1eaeb942831988f8111c5c90d3a3de16a6901ba9ccbd1"
+  },
+  "note": "Runtime source and test bytes are frozen for the local proofs; checked again against the final commit."
+}

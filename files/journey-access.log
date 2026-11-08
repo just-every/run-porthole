@@ -1,0 +1,14 @@
+
+> @just-every/porthole@0.1.0 test:runtime /home/agent/rer-consolidation/work/sx-porthole-c-f459/repo
+> rer queue test:runtime -- sh -c "node tests/runtime.mjs"
+
+test:runtime
+▲ [WARNING] Proxy environment variables detected. We'll use your proxy for fetch requests.
+
+
+Installed owner claim rejects missing/wrong setup tokens and request demo flags
+HTTP-001 passed against emitted local Worker: health, the installed homepage, HTTP and document 404s
+membershipJourney passed: seven roles, links, no escalation, fresh proof, revision fence, last owner and removal
+Porthole credential journey passed: five classes, native fresh proof, masked storage/reveal, bounded scopes, denied mint delegation, quotas, rotation, revocation, custody handover and private logs
+credentialQueryJourney passed: identical scoped REST/CLI/MCP reads, untrusted log data, mutation/approval refusal, shared quota and next-request revocation across restart
+APP-HOME passed against emitted local Worker: /app behind sign-in and setup, then the trace view with its stylesheets

@@ -1,0 +1,13 @@
+
+> @just-every/porthole@0.1.0 test:runtime /home/agent/rer-consolidation/work/sx-porthole-c-f459/repo
+> rer queue test:runtime -- sh -c "node tests/runtime.mjs"
+
+test:runtime
+▲ [WARNING] Proxy environment variables detected. We'll use your proxy for fetch requests.
+
+
+Installed owner claim rejects missing/wrong setup tokens and request demo flags
+HTTP-001 passed against emitted local Worker: health, the installed homepage, HTTP and document 404s
+traceArchiveJourney passed: source snapshot descriptor and original graph/ns replay after independent inactive restore; no source session or credential authority
+traceJourney passed: actual stock Node HTTP/gRPC instrumentation, async fanout, original graph/ns/restart/snapshot, explicit conflicting/missing/cyclic parent diagnostics, live scope/revocation and 1440/390 states; seven-language/Kafka qualification runs separately outside Verify
+APP-HOME passed against emitted local Worker: /app behind sign-in and setup, then the trace view with its stylesheets

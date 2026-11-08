@@ -1,0 +1,29 @@
+
+> @just-every/porthole@0.1.0 test:runtime /home/agent/rer-consolidation/work/sx-porthole-c-f459/repo
+> rer queue test:runtime -- sh -c "node tests/runtime.mjs"
+
+test:runtime
+▲ [WARNING] Proxy environment variables detected. We'll use your proxy for fetch requests.
+
+
+Installed owner claim rejects missing/wrong setup tokens and request demo flags
+HTTP-001 passed against emitted local Worker: health, the installed homepage, HTTP and document 404s
+Stock scrape generations {"scrapes":23,"timestamps":[1794171641520,1794171647872,1794171649389,1794171650907,1794171652425],"counter":[{"metric":{"__name__":"synthetic_scrape_requests_total","environment":"production","instance":"127.0.0.1:36283","job":"synthetic-porthole-6100","producer":"synthetic-porthole-6200","service":"synthetic-porthole-6100","team":"commerce"},"values":[[1794171641.52,"1"],[1794171647.872,"2"],[1794171649.389,"3"],[1794171650.907,"4"],[1794171652.425,"5"]]}]}
+PROBE PORT-061 standard metrics: stock Prometheus 3.5.0 remote_read evaluates twelve fixed expressions over real scrape and stock OTLP input -> exact reference series, labels, timestamps and values
+STANDARD_BUDGET_DIAGNOSTIC {"from":"1794171650907","through":"18446744073709","records":2895,"bytes":2798764,"payloadBytes":1643592,"timestamps":[["01794171650907000000",192],["01794171651308000000",5],["01794171652425000000",2688],["01794171652826000000",5],["01794171706881000000",5]]}
+
+node:internal/deps/undici/undici:3610
+      return new TypeError(`${message.header}: ${message.message}`);
+             ^
+
+TypeError: Response.clone: Body has already been consumed.
+    at webidl.errors.exception (node:internal/deps/undici/undici:3610:14)
+    at _Response.clone (node:internal/deps/undici/undici:9192:31)
+    at remoteSeries (file://[REDACTED]/tests/porthole/standard-reads.mjs:43:50)
+    at remoteWindows (file://[REDACTED]/tests/porthole/standard-reads.mjs:56:54)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async standardReadJourney (file://[REDACTED]/tests/porthole/standard-reads.mjs:194:13)
+    at async file://[REDACTED]/tests/runtime.mjs:187:4
+
+Node.js v22.20.0
+ ELIFECYCLE  Command failed with exit code 1.

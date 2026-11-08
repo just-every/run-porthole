@@ -1,0 +1,118 @@
+{
+  "files": [
+    {
+      "blob": "035f1e630e81e298f1de78afe00356f9a9dc5de2",
+      "bytes": 19773,
+      "path": "REPORT.md",
+      "sha256": "eb81616f98a6065fa8e84b7c12b084ca50edc3ab6c94513e3b31a43e658725d7"
+    },
+    {
+      "blob": "fee7a37954833c2c1fa6d1daeebcd1aaf15d3648",
+      "bytes": 447,
+      "path": "alloy-receipt.txt",
+      "sha256": "3a794e83078d5100fa4cc985cce9639f4f68c77a5ae67e2fdfefcd175f9cd6f4"
+    },
+    {
+      "blob": "c4a64cf4352e53564617541ccfd9c4df37a2abbf",
+      "bytes": 2210,
+      "path": "budget-diagnostic.log",
+      "sha256": "20068a701f9794120fafc5d42b6ce0cb0131e25eb8f6cf9df0d907c6fee45df0"
+    },
+    {
+      "blob": "527b58cbd1c572169f52627f591738a0f1a4a0c5",
+      "bytes": 277,
+      "path": "ci-runs.json",
+      "sha256": "f7d4aa1cd55f2314cd7c181689ac74e2fe77ca1ec1ca8b81c954f7c81ce0deba"
+    },
+    {
+      "blob": "d0d729f149b194e4db58b3ed4665559898342d23",
+      "bytes": 1050,
+      "path": "journey-access.log",
+      "sha256": "24a6f65f9ab85fd3ec742bcb01d58552f6baea784d4c92f736d08d62a6c255df"
+    },
+    {
+      "blob": "8a49b134fdb13d1e013ac70c5f1544ed4e5831c8",
+      "bytes": 815,
+      "path": "journey-erasure.log",
+      "sha256": "322d5255dc77512382075d8f267a5f88787bda57c6a8fdf6294abd9d8100a40e"
+    },
+    {
+      "blob": "198748fb4b258012725780278113be7d506bd2e9",
+      "bytes": 995,
+      "path": "journey-export.log",
+      "sha256": "682d8786f63adc4da4623504618fcee430ae4868d69bccb344f51cba3a2aa700"
+    },
+    {
+      "blob": "990f1a15c06752139fc920ed1adcde5704c95277",
+      "bytes": 768,
+      "path": "journey-stock.log",
+      "sha256": "20dd2a3a6c4c5cd9ee511c27af0e2c34b3a7e8ee4b45f964acc4ebdeeb903314"
+    },
+    {
+      "blob": "64fbe9fe207ba6121959119fb175549b911ccb8c",
+      "bytes": 1012,
+      "path": "journey-trace.log",
+      "sha256": "7c121f6205507520bbd597734edcb4abbfbbc9f5576b9ac1d3a2f39715610c25"
+    },
+    {
+      "blob": "3c9b914a7d1168c6c166ffc3b38ac9cb1e6a68a9",
+      "bytes": 3268,
+      "path": "label-qualification.log",
+      "sha256": "0ba2dadea12ee6259fe364a2994e97407ea9471a2dbabeac4dd10f66d2cc17f8"
+    },
+    {
+      "blob": "273ce2fbac2af615847b05e718bfad26b062577d",
+      "bytes": 1243,
+      "path": "product-push.txt",
+      "sha256": "a03a6901b286a7a001ba8f4d65ff4a0a2c961c0d0d3086eb56105cd0168cabd7"
+    },
+    {
+      "blob": "cccd0c567071bc0a734ab102700851d0153078d7",
+      "bytes": 4997,
+      "path": "receipt.json",
+      "sha256": "0b597b1c520a82ddff03632188bdad85a76257184aa6b86509e751e73367f9d9"
+    },
+    {
+      "blob": "0a7674acdb845ca2953fdbf8eeea92aaba5d2602",
+      "bytes": 7086,
+      "path": "source.log",
+      "sha256": "6502b1b2dc6c241bfca4e97e5fcb61183775ac9c27cc25747c1fc224cfec7a27"
+    },
+    {
+      "blob": "070c0d056f2244862b534d513347d0f0b3aa23ba",
+      "bytes": 3092,
+      "path": "tested-files.json",
+      "sha256": "0b5d0b5aeac344589bb4568e0c39e477166b3e462327ce2ac00a5d0607096396"
+    },
+    {
+      "blob": "3ec463ad3e09b3638e8bb1d17e62340b7b1eda36",
+      "bytes": 5418,
+      "path": "trace-mask-failure.log",
+      "sha256": "2b26667feac83f4bb18fc8f9d665a7b5f2edf70d6d9e30522175695f8d81f388"
+    },
+    {
+      "blob": "31dac766c8399cb3ceb509f4c190a3c887722dba",
+      "bytes": 128,
+      "path": "typecheck.log",
+      "sha256": "8410b011f5a93b8e8604ceec06a46aeda2bb27c61a27614ba817e7c092c5e56e"
+    },
+    {
+      "blob": "5996a4595e4ef32b1bab2b50c6755c168901c67a",
+      "bytes": 490,
+      "path": "verify-reproduced.json",
+      "sha256": "40b6278364e60acb23450179f1858eda984076bc11a55f64b98c991548a652f5"
+    },
+    {
+      "blob": "1c5d4a8127cd725eed7064baf02fd874a2ef1937",
+      "bytes": 920,
+      "path": "verify-reproduced.txt",
+      "sha256": "540d3ebed2a4e722ba32864bbb11eabb5550013e5b7e8f88fbfab2979e766739"
+    }
+  ],
+  "product_branch": "cloud/sx-porthole-c-f459",
+  "product_head": "ff590be64b7cac3eaf2128c9833c641072cd8fb5",
+  "ref": "refs/heads/evidence/sx-porthole-c-f459",
+  "repository": "just-every/run-porthole",
+  "schema": 1,
+  "tag": "sx-porthole-c-f459"
+}

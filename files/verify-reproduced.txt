@@ -1,0 +1,25 @@
+PROBE PORT-061 standard metrics: stock Prometheus 3.5.0 remote_read evaluates twelve fixed expressions over real scrape and stock OTLP input -> exact reference series, labels, timestamps and values
+
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: {"error":"standard_read_budget_exceeded"}
+
+422 !== 200
+
+    at remoteSeries (file://[REDACTED]/tests/porthole/standard-reads.mjs:43:9)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async standardReadJourney (file://[REDACTED]/tests/porthole/standard-reads.mjs:178:13)
+    at async file://[REDACTED]/tests/runtime.mjs:186:4 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: 422,
+  expected: 200,
+  operator: 'strictEqual',
+  diff: 'simple'
+}
+
+Node.js v22.20.0
+ ELIFECYCLE  Command failed with exit code 1.
+ ELIFECYCLE  Command failed with exit code 1.

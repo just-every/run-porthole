@@ -1,0 +1,8 @@
+grafana/alloy@sha256:bcf27f18c4402869af112fb39e35e1db3804a404686f4caa20bdf77814219223
+02ac8cb38b8198ce4bafa5952eaab33862d6da42e02e254e0c84e7ba73eecbb4  .cache/standard-clients/alloy
+alloy, version v1.10.2 (branch: HEAD, revision: b19f8c5)
+  build user:       root@buildkitsandbox
+  build date:       2025-08-19T15:22:37Z
+  go version:       go1.24.4
+  platform:         linux/amd64
+  tags:             netgo,builtinassets,promtail_journal_enabled

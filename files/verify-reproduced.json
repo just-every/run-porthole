@@ -1,0 +1,11 @@
+{
+  "head": "54efdb6297754c4f723cd0ff15390fd5fc6ab03e",
+  "run": 42519315359,
+  "job": 128849149694,
+  "command": "CI=true WRANGLER_SEND_METRICS=false PLAYWRIGHT_SKIP_BROWSER_GC=1 SHARD=source node scripts/verify-ci.mjs source",
+  "test": "standardReadJourney at tests/porthole/standard-reads.mjs:178",
+  "exit": 1,
+  "failure": "AssertionError [ERR_ASSERTION]: {\"error\":\"standard_read_budget_exceeded\"}; 422 !== 200",
+  "runtime": "Node.js v22.20.0",
+  "result": "VERIFY_REPRODUCED"
+}

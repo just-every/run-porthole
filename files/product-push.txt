@@ -1,0 +1,33 @@
+fleet Git: removed 0 credential-bearing GitHub URL rewrite sections
+PUSH attempt=1/5 command=git push --porcelain origin HEAD:refs/heads/cloud/sx-porthole-c-f459
+Run Edit Run fleet <fleet@runeditrun.com>
+Run Edit Run fleet <fleet@runeditrun.com>
+
+Run Edit Run fleet <fleet@runeditrun.com>
+Run Edit Run fleet <fleet@runeditrun.com>
+
+Run Edit Run fleet <fleet@runeditrun.com>
+Run Edit Run fleet <fleet@runeditrun.com>
+
+Run Edit Run fleet <fleet@runeditrun.com>
+Run Edit Run fleet <fleet@runeditrun.com>
+
+Run Edit Run fleet <fleet@runeditrun.com>
+Run Edit Run fleet <fleet@runeditrun.com>
+
+Run Edit Run fleet <fleet@runeditrun.com>
+Run Edit Run fleet <fleet@runeditrun.com>
+
+Run Edit Run fleet <fleet@runeditrun.com>
+Run Edit Run fleet <fleet@runeditrun.com>
+
+
+fleet Git: removed 0 credential-bearing GitHub URL rewrite sections
+To https://github.com/just-every/run-porthole.git
+ 	HEAD:refs/heads/cloud/sx-porthole-c-f459	8c4ca6e..ff590be
+Done
+remote: 
+remote: GitHub found 53 vulnerabilities on just-every/run-porthole's default branch (1 critical, 23 high, 24 moderate, 5 low). To find out more, visit:        
+remote:      https://github.com/just-every/run-porthole/security/dependabot        
+remote: 
+PUSH_OK branch=cloud/sx-porthole-c-f459

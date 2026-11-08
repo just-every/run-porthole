@@ -1,0 +1,153 @@
+{
+  "schema": 1,
+  "tag": "sx-porthole-c-f459",
+  "repository": "just-every/run-porthole",
+  "branch": "cloud/sx-porthole-c-f459",
+  "head": "ff590be64b7cac3eaf2128c9833c641072cd8fb5",
+  "main_observed": "7d576ff6aeef20ac77549589830a4d4a91ea9d3e",
+  "product_push": {
+    "status": "success",
+    "attempts": 1,
+    "command": "python3 $HOME/rer-consolidation/.tools/cloud-push.py origin cloud/sx-porthole-c-f459"
+  },
+  "clause": {
+    "id": "PORT-061",
+    "before": "PARTIAL",
+    "after_claim": "PARTIAL",
+    "points_proven": [
+      1,
+      2
+    ]
+  },
+  "counts_before": {
+    "done": 10,
+    "partial": 20,
+    "missing": 69,
+    "total": 99
+  },
+  "counts_after": {
+    "done": 10,
+    "partial": 20,
+    "missing": 69,
+    "total": 99
+  },
+  "checks": [
+    {
+      "command": "CI=true WRANGLER_SEND_METRICS=false PLAYWRIGHT_SKIP_BROWSER_GC=1 SHARD=source cloud_run timeout 1200 node scripts/verify-ci.mjs source",
+      "exit": 0,
+      "log": "source.log"
+    },
+    {
+      "command": "cloud_run pnpm run typecheck",
+      "exit": 0,
+      "log": "typecheck.log"
+    },
+    {
+      "command": "PORTHOLE_ERASURE_ONLY=1 cloud_run timeout 1200 pnpm run test:runtime",
+      "exit": 0,
+      "log": "journey-erasure.log"
+    },
+    {
+      "command": "PORTHOLE_EXPORT_ONLY=1 cloud_run timeout 1200 pnpm run test:runtime",
+      "exit": 0,
+      "log": "journey-export.log"
+    },
+    {
+      "command": "PORTHOLE_STOCK_ONLY=1 cloud_run timeout 1200 pnpm run test:runtime",
+      "exit": 0,
+      "log": "journey-stock.log"
+    },
+    {
+      "command": "PORTHOLE_TRACE_ONLY=1 cloud_run timeout 1200 pnpm run test:runtime",
+      "exit": 0,
+      "log": "journey-trace.log"
+    },
+    {
+      "command": "PORTHOLE_ACCESS_ONLY=1 cloud_run timeout 1200 pnpm run test:runtime",
+      "exit": 0,
+      "log": "journey-access.log"
+    }
+  ],
+  "node": "22.20.0",
+  "browser": {
+    "executable": "/usr/bin/chromium",
+    "version": "154.0.8037.57",
+    "flags": [
+      "--no-sandbox"
+    ],
+    "proof": "Existing browser journeys passed at 1440 and 390; no UI source changed."
+  },
+  "source_byte_equivalence": {
+    "all_matched": true,
+    "manifest": "tested-files.json",
+    "note": "Runtime checks used the final source and test bytes before the final commit; all checked file hashes match final Git blobs. The committed lock check also passed on this head."
+  },
+  "mechanical": {
+    "views_write": {
+      "command": "node scripts/porthole/contract-docs.mjs write PORT-061",
+      "exit": 0
+    },
+    "views_check": {
+      "command": "node scripts/porthole/contract-docs.mjs check PORT-061",
+      "exit": 0
+    },
+    "views_restored": [
+      "ACCEPTANCE.md",
+      "docs/CLAIMS.md"
+    ],
+    "lock_write": {
+      "command": "pnpm run source:lock",
+      "exit": 0
+    },
+    "lock_check": {
+      "command": "pnpm run source:check",
+      "exit": 0,
+      "sha256": "ec413af2b884b37b5baf65d8601fbb86a87523ad3cc4f78165abc2fb4848fa80"
+    },
+    "ledger": {
+      "command": "none; no migration changed",
+      "exit": 0
+    }
+  },
+  "contract_and_workflow_unchanged": true,
+  "test_assertions_removed_or_disabled": false,
+  "publication_scan": {
+    "head": "ff590be64b7cac3eaf2128c9833c641072cd8fb5",
+    "status": "NOT RUN in cloud",
+    "complete": null,
+    "historyScanned": null,
+    "findings": null,
+    "owner": "maintained Mac lander"
+  },
+  "ci": {
+    "runs": [
+      {
+        "conclusion": null,
+        "event": "push",
+        "head_sha": "ff590be64b7cac3eaf2128c9833c641072cd8fb5",
+        "html_url": "https://github.com/just-every/run-porthole/actions/runs/42526716070",
+        "id": 42526716070,
+        "name": "Verify",
+        "status": "in_progress"
+      }
+    ],
+    "green_claimed": false,
+    "polling": "One discovery call; no dispatch, rerun or CI wait."
+  },
+  "logs": {
+    "source.log": "6502b1b2dc6c241bfca4e97e5fcb61183775ac9c27cc25747c1fc224cfec7a27",
+    "typecheck.log": "8410b011f5a93b8e8604ceec06a46aeda2bb27c61a27614ba817e7c092c5e56e",
+    "alloy-receipt.txt": "3a794e83078d5100fa4cc985cce9639f4f68c77a5ae67e2fdfefcd175f9cd6f4",
+    "label-qualification.log": "0ba2dadea12ee6259fe364a2994e97407ea9471a2dbabeac4dd10f66d2cc17f8",
+    "budget-diagnostic.log": "20068a701f9794120fafc5d42b6ce0cb0131e25eb8f6cf9df0d907c6fee45df0",
+    "trace-mask-failure.log": "2b26667feac83f4bb18fc8f9d665a7b5f2edf70d6d9e30522175695f8d81f388",
+    "journey-erasure.log": "322d5255dc77512382075d8f267a5f88787bda57c6a8fdf6294abd9d8100a40e",
+    "journey-export.log": "682d8786f63adc4da4623504618fcee430ae4868d69bccb344f51cba3a2aa700",
+    "journey-stock.log": "20dd2a3a6c4c5cd9ee511c27af0e2c34b3a7e8ee4b45f964acc4ebdeeb903314",
+    "journey-trace.log": "7c121f6205507520bbd597734edcb4abbfbbc9f5576b9ac1d3a2f39715610c25",
+    "journey-access.log": "24a6f65f9ab85fd3ec742bcb01d58552f6baea784d4c92f736d08d62a6c255df",
+    "product-push.txt": "a03a6901b286a7a001ba8f4d65ff4a0a2c961c0d0d3086eb56105cd0168cabd7"
+  },
+  "github_calls": 6,
+  "full_history": true
+}

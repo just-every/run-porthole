@@ -1,0 +1,85 @@
+
+> @just-every/porthole@0.1.0 test:runtime /home/agent/rer-consolidation/work/sx-porthole-c-f459/repo
+> rer queue test:runtime -- sh -c "node tests/runtime.mjs"
+
+test:runtime
+▲ [WARNING] Proxy environment variables detected. We'll use your proxy for fetch requests.
+
+
+Installed owner claim rejects missing/wrong setup tokens and request demo flags
+HTTP-001 passed against emitted local Worker: health, the installed homepage, HTTP and document 404s
+Stock scrape generations {"scrapes":15,"timestamps":[1794172546835,1794172552977,1794172554394,1794172555912,1794172557429],"counter":[{"metric":{"__name__":"synthetic_scrape_requests_total","environment":"production","instance":"127.0.0.1:42487","job":"synthetic-porthole-6100","producer":"synthetic-porthole-6200","service":"synthetic-porthole-6100","team":"commerce"},"values":[[1794172546.835,"1"],[1794172552.977,"2"],[1794172554.394,"3"],[1794172555.912,"4"],[1794172557.429,"5"]]}]}
+
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: stock evaluation parity: synthetic_otel_gauge_milliseconds
++ actual - expected
+... Skipped lines
+
+  {
+    result: [
+      {
+        metric: {
+          __name__: 'synthetic_otel_gauge_milliseconds',
+...
+          shard: '7',
++         weights: '{"arrayValue":{"values":[{"intValue":1},{"intValue":2},{"intValue":3}]}}',
++         zones: '{"arrayValue":{"values":[{"stringValue":"synthetic-porthole-6104"},{"stringValue":"synthetic-porthole-6105"}]}}'
+-         weights: '[1,2,3]',
+-         zones: '["synthetic-porthole-6104","synthetic-porthole-6105"]'
+        },
+        value: [
+          1794172558.948,
+          '24'
+        ]
+
+    at stockMetrics (file://[REDACTED]/tests/porthole/standard-reads.mjs:163:11)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async standardReadJourney (file://[REDACTED]/tests/porthole/standard-reads.mjs:193:17)
+    at async file://[REDACTED]/tests/runtime.mjs:187:4 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: {
+    resultType: 'vector',
+    result: [
+      {
+        metric: {
+          __name__: 'synthetic_otel_gauge_milliseconds',
+          instance: 'synthetic-porthole-6101',
+          job: 'synthetic-porthole-6100',
+          ready: 'true',
+          region: 'synthetic-porthole-6103',
+          shard: '7',
+          weights: '{"arrayValue":{"values":[{"intValue":1},{"intValue":2},{"intValue":3}]}}',
+          zones: '{"arrayValue":{"values":[{"stringValue":"synthetic-porthole-6104"},{"stringValue":"synthetic-porthole-6105"}]}}'
+        },
+        value: [ 1794172558.948, '24' ]
+      }
+    ]
+  },
+  expected: {
+    resultType: 'vector',
+    result: [
+      {
+        metric: {
+          __name__: 'synthetic_otel_gauge_milliseconds',
+          instance: 'synthetic-porthole-6101',
+          job: 'synthetic-porthole-6100',
+          ready: 'true',
+          region: 'synthetic-porthole-6103',
+          shard: '7',
+          weights: '[1,2,3]',
+          zones: '["synthetic-porthole-6104","synthetic-porthole-6105"]'
+        },
+        value: [ 1794172558.948, '24' ]
+      }
+    ]
+  },
+  operator: 'deepStrictEqual',
+  diff: 'simple'
+}
+
+Node.js v22.20.0
+ ELIFECYCLE  Command failed with exit code 1.
