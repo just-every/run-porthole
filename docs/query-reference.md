@@ -147,3 +147,71 @@ Existing custody and inactive archive-restore rules remain unchanged.
 
 This bounded functional door supplies no one-TB latency, full-retention,
 source-equivalence, saved-search, live-tail or log-to-trace qualification.
+
+## Grouped scalar-gauge ranges
+
+Choose **Gauge range** in Explore, or send the visual query below. This mode
+uses ordinary OTLP scalar gauges. It is independent of PromQL evaluation and
+Datadog metric syntax; counters, rates and histograms remain unsupported here.
+
+```json
+{
+  "signal": "metrics", "dialect": "visual", "mode": "range",
+  "metric": "synthetic-porthole-9905",
+  "service": "synthetic-porthole-9901",
+  "environment": "synthetic-porthole-9902", "team": "synthetic-porthole-9903",
+  "start": "1794139200000000000", "end": "1794139220000000000",
+  "step": 20, "lookback": 10, "groupBy": "service,region", "aggregation": "sum"
+}
+```
+
+Start and end are inclusive Unix nanoseconds. Step and lookback are whole
+seconds from 1 through 86400; declare both explicitly. Evaluation instants are
+start plus successive steps, up to end. At each instant, select the latest
+point for each resource, instrumentation scope and point-attribute identity in
+`(instant - lookback, instant]`. Unit is taken from that contributing point.
+A no-recorded-value flag makes that producer absent; no missing instant is
+filled with zero or treated as evidence of health. Conflicting values at one
+producer timestamp refuse explicitly.
+
+`groupBy` is an explicit comma-separated list of at most eight distinct label
+names; an empty string selects one group. Scope labels `service`, `environment`
+and `team` use native scope values. Other labels retain their OTLP typed
+attribute values, with point attributes taking precedence over resource
+attributes; absent labels are null. Aggregation is `sum`, `average`, `min` or
+`max`. Groups and evaluation instants are ordered deterministically.
+
+The unit policy is exact identity, applied across the **whole grouped series**:
+
+| Contributing units within a group, across all instants | Outcome |
+| --- | --- |
+| All exactly `ms` | Values remain milliseconds, including producer turnover. |
+| All exactly `s`, or another identical unit string | Values retain that exact unit string. |
+| All empty | Unit stays empty (unspecified); no physical unit is inferred. |
+| Different strings, including `ms` then `s`, or empty mixed with a unit | HTTP 400 `incompatible_metric_range_units`; no result snapshot is saved. |
+
+No conversion table is enabled. Even dimensionally compatible strings refuse
+when mixed. Separate producers with an appropriate group label to return
+distinct series with their own correctly declared units. An unsupported or
+incompatible combination cannot become a complete result. A group changing
+from 400 milliseconds to 3 seconds is refused as a whole, never returned as
+`[400, 3]` milliseconds. A same-unit group can complete as `[400, 3000]` `ms`.
+
+A successful reply has `range.state: "complete"`, `range.series`, a declared
+`unit` for every series, and points containing `timestamp`, `value` and
+`contributors`. It has no raw record page (`records: []`, `cursor: null`).
+Completion describes the scoped retained input at one completed-batch
+`snapshot`, not collection completeness. The raw records door remains a sample
+reader. Both configured backends use the same range evaluator.
+
+Ranges scan at most 2000 retained points and 2 MiB, at one completion snapshot,
+and evaluate at most 1000 instants. A bound violation refuses with
+`metric_range_limit`, without a misleading partial aggregate or saved snapshot.
+Use start and end, rather than from and through; record cursors, record limits,
+trace filters and exact record filters are not range inputs. Finite scalar
+values are required; integers outside JavaScript's exact range refuse.
+
+Replay retains all range settings and the completion watermark. Current
+scope, credential authority and retained custody are rechecked before release.
+A refusal creates no query snapshot and changes no existing snapshot,
+dashboard definition or source metric. No detached range cache is stored.

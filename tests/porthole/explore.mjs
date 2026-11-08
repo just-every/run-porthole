@@ -180,3 +180,9 @@ async function logSearchBrowser({origin,cookie,base,snapshot,expected,expression
   await context.close()
  }}finally{await browser.close()}
 }
+
+/** The visual range public door shares the existing Explore journey suite. */
+export async function metricRangeExplorationJourney(context) {
+ const {metricUnitsJourney}=await import('./metric-units.mjs')
+ return metricUnitsJourney(context)
+}

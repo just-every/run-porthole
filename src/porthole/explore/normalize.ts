@@ -32,6 +32,7 @@ export function normalizeExploration(input:Record<string,unknown>):NormalizedExp
   return {parameters,source:{dialect,text:expression},...(range?{range}:{})}
  }
  if(rangeKeys.some(key=>input[key]!==undefined&&input[key]!==''&&!(key==='mode'&&input[key]==='records')))reject('invalid_metric_range','Range evaluation is available in the visual dialect only.','dialect')
+ for(const key of rangeKeys)delete parameters[key]
  if(!expression.trim())reject('exploration_expression_required','Enter an expression for the selected dialect.')
  const parsed=dialect==='promql'?promql(expression):dialect==='sql'?sql(expression):lucene(expression)
  for(const [key,value] of Object.entries(parsed.parameters)) {

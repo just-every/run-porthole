@@ -4205,7 +4205,7 @@
       ],
       "get": {
         "summary": "Replay stored native filters at their completion watermark",
-        "description": "No URL query parameters. Rechecks current authority. Replay retains native scope, range, cursor, limit, trace and metric filters, but does not retain text-dialect source or aggregate intent.",
+        "description": "No URL query parameters. Rechecks current authority. Replay retains native scope, visual gauge range settings, cursor, limit, trace and metric filters. Current unit and custody checks still apply.",
         "security": [
           {
             "NativeSession": []
@@ -8802,6 +8802,49 @@
             "maxLength": 2048,
             "description": "Visual requires empty text. PromQL supports one bare metric selector with exact scope labels. SQL supports COUNT(*) on logs, AVG(value) on metrics with one exact metric, or discrete p95 duration on traces, with exact scope equalities. Lucene supports exact log scope terms joined by AND. No general query-language execution; unsupported syntax refuses."
           },
+          "mode": {
+            "enum": [
+              "records",
+              "range"
+            ],
+            "default": "records",
+            "description": "Range mode is visual scalar-gauge evaluation, with no record cursor, limit or from and through fields."
+          },
+          "start": {
+            "type": "string",
+            "description": "Range start as unsigned Unix nanoseconds, inclusive."
+          },
+          "end": {
+            "type": "string",
+            "description": "Range end as unsigned Unix nanoseconds, inclusive."
+          },
+          "step": {
+            "type": [
+              "string",
+              "number"
+            ],
+            "description": "Required whole seconds from 1 through 86400 in range mode. At most 1000 instants."
+          },
+          "lookback": {
+            "type": [
+              "string",
+              "number"
+            ],
+            "description": "Required whole seconds from 1 through 86400. Latest point per producer in the interval (instant minus lookback, instant]."
+          },
+          "groupBy": {
+            "type": "string",
+            "description": "Required comma-separated list of at most eight attribute or scope labels; empty means one group."
+          },
+          "aggregation": {
+            "enum": [
+              "sum",
+              "average",
+              "min",
+              "max"
+            ],
+            "description": "Required gauge aggregation. Each group keeps one exact unit throughout the range; mixed units refuse before a snapshot is saved."
+          },
           "signal": {
             "enum": [
               "logs",
@@ -8936,6 +8979,98 @@
                 "string",
                 "number"
               ]
+            }
+          },
+          "range": {
+            "type": "object",
+            "description": "Bounded scalar-gauge range over one completed-batch watermark. Entire request refuses on mixed units, unsupported metric types or exceeded scan bounds. Missing instants remain absent. No conversion is applied.",
+            "required": [
+              "version",
+              "state",
+              "start",
+              "end",
+              "step",
+              "lookback",
+              "groupBy",
+              "aggregation",
+              "series"
+            ],
+            "properties": {
+              "version": {
+                "const": 1
+              },
+              "state": {
+                "const": "complete"
+              },
+              "start": {
+                "type": "string"
+              },
+              "end": {
+                "type": "string"
+              },
+              "step": {
+                "type": "integer"
+              },
+              "lookback": {
+                "type": "integer"
+              },
+              "groupBy": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "aggregation": {
+                "enum": [
+                  "sum",
+                  "average",
+                  "min",
+                  "max"
+                ]
+              },
+              "series": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "labels",
+                    "unit",
+                    "points"
+                  ],
+                  "properties": {
+                    "labels": {
+                      "type": "object",
+                      "additionalProperties": true
+                    },
+                    "unit": {
+                      "type": "string"
+                    },
+                    "points": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "timestamp",
+                          "value",
+                          "contributors"
+                        ],
+                        "properties": {
+                          "timestamp": {
+                            "type": "string"
+                          },
+                          "value": {
+                            "type": "number"
+                          },
+                          "contributors": {
+                            "type": "integer",
+                            "minimum": 1
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
             }
           },
           "aggregate": {

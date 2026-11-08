@@ -8,6 +8,7 @@ export function evaluateRange(plan:RangePlan,rows:MetricRow[]) {
  const prepared=rows.map(row=>{
   const payload=row.payload,point=payload.record as Record<string,unknown>,metric=payload.metric as {unit?:string},resource=payload.resource as {attributes?:Attributes}
   if(payload.metricKind!=='gauge')reject('unsupported_metric_range_type','Only ordinary OTLP scalar gauges are supported.','metric')
+  if(metric.unit!==undefined&&typeof metric.unit!=='string')reject('unsupported_metric_range_unit','Metric units must be text.','metric')
   const missing=(Number(point.flags??0)&1)!==0
   const raw=point.asDouble??point.asInt,value=Number(raw)
   if(!missing&&(raw===undefined||!Number.isFinite(value)||point.asInt!==undefined&&!Number.isSafeInteger(value)))reject('unsupported_metric_range_value','Gauge values must be finite; integer values must be exactly representable.','metric')

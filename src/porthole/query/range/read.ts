@@ -26,7 +26,9 @@ export async function readMetricRange(request:Request,env:Bindings,normalized:No
  const actor=await inspect(),config=await configuration(env),analytical=selected(env,config)
  const start=BigInt(plan.start)-BigInt(plan.lookback)*1000000000n
  const from=(start<0n?0n:start).toString().padStart(20,'0'),through=plan.end
- let snapshot:unknown=parameters.snapshot,cursor:string|null=null,bytes=0
+ const completed=(await env.DB.prepare("SELECT COALESCE(MAX(completion_sequence),0) AS watermark FROM porthole_ingest_batches WHERE state='complete'").first<{watermark:number}>())!.watermark
+ let snapshot=parameters.snapshot===undefined?completed:Number(parameters.snapshot),cursor:string|null=null,bytes=0
+ if(!Number.isSafeInteger(snapshot)||snapshot<0||snapshot>completed)fail('invalid_query_snapshot',400)
  const rows:MetricRow[]=[]
  do {
   const url=new URL('/api/porthole/v1/ingest/records',request.url)
