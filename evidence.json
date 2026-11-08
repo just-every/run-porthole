@@ -1,0 +1,334 @@
+{
+  "files": [
+    {
+      "blob": "0bda713e2cc35e3de67671a34d0ccfab6b316f97",
+      "bytes": 231,
+      "path": "CI-RECEIPT.json",
+      "sha256": "ac907dda6511b4b27630b821f830fbb8eb40682b06bd1b66549a801d72923253"
+    },
+    {
+      "blob": "f2e6585a4846db178da4be3ed280a8ee552565ea",
+      "bytes": 352,
+      "path": "CONFIGURATION-CONTINUITY.json",
+      "sha256": "91d4f652fba405fcdc5448771878cf58246c2dca49cc0572a1343bfd37530d58"
+    },
+    {
+      "blob": "b3f6ab75e83a08fe58aaee6baf3197ad71eb521e",
+      "bytes": 7444,
+      "path": "LOCAL-RECEIPT.json",
+      "sha256": "9b8e3de99bd2e74039bd5b23dae68148640c3a7785e24b4d939583ba9c75c664"
+    },
+    {
+      "blob": "b9337c1942bad1b7b703f510ff79b9d733317e53",
+      "bytes": 1069,
+      "path": "MECHANICAL-RECEIPT.json",
+      "sha256": "ccde39eccc6779eb74d2e93f0a80372d6f92a3338a0f48bd19dfdc4e902083b4"
+    },
+    {
+      "blob": "b2602f44f827c64a05e335f10ac359032dbded18",
+      "bytes": 481,
+      "path": "MIGRATION-RECEIPT.json",
+      "sha256": "6373f6d4f27693bbf699bd879bd37fde4aff5e6cd221e4894c9b90e0e7004fc0"
+    },
+    {
+      "blob": "ed91d836ea06a8a71c53efbf8228daea84ed2afd",
+      "bytes": 569,
+      "path": "NATIVE-RECEIPT.json",
+      "sha256": "bd69f4e398e6297fdae1101a08cdc23416adee74a4dd8070545947b55f2a09fc"
+    },
+    {
+      "blob": "b8339e700bd75054896654ff91d1c966be4d12f3",
+      "bytes": 3286,
+      "path": "PLAN.md",
+      "sha256": "acab88228f27744c5c2f4c234819c309668ffa809a9a044cb5bb0230e466d659"
+    },
+    {
+      "blob": "2a1e94f8ee4e1ffcd5ca5efe0a0d1f518740e5f5",
+      "bytes": 357,
+      "path": "PUSH-RECEIPT.json",
+      "sha256": "9ebf2b39581779fd2a6c0a1f04b4b7450e969459d8f68f5eb2967233ba588fc7"
+    },
+    {
+      "blob": "b3bd6c07e4c05a8d93db0511779ab8a2a83f57cb",
+      "bytes": 15287,
+      "path": "REPORT.md",
+      "sha256": "b865b9e841118eefd281c8091e2c5241d3d34cd8b29afad97383244f2e97eadd"
+    },
+    {
+      "blob": "91db96eb1eeb503fa4f59a9f2242557f545bf62f",
+      "bytes": 473,
+      "path": "SIX-PACK-CONTINUITY.json",
+      "sha256": "d47692cea62f3e67f992c6c4bdc4c85f603b10c4e2af1818eee76023f4766944"
+    },
+    {
+      "blob": "d25cbe62f6c4374df996a9e56e70a194f1dabaae",
+      "bytes": 4486,
+      "path": "core-services.log",
+      "sha256": "486eebe4e10a186a1a2aaa721ebbdaf27478aacc7f98bd14750e99ff04705867"
+    },
+    {
+      "blob": "d11cafbeb928d1bfeaf2bc9258a461535fa96d48",
+      "bytes": 2352,
+      "path": "middle-services.log",
+      "sha256": "53c2ed948b46034bc719cdb7f044076ca68afe7ceba44511792b9504944b0998"
+    },
+    {
+      "blob": "b44028a770c07ee17db33fc8cefff1bed551a826",
+      "bytes": 326,
+      "path": "native-backup.log",
+      "sha256": "9dcd8268f63b6137b92d8380bc42549121dde37cbba13ae1854e520c9aa26bcb"
+    },
+    {
+      "blob": "d3cefe95001cc21bb159f1aac307d0e07f478a4b",
+      "bytes": 392,
+      "path": "remaining-services.log",
+      "sha256": "197c5f7ca1d5e1abbd268096dd6b23f2cb2f9cbfc9c00d2901d65a541f32b093"
+    },
+    {
+      "blob": "94c746c2a2d982cdb1d04f8e5bcda0b1ba3504a0",
+      "bytes": 132956,
+      "path": "screens/integration-kafka-collecting-1440.png",
+      "sha256": "e9e7b5bf7d624f9f536565fc041576eab2171cb2b5b73a71b44739f6094fd23d"
+    },
+    {
+      "blob": "a061c8934a0220b4b2fc2f9685985044b7f06473",
+      "bytes": 106852,
+      "path": "screens/integration-kafka-collecting-390.png",
+      "sha256": "56eec55eee9360e105edab8c4a0769cd6908ac23faff58d35f7d04d3f717794b"
+    },
+    {
+      "blob": "10ff17b4f879f45072c900a71ece0f9f59c76687",
+      "bytes": 114423,
+      "path": "screens/integration-kafka-dashboard-1440.png",
+      "sha256": "e6b42d82b39263851b913218a31513a3473f18ac4754793ece56759c4c5fad25"
+    },
+    {
+      "blob": "d01e71d54aed1fed490733d6a05d48a6141973c8",
+      "bytes": 89224,
+      "path": "screens/integration-kafka-dashboard-390.png",
+      "sha256": "c35f9cb05e2eef81a9465d99cc81ac82698cc9ab363b9615dcf00b67b66dcfaa"
+    },
+    {
+      "blob": "654e29f24e3ab518db604a069ca1d77c8ac4bebe",
+      "bytes": 147296,
+      "path": "screens/integration-kafka-denied-1440.png",
+      "sha256": "7540e5be2a1868c05b02ab45a9a46fc7e1d626642f31c5a3a5bebf78be616ec6"
+    },
+    {
+      "blob": "9513b9fd1dedcfeda8cbd9f3e3a6e62ad63d116a",
+      "bytes": 118209,
+      "path": "screens/integration-kafka-denied-390.png",
+      "sha256": "08249cef0dc71a148b18a5a01495066c085ef5a0c458ed2aade58cc71dcd327f"
+    },
+    {
+      "blob": "dd2ae9b544ffa31dd62897471e995d6da76d6e03",
+      "bytes": 156464,
+      "path": "screens/integration-mysql-collecting-1440.png",
+      "sha256": "9725fa89cd6da0988c7d0e10d6f840adfc1d3c3cffb00e8b5f2bafa734d16f48"
+    },
+    {
+      "blob": "f16347dc9a4e88e89e3b30d0036611f374a47bfb",
+      "bytes": 122663,
+      "path": "screens/integration-mysql-collecting-390.png",
+      "sha256": "50a13ef2da160246bcd55e79e7dfa79c1c1d057eff4090843b6fd786ebf714e3"
+    },
+    {
+      "blob": "263f37e14a55200bf91fffa85f2062b7092c509e",
+      "bytes": 92573,
+      "path": "screens/integration-mysql-dashboard-1440.png",
+      "sha256": "cd31be9cd44087437aea3484bde1e220a13cc1216c615e0025fa9825a5d86c0a"
+    },
+    {
+      "blob": "b1e45136711771485b95d41cafc3d8f6d38bca6a",
+      "bytes": 72847,
+      "path": "screens/integration-mysql-dashboard-390.png",
+      "sha256": "8eac268c2074416c98ba864d3ee8bf276dc56ba1630c7bf193d92965adb51f1b"
+    },
+    {
+      "blob": "fba8625ffb1cc453c24863e40eace21a62361be1",
+      "bytes": 188630,
+      "path": "screens/integration-mysql-denied-1440.png",
+      "sha256": "225e91a9f1193f2be42f11b1e2a51a1fb3c51bc0785cb53fdcbaf02ce0800a55"
+    },
+    {
+      "blob": "204067a90f6f3af23acfb39f5c1f01729e12c885",
+      "bytes": 145887,
+      "path": "screens/integration-mysql-denied-390.png",
+      "sha256": "f0515844ad5fc4e0840f81642a95a62c34d9377b7966fa901b06b8148d863e31"
+    },
+    {
+      "blob": "06aecc539ebcd0c522c3573a57bb488874c77f26",
+      "bytes": 132322,
+      "path": "screens/integration-nginx-collecting-1440.png",
+      "sha256": "947392f4ff2add4f57c6e85f88cc294cb1054d9289751a5736a5e62b9dd30efb"
+    },
+    {
+      "blob": "0640ac2f91accc28cc24a8e1ea7f39dbc2a6f8b3",
+      "bytes": 106168,
+      "path": "screens/integration-nginx-collecting-390.png",
+      "sha256": "45f4351d7b59cde7195e2acd5f7498223288a7758d1d04a7f43ee184b2ee8fdc"
+    },
+    {
+      "blob": "ce3e26da3e980b551630441d9804c0caa3b265b7",
+      "bytes": 244615,
+      "path": "screens/integration-nginx-dashboard-1440.png",
+      "sha256": "2960e914bda6deab7176d025216d840333970e8817d81ef5a5d792b271c3bc6e"
+    },
+    {
+      "blob": "7114d9bd6d29d7f25cdf9d640fd5ad7c6ff4844b",
+      "bytes": 172167,
+      "path": "screens/integration-nginx-dashboard-390.png",
+      "sha256": "c98187915e9985acdc4ec1a4520bc021f0de4b254a139a8ba1607e2bfca39734"
+    },
+    {
+      "blob": "10a9613731afb4dc9607cd749b3138a2a944c12a",
+      "bytes": 140444,
+      "path": "screens/integration-nginx-denied-1440.png",
+      "sha256": "575660855eef85bec0e1a38dfb9f7916351a49529b68f2b23cf59e45faf20a2b"
+    },
+    {
+      "blob": "535dd9dec00337734f627221e6cd1dace42acc16",
+      "bytes": 113911,
+      "path": "screens/integration-nginx-denied-390.png",
+      "sha256": "ef7012858e5e2058ceca7263b51b292878e8b1bd4e453fbd20ca4f2b2aa56ad6"
+    },
+    {
+      "blob": "c8182510a3a483d891e6c69bd727d19e66527356",
+      "bytes": 139038,
+      "path": "screens/integration-postgresql-collecting-1440.png",
+      "sha256": "11178c252f3168a73ed925cbd70d85c3b7b1f1e12429e2673ba1b54633f3745b"
+    },
+    {
+      "blob": "66108f92b53eb5bad0b6050938e01fcda89c6fd2",
+      "bytes": 112232,
+      "path": "screens/integration-postgresql-collecting-390.png",
+      "sha256": "b616786b5328d2120599b9965d17ca0ca07b2c694deffa9e061b42e23c635b70"
+    },
+    {
+      "blob": "6496d97ffd0321e0194c45594effa6ae11dd00de",
+      "bytes": 96071,
+      "path": "screens/integration-postgresql-dashboard-1440.png",
+      "sha256": "239e560120ef8a4937acb91e2ad5623a354841baa35123f565145f9eefd6434b"
+    },
+    {
+      "blob": "7ce2e38fd9c76c33b2552f8b4aaca02fffe98cd7",
+      "bytes": 75365,
+      "path": "screens/integration-postgresql-dashboard-390.png",
+      "sha256": "e96a49dc4a34f857b125d18c6ef4aa5eadc2f7568c6546659311112f93f71c26"
+    },
+    {
+      "blob": "cbb8f05a89116c1fdc6af8056c0525e38242f143",
+      "bytes": 153054,
+      "path": "screens/integration-postgresql-denied-1440.png",
+      "sha256": "a8bd0113866ceb52c149d62e93e7051025bc912116ffd41aa522ee4216597964"
+    },
+    {
+      "blob": "2513ae6bc1224f2b59bf5853a25dbd84024b758e",
+      "bytes": 124429,
+      "path": "screens/integration-postgresql-denied-390.png",
+      "sha256": "d91d0e2a75933259322024bcf0800c9f30342f827b1748d2946220d19d06c3ee"
+    },
+    {
+      "blob": "f5ed935d1f1f9f39bc5e2f23aeb61316e3c707da",
+      "bytes": 41634,
+      "path": "screens/integration-proof-expired-1440.png",
+      "sha256": "3cd61a1c46757f8022c1fb00ed2cb64bda1b2aaea66868eae2c87961d77a4431"
+    },
+    {
+      "blob": "37170f64e733a21323607ee25147356d605026f4",
+      "bytes": 34862,
+      "path": "screens/integration-proof-expired-390.png",
+      "sha256": "ff885c360f7b60ac1748282833dc21b1200dd24be0a62c09fed013fa4b220cc4"
+    },
+    {
+      "blob": "295846fec5a5681cbaf6c894d9624a723539e0e4",
+      "bytes": 133785,
+      "path": "screens/integration-rabbitmq-collecting-1440.png",
+      "sha256": "bfa92e41705515a846242763e7eae6a687fde0b37bb85dad1b0a5759fef74bc4"
+    },
+    {
+      "blob": "fcd50a658dcb7f1a1b6bc0893d49cde6013bb2cb",
+      "bytes": 107762,
+      "path": "screens/integration-rabbitmq-collecting-390.png",
+      "sha256": "476cbb338990bc25518239f1c36a22a3b139d139593967b79c98fb3160d217c8"
+    },
+    {
+      "blob": "29ee66cae1aa7ed5a80aebea3f99a177487b31ed",
+      "bytes": 94092,
+      "path": "screens/integration-rabbitmq-dashboard-1440.png",
+      "sha256": "a25abe44c9ab2bdb27346dfe3f5f710dc45bdb7ac7a2a749d85bd58c5f60187b"
+    },
+    {
+      "blob": "4ca8c3331c80afcb499c01bd2718eae8ee8ce90d",
+      "bytes": 75497,
+      "path": "screens/integration-rabbitmq-dashboard-390.png",
+      "sha256": "a5748e1d90d1ebf96451a3acfb7ff9f1d3a7e7a3baaa7f54645f24755b4b0dad"
+    },
+    {
+      "blob": "2970570adf7044820f920f8f667552afc30ad257",
+      "bytes": 143266,
+      "path": "screens/integration-rabbitmq-denied-1440.png",
+      "sha256": "cf4ccff320c1cdce2a2fe2f7ab3bf5a807d88f61ff0c85674cf4f1c23970a7b2"
+    },
+    {
+      "blob": "2abee637bed3ba4dc0a20d0aa4f61f69bc1ac3f5",
+      "bytes": 116326,
+      "path": "screens/integration-rabbitmq-denied-390.png",
+      "sha256": "b819ac382602e3bdcd266c859782ce3017f1ef79654746a7783954fc77bb5fc0"
+    },
+    {
+      "blob": "440ae7796acd94030272e1bf8ac07ef5b54f2088",
+      "bytes": 127014,
+      "path": "screens/integration-redis-collecting-1440.png",
+      "sha256": "65050815287940e4bd88363217806f0be0a4a6bb14fe24b105d81c049bb10fd1"
+    },
+    {
+      "blob": "34a6d1327e96688bb5690faa0290f61969ac4386",
+      "bytes": 102371,
+      "path": "screens/integration-redis-collecting-390.png",
+      "sha256": "4b80624f84a862ad6ce382b4cfb097050336433f25e1ca66bfee0046a9f89604"
+    },
+    {
+      "blob": "b7d03e596e6becbea71ee68ff61e904a35b84512",
+      "bytes": 90185,
+      "path": "screens/integration-redis-dashboard-1440.png",
+      "sha256": "68eac6efd23743708724c102636db8bfd0e4e6941b29a2c1aba4a00fa337f239"
+    },
+    {
+      "blob": "356b64eab885b6904a060581ea6a2a36f729d722",
+      "bytes": 71072,
+      "path": "screens/integration-redis-dashboard-390.png",
+      "sha256": "51282654e7383f3f83b8f136169458f1cdf5e795d11cba0e564236cbecc1e813"
+    },
+    {
+      "blob": "19a01bd4365ead643f27171363b44774970e40de",
+      "bytes": 129344,
+      "path": "screens/integration-redis-denied-1440.png",
+      "sha256": "b3de7eafe404b2e53942232121ff7f1041cc763e80770d99f1a7b69ebb46ac41"
+    },
+    {
+      "blob": "f179cf4a843d8207960b4d7c0e97b259a4295dbc",
+      "bytes": 105439,
+      "path": "screens/integration-redis-denied-390.png",
+      "sha256": "f942b89807ddd8a41c16e9249d287be9dc386ea78d368e0699807aaffe88e74d"
+    },
+    {
+      "blob": "2e469bc62ac35a9c031c94fadb38f48de4084081",
+      "bytes": 330539,
+      "path": "screens/integrations-empty-1440.png",
+      "sha256": "977cd9b07ff340b2475f1535f6b1db6a008be7fc65606a727cee20a8056f2e4e"
+    },
+    {
+      "blob": "cebd4acd6bfd6b80bf74afa3ff8a5b6783000873",
+      "bytes": 271573,
+      "path": "screens/integrations-empty-390.png",
+      "sha256": "073a5614fe7c608388ec6dcd27bf6f753238d215cdce615e5196fb5cb8ed687a"
+    }
+  ],
+  "product_branch": "cloud/sx-porthole-c-f457",
+  "product_head": "f02ba8efaccfc3f4f97224736e2a4ee0381be7a3",
+  "ref": "refs/heads/evidence/sx-porthole-c-f457",
+  "repository": "just-every/run-porthole",
+  "schema": 1,
+  "tag": "sx-porthole-c-f457"
+}

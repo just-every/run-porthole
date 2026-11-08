@@ -1,0 +1,37 @@
+{
+  "head": "f02ba8efaccfc3f4f97224736e2a4ee0381be7a3",
+  "tree": "93ce03fd689f0fd4f5191e98cf989c924c108a81",
+  "checks": [
+    {
+      "command": "node scripts/porthole/contract-docs.mjs write PORT-006; node scripts/porthole/contract-docs.mjs check PORT-006; restore generated views from origin/main",
+      "exit": 0
+    },
+    {
+      "command": "pnpm run source:check",
+      "exit": 0
+    },
+    {
+      "command": "node scripts/porthole/public-schema.mjs --check",
+      "exit": 0
+    },
+    {
+      "command": "npx -y @runeditrun/rer check --profile first-party",
+      "exit": 0
+    },
+    {
+      "command": "pnpm typecheck",
+      "exit": 0,
+      "log": "catalog-final4-typecheck.log"
+    },
+    {
+      "command": "npx -y @runeditrun/rer build",
+      "exit": 0,
+      "log": "catalog-build16.log"
+    }
+  ],
+  "contractStatusChanged": false,
+  "main": "7d576ff6aeef20ac77549589830a4d4a91ea9d3e",
+  "candidate": "f02ba8efaccfc3f4f97224736e2a4ee0381be7a3",
+  "candidateTree": "93ce03fd689f0fd4f5191e98cf989c924c108a81",
+  "finalSourceAndFirstPartyExit": 0
+}

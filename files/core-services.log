@@ -1,0 +1,45 @@
+verify:runtime
+Heavy job admitted: Porthole verify:runtime:suite [eeb58429ae0f]
+▲ [WARNING] Proxy environment variables detected. We'll use your proxy for fetch requests.
+
+
+Installed owner claim rejects missing/wrong setup tokens and request demo flags
+HTTP-001 passed against emitted local Worker: health, the installed homepage, HTTP and document 404s
+Integration matrix starting postgresql
+Integration source comparison postgresql {"beforeStat":19,"afterStat":22,"actual":[{"value":20,"attributes":{"postgresql.database.name":"porthole","service.name":"pack-postgresql","deployment.environment.name":"test","team.name":"commerce","porthole.integration.id":"7a01c3f2-43e5-471c-8688-5fdc8980cbf3","porthole.integration.pack":"postgresql"}}]}
+Integration matrix passed postgresql
+Integration matrix starting mysql
+Integration source comparison mysql {"beforeStat":18,"afterStat":27,"actual":[{"value":0,"attributes":{"mysql.instance.endpoint":"127.0.0.1:38633","service.name":"pack-mysql","deployment.environment.name":"test","team.name":"commerce","porthole.integration.id":"d94973f1-944c-4107-862c-c82f4b676d81","porthole.integration.pack":"mysql","command":"delete_multi"}},{"value":25,"attributes":{"mysql.instance.endpoint":"127.0.0.1:38633","service.name":"pack-mysql","deployment.environment.name":"test","team.name":"commerce","porthole.integration.id":"d94973f1-944c-4107-862c-c82f4b676d81","porthole.integration.pack":"mysql","command":"select"}},{"value":0,"attributes":{"mysql.instance.endpoint":"127.0.0.1:38633","service.name":"pack-mysql","deployment.environment.name":"test","team.name":"commerce","porthole.integration.id":"d94973f1-944c-4107-862c-c82f4b676d81","porthole.integration.pack":"mysql","command":"delete"}},{"value":0,"attributes":{"mysql.instance.endpoint":"127.0.0.1:38633","service.name":"pack-mysql","deployment.environment.name":"test","team.name":"commerce","porthole.integration.id":"d94973f1-944c-4107-862c-c82f4b676d81","porthole.integration.pack":"mysql","command":"insert"}},{"value":0,"attributes":{"mysql.instance.endpoint":"127.0.0.1:38633","service.name":"pack-mysql","deployment.environment.name":"test","team.name":"commerce","porthole.integration.id":"d94973f1-944c-4107-862c-c82f4b676d81","porthole.integration.pack":"mysql","command":"update_multi"}},{"value":0,"attributes":{"mysql.instance.endpoint":"127.0.0.1:38633","service.name":"pack-mysql","deployment.environment.name":"test","team.name":"commerce","porthole.integration.id":"d94973f1-944c-4107-862c-c82f4b676d81","porthole.integration.pack":"mysql","command":"update"}}]}
+Integration matrix passed mysql
+Integration matrix starting redis
+Integration source comparison redis {"beforeStat":7,"afterStat":7,"actual":[{"value":7,"attributes":{"redis.version":"7.4.5","service.name":"pack-redis","deployment.environment.name":"test","team.name":"commerce","porthole.integration.id":"9591fdde-12fc-4fb5-9e9c-a2233debfb07","porthole.integration.pack":"redis","db":"0"}}]}
+Integration matrix passed redis
+Integration matrix starting kafka
+(node:88080) TimeoutNegativeWarning: -1794172431849 is a negative number.
+Timeout duration was set to 1.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Integration source comparison kafka {"beforeStat":7,"afterStat":7,"actual":[{"value":7,"attributes":{"service.name":"pack-kafka","deployment.environment.name":"test","team.name":"commerce","porthole.integration.id":"c9bb8536-5870-4a9b-b5f8-4d8feef1802e","porthole.integration.pack":"kafka","topic":"porthole","partition":"0"}}]}
+Integration matrix passed kafka
+Integration matrix starting nginx
+Integration source comparison nginx {"beforeStat":10,"afterStat":12,"actual":[{"value":11,"attributes":{"service.name":"pack-nginx","deployment.environment.name":"test","team.name":"commerce","porthole.integration.id":"fcc123e1-39fa-48ee-8168-d4e3a828b925","porthole.integration.pack":"nginx"}}]}
+
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: persistent stock file checkpoints prevent duplicate access and error logs after restarts
+
+20 !== 9
+
+    at integrationJourney (file://[REDACTED]/tests/porthole/integrations.mjs:117:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async file://[REDACTED]/tests/runtime.mjs:187:4 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: 20,
+  expected: 9,
+  operator: 'strictEqual',
+  diff: 'simple'
+}
+
+Node.js v24.19.0

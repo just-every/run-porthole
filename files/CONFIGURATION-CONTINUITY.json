@@ -1,0 +1,12 @@
+{
+  "sourceHead": "100d72442d6a02a8a1d302f110a29be573c12cce",
+  "candidate": "a5435de46e1e27ee75141ff4bdeed6e8f49c4527",
+  "unchangedConfigurations": [
+    "postgresql",
+    "mysql",
+    "redis",
+    "kafka"
+  ],
+  "exit": 0,
+  "remainingChange": "Nginx source-file offset archiving and source-line reconciliation; other product behavior unchanged."
+}

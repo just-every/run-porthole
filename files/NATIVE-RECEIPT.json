@@ -1,0 +1,9 @@
+{
+  "head": "100d72442d6a02a8a1d302f110a29be573c12cce",
+  "command": "timeout 1200 node --input-type=module -e nativeBackupErasureJourney",
+  "exit": 0,
+  "journey": "tests/porthole/archive.mjs#nativeBackupErasureJourney",
+  "result": "Actual native installation export and independent inactive import passed; credentials absent, binding credential reference cleared, dashboards quarantined, erasure and unrelated-subject continuity preserved.",
+  "candidate": "f02ba8efaccfc3f4f97224736e2a4ee0381be7a3",
+  "candidateTree": "93ce03fd689f0fd4f5191e98cf989c924c108a81"
+}

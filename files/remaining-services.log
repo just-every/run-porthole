@@ -1,0 +1,8 @@
+verify:runtime
+Heavy job admitted: Porthole verify:runtime:suite [eeb58429ae0f]
+▲ [WARNING] Proxy environment variables detected. We'll use your proxy for fetch requests.
+
+
+Installed owner claim rejects missing/wrong setup tokens and request demo flags
+HTTP-001 passed against emitted local Worker: health, the installed homepage, HTTP and document 404s
+Integration matrix starting mongodb

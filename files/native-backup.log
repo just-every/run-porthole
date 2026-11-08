@@ -1,0 +1,2 @@
+nativeBackupErasureJourney passed: actual native backup, owner-only exact erasure of every matching batch and frozen custody, unchanged unrelated subject and trace history, capture and revoked-credential refusal, restart and native restore with no erased subject or live host authority
+Native integration backup receipt: PASS

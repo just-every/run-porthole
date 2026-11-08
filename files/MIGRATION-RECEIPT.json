@@ -1,0 +1,12 @@
+{
+  "head": "d85c1b6e854ccad149cf0effa1ebf115d367c909",
+  "command": "Wrangler local migration apply and d1_migrations reconciliation",
+  "exit": 0,
+  "applied": 63,
+  "declared": 63,
+  "migration": "0063_porthole_integration_packs.sql",
+  "candidate": "f02ba8efaccfc3f4f97224736e2a4ee0381be7a3",
+  "unchangedSinceProof": true,
+  "migrationSha256": "8fe460ba26197bd946a51935a7b0d7d5930ae4304a90edcdd31d1ae94ca6c5b0",
+  "candidateTree": "93ce03fd689f0fd4f5191e98cf989c924c108a81"
+}

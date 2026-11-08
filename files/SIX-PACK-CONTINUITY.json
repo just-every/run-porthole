@@ -1,0 +1,15 @@
+{
+  "sourceHead": "a5435de46e1e27ee75141ff4bdeed6e8f49c4527",
+  "candidate": "f02ba8efaccfc3f4f97224736e2a4ee0381be7a3",
+  "unchangedConfigurations": [
+    "postgresql",
+    "mysql",
+    "redis",
+    "kafka",
+    "nginx",
+    "rabbitmq"
+  ],
+  "exit": 0,
+  "remainingChange": "Only MongoDB standalone connection settings and fixture authentication changed; these six generated configurations are unchanged.",
+  "candidateTree": "93ce03fd689f0fd4f5191e98cf989c924c108a81"
+}

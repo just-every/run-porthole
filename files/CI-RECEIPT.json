@@ -1,0 +1,6 @@
+{
+  "head": "f02ba8efaccfc3f4f97224736e2a4ee0381be7a3",
+  "status": "not_run",
+  "runIds": [],
+  "reason": "Partial save carries skip ci. Remaining local qualification timed out with exit 124; no READY or exact-SHA green claim."
+}

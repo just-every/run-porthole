@@ -1,0 +1,25 @@
+verify:runtime
+Heavy job admitted: Porthole verify:runtime:suite [eeb58429ae0f]
+▲ [WARNING] Proxy environment variables detected. We'll use your proxy for fetch requests.
+
+
+Installed owner claim rejects missing/wrong setup tokens and request demo flags
+HTTP-001 passed against emitted local Worker: health, the installed homepage, HTTP and document 404s
+Integration matrix starting nginx
+Integration source comparison nginx {"beforeStat":10,"afterStat":12,"actual":[{"value":11,"attributes":{"service.name":"pack-nginx","deployment.environment.name":"test","team.name":"commerce","porthole.integration.id":"d1e8752f-51b9-4de5-aebf-ead3add600b2","porthole.integration.pack":"nginx"}}]}
+Integration matrix passed nginx
+Integration matrix starting rabbitmq
+Integration source comparison rabbitmq {"beforeStat":7,"afterStat":7,"actual":[{"value":0,"attributes":{"rabbitmq.queue.name":"porthole","rabbitmq.node.name":"rabbit@d44e14bc494c","rabbitmq.vhost.name":"/","service.name":"pack-rabbitmq","deployment.environment.name":"test","team.name":"commerce","porthole.integration.id":"c67d4f29-f8f4-4f94-b5b0-60bca7aa3435","porthole.integration.pack":"rabbitmq","state":"unacknowledged"}},{"value":7,"attributes":{"rabbitmq.queue.name":"porthole","rabbitmq.node.name":"rabbit@d44e14bc494c","rabbitmq.vhost.name":"/","service.name":"pack-rabbitmq","deployment.environment.name":"test","team.name":"commerce","porthole.integration.id":"c67d4f29-f8f4-4f94-b5b0-60bca7aa3435","porthole.integration.pack":"rabbitmq","state":"ready"}}]}
+Integration matrix passed rabbitmq
+Integration matrix starting mongodb
+
+file://[REDACTED]/tests/porthole/integrations.mjs:61
+   throw Error('integration_wait_'+pack.id+'_'+label+' '+JSON.stringify(lastHealth)+' '+collector?.diagnostics())
+         ^
+
+Error: integration_wait_mongodb_metrics {"state":"Unknown","reason":"No fresh exported scraper evidence. Absent service data does not establish health.","nextAction":"Check clusterMonitor on admin; no application collection read or write. Verify the PORTHOLE_MONGODB_ENDPOINT host variable and restart the collector.","lastObservedAt":null} 
+    at wait (file://[REDACTED]/tests/porthole/integrations.mjs:61:10)
+    at async integrationJourney (file://[REDACTED]/tests/porthole/integrations.mjs:74:15)
+    at async file://[REDACTED]/tests/runtime.mjs:187:4
+
+Node.js v24.19.0
