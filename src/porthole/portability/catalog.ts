@@ -1,3 +1,4 @@
+import {columns as integrationColumns} from '../integrations/catalog/model'
 import {eventColumns,filterColumns} from '../events/model'
 import {metadataColumns} from '../services/model'
 import {publicationColumns} from '../notebooks/publication-model'
@@ -13,6 +14,7 @@ import {journalColumns} from '../migration/erasure/journal'
 export interface TableSpec { table: string; columns: string[]; query: string; order: string }
 const spec = (table: string, columns: string[], order: string): TableSpec => ({ table, columns, order, query: `SELECT ${columns.join(',')} FROM ${table}` })
 export const catalog: TableSpec[] = [
+ {table:'porthole_integration_bindings',columns:integrationColumns,order:'id',query:"SELECT id,pack,service,environment,team,NULL AS credential_id,dashboard_id,state,revision,created_at,owner_id FROM porthole_integration_bindings"},
  spec('porthole_custom_events',eventColumns,'sequence'),
  spec('porthole_event_filters',filterColumns,'id'),
  spec('porthole_service_versions',metadataColumns,'id,revision'),
@@ -65,6 +67,7 @@ function allPredicates(clauses:string[]):string {
 }
 export const emptyProduct = allPredicates([emptyCustody,
  'NOT EXISTS(SELECT 1 FROM porthole_database_sources)',
+ 'NOT EXISTS(SELECT 1 FROM porthole_integration_bindings)',
  'NOT EXISTS(SELECT 1 FROM porthole_custom_events)',
  'NOT EXISTS(SELECT 1 FROM porthole_event_filters)',
  'NOT EXISTS(SELECT 1 FROM porthole_service_versions)',

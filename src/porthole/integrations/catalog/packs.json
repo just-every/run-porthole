@@ -1,0 +1,227 @@
+[
+  {
+    "id": "postgresql",
+    "name": "PostgreSQL",
+    "version": 1,
+    "serviceImage": "postgres:17.6",
+    "collectorVersion": "0.135.0",
+    "source": "https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.135.0/receiver/postgresqlreceiver",
+    "receiver": "postgresql",
+    "signals": [
+      "metrics"
+    ],
+    "permissions": "CONNECT on selected database, pg_monitor; no application-table writes",
+    "endpointExample": "localhost:5432",
+    "setup": [
+      "Create the dedicated read-only monitoring role with the declared permissions.",
+      "Keep endpoint and monitored-service credentials on the collector host in the named environment variables.",
+      "Review one service, environment and team with fresh owner or admin proof, then download configuration.",
+      "Set PORTHOLE_INGEST_TOKEN to the existing scoped credential on the host; start the unmodified pinned collector.",
+      "Inspect collector scraper telemetry and the preset; absent data is Unknown."
+    ],
+    "metrics": [
+      {
+        "name": "postgresql.commits",
+        "unit": "{transaction}"
+      }
+    ],
+    "recommendedMonitors": "Unavailable: value-threshold engine and reviewed owner and service mapping remain required. No monitor is activated."
+  },
+  {
+    "id": "mysql",
+    "name": "MySQL",
+    "version": 1,
+    "serviceImage": "mysql:8.4.6",
+    "collectorVersion": "0.135.0",
+    "source": "https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.135.0/receiver/mysqlreceiver",
+    "receiver": "mysql",
+    "signals": [
+      "metrics"
+    ],
+    "permissions": "PROCESS and REPLICATION CLIENT, SELECT on performance_schema; no application-table writes",
+    "endpointExample": "localhost:3306",
+    "setup": [
+      "Create the dedicated read-only monitoring role with the declared permissions.",
+      "Keep endpoint and monitored-service credentials on the collector host in the named environment variables.",
+      "Review one service, environment and team with fresh owner or admin proof, then download configuration.",
+      "Set PORTHOLE_INGEST_TOKEN to the existing scoped credential on the host; start the unmodified pinned collector.",
+      "Inspect collector scraper telemetry and the preset; absent data is Unknown."
+    ],
+    "metrics": [
+      {
+        "name": "mysql.commands",
+        "unit": "{command}"
+      }
+    ],
+    "recommendedMonitors": "Unavailable: value-threshold engine and reviewed owner and service mapping remain required. No monitor is activated."
+  },
+  {
+    "id": "redis",
+    "name": "Redis",
+    "version": 1,
+    "serviceImage": "redis:7.4.5",
+    "collectorVersion": "0.135.0",
+    "source": "https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.135.0/receiver/redisreceiver",
+    "receiver": "redis",
+    "signals": [
+      "metrics"
+    ],
+    "permissions": "ACL +info and +ping only; no key read or write",
+    "endpointExample": "localhost:6379",
+    "setup": [
+      "Create the dedicated read-only monitoring role with the declared permissions.",
+      "Keep endpoint and monitored-service credentials on the collector host in the named environment variables.",
+      "Review one service, environment and team with fresh owner or admin proof, then download configuration.",
+      "Set PORTHOLE_INGEST_TOKEN to the existing scoped credential on the host; start the unmodified pinned collector.",
+      "Inspect collector scraper telemetry and the preset; absent data is Unknown."
+    ],
+    "metrics": [
+      {
+        "name": "redis.commands.processed",
+        "unit": "{command}"
+      }
+    ],
+    "recommendedMonitors": "Unavailable: value-threshold engine and reviewed owner and service mapping remain required. No monitor is activated."
+  },
+  {
+    "id": "kafka",
+    "name": "Kafka",
+    "version": 1,
+    "serviceImage": "apache/kafka:3.9.1",
+    "collectorVersion": "0.135.0",
+    "source": "https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.135.0/receiver/kafkametricsreceiver",
+    "receiver": "kafkametrics",
+    "signals": [
+      "metrics"
+    ],
+    "permissions": "Describe topics and brokers, Describe groups and Read group offsets; no topic writes",
+    "endpointExample": "localhost:9092",
+    "setup": [
+      "Create the dedicated read-only monitoring role with the declared permissions.",
+      "Keep endpoint and monitored-service credentials on the collector host in the named environment variables.",
+      "Review one service, environment and team with fresh owner or admin proof, then download configuration.",
+      "Set PORTHOLE_INGEST_TOKEN to the existing scoped credential on the host; start the unmodified pinned collector.",
+      "Inspect collector scraper telemetry and the preset; absent data is Unknown."
+    ],
+    "metrics": [
+      {
+        "name": "kafka.partition.current_offset",
+        "unit": "{offset}"
+      }
+    ],
+    "recommendedMonitors": "Unavailable: value-threshold engine and reviewed owner and service mapping remain required. No monitor is activated."
+  },
+  {
+    "id": "nginx",
+    "name": "Nginx",
+    "version": 1,
+    "serviceImage": "nginx:1.28.0",
+    "collectorVersion": "0.135.0",
+    "source": "https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.135.0/receiver/nginxreceiver",
+    "receiver": "nginx",
+    "signals": [
+      "metrics",
+      "logs"
+    ],
+    "permissions": "GET on restricted stub_status; read-only access to selected access and error log files",
+    "endpointExample": "http://localhost:8080/status",
+    "setup": [
+      "Create the dedicated read-only monitoring role with the declared permissions.",
+      "Keep endpoint and monitored-service credentials on the collector host in the named environment variables.",
+      "Review one service, environment and team with fresh owner or admin proof, then download configuration.",
+      "Set PORTHOLE_INGEST_TOKEN to the existing scoped credential on the host; start the unmodified pinned collector.",
+      "Inspect collector scraper telemetry and the preset; absent data is Unknown."
+    ],
+    "metrics": [
+      {
+        "name": "nginx.requests",
+        "unit": "{request}"
+      }
+    ],
+    "recommendedMonitors": "Unavailable: value-threshold engine and reviewed owner and service mapping remain required. No monitor is activated."
+  },
+  {
+    "id": "rabbitmq",
+    "name": "RabbitMQ",
+    "version": 1,
+    "serviceImage": "rabbitmq:4.1.4-management",
+    "collectorVersion": "0.135.0",
+    "source": "https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.135.0/receiver/rabbitmqreceiver",
+    "receiver": "rabbitmq",
+    "signals": [
+      "metrics"
+    ],
+    "permissions": "Monitoring-tag management user with read-only virtual-host permissions; no configure or write",
+    "endpointExample": "http://localhost:15672",
+    "setup": [
+      "Create the dedicated read-only monitoring role with the declared permissions.",
+      "Keep endpoint and monitored-service credentials on the collector host in the named environment variables.",
+      "Review one service, environment and team with fresh owner or admin proof, then download configuration.",
+      "Set PORTHOLE_INGEST_TOKEN to the existing scoped credential on the host; start the unmodified pinned collector.",
+      "Inspect collector scraper telemetry and the preset; absent data is Unknown."
+    ],
+    "metrics": [
+      {
+        "name": "rabbitmq.message.current",
+        "unit": "{message}"
+      }
+    ],
+    "recommendedMonitors": "Unavailable: value-threshold engine and reviewed owner and service mapping remain required. No monitor is activated."
+  },
+  {
+    "id": "mongodb",
+    "name": "MongoDB",
+    "version": 1,
+    "serviceImage": "mongo:8.0.14",
+    "collectorVersion": "0.135.0",
+    "source": "https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.135.0/receiver/mongodbreceiver",
+    "receiver": "mongodb",
+    "signals": [
+      "metrics"
+    ],
+    "permissions": "clusterMonitor on admin; no application collection read or write",
+    "endpointExample": "localhost:27017",
+    "setup": [
+      "Create the dedicated read-only monitoring role with the declared permissions.",
+      "Keep endpoint and monitored-service credentials on the collector host in the named environment variables.",
+      "Review one service, environment and team with fresh owner or admin proof, then download configuration.",
+      "Set PORTHOLE_INGEST_TOKEN to the existing scoped credential on the host; start the unmodified pinned collector.",
+      "Inspect collector scraper telemetry and the preset; absent data is Unknown."
+    ],
+    "metrics": [
+      {
+        "name": "mongodb.operation.count",
+        "unit": "{operation}"
+      }
+    ],
+    "recommendedMonitors": "Unavailable: value-threshold engine and reviewed owner and service mapping remain required. No monitor is activated."
+  },
+  {
+    "id": "elasticsearch",
+    "name": "Elasticsearch",
+    "version": 1,
+    "serviceImage": "docker.elastic.co/elasticsearch/elasticsearch:8.19.3",
+    "collectorVersion": "0.135.0",
+    "source": "https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.135.0/receiver/elasticsearchreceiver",
+    "receiver": "elasticsearch",
+    "signals": [
+      "metrics"
+    ],
+    "permissions": "Cluster monitor and index monitor only; no document read or write",
+    "endpointExample": "http://localhost:9200",
+    "setup": [
+      "Create the dedicated read-only monitoring role with the declared permissions.",
+      "Keep endpoint and monitored-service credentials on the collector host in the named environment variables.",
+      "Review one service, environment and team with fresh owner or admin proof, then download configuration.",
+      "Set PORTHOLE_INGEST_TOKEN to the existing scoped credential on the host; start the unmodified pinned collector.",
+      "Inspect collector scraper telemetry and the preset; absent data is Unknown."
+    ],
+    "metrics": [
+      {
+        "name": "elasticsearch.document.count",
+        "unit": "{document}"
+      }
+    ],
+    "recommendedMonitors": "Unavailable: value-threshold engine and reviewed owner and service mapping remain required. No monitor is activated."
+  }
+]

@@ -1,3 +1,4 @@
+import {validateBinding} from '../integrations/catalog/model'
 import { databasePrivacy,assertDatabaseWire } from '../database/privacy'
 import {validateEventRow,eventFilter} from '../events/model'
 import {validateMetadata} from '../services/model'
@@ -41,6 +42,7 @@ const bad = (): never => fail('archive_semantics_invalid',422)
 const object = (value: unknown): value is Record<string,unknown> => !!value && typeof value==='object' && !Array.isArray(value)
 export function manifestInput(value: unknown): Manifest {
  if(!object(value) || Object.keys(value).sort().join(',')!==['format','id','createdAt','rowCount','chunks','rootHash','tables','inactive'].sort().join(',') || value.format!==format || !uuid(value.id) || !integer(value.createdAt) || !integer(value.rowCount) || !integer(value.chunks) || !hex(value.rootHash) || value.inactive!==true || !object(value.tables)) return bad()
+ if(!Object.hasOwn(value.tables,'porthole_integration_bindings'))value.tables.porthole_integration_bindings=0
  for(const table of ['porthole_custom_events','porthole_event_filters'])if(!Object.hasOwn(value.tables,table))value.tables[table]=0
  if(!Object.hasOwn(value.tables,'porthole_service_versions'))value.tables.porthole_service_versions=0
  // Older archives predate export exclusions. Their absent journal is empty;
@@ -79,7 +81,9 @@ export async function validateRow(payload: PortableRow, state: Validation): Prom
  if(Object.keys(row).sort().join(',')!==[...item.columns].sort().join(',')) bad()
  for(const [key,value] of Object.entries(row)) if(value!==null && typeof value!=='string' && !(item.table==='porthole_metric_points'&&key==='value'?Number.isSafeInteger(value):integer(value))) bad()
  const required=(...keys:string[])=>{for(const key of keys)if(!str(row[key]) || !(row[key] as string).length)bad()}
- if(item.table==='porthole_custom_events') {
+ if(item.table==='porthole_integration_bindings') {
+  validateBinding(row)
+ } else if(item.table==='porthole_custom_events') {
   await validateEventRow(row)
  } else if(item.table==='porthole_event_filters') {
   if(!uuid(row.id)||!uuid(row.owner_ref)||!str(row.name)||!integer(row.revision,1)||!integer(row.created_at)||!['active','quarantined'].includes(String(row.state)))bad()
