@@ -11,7 +11,9 @@ stores opaque references and outcomes, never request bodies or credentials.
 These are bounded live reads: at most 2,000 scanned records, one MiB of scanned
 JSON, eight remote-read queries and 20,000 response samples. A larger request
 refuses with `standard_read_budget_exceeded` (422). Quotas refuse with 429 and
-`Retry-After`. No partial sample set is returned on exhaustion. Narrow the time
+`Retry-After`. No partial sample set is returned on exhaustion. Repeated retained copies
+consume the same scan budget even when they describe one logical sample. Read
+disjoint time windows to reconcile a larger capture. Narrow the time
 range or the credential's scope; use approved resumable exports for bulk reads.
 No additional export approval, credential class or destructive authority exists.
 

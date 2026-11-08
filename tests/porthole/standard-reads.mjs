@@ -48,7 +48,6 @@ export async function remoteSeries(response){
  }))
 }
 
-
 /** Reconcile the entire capture through disjoint bounded live reads. Each
  * window still uses every page of the scoped reader; none may be truncated. */
 export async function remoteWindows(call,secret,windows){
@@ -90,13 +89,14 @@ async function stockMetrics({origin,cookie,call,reader,source,scratch}){
  const gauge=new prom.Gauge({name:'synthetic_scrape_gauge',help:'Actual producer state',labelNames:labels,registers:[registry]})
  const counter=new prom.Counter({name:'synthetic_scrape_requests_total',help:'Actual requests',labelNames:labels,registers:[registry]})
  const histogram=new prom.Histogram({name:'synthetic_scrape_latency_seconds',help:'Observed work',labelNames:labels,buckets:[0.1,0.5,1],registers:[registry]})
- let generation=0,scrapeAt=0;const sourceSamples=[],otlpPackets=[],children=[]
+ let generation=0,scrapeAt=0,capturing=true;const sourceSamples=[],otlpPackets=[],children=[]
  const producer=createServer(async(req,res)=>{
   if(req.url==='/work'){
    generation++;for(let i=0;i<24;i++){const l=[scope.services[0],'production','commerce','synthetic-porthole-'+(6200+i)];gauge.labels(...l).set(generation+i);counter.labels(...l).inc(i+1);histogram.labels(...l).observe((i%3+1)/10)}
    scrapeAt=Date.now();res.end(String(generation));return
   }
   if(req.url==='/metrics'){
+   if(!capturing){res.writeHead(503);res.end('capture complete');return}
    const body=(await registry.metrics()).split('\n').map(line=>line&&!line.startsWith('#')?line+' '+scrapeAt:line).join('\n')
    if(scrapeAt)sourceSamples.push({time:scrapeAt,body});res.writeHead(200,{'content-type':registry.contentType});res.end(body);return
   }
@@ -140,18 +140,21 @@ async function stockMetrics({origin,cookie,call,reader,source,scratch}){
    await fetch(producerOrigin+'/work');const emittedAt=scrapeAt;await until(async()=>sourceSamples.some(s=>s.time===emittedAt),'reference scrapes each source generation');otelGauge.record(20+i,{region:'synthetic-porthole-6103'});otelCounter.add(2,{region:'synthetic-porthole-6103'});otelHistogram.record(0.2,{region:'synthetic-porthole-6103'});velocity.record(i+1);ratio.record((i+1)/10)
    await provider.forceFlush();await delay(1100)
   }
+  // End the real producer capture before the comparison workload. Stock
+  // scraping otherwise keeps delivering the same final generation while the
+  // reference queries run, legitimately exhausting a bounded live read.
+  const instant=Date.now()/1000;capturing=false
   await value(await call(api+'/ingest/drain',{method:'POST',headers:{origin,cookie,'content-type':'application/json'},body:'{}'}))
   const query=async(base,expression,instant)=>{
    const response=await fetch(base+'/api/v1/query?'+new URLSearchParams({query:expression,time:String(instant)}));assert.equal(response.status,200,await response.clone().text());const data=await response.json();assert.equal(data.status,'success');return data.data
   }
   await until(async()=>{
    await value(await call(api+'/ingest/drain',{method:'POST',headers:{origin,cookie,'content-type':'application/json'},body:'{}'}))
-   const data=await query(remoteOrigin,'count(synthetic_scrape_gauge)',Date.now()/1000)
+   const data=await query(remoteOrigin,'count(synthetic_scrape_gauge)',instant)
    return data.result[0]?.value[1]==='24'
   },'stock remote-write becomes queryable through stock remote-read',90000)
-  console.log('Stock scrape generations '+JSON.stringify({scrapes:sourceSamples.length,timestamps:[...new Set(sourceSamples.map(s=>s.time))],counter:(await query(referenceOrigin,'synthetic_scrape_requests_total[2m]',Date.now()/1000)).result.slice(0,1)}))
-  await until(async()=>{const data=await query(referenceOrigin,'min(count_over_time(synthetic_scrape_requests_total[2m]))',Date.now()/1000);return Number(data.result[0]?.value[1])>=3},'reference retains multiple real counter scrapes')
-  const instant=Date.now()/1000
+  console.log('Stock scrape generations '+JSON.stringify({scrapes:sourceSamples.length,timestamps:[...new Set(sourceSamples.map(s=>s.time))],counter:(await query(referenceOrigin,'synthetic_scrape_requests_total[2m]',instant)).result.slice(0,1)}))
+  await until(async()=>{const data=await query(referenceOrigin,'min(count_over_time(synthetic_scrape_requests_total[2m]))',instant);return Number(data.result[0]?.value[1])>=3},'reference retains multiple real counter scrapes')
   const expressions=['synthetic_scrape_gauge','sum by (producer) (synthetic_scrape_requests_total)','rate(synthetic_scrape_requests_total[2m])','increase(synthetic_scrape_requests_total[2m])','synthetic_scrape_latency_seconds_bucket','synthetic_otel_gauge_milliseconds','synthetic_otel_requests_total','synthetic_otel_histogram_seconds_bucket','synthetic_otel_histogram_seconds_sum','synthetic_otel_histogram_seconds_count','synthetic_otel_velocity_meters_per_second','synthetic_otel_ratio']
   for(const expression of expressions){
    const reference=await query(referenceOrigin,expression,instant),actual=await query(remoteOrigin,expression,instant)
@@ -267,6 +270,13 @@ export async function standardReadJourney({origin,cookie,call=(path,options)=>fe
   assert.deepEqual(await remoteWindows(call,reader.secret,metrics.windows),before,'restart preserves exact standard samples')
   if(withEmptyDestination){const {standardArchiveJourney}=await import('./archive.mjs');await standardArchiveJourney({origin,freshOwner,withEmptyDestination,reader,scope,windows:metrics.windows,expected:before,traceId:selected})}
   if(withEmptyDestination)await standardSchemaProof({origin,cookie,call,source,reader,post,restartWorker,sql})
+  cookie=await freshOwner()
+  const auditResponse=await call('/api/v1/audit/export',{headers:{cookie}})
+  assert.equal(auditResponse.status,200)
+  const auditText=await auditResponse.text(),auditRows=JSON.parse(auditText).records.map(row=>row.entry)
+  for(const id of [reader.credential.id,traceReader.credential.id])assert.ok(auditRows.some(row=>row.action==='telemetry.standard-read'&&row.phase==='succeeded'&&row.actorRef===id&&row.entityRef),'private audit links each standard reader to its opaque native snapshot')
+  assert.ok(auditRows.some(row=>row.action==='telemetry.standard-read'&&row.phase==='denied'&&row.status===401),'private audit retains standard read refusal')
+  for(const secret of [source.secret,reader.secret,traceReader.secret,quota.secret,foreign.secret,clone.secret])assert.ok(!auditText.includes(secret),'standard read credentials stay out of private audit contents')
   console.log('STANDARD_READ_RESULT '+JSON.stringify({metricSeries:all.length,metricSamples:all.reduce((n,series)=>n+series.values.length,0),traceIds:traceIds.length,selectedTraceSpans:spans.length,prometheus:'3.5.0',tempoClient:'2.8.2',result:'passed'}))
   console.log('PROBE PORT-061 standard traces: captured stock HTTP and Kafka spans -> official OTLP binary reader exact spans and stock Tempo CLI; restricted span set and explicit partial evidence; restart and inactive restore')
   return {metrics,estate,reader,source,scope,traceDocument:original}
@@ -416,5 +426,19 @@ export async function standardSchemaProof({origin,cookie,call,source,reader,post
  assert.equal(pending,0)
  const exhausted=await remoteRead(call,reader.secret,{from:4000000n,through:4002000n})
  assert.equal(exhausted.status,422);assert.deepEqual(await exhausted.json(),{error:'standard_read_budget_exceeded'})
+ const largeAt=5000000000000n
+ for(let batch=0;batch<6;batch++){
+  const payload={resourceMetrics:[{resource:{attributes},scopeMetrics:[{metrics:[{name:'synthetic.edge.bytes',gauge:{dataPoints:Array.from({length:10},(_,index)=>({timeUnixNano:String(largeAt+BigInt(batch*10+index)*1000000n),asInt:String(index),attributes:[{key:'synthetic.payload',value:{stringValue:'x'.repeat(20000)}}]}))}}]}]}]}
+  await value(await call('/v1/metrics',{method:'POST',headers:{...auth(source.secret),'content-type':'application/json'},body:JSON.stringify(payload)}))
+ }
+ let bytesPending=1;for(let pass=0;pass<20&&bytesPending;pass++)bytesPending=(await value(await post(api+'/ingest/drain',{}))).pendingBatches
+ assert.equal(bytesPending,0)
+ const nativeBytes=await value(await call(api+'/ingest/records?'+new URLSearchParams({signal:'metrics',metric:'synthetic.edge.bytes',limit:'200'}),{headers:auth(reader.secret)}))
+ assert.equal(nativeBytes.records.length,60);assert.equal(nativeBytes.cursor,null)
+ assert.ok(nativeBytes.records.reduce((n,row)=>n+Buffer.byteLength(JSON.stringify(row.payload)),0)>1024*1024,'the byte refusal is exercised below the row cap')
+ const byteRefusal=await remoteRead(call,reader.secret,{from:largeAt/1000000n,through:largeAt/1000000n+59n})
+ assert.equal(byteRefusal.status,422);assert.deepEqual(await byteRefusal.json(),{error:'standard_read_budget_exceeded'})
+ const unchanged=await value(await call(api+'/ingest/records?'+new URLSearchParams({signal:'metrics',metric:'synthetic.edge.bytes',limit:'200'}),{headers:auth(reader.secret)}))
+ assert.deepEqual(unchanged.records,nativeBytes.records,'a budget refusal changes no retained sample')
  console.log('PROBE PORT-061 schema and erasure: cumulative gauges, sums, buckets and summaries map exactly; raw float bits survive; delta and exponential inputs refuse; erased subject and replay remain absent after restart')
 }
