@@ -377,7 +377,9 @@ export async function standardAnalyticalJourney(){
   await estate.stop('standby')
   try{assert.equal((await remoteRead(call,result.reader.secret,window)).status,503)}finally{await estate.start('standby')}
   await connect('primary')
-  await standardSchemaProof({origin,cookie,call,source:result.source,reader:result.reader,post,restartWorker,sql,compareBackend:async probe=>{
+  await standardAnalyticalSchemaProof({origin,cookie,call,source:result.source,reader:result.reader,post,restartWorker,sql,seedErasureJournal:async batches=>{
+   for(const batch of batches)await getDb().prepare('INSERT INTO porthole_erased_batches(id,content_digest,erased_at) SELECT id,digest,? FROM porthole_ingest_batches WHERE id=?').bind(Date.now(),batch.id).run()
+  },compareBackend:async probe=>{
    await connect('standby');try{await probe()}finally{await connect('primary')}
   }})
   console.log('PROBE PORT-061 authority: both real analytical backends -> same stock samples; mid-read revoke and expiry -> 401; narrowing and custody change -> 409; quota -> 429; excluded records absent; unavailable backend -> 503')
@@ -386,7 +388,47 @@ export async function standardAnalyticalJourney(){
 
 /** Official-schema edges complement the stock producers, including wire forms
  * those producers cannot emit (summary and stale float bit patterns). */
-export async function standardSchemaProof({origin,cookie,call,source,reader,post,restartWorker,sql,compareBackend}) {
+export async function standardSchemaProof(context) {
+ const proof=await standardMappingProof(context)
+ const {post,call,source,reader,restartWorker}=context,{query,wire,traceId,traceWire}=proof
+ const preview=await value(await post(api+'/subject-erasure',{identifier:'synthetic-porthole-6110'}))
+ assert.equal(preview.canApply,true)
+ await value(await post(api+'/subject-erasure/apply',{identifier:'synthetic-porthole-6110',digest:preview.digest,confirm:'erase-exact-batches'}))
+ assert.deepEqual(await remoteSeries(await remoteRead(call,reader.secret,query)),[],'erased original metric batch never appears in standard reads')
+ assert.equal((await call('/api/traces/'+traceId,{headers:auth(reader.secret)})).status,404,'erased spans never appear through trace-by-ID')
+ await restartWorker()
+ assert.equal((await call('/v1/traces',{method:'POST',headers:{...auth(source.secret),'content-type':'application/json'},body:traceWire})).status,409,'erased trace capture cannot resurrect')
+ assert.equal((await call('/v1/metrics',{method:'POST',headers:{...auth(source.secret),'content-type':'application/json'},body:wire})).status,409,'replayed erased wire cannot resurrect a standard sample')
+ await standardBudgetProof({...context,...proof})
+ console.log('PROBE PORT-061 schema and erasure: cumulative gauges, sums, buckets and summaries map exactly; raw float bits survive; delta and exponential inputs refuse; native erased subject and replay remain absent after restart')
+}
+
+/** Analytical deletion remains held by PORT-035. A pre-existing journal fixture
+ * proves only the read fence against stale copies, never physical deletion. */
+async function standardAnalyticalSchemaProof(context) {
+ const proof=await standardMappingProof(context)
+ const {post,call,source,reader,restartWorker,seedErasureJournal,compareBackend}=context,{query,rows,wire,traceId,traceWire}=proof
+ const preview=await value(await post(api+'/subject-erasure',{identifier:'synthetic-porthole-6110'}))
+ assert.equal(preview.canApply,true)
+ const applied=await post(api+'/subject-erasure/apply',{identifier:'synthetic-porthole-6110',digest:preview.digest,confirm:'erase-exact-batches'})
+ assert.equal(applied.status,409);assert.deepEqual(await applied.json(),{error:'analytical_erasure_not_supported'})
+ assert.deepEqual(await remoteSeries(await remoteRead(call,reader.secret,query)),rows,'unsupported erasure changes no metric custody')
+ assert.equal((await call('/api/traces/'+traceId,{headers:auth(reader.secret)})).status,200,'unsupported erasure changes no trace custody')
+ await seedErasureJournal(preview.batches)
+ const journalFence=async()=>{
+  for(const refusal of [await remoteRead(call,reader.secret,query),await call('/api/traces/'+traceId,{headers:auth(reader.secret)})]){
+   assert.equal(refusal.status,409);assert.deepEqual(await refusal.json(),{error:'standard_read_custody_changed'},'journaled stale copies release no telemetry')
+  }
+ }
+ await journalFence();await compareBackend(journalFence)
+ await restartWorker();await journalFence()
+ assert.equal((await call('/v1/traces',{method:'POST',headers:{...auth(source.secret),'content-type':'application/json'},body:traceWire})).status,409,'journaled trace replay refuses')
+ assert.equal((await call('/v1/metrics',{method:'POST',headers:{...auth(source.secret),'content-type':'application/json'},body:wire})).status,409,'journaled metric replay refuses')
+ await standardBudgetProof({...context,...proof})
+ console.log('PROBE PORT-061 analytical schema: exact mappings and legacy quotas; analytical erasure refuses unchanged; prior-journal fixture fences both stores and replay; complete row and byte budget refusals')
+}
+
+async function standardMappingProof({origin,cookie,call,source,reader,post,restartWorker,sql,compareBackend}) {
  const drain=async()=>{
   let result
   for(let pass=0;pass<20;pass++){
@@ -485,14 +527,10 @@ export async function standardSchemaProof({origin,cookie,call,source,reader,post
   const decoded=JSON.parse((await execute(python,['tests/porthole/export-otlp-reader.py','--trace',file])).stdout)
   assert.deepEqual(decoded.resourceSpans[0].scopeSpans[0].spans[0].attributes,maskedSpan.attributes,'official generated OTLP reader decodes every retained mask and compound attribute')
  }finally{await rm(maskedDirectory,{recursive:true,force:true})}
- const preview=await value(await post(api+'/subject-erasure',{identifier:'synthetic-porthole-6110'}))
- assert.equal(preview.canApply,true)
- await value(await post(api+'/subject-erasure/apply',{identifier:'synthetic-porthole-6110',digest:preview.digest,confirm:'erase-exact-batches'}))
- assert.deepEqual(await remoteSeries(await remoteRead(call,reader.secret,query)),[],'erased original metric batch never appears in standard reads')
- assert.equal((await call('/api/traces/'+traceId,{headers:auth(reader.secret)})).status,404,'erased spans never appear through trace-by-ID')
- await restartWorker()
- assert.equal((await call('/v1/traces',{method:'POST',headers:{...auth(source.secret),'content-type':'application/json'},body:traceWire})).status,409,'erased trace capture cannot resurrect')
- assert.equal((await call('/v1/metrics',{method:'POST',headers:{...auth(source.secret),'content-type':'application/json'},body:wire})).status,409,'replayed erased wire cannot resurrect a standard sample')
+ return {attributes,query,rows,wire,traceId,traceWire,drain}
+}
+
+async function standardBudgetProof({attributes,call,source,reader,post,drain,compareBackend}) {
  for(let offset=0;offset<2001;offset+=100){
   const budgetWire=JSON.stringify({resourceMetrics:[{resource:{attributes},scopeMetrics:[{metrics:[{name:'synthetic.edge.budget',gauge:{dataPoints:Array.from({length:Math.min(100,2001-offset)},(_,index)=>({timeUnixNano:String(4000000000000n+BigInt(offset+index)*1000000n),asInt:String(offset+index)}))}}]}]}]})
   await value(await call('/v1/metrics',{method:'POST',headers:{...auth(source.secret),'content-type':'application/json'},body:budgetWire}))
@@ -533,8 +571,5 @@ export async function standardSchemaProof({origin,cookie,call,source,reader,post
   assert.equal((await call('/api/traces/'+traceBudgetId,{headers:auth(reader.secret)})).status,422)
   assert.equal((await call('/api/traces/'+byteTraceId,{headers:auth(reader.secret)})).status,422)
   assert.equal((await remoteRead(call,reader.secret,{from:4000000n,through:4002000n})).status,422)
-  assert.deepEqual(await remoteSeries(await remoteRead(call,reader.secret,query)),[],'the peer analytical store cannot resurrect erased samples')
-  assert.equal((await call('/api/traces/'+traceId,{headers:auth(reader.secret)})).status,404,'the peer analytical store cannot resurrect erased spans')
  })
- console.log('PROBE PORT-061 schema and erasure: cumulative gauges, sums, buckets and summaries map exactly; raw float bits survive; delta and exponential inputs refuse; erased subject and replay remain absent after restart')
 }
