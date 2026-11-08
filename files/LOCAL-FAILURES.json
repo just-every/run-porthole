@@ -1,0 +1,25 @@
+[
+  {
+    "head": "75f6c5fc9aea85b6884ac444f4948b4743fc503e",
+    "command": "PORTHOLE_DASHBOARD_ONLY=1 NODE_OPTIONS='--import /tmp/porthole-chromium.mjs' node tests/runtime.mjs",
+    "exit": 1,
+    "test": "widgetJourney",
+    "failure": "page.reload: net::ERR_ABORTED; maybe frame was detached?",
+    "resolution": "Unchanged repeat passed every widget assertion; no test or product edit for this navigation failure."
+  },
+  {
+    "head": "c190cc4d735402f4901ea490640b2fab191a8066",
+    "command": "PORTHOLE_DASHBOARD_ONLY=1 NODE_OPTIONS='--import /tmp/porthole-chromium.mjs' node tests/runtime.mjs",
+    "exit": 1,
+    "test": "clusterArchiveJourney -> savedExport",
+    "failure": "archive_semantics_invalid; HTTP 422 instead of 200",
+    "resolution": "Corrected range descriptor projection and portable range-bound validation. Both backend export probes and complete dashboard inactive-restore journey passed before merging current main."
+  },
+  {
+    "head": "28b8f434847d7636674252bbd14f3a9a1e9a9907",
+    "command": "git merge --no-edit origin/main",
+    "exit": 1,
+    "failure": "Conflicts in sources.lock.json and src/porthole/portability/format.ts",
+    "resolution": "Preserved main contract and generated views whole, retained both imports, regenerated the source lock and committed merge c6e2bdebeed263216b19e48da07bb59fcbf75cfb. A shell continuation pushed the preceding committed head before resolution; published history was retained and never rewritten."
+  }
+]

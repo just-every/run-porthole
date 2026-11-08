@@ -1,0 +1,273 @@
+{
+  "artifacts": [
+    {
+      "bytes": 231,
+      "path": "CI-ALL.jsonl",
+      "sha256": "1a33f187d04105183b6dab6c2407f987ed5134e21a305025efd599b03ee0a07a"
+    },
+    {
+      "bytes": 200,
+      "path": "CI-STATUS.json",
+      "sha256": "5e4c4f2fd6119a661f1517f51caf444bcd8c4f28d1b98c56b7b45504099592cc"
+    },
+    {
+      "bytes": 221,
+      "path": "CI.jsonl",
+      "sha256": "2308c4a24a33be384f13792c2df79bd86fb3d3b30e885d5becddca089a8ec0da"
+    },
+    {
+      "bytes": 1481,
+      "path": "LOCAL-FAILURES.json",
+      "sha256": "8540374c9e4801a24d3d08921bbd1982af44b7bc53da5780efd3bf3b3be55164"
+    },
+    {
+      "bytes": 1158,
+      "path": "MAIN-CI.jsonl",
+      "sha256": "32f8e32aa8629fbef96e045bad221a97a4fe6bdb73930c515bdd18fc67a3bbf5"
+    },
+    {
+      "bytes": 77,
+      "path": "REMOTE.txt",
+      "sha256": "442b84edffdf40baed5d5808492c4c5d75ae84b84c2ac9f49a66f558e02f6684"
+    },
+    {
+      "bytes": 18204,
+      "path": "REPORT.md",
+      "sha256": "25a3d2aaddd943d96aa41b58f37a6d6ca706d2d3c25ecb37ab3380ccdc1061cd"
+    },
+    {
+      "bytes": 2138,
+      "path": "build.log",
+      "sha256": "416740d3898cd8cf258e8641c0155b7e4f0bcfc13b5a190e49ef9b686737177d"
+    },
+    {
+      "bytes": 44,
+      "path": "contract-check.log",
+      "sha256": "a2faa7e6d067897602dd70df39be4dfe3f7154191a3756f84dac167121572fc0"
+    },
+    {
+      "bytes": 44,
+      "path": "contract-write.log",
+      "sha256": "e7ffbe1569979fce95019b8e183211c54215a47da04813125e8a1682dd956fa0"
+    },
+    {
+      "bytes": 2374,
+      "path": "dashboard.log",
+      "sha256": "68f2ac532345ae62d0b9b7acc7379711d15a23524a611921534a3623a192f28f"
+    },
+    {
+      "bytes": 0,
+      "path": "first-party.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 8936,
+      "path": "range.log",
+      "sha256": "da5e371117171578ea5b8d8c1d0175ceaf1fca0953063dbe7dafb2130f3e771a"
+    },
+    {
+      "bytes": 113,
+      "path": "schema-check.log",
+      "sha256": "5f81b426eb1801c6e7778b33d0304ed0dc8647112c8a3c9f7435e0453d8aee3a"
+    },
+    {
+      "bytes": 198251,
+      "path": "screens/metric-range-editor-1440.png",
+      "sha256": "f8b6dad2e05de32678cbabf6552765be273d16e3ecad826335ced42ad64393d0"
+    },
+    {
+      "bytes": 53278,
+      "path": "screens/metric-range-editor-390.png",
+      "sha256": "f9fd027aff1ee719feafbd4f27329232c8e838d3b8e856b5ac9d1f93f0fd457f"
+    },
+    {
+      "bytes": 42655,
+      "path": "screens/metric-range-refusal-1440.png",
+      "sha256": "990f7e7dbacf5662f7f5d5774010b22da21882d09d2c8fad2b816af007d2cf4f"
+    },
+    {
+      "bytes": 33987,
+      "path": "screens/metric-range-refusal-390.png",
+      "sha256": "fd53d8c736bce0e1ab011eebe51af767659380dd8ad41e2553fc1f8104e0f06c"
+    },
+    {
+      "bytes": 198816,
+      "path": "screens/metric-range-result-1440.png",
+      "sha256": "cfd6cc3160ffe54ff823e436bcf68836518abcbb138be683ac777f3dd1b647b1"
+    },
+    {
+      "bytes": 169671,
+      "path": "screens/metric-range-result-390.png",
+      "sha256": "379b8ed4ba192e5936bc254d12cd68658bdb6421de97ba325b1239e6dd0b6ebe"
+    },
+    {
+      "bytes": 246161,
+      "path": "source-check.log",
+      "sha256": "afde61941dbd4b25b390da59863c61569753ea20df66baff255c6bff4d5d23c5"
+    },
+    {
+      "bytes": 131,
+      "path": "typecheck.log",
+      "sha256": "5de9a50a0cc166b73b414abe5a540d82898aef7ce0690a353ee8927b83c5d235"
+    }
+  ],
+  "base_main": "6f990f7b880684e06e96755b79ee9747630f89f3",
+  "branch": "cloud/sx-porthole-c-f456",
+  "ci": [
+    {
+      "conclusion": "cancelled",
+      "event": "push",
+      "head_sha": "c6e2bdebeed263216b19e48da07bb59fcbf75cfb",
+      "html_url": "https://github.com/just-every/run-porthole/actions/runs/42489688457",
+      "id": 42489688457,
+      "name": "Verify",
+      "status": "completed"
+    }
+  ],
+  "ci_last_observed_at": "2026-11-08T14:46:28Z",
+  "contract": {
+    "claim": {
+      "PORT-099": {
+        "gap": "Recorded green exact-SHA Verify pending after cancelled run 42489688457.",
+        "points": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "status": "PARTIAL"
+      }
+    },
+    "counts": {
+      "done": 10,
+      "missing": 69,
+      "partial": 20
+    },
+    "generated_view_diff_bytes": 0,
+    "other_claims": [],
+    "proposed_after_gate": {
+      "done": 11,
+      "missing": 68,
+      "partial": 20
+    },
+    "rows": 99,
+    "source_diff_bytes": 0
+  },
+  "created_at": "2026-11-08T14:28:39.239407+00:00",
+  "custody": "PUSHED",
+  "done_riders": {
+    "1": "pending-green-Verify",
+    "10": "pass-or-inspected-or-not-applicable",
+    "11": "pending-guarded-lander",
+    "2": "pass-or-inspected-or-not-applicable",
+    "3": "pending-green-Verify",
+    "4": "pass-or-inspected-or-not-applicable",
+    "5": "pass-or-inspected-or-not-applicable",
+    "6": "pass-or-inspected-or-not-applicable",
+    "7": "pass-or-inspected-or-not-applicable",
+    "8": "pass-or-inspected-or-not-applicable",
+    "9": "pass-or-inspected-or-not-applicable"
+  },
+  "failures_file": "LOCAL-FAILURES.json",
+  "finalized_at": "2026-11-08T14:48:19.356531+00:00",
+  "github_calls_used": 8,
+  "head": "c6e2bdebeed263216b19e48da07bb59fcbf75cfb",
+  "identity_check": {
+    "all_candidate_commits": true,
+    "candidate_commit_count": 4,
+    "fleet_authors": true,
+    "fleet_committers": true,
+    "side_parents_included": true,
+    "trailers": []
+  },
+  "landing": {
+    "candidate_run_site": null,
+    "main_equals_candidate": false,
+    "owner": "maintained fleet lander"
+  },
+  "local_checks": [
+    {
+      "command": "npx -y @runeditrun/rer setup --owner-email fleet@runeditrun.com --non-interactive",
+      "exit": 0
+    },
+    {
+      "command": "cloud_run npx -y @runeditrun/rer build",
+      "exit": 0,
+      "head": "c6e2bdebeed263216b19e48da07bb59fcbf75cfb",
+      "log": "build.log"
+    },
+    {
+      "command": "pnpm typecheck",
+      "exit": 0,
+      "head": "c6e2bdebeed263216b19e48da07bb59fcbf75cfb",
+      "log": "typecheck.log"
+    },
+    {
+      "backends": [
+        "local",
+        "analytical"
+      ],
+      "browser_args": [
+        "--no-sandbox"
+      ],
+      "browser_executable": "/usr/bin/chromium",
+      "command": "PORTHOLE_METRIC_UNITS_ONLY=1 node tests/runtime.mjs",
+      "exit": 0,
+      "head": "c6e2bdebeed263216b19e48da07bb59fcbf75cfb",
+      "log": "range.log"
+    },
+    {
+      "command": "PORTHOLE_DASHBOARD_ONLY=1 NODE_OPTIONS='--import /tmp/porthole-chromium.mjs' node tests/runtime.mjs",
+      "exit": 0,
+      "head": "28b8f434847d7636674252bbd14f3a9a1e9a9907",
+      "log": "dashboard.log",
+      "source_equivalence": "The merge preserves widget and range behavior; adds the already-green database domain and both validator imports. Exact merged range and export probes repeated."
+    },
+    {
+      "command": "node scripts/porthole/contract-docs.mjs write PORT-099",
+      "exit": 0,
+      "generated_views_restored": true,
+      "log": "contract-write.log"
+    },
+    {
+      "command": "node scripts/porthole/contract-docs.mjs check PORT-099",
+      "exit": 0,
+      "log": "contract-check.log"
+    },
+    {
+      "command": "node scripts/porthole/public-schema.mjs --check",
+      "exit": 0,
+      "head": "c6e2bdebeed263216b19e48da07bb59fcbf75cfb",
+      "log": "schema-check.log"
+    },
+    {
+      "command": "pnpm source:lock; pnpm source:check",
+      "exit": 0,
+      "head": "c6e2bdebeed263216b19e48da07bb59fcbf75cfb",
+      "log": "source-check.log"
+    },
+    {
+      "command": "pnpm exec rer check --profile first-party",
+      "exit": 0,
+      "head": "c6e2bdebeed263216b19e48da07bb59fcbf75cfb",
+      "log": "first-party.log"
+    }
+  ],
+  "pr": null,
+  "product_push": "confirmed",
+  "publication_scan": {
+    "commit": "c6e2bdebeed263216b19e48da07bb59fcbf75cfb",
+    "complete": null,
+    "findings": null,
+    "historyScanned": null,
+    "reason": "Fleet Mac lander owns the scan; not run in this cloud"
+  },
+  "ready": false,
+  "remote_ref_confirmed": {
+    "head": "c6e2bdebeed263216b19e48da07bb59fcbf75cfb",
+    "ref": "refs/heads/cloud/sx-porthole-c-f456"
+  },
+  "repository": "just-every/run-porthole",
+  "schema": 1,
+  "tag": "sx-porthole-c-f456"
+}
