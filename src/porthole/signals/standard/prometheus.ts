@@ -2,7 +2,7 @@ import { RE2JS } from 're2js'
 import { fail } from '../../security/authority'
 import { canonical } from '../../ingest/model'
 import { attributes } from '../../ingest/normalize'
-import { fields, bytes, Proto } from '../../ingest/wire'
+import { fields, bytes, Proto, hex } from '../../ingest/wire'
 import { concat, integer, message, text, float, scalar, string, typed } from './protobuf'
 import type { StandardRow } from './read'
 
@@ -56,7 +56,8 @@ function number(value:unknown):number {
 function metricName(name:string,unit:string,counter:boolean) {
  let n=normalize(name,true),u=unit.replace(/\{[^}]*\}/g,'')
  if(counter)n=n.replace(/_total$/,'')
- const parts=u.split('/');u=parts.map((part,i)=>unitNames[part]??normalize(part)).join('_per_')
+ const perUnits:Record<string,string>={d:'day',h:'hour',min:'minute',s:'second',ms:'millisecond',us:'microsecond',ns:'nanosecond'}
+ const parts=u.split('/');u=parts.map((part,i)=>i?perUnits[part]??unitNames[part]??normalize(part):part==='1'&&parts.length>1?'':unitNames[part]??normalize(part)).join('_per_').replace(/^_+/,'')
  if(u&&!(counter&&unit==='1')&&!n.endsWith('_'+u))n+='_'+u
  if(counter)n+='_total'
  if(!n)fail('unmappable_metric_name',422)
@@ -73,6 +74,8 @@ export function metricPoints(row:StandardRow):Point[] {
  const kind=String(p.metricKind),container=metric[kind] as Record<string,unknown>
  if(!['gauge','sum','histogram','summary'].includes(kind))fail('unmappable_metric_type',422)
  if(['sum','histogram'].includes(kind)&&![2,'AGGREGATION_TEMPORALITY_CUMULATIVE'].includes(container.aggregationTemporality as number))fail('unmappable_metric_temporality',422)
+ const hint=attributes(metric.metadata)['prometheus.type']
+ if(hint!==undefined&&!['gauge','counter','unknown'].includes(String(hint)))fail('unmappable_metric_metadata',422)
  const counter=kind==='sum'&&container.isMonotonic===true,name=metricName(String(metric.name),String(metric.unit??''),counter)
  const resource=attributes((p.resource as Record<string,unknown>)?.attributes),base=labels(attributes(record.attributes))
  // This declared receiver profile disables scope-info series and scope labels,
@@ -116,7 +119,7 @@ export function readResponse(queries:ReadQuery[],rows:StandardRow[]) {
    const key=canonical(p.labels);let group=series.get(key)
    if(!group){group={labels:p.labels,samples:new Map()};series.set(key,group)}
    const time=p.timestamp.toString(),old=group.samples.get(time)
-   if(old&&(old.bits??String(old.value))!==(p.bits??String(p.value)))fail('conflicting_standard_samples',409)
+   if(old&&(old.bits??hex(float(1,old.value).subarray(1)))!==(p.bits??hex(float(1,p.value).subarray(1))))fail('conflicting_standard_samples',409)
    group.samples.set(time,p)
    if(++sampleCount>20000)fail('standard_read_budget_exceeded',422)
   }

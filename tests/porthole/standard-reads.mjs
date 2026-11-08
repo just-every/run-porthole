@@ -122,9 +122,9 @@ async function stockMetrics({origin,cookie,call,reader,source,scratch}){
   const remoteOrigin=await start('reader',`global:\n  scrape_interval: 1s\nremote_read:\n  - url: ${relayOrigin}/api/v1/read\n    read_recent: true\n    authorization:\n      credentials_file: ${keyPath}\n`)
   const exporter=new OTLPMetricExporter({url:relayOrigin+'/v1/metrics',headers:auth(source.secret)})
   provider=new MeterProvider({resource:resourceFromAttributes({'service.name':scope.services[0],'service.instance.id':'synthetic-porthole-6101','deployment.environment.name':'production','team.name':'commerce'}),readers:[new PeriodicExportingMetricReader({exporter,exportIntervalMillis:3600000})],views:[{instrumentName:'synthetic.otel.histogram',aggregation:{type:AggregationType.EXPLICIT_BUCKET_HISTOGRAM,boundaries:[0.1,0.5,1]}}]})
-  const meter=provider.getMeter('synthetic-porthole-6102','1.0'),otelGauge=meter.createGauge('synthetic.otel.gauge',{unit:'ms'}),otelCounter=meter.createCounter('synthetic.otel.requests',{unit:'{request}'}),otelHistogram=meter.createHistogram('synthetic.otel.histogram',{unit:'s'})
+  const meter=provider.getMeter('synthetic-porthole-6102','1.0'),otelGauge=meter.createGauge('synthetic.otel.gauge',{unit:'ms'}),otelCounter=meter.createCounter('synthetic.otel.requests',{unit:'{request}'}),otelHistogram=meter.createHistogram('synthetic.otel.histogram',{unit:'s'}),velocity=meter.createGauge('synthetic.otel.velocity',{unit:'m/s'}),ratio=meter.createGauge('synthetic.otel.ratio',{unit:'1'})
   for(let i=0;i<5;i++){
-   await fetch(producerOrigin+'/work');const emittedAt=scrapeAt;await until(async()=>sourceSamples.some(s=>s.time===emittedAt),'reference scrapes each source generation');otelGauge.record(20+i,{region:'synthetic-porthole-6103'});otelCounter.add(2,{region:'synthetic-porthole-6103'});otelHistogram.record(0.2,{region:'synthetic-porthole-6103'})
+   await fetch(producerOrigin+'/work');const emittedAt=scrapeAt;await until(async()=>sourceSamples.some(s=>s.time===emittedAt),'reference scrapes each source generation');otelGauge.record(20+i,{region:'synthetic-porthole-6103'});otelCounter.add(2,{region:'synthetic-porthole-6103'});otelHistogram.record(0.2,{region:'synthetic-porthole-6103'});velocity.record(i+1);ratio.record((i+1)/10)
    await provider.forceFlush();await delay(1100)
   }
   await value(await call(api+'/ingest/drain',{method:'POST',headers:{origin,cookie,'content-type':'application/json'},body:'{}'}))
@@ -139,7 +139,7 @@ async function stockMetrics({origin,cookie,call,reader,source,scratch}){
   console.log('Stock scrape generations '+JSON.stringify({scrapes:sourceSamples.length,timestamps:[...new Set(sourceSamples.map(s=>s.time))],counter:(await query(referenceOrigin,'synthetic_scrape_requests_total[2m]',Date.now()/1000)).result.slice(0,1)}))
   await until(async()=>{const data=await query(referenceOrigin,'min(count_over_time(synthetic_scrape_requests_total[2m]))',Date.now()/1000);return Number(data.result[0]?.value[1])>=3},'reference retains multiple real counter scrapes')
   const instant=Date.now()/1000
-  const expressions=['synthetic_scrape_gauge','sum by (producer) (synthetic_scrape_requests_total)','rate(synthetic_scrape_requests_total[2m])','increase(synthetic_scrape_requests_total[2m])','synthetic_scrape_latency_seconds_bucket','synthetic_otel_gauge_milliseconds','synthetic_otel_requests_total','synthetic_otel_histogram_seconds_bucket','synthetic_otel_histogram_seconds_sum','synthetic_otel_histogram_seconds_count']
+  const expressions=['synthetic_scrape_gauge','sum by (producer) (synthetic_scrape_requests_total)','rate(synthetic_scrape_requests_total[2m])','increase(synthetic_scrape_requests_total[2m])','synthetic_scrape_latency_seconds_bucket','synthetic_otel_gauge_milliseconds','synthetic_otel_requests_total','synthetic_otel_histogram_seconds_bucket','synthetic_otel_histogram_seconds_sum','synthetic_otel_histogram_seconds_count','synthetic_otel_velocity_meters_per_second','synthetic_otel_ratio']
   for(const expression of expressions){
    const reference=await query(referenceOrigin,expression,instant),actual=await query(remoteOrigin,expression,instant)
    const sort=data=>({...data,result:data.result.slice().sort((a,b)=>JSON.stringify(a.metric).localeCompare(JSON.stringify(b.metric)))})
@@ -151,7 +151,7 @@ async function stockMetrics({origin,cookie,call,reader,source,scratch}){
   assert.deepEqual(normalize(actual),normalize(reference),'every original label, timestamp and value survives stock remote-read')
   assert.ok(actual.result.reduce((n,s)=>n+s.values.length,0)>100,'multiple real scrapes and pages are reconciled')
   assert.ok(sourceSamples.length>=5);assert.equal(otlpPackets.length,5)
-  console.log('PROBE PORT-061 standard metrics: stock Prometheus 3.5.0 remote_read evaluates ten fixed expressions over real scrape and stock OTLP input -> exact reference series, labels, timestamps and values')
+  console.log('PROBE PORT-061 standard metrics: stock Prometheus 3.5.0 remote_read evaluates twelve fixed expressions over real scrape and stock OTLP input -> exact reference series, labels, timestamps and values')
   return {otlpPackets,instant,sourceSamples,referenceOrigin,readerOrigin:remoteOrigin}
  }finally{
   if(provider)await provider.shutdown()
@@ -188,24 +188,35 @@ export async function standardReadJourney({origin,cookie,call=(path,options)=>fe
   const traceSource=await mint('ingest',{scope:{...scope,services:['checkout','fulfillment'],environments:['production','staging'],teams:['commerce','fulfillment'],actions:['telemetry.write']}})
   const {serviceCatalogEstate}=await import('./polyglot/estate.mjs')
   const estate=await serviceCatalogEstate({origin,secret:traceSource.secret,dispatch:call})
-  await value(await post(api+'/ingest/drain',{}))
+  let traceDrain
+  for(let pass=0;pass<20;pass++){traceDrain=await value(await post(api+'/ingest/drain',{}));if(!traceDrain.pendingBatches&&traceDrain.analytical.complete)break}
+  assert.equal(traceDrain.pendingBatches,0);assert.equal(traceDrain.analytical.complete,true,'real analytical replicas cover all stock trace batches')
   const selected=estate.spans[0].traceId,expected=estate.spans.filter(span=>span.traceId===selected)
   assert.ok(expected.length>2)
   const traceReader=await mint('read',{scope:{...scope,services:['checkout','fulfillment'],teams:['commerce','fulfillment']}})
   const traceResponse=await call('/api/traces/'+selected,{headers:{...auth(traceReader.secret),accept:'application/protobuf'}})
-  assert.equal(traceResponse.status,200);assert.equal(traceResponse.headers.get('x-porthole-trace-completeness'),'partial')
+  assert.equal(traceResponse.status,200,await traceResponse.clone().text());assert.equal(traceResponse.headers.get('x-porthole-trace-completeness'),'partial')
   const file=join(scratch,'trace.pb');await writeFile(file,Buffer.from(await traceResponse.arrayBuffer()))
   const python=process.env.PORTHOLE_EXPORT_PYTHON??resolve('.cache/export-readers/bin/python')
   const original=JSON.parse((await execute(python,['tests/porthole/export-otlp-reader.py','--trace',file])).stdout)
   const spans=original.resourceSpans.flatMap(r=>r.scopeSpans.flatMap(s=>s.spans))
+  const grouped=document=>document.resourceSpans.flatMap(r=>r.scopeSpans.flatMap(s=>s.spans.map(span=>({resource:r.resource??{},resourceSchemaUrl:r.schemaUrl??'',scope:s.scope??{},scopeSchemaUrl:s.schemaUrl??'',span}))))
   const captured=[]
   for(let index=0;index<estate.packets.length;index++){
    const packetPath=join(scratch,'capture-'+index+'.pb');await writeFile(packetPath,estate.packets[index].body)
    const packet=JSON.parse((await execute(python,['tests/porthole/export-otlp-reader.py','--trace',packetPath])).stdout)
-   captured.push(...packet.resourceSpans.flatMap(r=>r.scopeSpans.flatMap(s=>s.spans)).filter(span=>span.traceId===selected))
+   captured.push(...grouped(packet).filter(item=>item.span.traceId===selected))
   }
   const canonical=item=>JSON.stringify(item,(_key,value)=>value&&typeof value==='object'&&!Array.isArray(value)?Object.fromEntries(Object.entries(value).sort(([a],[b])=>a.localeCompare(b))):value)
-  assert.deepEqual(spans.map(canonical).sort(),captured.map(canonical).sort(),'official generated OTLP reader matches captured stock-exported spans exactly')
+  assert.deepEqual(spans.map(s=>s.spanId).sort(),captured.map(s=>s.span.spanId).sort(),'every captured stock span identity survives standard retrieval')
+  // PORT-016's mandatory intake privacy normalizes the actual parameterized
+  // database statement before any retained wire. The standard reader must
+  // preserve that approved representation rather than recover source SQL.
+  for(const item of captured)for(const attribute of item.span.attributes??[])if(['db.statement','db.query.text','db.operation.text','sql.query'].includes(attribute.key)){
+   assert.equal(attribute.value.stringValue,'SELECT $1::text AS request_id')
+   attribute.value.stringValue='select ? : : text as request_id'
+  }
+  assert.deepEqual(grouped(original).map(canonical).sort(),captured.map(canonical).sort(),'official generated OTLP reader preserves every authorized stock span field, resource and scope after mandatory intake privacy')
   assert.deepEqual(spans.map(s=>s.spanId).sort(),expected.map(s=>s.spanId).sort(),'stock SDK receipts independently account for every returned span')
   const proxy=createServer(async(req,res)=>{const response=await call(req.url,{headers:{...auth(traceReader.secret),accept:req.headers.accept??'application/json'}});res.writeHead(response.status,Object.fromEntries(response.headers));res.end(Buffer.from(await response.arrayBuffer()))})
   const endpoint=await listen(proxy)
@@ -225,7 +236,7 @@ export async function standardReadJourney({origin,cookie,call=(path,options)=>fe
   if(withEmptyDestination){const {standardArchiveJourney}=await import('./archive.mjs');await standardArchiveJourney({origin,freshOwner,withEmptyDestination,reader,scope,expected:before,traceId:selected})}
   if(withEmptyDestination)await standardSchemaProof({origin,cookie,call,source,reader,post,restartWorker,sql})
   console.log('PROBE PORT-061 standard traces: captured stock HTTP and Kafka spans -> official OTLP binary reader exact spans and stock Tempo CLI; restricted span set and explicit partial evidence; restart and inactive restore')
-  return {metrics,estate,reader,source,scope}
+  return {metrics,estate,reader,source,scope,traceDocument:original}
  }finally{await rm(scratch,{recursive:true,force:true})}
 }
 
@@ -250,6 +261,8 @@ export async function standardAnalyticalJourney(){
   const allTrace=await value(await post(credential+'/mint',{name:'Live trace reader',class:'read',scope:{...scope,services:['checkout','fulfillment'],teams:['commerce','fulfillment']}}),201)
   const trace=await call('/api/traces/'+traceId,{headers:auth(allTrace.secret)})
   assert.equal(trace.status,200);assert.equal(trace.headers.get('x-porthole-trace-completeness'),'partial')
+  const jsonTrace=await trace.json()
+  assert.deepEqual(jsonTrace.batches.flatMap(r=>r.scopeSpans.flatMap(s=>s.spans)).map(s=>Buffer.from(s.spanId,'base64').toString('hex')).sort(),result.traceDocument.resourceSpans.flatMap(r=>r.scopeSpans.flatMap(s=>s.spans)).map(s=>s.spanId).sort(),'both analytical stores return every authorized stock span')
   const mint=async()=>value(await post(credential+'/mint',{name:'Live metric reader',class:'read',scope}),201)
   const afterLast=action=>{
    const run=async response=>{assert.equal(response.status,200);const page=await response.json();if(page.cursor)estate.afterQuery(run);else await action()}
