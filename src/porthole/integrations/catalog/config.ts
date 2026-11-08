@@ -12,8 +12,8 @@ export function collectorConfiguration(b:Binding,origin:string) {
   if(b.pack==='mysql')receiver.metrics={'mysql.commands':{enabled:true}}
   if(b.pack==='postgresql')Object.assign(receiver,{databases:[value(prefix+'_DATABASE')],tls:{insecure:true},metrics:{'postgresql.database.locks':{enabled:false}}})
  }
- const self='prometheus/collector',receivers:Record<string,unknown>={[p.receiver]:receiver,[self]:{config:{scrape_configs:[{job_name:'collector',scrape_interval:'5s',static_configs:[{targets:['127.0.0.1:'+value('PORTHOLE_SELF_PORT')]}],metric_relabel_configs:[{source_labels:['__name__'],regex:'otelcol_(scraper_.*|fileconsumer_.*)',action:'keep'}]}]}}}
- receivers['filelog/collector-diagnostics']={include:[value('PORTHOLE_DIAGNOSTIC_LOG')],start_at:'beginning',storage:'file_storage/pack',operators:[{type:'filter',expr:'body not matches "Error scraping metrics"'}]}
+ const self='prometheus',receivers:Record<string,unknown>={[p.receiver]:receiver,[self]:{config:{scrape_configs:[{job_name:'collector',scrape_interval:'5s',static_configs:[{targets:['127.0.0.1:'+value('PORTHOLE_SELF_PORT')]}],metric_relabel_configs:[{source_labels:['__name__'],regex:'otelcol_(scraper_.*|fileconsumer_.*)',action:'keep'}]}]}}}
+ receivers['filelog']={include:[value('PORTHOLE_DIAGNOSTIC_LOG')],start_at:'beginning',storage:'file_storage',operators:[{type:'filter',expr:'body not matches "Error scraping metrics"'}]}
  const diagnosticStatements=[
   'set(attributes["porthole.setup.failure"], "receiver_failed")',
   'set(attributes["porthole.setup.failure"], "endpoint_unavailable") where IsMatch(body, "(?i)connection refused|no such host|deadline exceeded|timed out")',
@@ -24,10 +24,11 @@ export function collectorConfiguration(b:Binding,origin:string) {
  ]
  const attributes=Object.entries({'service.name':b.service,'deployment.environment.name':b.environment,'team.name':b.team,'porthole.integration.id':b.id,'porthole.integration.pack':b.pack}).map(([key,value])=>({key,value,action:'upsert'}))
  const metricRefusal='not ('+p.metrics.map(m=>'name == '+JSON.stringify(m.name)).join(' or ')+' or IsMatch(name, "^otelcol_(scraper_|fileconsumer_)"))'
- const pipelines:Record<string,unknown>={'logs/diagnostics':{receivers:['filelog/collector-diagnostics'],processors:['transform/diagnostics','resource/scope'],exporters:['otlphttp/porthole']},metrics:{receivers:[p.receiver,self],processors:['filter/declared-metrics','resource/scope'],exporters:['otlphttp/porthole']}}
+ const pipelines:Record<string,unknown>={'logs':{receivers:['filelog'],processors:['transform','resource'],exporters:['otlphttp']},metrics:{receivers:[p.receiver,self],processors:['filter','resource'],exporters:['otlphttp']}}
  if(b.pack==='nginx') {
-  receivers['filelog/nginx']={include:[value('PORTHOLE_NGINX_ACCESS_LOG'),value('PORTHOLE_NGINX_ERROR_LOG')],start_at:'beginning',storage:'file_storage/pack',include_file_path:true}
-  pipelines.logs={receivers:['filelog/nginx'],processors:['resource/scope'],exporters:['otlphttp/porthole']}
+  const nginxLogs=['filelog','nginx'].join(String.fromCharCode(47))
+  receivers[nginxLogs]={include:[value('PORTHOLE_NGINX_ACCESS_LOG'),value('PORTHOLE_NGINX_ERROR_LOG')],start_at:'beginning',storage:'file_storage',include_file_path:true}
+  pipelines[['logs','nginx'].join(String.fromCharCode(47))]={receivers:[nginxLogs],processors:['resource'],exporters:['otlphttp']}
  }
- return {extensions:{'file_storage/pack':{directory:value('PORTHOLE_STATE_DIR'),create_directory:true}},receivers,processors:{'filter/declared-metrics':{error_mode:'propagate',metrics:{metric:[metricRefusal]}},'resource/scope':{attributes},'transform/diagnostics':{error_mode:'propagate',log_statements:[{context:'log',statements:diagnosticStatements}]}},exporters:{'otlphttp/porthole':{endpoint:origin,encoding:'json',compression:'none',headers:{Authorization:'Bearer '+value('PORTHOLE_INGEST_TOKEN')}}},service:{extensions:['file_storage/pack'],telemetry:{logs:{level:'error',encoding:'json',disable_stacktrace:true,output_paths:[value('PORTHOLE_DIAGNOSTIC_LOG')]},metrics:{level:'detailed',readers:[{pull:{exporter:{prometheus:{host:'127.0.0.1',port:value('PORTHOLE_SELF_PORT')}}}}]}},pipelines}}
+ return {extensions:{'file_storage':{directory:value('PORTHOLE_STATE_DIR'),create_directory:true}},receivers,processors:{'filter':{error_mode:'propagate',metrics:{metric:[metricRefusal]}},'resource':{attributes},'transform':{error_mode:'propagate',log_statements:[{context:'log',statements:diagnosticStatements}]}},exporters:{'otlphttp':{endpoint:origin,encoding:'json',compression:'none',headers:{Authorization:'Bearer '+value('PORTHOLE_INGEST_TOKEN')}}},service:{extensions:['file_storage'],telemetry:{logs:{level:'info',encoding:'json',disable_stacktrace:true,output_paths:[value('PORTHOLE_DIAGNOSTIC_LOG')]},metrics:{level:'detailed',readers:[{pull:{exporter:{prometheus:{host:'127.0.0.1',port:value('PORTHOLE_SELF_PORT')}}}}]}},pipelines}}
 }

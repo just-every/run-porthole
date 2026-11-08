@@ -13,9 +13,9 @@ export async function integrationService(pack) {
  const env={PORTHOLE_SELF_PORT:String(await freePort()),PORTHOLE_DIAGNOSTIC_LOG:join(directory,'diagnostics.log'),PORTHOLE_STATE_DIR:join(directory,'state')},prefix='PORTHOLE_'+pack.id.toUpperCase(),args=['run','-d','--name',name],ex=async(...argv)=>(await execute('docker',['exec',name,...argv],{maxBuffer:1024*1024})).stdout
  const setting=(key,value)=>args.push('-e',key+'='+value)
  const publish=p=>args.push('-p',`127.0.0.1:${port}:${p}`)
- let endpoint,ready,setup=async()=>{},workload,stats,deny,restore,metric=pack.metrics[0].name
- const fetchJson=async(path,options={},admin=false)=>{const r=await fetch(endpoint+path,{signal:AbortSignal.timeout(15000),...options,headers:{authorization:'Basic '+Buffer.from((admin?'elastic':user)+':'+password).toString('base64'),'content-type':'application/json',...options.headers}});if(!r.ok)throw Error('local_service_http_'+r.status);const text=await r.text();return text?JSON.parse(text):{}}
- const dispose=async()=>{for(const r of resources)await r().catch(()=>{});await execute('docker',['rm','-f',name]).catch(()=>{});await rm(directory,{recursive:true,force:true})}
+ let endpoint,ready,setup=async()=>{},workload,stats,deny,restore,extraStats=async()=>({}),denyFile,restoreFile,metric=pack.metrics[0].name
+ const fetchJson=async(path,options={},admin=false)=>{let r;try{r=await fetch(endpoint+path,{signal:AbortSignal.timeout(30000),...options,headers:{authorization:'Basic '+Buffer.from((admin?'elastic':user)+':'+password).toString('base64'),'content-type':'application/json',...options.headers}})}catch(error){throw Error('local_service_transport_'+pack.id+' '+path+' '+error.name)};if(!r.ok)throw Error('local_service_http_'+r.status);const text=await r.text();return text?JSON.parse(text):{}}
+ const dispose=async()=>{for(const r of resources)await r().catch(()=>{});await execute('docker',['rm','-f','-v',name]).catch(()=>{});if(process.env.PORTHOLE_RECLAIM_PACK_IMAGES==='1')await execute('docker',['image','rm',pack.serviceImage]).catch(()=>{});await rm(directory,{recursive:true,force:true})}
  if(pack.id==='postgresql') {
   publish(5432);setting('POSTGRES_PASSWORD',password);setting('POSTGRES_DB','porthole');endpoint='127.0.0.1:'+port
   const sql=query=>ex('psql','-U','postgres','-d','porthole','-Atc',query)
@@ -47,6 +47,7 @@ export async function integrationService(pack) {
   await writeFile(join(directory,'nginx.conf'),config);await writeFile(join(directory,'access.log'),'');await writeFile(join(directory,'error.log'),'')
   args.push('-v',directory+':/proof','-v',join(directory,'nginx.conf')+':/etc/nginx/nginx.conf:ro')
   env.PORTHOLE_NGINX_ACCESS_LOG=join(directory,'access.log');env.PORTHOLE_NGINX_ERROR_LOG=join(directory,'error.log')
+  denyFile=kind=>chmod(env['PORTHOLE_NGINX_'+kind+'_LOG'],0o000);restoreFile=kind=>chmod(env['PORTHOLE_NGINX_'+kind+'_LOG'],0o644)
   ready=async()=>{const r=await fetch(endpoint);if(!r.ok)throw Error('not_ready')}
   workload=async()=>{for(let i=0;i<7;i++)await fetch('http://127.0.0.1:'+port+'/load');await fetch('http://127.0.0.1:'+port+'/missing');return 8}
   stats=async()=>Number((await (await fetch(endpoint)).text()).trim().split('\n')[2].trim().split(/\s+/)[2])
@@ -65,13 +66,14 @@ export async function integrationService(pack) {
   ready=()=>sql('db.runCommand({ping:1})');setup=()=>sql(`db.createUser({user:'observe',pwd:'${password}',roles:[{role:'clusterMonitor',db:'admin'}]})`)
   workload=async()=>{await sql('db.getSiblingDB("porthole").records.insertMany(Array.from({length:7},(_,i)=>({value:i})))');return 7}
   stats=async()=>{const r=await sql('JSON.stringify({insert:Number(db.serverStatus().opcounters.insert)})');return Number(JSON.parse(r.trim()).insert)}
+  extraStats=async()=>({'mongodb.object.count':Number((await sql('Number(db.getSiblingDB("porthole").stats().objects)')).trim())})
   deny=()=>sql("db.revokeRolesFromUser('observe',[{role:'clusterMonitor',db:'admin'}])");restore=()=>sql("db.grantRolesToUser('observe',[{role:'clusterMonitor',db:'admin'}])")
  }else if(pack.id==='elasticsearch') {
-  publish(9200);setting('discovery.type','single-node');setting('xpack.security.enabled','true');setting('xpack.security.http.ssl.enabled','false');setting('ELASTIC_PASSWORD',password);setting('ES_JAVA_OPTS','-Xms256m -Xmx256m');endpoint='http://127.0.0.1:'+port
+  publish(9200);setting('discovery.type','single-node');setting('xpack.security.enabled','true');setting('xpack.security.http.ssl.enabled','false');setting('ELASTIC_PASSWORD',password);setting('node.processors','2');setting('ES_JAVA_OPTS','-Xms512m -Xmx512m -XX:ActiveProcessorCount=2');endpoint='http://127.0.0.1:'+port
   ready=()=>fetchJson('/',{},true)
   const grant=()=>fetchJson('/_security/role/observe',{method:'PUT',body:JSON.stringify({cluster:['monitor'],indices:[{names:['*'],privileges:['monitor']}]})},true)
   setup=async()=>{await grant();await fetchJson('/_security/user/observe',{method:'POST',body:JSON.stringify({password,roles:['observe']})},true)}
-  workload=async()=>{for(let i=0;i<7;i++)await fetchJson('/porthole/_doc/'+i+'?refresh=true',{method:'PUT',body:JSON.stringify({value:i})},true);return 7}
+  workload=async()=>{for(let i=0;i<7;i++)await fetchJson('/porthole/_doc/'+i+'?refresh=true',{method:'PUT',body:JSON.stringify({value:i})},true);if((await fetchJson('/porthole/_count',{},true)).count!==7)throw Error('elasticsearch_workload_count_mismatch');return 7}
   stats=async()=>{const s=await fetchJson('/_nodes/stats/indices',{},true);return Object.values(s.nodes).reduce((n,node)=>n+node.indices.docs.count,0)}
   deny=()=>fetchJson('/_security/user/observe/_disable',{method:'PUT'},true);restore=()=>fetchJson('/_security/user/observe/_enable',{method:'PUT'},true)
  }else if(pack.id==='kafka') {
@@ -84,6 +86,7 @@ export async function integrationService(pack) {
   setup=async()=>{await acl('--add');await admin.createTopics({topics:[{topic:'porthole',numPartitions:1,replicationFactor:1}]})}
   workload=async()=>{await producer.connect();await producer.send({topic:'porthole',messages:Array.from({length:7},(_,i)=>({value:'synthetic-porthole-'+i}))});let committed=false;for(let i=0;i<40;i++){try{await admin.setOffsets({groupId:'porthole',topic:'porthole',partitions:[{partition:0,offset:'0'}]});committed=true;break}catch{await pause(500)}}if(!committed)throw Error('kafka_group_offset_not_committed');return 7}
   stats=async()=>Number((await admin.fetchTopicOffsets('porthole'))[0].high)
+  extraStats=async()=>{const high=await stats(),offsets=await admin.fetchOffsets({groupId:'porthole',topics:['porthole']});return {'kafka.consumer_group.lag':high-Number(offsets.find(t=>t.topic==='porthole').partitions[0].offset)}}
   deny=()=>acl('--remove');restore=()=>acl('--add')
  }else throw Error('unsupported_pack')
  env[prefix+'_ENDPOINT']=endpoint;env[prefix+'_USERNAME']=user;env[prefix+'_PASSWORD']=password
@@ -92,6 +95,6 @@ export async function integrationService(pack) {
   let ok=false;for(let i=0;i<120;i++){try{await ready();ok=true;break}catch{await pause(500)}}
   if(!ok)throw Error('service_not_ready_'+pack.id)
   await setup()
-  return {env,workload,stats,deny,restore,metric,password,directory,dispose}
- }catch(error){await dispose();throw error}
+  return {env,workload,stats,extraStats,denyFile,restoreFile,deny,restore,metric,password,directory,dispose}
+ }catch(error){try{const logs=await execute('docker',['logs','--tail','12',name]);console.error((logs.stdout+logs.stderr).split(password).join('[REDACTED]'))}catch{};await dispose();throw error}
 }

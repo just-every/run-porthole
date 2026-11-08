@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import {createHash} from 'node:crypto'
 import {execFile} from 'node:child_process'
 import {promisify} from 'node:util'
-import {mkdir,readFile,writeFile,rename,rm} from 'node:fs/promises'
+import {mkdir,mkdtemp,readFile,rename,rm} from 'node:fs/promises'
 import {resolve} from 'node:path'
 const execute=promisify(execFile)
 export const version='0.135.0'
@@ -24,7 +24,8 @@ export async function acquireCollector(directory='.cache/otel-collector') {
  const bytes=await readFile(archive)
  assert.equal(bytes.length,90545276,'official collector asset size')
  assert.equal(createHash('sha256').update(bytes).digest('hex'),digest,'official collector archive integrity')
- await execute('tar',['-xzf',archive,'-C',target,'otelcol-contrib'])
+ const extracted=await mkdtemp(target+'/extract-')
+ try{await execute('tar',['-xzf',archive,'-C',extracted,'otelcol-contrib']);await rename(extracted+'/otelcol-contrib',target+'/otelcol-contrib')}finally{await rm(extracted,{recursive:true,force:true})}
  return target+'/otelcol-contrib'
 }
 if(process.argv[1]===new URL(import.meta.url).pathname)console.log(await acquireCollector())

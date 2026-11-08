@@ -24,7 +24,7 @@ service image, upstream receiver source, permissions and signals. Set
 host. Set `PORTHOLE_INGEST_TOKEN` to the existing credential value and
 `PORTHOLE_SELF_PORT` to an unused loopback port and `PORTHOLE_DIAGNOSTIC_LOG`
 to a private collector-owned writable log file. Set `PORTHOLE_STATE_DIR` to a
-private persistent checkpoint directory; this prevents filelog replay when
+private persistent checkpoint directory unique to this setup; this prevents filelog replay when
 the collector restarts. The stock filelog receiver
 reads scraper errors from that file; the stock transform processor replaces
 the raw body and attributes with fixed diagnostic codes before export. Raw
@@ -55,3 +55,7 @@ new current authority before configuration download. No monitored-service
 secrets, collector configuration, monitor activation or provider authority is
 archived. The wider catalog, real Windows hosts and value-threshold monitor
 engine remain unqualified. No recommended monitor is enabled by these packs.
+
+Recommended value-threshold monitors remain PORT-019 work. A reviewed owner and
+service mapping is required before any future monitor enablement. This catalog
+supplies no monitor configuration or activation door.

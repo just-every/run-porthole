@@ -1315,7 +1315,16 @@ export async function integrationArchiveJourney({origin,freshOwner,withEmptyDest
    assert.equal((await get(destination.origin,acting,'/api/porthole/v1/integrations/'+b.id+'/configuration')).status,409)
    assert.equal((await value(await get(destination.origin,acting,'/api/porthole/v1/integrations/'+b.id))).health.state,'Unknown')
   }
-  const again=await savedExport(destination.origin,acting,await post(destination.origin,acting,api+'/exports',{}))
+  const {eventBrowser}=await import('./events.mjs')
+  await eventBrowser({origin:destination.origin,cookie:acting,path:'/app/settings/integrations/catalog/'+restored[0].id,name:'integration-restored-inactive'})
+  await eventBrowser({origin:destination.origin,cookie:acting,path:'/app/dashboards/'+restored[0].dashboard_id,name:'integration-dashboard-restored-inactive'})
+  const current=await destination.freshOwner(),first=restored[0],scope={services:[first.service],environments:[first.environment],teams:[first.team]}
+  const fresh=await value(await post(destination.origin,current,'/app/settings/credentials/mint',{name:'Explicit restored setup review',class:'ingest',scope:{...scope,signals:['metrics','logs'],actions:['telemetry.write']}}),201)
+  const reviewed=await value(await post(destination.origin,current,'/api/porthole/v1/integrations/enable',{pack:first.pack,service:first.service,environment:first.environment,team:first.team,credentialId:fresh.credential.id,revision:first.revision,confirm:'review-local-collection'}),201)
+  assert.notEqual(reviewed.binding.dashboard_id,first.dashboard_id,'a fresh review creates a private current preset and does not revive the old dashboard')
+  assert.equal((await value(await get(destination.origin,current,'/api/porthole/v1/dashboards/'+first.dashboard_id))).state,'quarantined')
+  assert.equal((await get(destination.origin,current,reviewed.configurationUrl)).status,200)
+  const again=await savedExport(destination.origin,current,await post(destination.origin,current,api+'/exports',{}))
   assert.equal(again.rows.filter(r=>r.table==='porthole_integration_bindings').length,bindings.length)
   assert.ok(!JSON.stringify(again).includes(secret));assert.ok(!JSON.stringify(again).includes('synthetic-porthole-66002'))
  })
