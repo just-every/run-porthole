@@ -64,11 +64,11 @@ export async function integrationService(pack) {
  }else if(pack.id==='mongodb') {
   publish(27017);setting('MONGO_INITDB_ROOT_USERNAME','root');setting('MONGO_INITDB_ROOT_PASSWORD',password);endpoint='127.0.0.1:'+port
   const sql=script=>ex('mongosh','--quiet','--username','root','--password',password,'--authenticationDatabase','admin','--eval',script)
-  ready=()=>sql('db.runCommand({ping:1})');setup=()=>sql(`db.createUser({user:'observe',pwd:'${password}',roles:[{role:'clusterMonitor',db:'admin'}]})`)
+  ready=()=>sql('db.runCommand({ping:1})');setup=()=>sql(`db.getSiblingDB('admin').createUser({user:'observe',pwd:'${password}',roles:[{role:'clusterMonitor',db:'admin'}]})`)
   workload=async()=>{await sql('db.getSiblingDB("porthole").records.insertMany(Array.from({length:7},(_,i)=>({value:i})))');return 7}
   stats=async()=>{const r=await sql('JSON.stringify({insert:Number(db.serverStatus().opcounters.insert)})');return Number(JSON.parse(r.trim()).insert)}
   extraStats=async()=>({'mongodb.object.count':Number((await sql('Number(db.getSiblingDB("porthole").stats().objects)')).trim())})
-  deny=()=>sql("db.revokeRolesFromUser('observe',[{role:'clusterMonitor',db:'admin'}])");restore=()=>sql("db.grantRolesToUser('observe',[{role:'clusterMonitor',db:'admin'}])")
+  deny=()=>sql("db.getSiblingDB('admin').revokeRolesFromUser('observe',[{role:'clusterMonitor',db:'admin'}])");restore=()=>sql("db.getSiblingDB('admin').grantRolesToUser('observe',[{role:'clusterMonitor',db:'admin'}])")
  }else if(pack.id==='elasticsearch') {
   publish(9200);setting('discovery.type','single-node');setting('xpack.security.enabled','true');setting('xpack.security.http.ssl.enabled','false');setting('ELASTIC_PASSWORD',password);setting('node.processors','2');setting('ES_JAVA_OPTS','-Xms512m -Xmx512m -XX:ActiveProcessorCount=2');endpoint='http://127.0.0.1:'+port
   ready=()=>fetchJson('/',{},true)

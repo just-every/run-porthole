@@ -5,7 +5,7 @@ export function collectorConfiguration(b:Binding,origin:string) {
  const p=packFor(b.pack),value=(name:string)=>'${env:'+name+'}',prefix='PORTHOLE_'+b.pack.toUpperCase(),endpoint=value(prefix+'_ENDPOINT')
  const receiver:Record<string,unknown>={collection_interval:'5s'}
  if(b.pack==='kafka')Object.assign(receiver,{brokers:[endpoint],protocol_version:'3.9.0',scrapers:['brokers','topics','consumers'],auth:{sasl:{username:value(prefix+'_USERNAME'),password:value(prefix+'_PASSWORD'),mechanism:'PLAIN'}}})
- else if(b.pack==='mongodb')Object.assign(receiver,{hosts:[{endpoint}],username:value(prefix+'_USERNAME'),password:value(prefix+'_PASSWORD'),tls:{insecure:true}})
+ else if(b.pack==='mongodb')Object.assign(receiver,{hosts:[{endpoint}],direct_connection:true,timeout:'5s',username:value(prefix+'_USERNAME'),password:value(prefix+'_PASSWORD'),tls:{insecure:true}})
  else {receiver.endpoint=endpoint
   if(!['nginx','redis'].includes(b.pack))Object.assign(receiver,{username:value(prefix+'_USERNAME'),password:value(prefix+'_PASSWORD')})
   if(b.pack==='redis')Object.assign(receiver,{username:value(prefix+'_USERNAME'),password:value(prefix+'_PASSWORD')})

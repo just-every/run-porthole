@@ -4877,7 +4877,7 @@
       "executable": false
     },
     "src/porthole/integrations/catalog/config.ts": {
-      "sha256": "c61328df16b8964d1e455aaff00bab72ccd86df9421346df4dc7a18ea715ff3b",
+      "sha256": "640e27677023fff975eccbf427ab939aa82001049062305bac9ac4bce3d2e59b",
       "executable": false
     },
     "src/porthole/integrations/catalog/health.ts": {
@@ -5801,7 +5801,7 @@
       "executable": false
     },
     "tests/porthole/integration-matrix/estate.mjs": {
-      "sha256": "e76fe0554f398d3a0d0ae6ec2d016dd2b3640ab4b9a13135bd728cb2584855aa",
+      "sha256": "801d418a805c1a0437d6bb0811b8f2ac1faf013f1e6fd0c7fc9b65a15fb49db6",
       "executable": false
     },
     "tests/porthole/integrations.mjs": {
