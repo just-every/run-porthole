@@ -154,7 +154,7 @@ export async function nativeLogSearchJourney({origin,cookie,call=(path,options)=
 
 async function logSearchBrowser({origin,cookie,base,snapshot,expected,expression,call,backend}) {
  const {chromium}=await import('@playwright/test'),{mkdir}=await import('node:fs/promises'),{join}=await import('node:path')
- const browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']})
+ const browser=await chromium.launch({headless:true,...(process.env.PORTHOLE_CHROMIUM_PATH?{executablePath:process.env.PORTHOLE_CHROMIUM_PATH}:{}),args:['--no-sandbox','--use-mock-keychain','--password-store=basic']})
  const directory=process.env.PORTHOLE_EVIDENCE_DIR;if(directory)await mkdir(directory,{recursive:true})
  try{for(const width of [1440,390]){
   const context=await browser.newContext({viewport:{width,height:width===1440?900:844}})
