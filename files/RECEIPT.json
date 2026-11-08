@@ -92,10 +92,133 @@
     "id": 42511509001,
     "event": "push",
     "head_sha": "7d576ff6aeef20ac77549589830a4d4a91ea9d3e",
-    "status": "in_progress",
-    "conclusion": null,
+    "status": "completed",
+    "conclusion": "cancelled",
     "html_url": "https://github.com/just-every/run-porthole/actions/runs/42511509001",
-    "last_observed_utc": "2026-11-08T18:55:22Z"
+    "last_observed_utc": "2026-11-08T19:00:30Z",
+    "jobs": [
+      {
+        "completed_at": "2026-11-08T18:44:49Z",
+        "conclusion": "success",
+        "failed_steps": [],
+        "id": 128825382628,
+        "name": "plan",
+        "started_at": "2026-11-08T18:44:43Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-11-08T18:45:22Z",
+        "conclusion": "success",
+        "failed_steps": [],
+        "id": 128825416042,
+        "name": "shards (source, false)",
+        "started_at": "2026-11-08T18:44:51Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-11-08T18:53:49Z",
+        "conclusion": "success",
+        "failed_steps": [],
+        "id": 128825416055,
+        "name": "shards (typecheck, true)",
+        "started_at": "2026-11-08T18:44:51Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-11-08T18:50:46Z",
+        "conclusion": "success",
+        "failed_steps": [],
+        "id": 128825416106,
+        "name": "shards (runtime, true)",
+        "started_at": "2026-11-08T18:44:51Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-11-08T18:50:26Z",
+        "conclusion": "success",
+        "failed_steps": [],
+        "id": 128825416117,
+        "name": "shards (traces, true)",
+        "started_at": "2026-11-08T18:44:51Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-11-08T18:48:04Z",
+        "conclusion": "success",
+        "failed_steps": [],
+        "id": 128825416120,
+        "name": "shards (exports, true)",
+        "started_at": "2026-11-08T18:44:51Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-11-08T18:51:26Z",
+        "conclusion": "success",
+        "failed_steps": [],
+        "id": 128825416125,
+        "name": "shards (ingest, true)",
+        "started_at": "2026-11-08T18:44:51Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-11-08T18:52:55Z",
+        "conclusion": "success",
+        "failed_steps": [],
+        "id": 128825416126,
+        "name": "shards (dashboards, true)",
+        "started_at": "2026-11-08T18:44:51Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-11-08T18:50:09Z",
+        "conclusion": "success",
+        "failed_steps": [],
+        "id": 128825416138,
+        "name": "shards (mail-receipts, true)",
+        "started_at": "2026-11-08T18:44:51Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-11-08T18:52:08Z",
+        "conclusion": "success",
+        "failed_steps": [],
+        "id": 128825416143,
+        "name": "shards (follow-up, true)",
+        "started_at": "2026-11-08T18:44:51Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-11-08T18:57:06Z",
+        "conclusion": "cancelled",
+        "failed_steps": [],
+        "id": 128825416158,
+        "name": "shards (analytical, true)",
+        "started_at": "2026-11-08T18:44:51Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-11-08T18:55:12Z",
+        "conclusion": "success",
+        "failed_steps": [],
+        "id": 128825416168,
+        "name": "shards (migration, true)",
+        "started_at": "2026-11-08T18:44:51Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-11-08T18:57:12Z",
+        "conclusion": "failure",
+        "failed_steps": [
+          "Require every shard"
+        ],
+        "id": 128828480113,
+        "name": "verify",
+        "started_at": "2026-11-08T18:57:08Z",
+        "status": "completed"
+      }
+    ],
+    "analytical_duration_seconds": 735,
+    "workflow_job_limit_minutes": 12
   },
   "original_ci": {
     "id": 42489688457,
@@ -179,7 +302,7 @@
       "sha256": "3b3ead70f3928d154a7dc650e60a54231d2bcd222e260010ddb4d481d8f1bd8c"
     }
   ],
-  "github_explicit_calls_so_far": 8,
+  "github_explicit_calls_so_far": 10,
   "migration_ledger": "not applicable; no migration changes",
   "browser_evidence_inspected": [
     "metric-range-result-1440.png",
@@ -192,5 +315,18 @@
   "local_commands_pending": false,
   "test_registration_delta": 0,
   "remote_product_ref": "7d576ff6aeef20ac77549589830a4d4a91ea9d3e\trefs/heads/cloud/sx-porthole-c-f456-pc1",
-  "product_worktree_clean": true
+  "product_worktree_clean": true,
+  "github_budget_exhausted": true,
+  "terminal_custody": "PUSHED; no exact-SHA successful Verify observed",
+  "claim": {
+    "clause": "PORT-099",
+    "status": "PARTIAL",
+    "local_points_proven": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "gap": "Analytical job cancelled after 12m15s; final Verify gate failed because not all shards completed. Local full shard passed, no product assertion failure reproduced."
+  }
 }

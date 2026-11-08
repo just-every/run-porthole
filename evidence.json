@@ -7,16 +7,16 @@
       "sha256": "72bbf1a320e2e4fcca9e688eb6b2a3db1762b365f1f6cd8ec13cd40472da515f"
     },
     {
-      "blob": "51d003be8147b637f72377d3ca06a7bf578c5c7e",
-      "bytes": 6454,
+      "blob": "ab3c4359c00c879ad2c27f3a27eae88a40973ccd",
+      "bytes": 10544,
       "path": "RECEIPT.json",
-      "sha256": "3a4fa1e0caf2e2dda11fd676155f9dc168955365e4e1042c4424d3243b9ff040"
+      "sha256": "377a7cf78455cde6a7e3ef27f04b51ecf1fbd8bd0fc7d00793a14fe24694ef56"
     },
     {
-      "blob": "1b77c2f062db2626af757e1bc1535344b441e6da",
-      "bytes": 11439,
+      "blob": "5f7852dbdda31aa762b63a2e2df026e137d42a1b",
+      "bytes": 13483,
       "path": "REPORT.md",
-      "sha256": "fc50c7d7a38cfbe0b993a9e7621f3cf8e653064278b74fd9b5b5533fd4d7739c"
+      "sha256": "ee808f5562859ca258802eec414aa43d30f1420ea1240db4a117045fa226134b"
     },
     {
       "blob": "da3df1136f2f873ff844df87f099a28b6925b316",
@@ -29,6 +29,18 @@
       "bytes": 28669,
       "path": "analytical-reproduction.log",
       "sha256": "01a03bef28a5325c70cd46634bab36ac88b018a5124c45eecf89bb238a654f82"
+    },
+    {
+      "blob": "3cec00fbfadbc8220ec77b4517c5ea5379d5b464",
+      "bytes": 3342,
+      "path": "ci-jobs.json",
+      "sha256": "58451d1d55feba4780ca4f121b83a120dee05cb6252e345a5f67d6575a6113fc"
+    },
+    {
+      "blob": "e1fc120af728ef1e28618bc09d75b481e9d9238d",
+      "bytes": 200,
+      "path": "ci-status.json",
+      "sha256": "71770fe2f69260845eb617a2441a41dbf562ba4c8a265dc3582e6679d290afe7"
     },
     {
       "blob": "b541b4bbcb82f2b135210608fd9275c0af0537e5",
