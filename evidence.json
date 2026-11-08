@@ -109,6 +109,12 @@
       "sha256": "869236812f49c26bc130da0937ac4b3021b76611225a35df78cdfbbc6c48d9d1"
     },
     {
+      "blob": "6749bfdf4b805dc8f42be0fe98ab76dfbffa1b6c",
+      "bytes": 22126,
+      "path": "evidence-predecessor-verify.json",
+      "sha256": "b5ff008af0f00726b903b1b5a41148508acdcbf4773189765da4ba0791939260"
+    },
+    {
       "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
       "bytes": 0,
       "path": "first-party.log",
@@ -119,6 +125,18 @@
       "bytes": 105,
       "path": "helm-lint.log",
       "sha256": "f5e12456a25996aa38d8e2e9b4b07dc5fac08659067b9b503bd4cd575d7e946c"
+    },
+    {
+      "blob": "7cc6c0533c53d57bedd8530608b991f16f84889a",
+      "bytes": 2178,
+      "path": "main-probe-build.log",
+      "sha256": "d073377014882977eb14c828395b92d3166090fd9fbbd52d5e6fc483d64a9ae7"
+    },
+    {
+      "blob": "644b9506c5ccd8ab92b2121d6f6184d688b01b19",
+      "bytes": 926453,
+      "path": "main-probe-setup.log",
+      "sha256": "d1ed67ec56a7f7305f1708d1311e2b959106183a54e4d4ccfb41232f4953b12b"
     },
     {
       "blob": "fbd73553c1ff69002ad62a122cc8a0ad7c3730ae",
