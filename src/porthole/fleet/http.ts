@@ -10,6 +10,7 @@ import {secretHash} from '../credentials/policy'
 import {verifyCredential,CredentialLimit} from '../credentials/verify'
 import {gaps,installReport} from './model'
 const root='/api/porthole/v1/fleet',screen='/app/settings/fleet'
+type FleetRow={id:string;service:string;environment:string;team:string;report:string;observed_at:number;state:string;credential_live:number}
 const json=(v:unknown,status=200)=>Response.json(v,{status,headers:privateHeaders})
 export async function fleetResponse(request:Request,env:Bindings):Promise<Response|null> {
  const url=new URL(request.url),path=url.pathname
@@ -37,8 +38,11 @@ export async function fleetResponse(request:Request,env:Bindings):Promise<Respon
   const actor=await authority(request,env)
   if(actor.session.kind!=='native'||actor.member.role!=='owner')fail('fleet_owner_required')
   // Read live credential custody and final owner authority in one release query.
-  const rows=await env.DB.prepare(`SELECT f.id,f.service,f.environment,f.team,f.report,f.observed_at,f.state,
-   CASE WHEN c.status='active' AND c.expires_at>? AND o.status='active' AND o.role=m.role AND m.role IN ('owner','admin')
+  const selection=env.DB.prepare(`SELECT f.id,f.service,f.environment,f.team,f.report,f.observed_at,f.state,
+   CASE WHEN c.class='ingest' AND c.status='active' AND c.expires_at>? AND o.status='active' AND o.role=m.role AND m.role IN ('owner','admin')
+    AND EXISTS(SELECT 1 FROM json_each(c.scope,'$.services') WHERE value='*' OR value=f.service)
+    AND EXISTS(SELECT 1 FROM json_each(c.scope,'$.environments') WHERE value='*' OR value=f.environment)
+    AND EXISTS(SELECT 1 FROM json_each(c.scope,'$.teams') WHERE value='*' OR value=f.team)
     AND EXISTS(SELECT 1 FROM json_each(m.scope,'$.services') WHERE value='*' OR value=f.service)
     AND EXISTS(SELECT 1 FROM json_each(m.scope,'$.environments') WHERE value='*' OR value=f.environment)
     AND EXISTS(SELECT 1 FROM json_each(m.scope,'$.teams') WHERE value='*' OR value=f.team) THEN 1 ELSE 0 END AS credential_live
@@ -47,7 +51,8 @@ export async function fleetResponse(request:Request,env:Bindings):Promise<Respon
     AND EXISTS(SELECT 1 FROM json_each(?) WHERE value='*' OR value=f.service)
     AND EXISTS(SELECT 1 FROM json_each(?) WHERE value='*' OR value=f.environment)
     AND EXISTS(SELECT 1 FROM json_each(?) WHERE value='*' OR value=f.team)
-   ORDER BY f.id LIMIT 201`).bind(Date.now(),...actor.args,JSON.stringify(actor.member.scope.services),JSON.stringify(actor.member.scope.environments),JSON.stringify(actor.member.scope.teams)).all<{id:string;service:string;environment:string;team:string;report:string;observed_at:number;state:string;credential_live:number}>()
+   ORDER BY f.id LIMIT 201`).bind(Date.now(),...actor.args,JSON.stringify(actor.member.scope.services),JSON.stringify(actor.member.scope.environments),JSON.stringify(actor.member.scope.teams))
+  let rows=await selection.all<FleetRow>()
   const observed:TraceRecord[]=[],recordIds:string[]=[]
   let coverageComplete=true
   if(rows.results.some(row=>installReport(JSON.parse(row.report)).platform==='kubernetes')) {
@@ -65,12 +70,15 @@ export async function fleetResponse(request:Request,env:Bindings):Promise<Respon
   }
   const latest=await authority(request,env)
   if(latest.member.revision!==actor.member.revision||latest.session.id!==actor.session.id)fail('authority_changed',409)
+  rows=await selection.all<FleetRow>()
+  const releaseActor=await authority(request,env)
+  if(releaseActor.member.revision!==actor.member.revision||releaseActor.session.id!==actor.session.id)fail('authority_changed',409)
   if(recordIds.length){const retained=await env.DB.prepare(`SELECT COUNT(*) AS n FROM porthole_telemetry_records WHERE id IN (SELECT value FROM json_each(?)) AND ${actor.fence}`).bind(JSON.stringify(recordIds),...actor.args).first<{n:number}>();if(retained?.n!==recordIds.length)fail('fleet_evidence_changed',409)}
   const installs=rows.results.slice(0,200).map(row=>{
    const report=installReport(JSON.parse(row.report)),stale=row.state!=='active'||!row.credential_live||Date.now()-row.observed_at>90000
    const services=new Set([...report.services.filter(service=>actor.member.scope.services.includes('*')||actor.member.scope.services.includes(service)),...observed.filter(r=>attributes(r.payload.resource?.attributes)['porthole.install.id']===row.id&&/obi|ebpf/i.test(String(r.payload.scope?.name??''))).map(r=>r.service)])
    const coverage=[...services].map(service=>{const spans=observed.filter(r=>r.service===service&&attributes(r.payload.resource?.attributes)['porthole.install.id']===row.id&&/obi|ebpf/i.test(String(r.payload.scope?.name??'')));return {service,status:spans.length?'retained-ebpf-spans':'unproven',spans:spans.length,freshness:spans.some(r=>Number(BigInt(String(r.payload.record.startTimeUnixNano??'0'))/1000000n)>Date.now()-90000)?'recent':'stale',complete:coverageComplete,action:'Open Services to inspect retained spans, map and request summaries.'}})
-   return {id:row.id,service:row.service,environment:row.environment,team:row.team,report,observedAt:row.observed_at,state:row.state,freshness:stale?'stale':'recent',gaps:gaps(report),credentialStatus:row.state==='quarantined'?'not-restored':row.credential_live?'current':'revoked-or-unavailable',coverage}
+   return {id:row.id,service:row.service,environment:row.environment,team:row.team,report,observedAt:row.observed_at,state:row.state,freshness:stale?'stale':'recent',gaps:gaps(report).filter(g=>g.code!=='obi-no-observed-spans'||!coverage.some(c=>c.spans>0&&c.freshness==='recent')),credentialStatus:row.state==='quarantined'?'not-restored':row.credential_live?'current':'revoked-or-unavailable',coverage}
   })
   const view={installs,complete:rows.results.length<=200,meaning:'Reports are local observations. Recent reports and granted privileges do not establish health, full traffic or successful collection.'}
   if(path===root)return json(view)

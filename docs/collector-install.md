@@ -44,11 +44,16 @@ PORTHOLE_SECRET_FILE to an absolute private token file. The installer mounts it
 read-only at the container's secret path and configures the Collector's
 bearer-token extension to read that file. The reporter reads the same file.
 No credential is written to fleet records, portable archives or installer logs.
+For an installation using a private certificate authority, set PORTHOLE_CA_FILE
+to its PEM certificate file in the private env file. Both the Collector and
+reporter validate TLS using that authority; certificate verification stays on.
 
 The Collector reads host proc and sys files, Docker json-file container logs and
 the Docker socket. Socket access grants substantial host control even with a
 read-only mount; review it explicitly. The image runs as root to read those
-files, without additional capabilities or privileged mode. Original Docker log
+files, with all capabilities dropped, no new privileges and no privileged
+mode. Fleet observations list the root user explicitly among the requested and
+observed privileges. Original Docker log
 timestamps and container IDs accompany the native log records. Existing logs
 are read from the beginning: review scope and volume before installation.
 The exporter retries for 60 seconds with a bounded in-memory queue; this is not

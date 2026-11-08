@@ -1,15 +1,29 @@
 // The reporter observes this node only. No credential enters reports or logs.
-import {readFile,readdir,access} from 'node:fs/promises'
+import {readFile,readdir,access,readlink} from 'node:fs/promises'
 import {request} from 'node:https'
 import {release} from 'node:os'
 const env=process.env,sa='/var/run/secrets/kubernetes.io/serviceaccount/'
 const capabilities={CAP_BPF:39,CAP_PERFMON:38,CAP_SYS_PTRACE:19,CAP_DAC_READ_SEARCH:2,CAP_NET_RAW:13,CAP_CHECKPOINT_RESTORE:40}
 const requested=['host-proc','host-sys','container-logs','kubernetes-rbac','host-pid','btf','tracefs','cgroup',...Object.keys(capabilities)]
 async function exists(path){try{await access(path);return true}catch{return false}}
-async function kube(path) {
+async function kube(path,read=false,body) {
  const token=(await readFile(sa+'token','utf8')).trim(),ca=await readFile(sa+'ca.crt')
- return new Promise((resolve,reject)=>{const r=request({hostname:env.KUBERNETES_SERVICE_HOST,port:Number(env.KUBERNETES_SERVICE_PORT_HTTPS??443),path,ca,headers:{authorization:'Bearer '+token},timeout:5000},s=>{s.resume();s.on('end',()=>resolve(s.statusCode===200))});r.on('error',reject);r.on('timeout',()=>r.destroy(Error('kubernetes_timeout')));r.end()})
+ return new Promise((resolve,reject)=>{
+  const outgoing=request({hostname:env.KUBERNETES_SERVICE_HOST,port:Number(env.KUBERNETES_SERVICE_PORT_HTTPS??443),path,ca,method:body?'POST':'GET',timeout:5000,headers:{authorization:'Bearer '+token,...(body?{'content-type':'application/json'}:{})}},response=>{
+   let text=''
+   response.on('data',chunk=>{if(read){text+=chunk;if(text.length>1048576)outgoing.destroy(Error('kubernetes_response_too_large'))}})
+   response.on('error',reject)
+   response.on('end',()=>{
+    if(![200,201].includes(response.statusCode))return resolve(false)
+    if(!read)return resolve(true)
+    try{resolve(JSON.parse(text))}catch{reject(Error('kubernetes_response_invalid'))}
+   })
+  })
+  outgoing.on('error',reject);outgoing.on('timeout',()=>outgoing.destroy(Error('kubernetes_timeout')))
+  outgoing.end(body?JSON.stringify(body):undefined)
+ })
 }
+
 let sequence=Date.now(),stop=false
 process.on('SIGTERM',()=>{stop=true});process.on('SIGINT',()=>{stop=true})
 async function report(state) {
@@ -20,11 +34,21 @@ async function report(state) {
   const cmd=await readFile('/proc/'+pid+'/comm','utf8')
   if(/^(obi|ebpf-instrument)/.test(cmd)){const status=await readFile('/proc/'+pid+'/status','utf8'),m=status.match(/^CapEff:\s*([0-9a-f]+)/m);cap|=BigInt('0x'+(m?.[1]??'0'));found=true}
  }catch{}
- if(found)granted.push('host-pid')
+ try{if(await readlink('/proc/1/ns/pid')===await readlink('/hostfs/proc/1/ns/pid'))granted.push('host-pid')}catch{}
  for(const [name,bit]of Object.entries(capabilities))if(cap&(1n<<BigInt(bit)))granted.push(name)
- try{if((await Promise.all(['/api/v1/pods?limit=1','/api/v1/namespaces?limit=1','/api/v1/nodes?limit=1','/api/v1/services?limit=1','/apis/apps/v1/replicasets?limit=1'].map(kube))).every(Boolean))granted.push('kubernetes-rbac')}catch{}
+ const deniedRules=[]
+ try{
+  for(const [group,resource]of [['','pods'],['','namespaces'],['','nodes'],['','services'],['apps','replicasets']])for(const verb of ['get','list','watch']){
+   const review=await kube('/apis/authorization.k8s.io/v1/selfsubjectaccessreviews',true,{apiVersion:'authorization.k8s.io/v1',kind:'SelfSubjectAccessReview',spec:{resourceAttributes:{group,resource,verb}}})
+   if(!review?.status?.allowed)deniedRules.push('rbac-'+verb+'-'+resource+'-denied')
+  }
+  if(!deniedRules.length)granted.push('kubernetes-rbac')
+ }catch{deniedRules.push('rbac-review-unavailable')}
+
+ let runtime='kubernetes-unavailable'
+ try{const node=await kube('/api/v1/nodes/'+encodeURIComponent(env.K8S_NODE_NAME),true);if(node?.status?.nodeInfo?.containerRuntimeVersion)runtime=node.status.nodeInfo.containerRuntimeVersion.replace('://','-')}catch{}
  const token=(await readFile('/run/secrets/porthole/token','utf8')).trim()
- const body={id:env.PORTHOLE_RELEASE+'-'+env.K8S_NODE_NAME,service:env.PORTHOLE_SERVICE,environment:env.PORTHOLE_ENVIRONMENT,team:env.PORTHOLE_TEAM,state,report:{platform:'kubernetes',node:env.K8S_NODE_NAME,kernel:release(),runtime:'kubernetes',collectorVersion:'0.135.0',obiVersion:'1.0.0',requested,granted,limits:['linux-only','kernel-btf-required','kernel-5.8-or-newer','supported-runtime-required','bounded-memory-queue','no-go-context-injection-without-sys-admin'],services:[],obi:found?'starting':'unavailable',sequence:++sequence}}
+ const body={id:env.PORTHOLE_RELEASE+'-'+env.K8S_NODE_NAME,service:env.PORTHOLE_SERVICE,environment:env.PORTHOLE_ENVIRONMENT,team:env.PORTHOLE_TEAM,state,report:{platform:'kubernetes',node:env.K8S_NODE_NAME,kernel:release(),runtime,collectorVersion:'0.135.0',obiVersion:'1.0.0',requested,granted,limits:[...deniedRules,'linux-only','kernel-btf-required','kernel-5.8-or-newer','supported-runtime-required','bounded-memory-queue','no-go-context-injection-without-sys-admin'],services:[],obi:found?'starting':'unavailable',sequence:++sequence}}
  const response=await fetch(new URL('/api/porthole/v1/fleet/report',env.PORTHOLE_ENDPOINT),{method:'POST',headers:{authorization:'Bearer '+token,'content-type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(10000)})
  if(!response.ok)throw Error('fleet_report_refused_'+response.status)
 }

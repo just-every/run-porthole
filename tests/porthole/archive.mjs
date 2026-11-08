@@ -1298,10 +1298,11 @@ export async function servicesArchiveJourney({origin,freshOwner,restartWorker,wi
 }
 
 
-export async function fleetArchiveJourney({origin,freshOwner,withEmptyDestination,id,found}) {
+export async function fleetArchiveJourney({origin,freshOwner,withEmptyDestination,id,found,secret}) {
  const cookie=await freshOwner(),source=await savedExport(origin,cookie,await post(origin,cookie,api+'/exports',{}))
  const installs=source.rows.filter(r=>r.table==='porthole_fleet_installs')
  assert.equal(installs.length,1);assert.equal(installs[0].row.id,id)
+ if(secret)assert.ok(!JSON.stringify(source.rows).includes(secret),'portable installation contains no ingest secret')
  assert.ok(!Object.hasOwn(installs[0].row,'credential_id'),'install archive has no live credential binding')
  await withEmptyDestination(async destination=>{
   let owner=await destination.freshOwner()
@@ -1320,5 +1321,5 @@ export async function fleetArchiveJourney({origin,freshOwner,withEmptyDestinatio
   const {servicesBrowser}=await import('./services.mjs')
   await servicesBrowser({origin:destination.origin,cookie:owner,path:'/app/settings/fleet',contains:'quarantined',name:'fleet-restored'})
  })
- console.log('PROBE PORT-003 archive: actual export and empty restore -> inactive stale install, no credential or live collection, exact retained Docker log survives re-export and restart')
+ console.log('PROBE PORT-003 archive: actual export and empty restore -> inactive stale install, no credential or live collection'+(found?', exact retained Docker log survives re-export and restart':''))
 }
