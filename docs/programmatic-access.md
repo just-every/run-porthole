@@ -182,3 +182,9 @@ For exact query fields see [query reference](/docs/v1/query-reference). For
 refusals and recovery steps see [API errors](/docs/v1/api-errors). Other
 configuration domains, complete Terraform ownership cutover and source-module
 translation are not supported by these doors.
+
+## Standard signal reads
+
+Existing `telemetry.read` credentials can use bounded Prometheus remote-read
+and Tempo trace-by-ID. See [standard signal APIs](standard-signal-apis.md) for
+wire versions, mappings, partial-trace evidence, limits and explicit refusals.

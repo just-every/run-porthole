@@ -1,6 +1,6 @@
 import { array, invalid, object, type TelemetryRecord } from './model'
 import { record } from './normalize'
-import { bytes, double, fields, uint, utf8 } from './wire'
+import { bytes, double, fields, hex, uint, utf8 } from './wire'
 
 // prometheus.WriteRequest v1. Native histograms/exemplars require explicit
 // support rather than quietly discarding fields from an acknowledged series.
@@ -25,7 +25,7 @@ export function remoteWrite(input: Uint8Array, headers: Headers): TelemetryRecor
    const value = valueField ? double(valueField) : 0, timestamp = time ? BigInt.asIntN(64,uint(time)) : 0n
    if (timestamp < 0n) return invalid('negative_metric_timestamp')
    // NaN includes Prometheus' stale marker; the original float bits are retained.
-   result.push(record({ protocol: 'prometheus.WriteRequest', resource: { attributes: labels }, metric: { name: labels.__name__ }, record: { value: Number.isFinite(value) ? value : String(value), timestamp: timestamp.toString() } }, labels, (timestamp * 1000000n).toString(), headers, 'metrics'))
+   result.push(record({ protocol: 'prometheus.WriteRequest', resource: { attributes: labels }, metric: { name: labels.__name__ }, record: { value: Number.isFinite(value) ? value : String(value), valueBits: valueField ? hex(bytes(valueField)) : '0000000000000000', timestamp: timestamp.toString() } }, labels, (timestamp * 1000000n).toString(), headers, 'metrics'))
   }
  }
  return result
