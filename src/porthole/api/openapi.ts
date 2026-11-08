@@ -1,4 +1,5 @@
 import {fleetPaths} from '../fleet/openapi'
+import {standardPaths} from '../signals/standard/openapi'
 import {eventPaths} from '../events/openapi'
 import {servicePaths} from '../services/openapi'
 import {pipelinePaths,pipelineSchemas} from '../pipelines/openapi'
@@ -44,7 +45,7 @@ const securedDashboardPaths=Object.fromEntries(Object.entries(dashboardPaths).ma
 /** Static route contract only: no runtime bindings, settings or stored data. */
 export const openapi={
  openapi:'3.1.0',info:{title:'Porthole implemented HTTP API',version:'1.0.0',description:'Implemented OTLP intake, bounded telemetry queries, configuration definitions and dashboards. Native session security uses the installation session cookie; development cookie names vary by local origin. All requests remain subject to configured origin checks and current scope. This document contains no installation settings. It does not advertise complete vendor language or transport compatibility.'},
- paths:{...fleetPaths,...servicePaths,...eventPaths,...intakePaths,...queryPaths,...configurationPaths,...securedDashboardPaths,...pipelinePaths,
+ paths:{...fleetPaths,...standardPaths,...servicePaths,...eventPaths,...intakePaths,...queryPaths,...configurationPaths,...securedDashboardPaths,...pipelinePaths,
   '/api/porthole/v1/genai':{get:{summary:'Read scoped GenAI metadata and observed usage',security:readSecurity,description:'Current trace authority, snapshot and paging rules apply. Identical span copies do not add usage. Missing token counters, USD, rate source and authorized provider reconciliation stay unavailable. Content capture is disabled.',parameters:['trace','service','environment','team','from','through','cursor','snapshot'].map(name=>({name,in:'query',schema:{type:'string'}})),responses:{200:json('Observed GenAI calls and provider, model and feature groups for this page',{type:'object'}),...failures([400,401,403,405,409,429,503])}}},
   '/api/porthole/v1/openapi.json':{get:{summary:'Read this contract through the protected API',security:nativeSecurity,responses:{200:json('OpenAPI document',{type:'object'}),...failures([400,401,403,405,409,503])}}},
  },

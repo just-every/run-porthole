@@ -7,7 +7,12 @@
       "commands": [
         "pnpm run check --profile first-party",
         "node scripts/porthole/public-schema.mjs --check",
-        "node scripts/porthole/contract-docs.mjs check PORT-075"
+        "node scripts/porthole/contract-docs.mjs check PORT-075",
+        "pnpm run build",
+        "python3 -m venv .cache/export-readers && .cache/export-readers/bin/pip install --disable-pip-version-check -r tests/porthole/standard-readers.txt",
+        "node scripts/porthole/standard-clients.mjs",
+        "PORTHOLE_STANDARD_ONLY=1 pnpm run test:runtime",
+        "PORTHOLE_STANDARD_ANALYTICAL_ONLY=1 pnpm run test:runtime"
       ]
     },
     {

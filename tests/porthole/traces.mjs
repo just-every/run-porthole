@@ -125,6 +125,8 @@ export async function traceJourney({origin,freshOwner,signIn,restartWorker,sql,w
   assert.ok(scoped.diagnostics.includes('missing_or_out_of_scope_parent'))
   await healthBrowser({origin,cookie:restricted,path:'/app/traces/'+traceId,name:'trace-real-team-boundary',contains:'missing or out of scope parent'})
  }
+ const {assertTempoRead}=await import('./standard-reads.mjs')
+ await assertTempoRead({origin,cookie,traceId,scope})
  const original=structuredClone(graph),snapshot=graph.snapshot
  await restartWorker();cookie=await freshOwner();assert.deepEqual(await policyGet(),policy,'owner policy survives restart')
  assert.deepEqual(await get(path+traceId+'?snapshot='+snapshot),original,'trace and original nanoseconds survive Worker restart')

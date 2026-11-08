@@ -188,9 +188,11 @@ export async function fleetJourney({origin,freshOwner,signIn,sql,restartWorker,w
  const send=async(data=report,secret=credential.secret,status=200)=>{
   const before=await sql('SELECT * FROM porthole_fleet_installs')
   const r=await fetch(origin+root+'/report',{method:'POST',headers:{authorization:'Bearer '+secret,'content-type':'application/json'},body:JSON.stringify(data)})
-  assert.equal(r.status,status,await r.clone().text())
+  const body=await r.text()
+  assert.equal(r.status,status,body)
+  const result=JSON.parse(body)
   if(status!==200)assert.deepEqual(await sql('SELECT * FROM porthole_fleet_installs'),before,'refused install report changes no observation or freshness')
-  return r.json()
+  return result
  }
  assert.equal((await fetch(origin+root)).status,401)
  await servicesBrowser({origin,cookie,path:screen,contains:'No install observations',name:'fleet-empty-native'})

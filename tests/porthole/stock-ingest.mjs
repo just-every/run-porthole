@@ -199,6 +199,11 @@ export async function stockIngestJourney({origin,cookie,sql,restartWorker,freshO
   const retained=(await sql(`SELECT signal,payload,event_time_ns FROM porthole_telemetry_records WHERE source_id=${literal(source.credential.id)}`))
   assert.ok(retained.some(row=>JSON.parse(row.payload).record?.structuredMetadata!==undefined&&row.event_time_ns===String(time+21n).padStart(20,'0')),'stock Loki preserves original nanoseconds')
   assert.ok(retained.some(row=>row.signal==='metrics'&&JSON.parse(row.payload).protocol==='prometheus.WriteRequest'&&JSON.parse(row.payload).record.value===24.5),'stock remote-write numeric value is queryable')
+  const standardKeyResponse=await post('/app/settings/credentials/mint',{name:'Stock standard metric reader',class:'read',scope:{...ingestScope,signals:['metrics'],actions:['telemetry.read']}})
+  assert.equal(standardKeyResponse.status,201)
+  const standardKey=await standardKeyResponse.json(),{remoteRead,remoteSeries}=await import('./standard-reads.mjs')
+  const standardSamples=await remoteSeries(await remoteRead((path,options)=>fetch(origin+path,options),standardKey.secret,{matchers:[['__name__','synthetic_porthole_211']]}))
+  assert.ok(standardSamples.some(series=>series.values.some(([,value])=>value===24.5)),'stock remote-write sample is available through the standard read door')
   console.log('Porthole stock Alloy qualification passed: counted stock OTLP, Prometheus remote-write and Loki batches, durable paused acknowledgement/restart, exact-wire retry and seven archived/queryable records')
   return {cookie,sourceId:source.credential.id,accepted:7,queryable:7,archived:7,stock:'Grafana Alloy v1.10.2'}
  } finally {
