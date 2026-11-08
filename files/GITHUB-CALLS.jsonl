@@ -2,3 +2,5 @@
 {"time": 1794175825, "args": ["api", "repos/just-every/run-porthole/actions/runs?head_sha=e2cfaedd2f158ea90c0f0176b9ea43fcee0fdffa&per_page=100", "--jq", ".workflow_runs[] | {id,name,event,status,conclusion,head_sha,html_url}"]}
 {"time": 1794176143, "args": ["api", "repos/just-every/run-porthole/actions/runs?head_sha=e2cfaedd2f158ea90c0f0176b9ea43fcee0fdffa&per_page=100", "--jq", ".workflow_runs[] | {id,name,event,status,conclusion,head_sha,html_url}"]}
 {"time": 1794176493, "args": ["api", "repos/just-every/run-porthole/actions/runs/42528887928", "--jq", "{status,conclusion,head_sha,html_url}"]}
+{"time": 1794176807, "args": ["api", "repos/just-every/run-porthole/actions/runs/42528887928", "--jq", "{status,conclusion,head_sha,html_url}"]}
+{"time": 1794177122, "args": ["api", "repos/just-every/run-porthole/actions/runs?head_sha=e2cfaedd2f158ea90c0f0176b9ea43fcee0fdffa&per_page=100", "--jq", ".workflow_runs[] | {id,name,event,status,conclusion,head_sha,html_url}"]}

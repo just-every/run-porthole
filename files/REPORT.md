@@ -127,4 +127,6 @@ Main's baseline Verify 42511509001 and Run site 42519992053 are successful at
 7d576ff6aeef20ac77549589830a4d4a91ea9d3e; they do not certify this candidate.
 The exact candidate's CI status is recorded separately. No landing is claimed.
 
-Candidate Verify: run 42528887928, event push, exact head e2cfaedd2f158ea90c0f0176b9ea43fcee0fdffa; last observed in progress. No CI green is claimed until its recorded conclusion is success.
+Candidate Verify: run 42528887928, event push, exact head e2cfaedd2f158ea90c0f0176b9ea43fcee0fdffa; observed completed with conclusion cancelled. Replacement-run discovery found no other run for this exact SHA. No exact-SHA CI green or READY is claimed. The existing no-rerun rule is retained; custody is PUSHED for the guarded lander.
+
+The report-only evidence transport was independently fetched and its manifest and 55 prior-packet file hashes verified. EVIDENCE-VERIFICATION.json retains that actual receipt; the final publication also includes the complete mechanical logs and terminal CI state. Product HEAD and index were unchanged by evidence publication.

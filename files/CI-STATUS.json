@@ -1,12 +1,16 @@
 {
-  "conclusion": null,
+  "conclusion": "cancelled",
+  "event": "push",
   "head_sha": "e2cfaedd2f158ea90c0f0176b9ea43fcee0fdffa",
   "html_url": "https://github.com/just-every/run-porthole/actions/runs/42528887928",
-  "status": "in_progress",
   "id": 42528887928,
   "name": "Verify",
-  "event": "push",
+  "status": "completed",
   "repository": "just-every/run-porthole",
   "branch": "cloud/sx-porthole-c-f461",
-  "exactHead": true
+  "exactHead": true,
+  "replacementRuns": [],
+  "handoff": "PUSHED",
+  "rerunAttempted": false,
+  "reason": "Existing instructions prohibit rerunning a SHA that already has a run; no replacement exact-SHA run exists."
 }
