@@ -5917,7 +5917,7 @@
       "executable": false
     },
     "tests/porthole/standard-reads.mjs": {
-      "sha256": "8a21ece9d6fa4d0c87cb72461ccee834092560e22d19583e5eff2a70725d4178",
+      "sha256": "fc31a6e218f4a779e148d141124f10e995a4aabe7e1acb84a891f731860d5409",
       "executable": false
     },
     "tests/porthole/stock-ingest.mjs": {

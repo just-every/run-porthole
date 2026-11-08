@@ -143,7 +143,11 @@ async function stockMetrics({origin,cookie,call,reader,source,scratch}){
   // End the real producer capture before the comparison workload. Stock
   // scraping otherwise keeps delivering the same final generation while the
   // reference queries run, legitimately exhausting a bounded live read.
-  const instant=Date.now()/1000;capturing=false
+  capturing=false
+  // The stock reader's shutdown emits one last real collection. Finish that
+  // collection before freezing the reference evaluation instant.
+  await provider.shutdown();provider=undefined
+  const instant=Date.now()/1000
   await value(await call(api+'/ingest/drain',{method:'POST',headers:{origin,cookie,'content-type':'application/json'},body:'{}'}))
   const query=async(base,expression,instant)=>{
    const response=await fetch(base+'/api/v1/query?'+new URLSearchParams({query:expression,time:String(instant)}));assert.equal(response.status,200,await response.clone().text());const data=await response.json();assert.equal(data.status,'success');return data.data
@@ -168,7 +172,7 @@ async function stockMetrics({origin,cookie,call,reader,source,scratch}){
   assert.ok(actual.result.reduce((n,s)=>n+s.values.length,0)>1000,'every actual scrape and OTLP series crosses multiple pages')
   const targets=await query(referenceOrigin,'target_info[2m]',instant),remoteTargets=await query(remoteOrigin,'target_info[2m]',instant)
   assert.deepEqual(normalize(remoteTargets),normalize(targets),'resource target series also preserve every original label, timestamp and value')
-  assert.ok(sourceSamples.length>=5);assert.equal(otlpPackets.length,5)
+  assert.ok(sourceSamples.length>=5);assert.equal(otlpPackets.length,6,'five explicit stock collections and the final shutdown collection')
   console.log('PROBE PORT-061 standard metrics: stock Prometheus 3.5.0 remote_read evaluates twelve fixed expressions over real scrape and stock OTLP input -> exact reference series, labels, timestamps and values')
   const generations=[...new Set(sourceSamples.map(sample=>sample.time))]
   assert.equal(generations.length,5,'all five actual producer generations were scraped')
@@ -372,13 +376,25 @@ export async function standardAnalyticalJourney(){
   await estate.stop('standby')
   try{assert.equal((await remoteRead(call,result.reader.secret,window)).status,503)}finally{await estate.start('standby')}
   await connect('primary')
+  await standardSchemaProof({origin,cookie,call,source:result.source,reader:result.reader,post,restartWorker,sql,compareBackend:async probe=>{
+   await connect('standby');try{await probe()}finally{await connect('primary')}
+  }})
   console.log('PROBE PORT-061 authority: both real analytical backends -> same stock samples; mid-read revoke and expiry -> 401; narrowing and custody change -> 409; quota -> 429; excluded records absent; unavailable backend -> 503')
  }})}finally{await estate.dispose()}
 }
 
 /** Official-schema edges complement the stock producers, including wire forms
  * those producers cannot emit (summary and stale float bit patterns). */
-export async function standardSchemaProof({origin,cookie,call,source,reader,post,restartWorker,sql}) {
+export async function standardSchemaProof({origin,cookie,call,source,reader,post,restartWorker,sql,compareBackend}) {
+ const drain=async()=>{
+  let result
+  for(let pass=0;pass<20;pass++){
+   result=await value(await post(api+'/ingest/drain',{}))
+   if(!result.pendingBatches&&result.analytical.complete)break
+  }
+  assert.equal(result.pendingBatches,0);assert.equal(result.analytical.complete,true)
+ }
+
  const attributes=[['service.name',scope.services[0]],['deployment.environment.name','production'],['team.name','commerce']].map(([key,stringValue])=>({key,value:{stringValue}}))
  const at=1000000000123456n,through=at+1000000n
  const point={timeUnixNano:String(at),attributes:[{key:'privacy.subject',value:{stringValue:'synthetic-porthole-6110'}},{key:'structured',value:{kvlistValue:{values:[{key:'sequence',value:{intValue:'9007199254740993'}},{key:'nested',value:{arrayValue:{values:[{boolValue:false},{bytesValue:'AQID'},{arrayValue:{}},{}]}}},{key:'text',value:{stringValue:'<>&'}}]}}}]}
@@ -391,7 +407,7 @@ export async function standardSchemaProof({origin,cookie,call,source,reader,post
  ]
  const wire=JSON.stringify({resourceMetrics:[{resource:{attributes},scopeMetrics:[{scope:{name:'synthetic-porthole-6111'},metrics}]}]})
  await value(await call('/v1/metrics',{method:'POST',headers:{...auth(source.secret),'content-type':'application/json'},body:wire}))
- await value(await post(api+'/ingest/drain',{}))
+ await drain()
  const query={from:at/1000000n,through:through/1000000n,matchers:[['__name__','synthetic_edge_.*',2]]}
  const rows=await remoteSeries(await remoteRead(call,reader.secret,query)),byName=name=>rows.filter(s=>s.metric.__name__===name)
  assert.deepEqual(byName('synthetic_edge_gauge_milliseconds')[0].values,[[1000000,24.5]])
@@ -400,6 +416,7 @@ export async function standardSchemaProof({origin,cookie,call,source,reader,post
  assert.deepEqual(byName('synthetic_edge_nonmonotonic')[0].values,[[1000000,-3]])
  assert.deepEqual(byName('synthetic_edge_histogram_seconds_bucket').map(s=>[s.metric.le,s.values[0][1]]).sort(),[['+Inf',6],['0.0000001',1],['0.5',3]].sort())
  assert.deepEqual(byName('synthetic_edge_summary').map(s=>[s.metric.quantile,s.values[0][1]]).sort(),[['0.0000001',0.2],['0.9',0.8]])
+ if(compareBackend)await compareBackend(async()=>assert.deepEqual(await remoteSeries(await remoteRead(call,reader.secret,query)),rows,'both analytical configurations preserve the entire supported OTLP mapping'))
  for(const label of ['absent','constructor']){
   const missing=await remoteSeries(await remoteRead(call,reader.secret,{...query,matchers:[['__name__','synthetic_edge_gauge_milliseconds'],[label,'',0]]}))
   assert.equal(missing.length,1,'absent label equals empty string, including inherited object names')
@@ -411,7 +428,7 @@ export async function standardSchemaProof({origin,cookie,call,source,reader,post
  })
  const write=packed(cat(...series))
  assert.equal((await call('/api/v1/write',{method:'POST',headers:{...auth(source.secret),'content-type':'application/x-protobuf','content-encoding':'snappy','x-prometheus-remote-write-version':'0.1.0'},body:write})).status,204)
- await value(await post(api+'/ingest/drain',{}))
+ await drain()
  const read=await remoteRead(call,reader.secret,{from:staleAt,through:staleAt,matchers:[['__name__','synthetic_edge_float']]})
  assert.equal(read.status,200)
  const response=unpack(Buffer.from(await read.arrayBuffer())),actual=fields(get(fields(response),1)).map(([,s])=>get(fields(get(fields(s),2)),1).toString('hex')).sort()
@@ -433,13 +450,13 @@ export async function standardSchemaProof({origin,cookie,call,source,reader,post
  ]){
   const payload={resourceMetrics:[{resource:{attributes},scopeMetrics:[{metrics:[{name:'synthetic.edge.unsupported',[kind]:container}]}]}]}
   await value(await call('/v1/metrics',{method:'POST',headers:{...auth(source.secret),'content-type':'application/json'},body:JSON.stringify(payload)}))
-  await value(await post(api+'/ingest/drain',{}))
+  await drain()
   const response=await remoteRead(call,reader.secret,{from:3000000n+BigInt(index),through:3000000n+BigInt(index)})
   assert.equal(response.status,422);assert.ok((await response.json()).error.startsWith('unmappable_metric_'))
  }
  const traceId='61000000000000000000000000000001',traceWire=JSON.stringify({resourceSpans:[{resource:{attributes},scopeSpans:[{spans:[{traceId,spanId:'6100000000000001',name:'synthetic-porthole-6119',startTimeUnixNano:String(at),endTimeUnixNano:String(at+100n),attributes:point.attributes}]}]}]})
  await value(await call('/v1/traces',{method:'POST',headers:{...auth(source.secret),'content-type':'application/json'},body:traceWire}))
- await value(await post(api+'/ingest/drain',{}))
+ await drain()
  const maskedTrace=await value(await call('/api/traces/'+traceId,{headers:auth(reader.secret)}))
  const maskedSpan=maskedTrace.batches[0].scopeSpans[0].spans[0]
  assert.deepEqual(maskedSpan.attributes.find(item=>item.key==='structured').value.kvlistValue.values.find(item=>item.key==='sequence').value,{stringValue:'[REDACTED]'},'mandatory scalar masks remain valid OTLP values')
@@ -465,8 +482,7 @@ export async function standardSchemaProof({origin,cookie,call,source,reader,post
   const budgetWire=JSON.stringify({resourceMetrics:[{resource:{attributes},scopeMetrics:[{metrics:[{name:'synthetic.edge.budget',gauge:{dataPoints:Array.from({length:Math.min(100,2001-offset)},(_,index)=>({timeUnixNano:String(4000000000000n+BigInt(offset+index)*1000000n),asInt:String(offset+index)}))}}]}]}]})
   await value(await call('/v1/metrics',{method:'POST',headers:{...auth(source.secret),'content-type':'application/json'},body:budgetWire}))
  }
- let pending=1;for(let pass=0;pass<20&&pending;pass++)pending=(await value(await post(api+'/ingest/drain',{}))).pendingBatches
- assert.equal(pending,0)
+ await drain()
  const exhausted=await remoteRead(call,reader.secret,{from:4000000n,through:4002000n})
  assert.equal(exhausted.status,422);assert.deepEqual(await exhausted.json(),{error:'standard_read_budget_exceeded'})
  const largeAt=5000000000000n
@@ -474,8 +490,7 @@ export async function standardSchemaProof({origin,cookie,call,source,reader,post
   const payload={resourceMetrics:[{resource:{attributes},scopeMetrics:[{metrics:[{name:'synthetic.edge.bytes',gauge:{dataPoints:Array.from({length:10},(_,index)=>({timeUnixNano:String(largeAt+BigInt(batch*10+index)*1000000n),asInt:String(index),attributes:[{key:'synthetic.payload',value:{stringValue:'x'.repeat(20000)}}]}))}}]}]}]}
   await value(await call('/v1/metrics',{method:'POST',headers:{...auth(source.secret),'content-type':'application/json'},body:JSON.stringify(payload)}))
  }
- let bytesPending=1;for(let pass=0;pass<20&&bytesPending;pass++)bytesPending=(await value(await post(api+'/ingest/drain',{}))).pendingBatches
- assert.equal(bytesPending,0)
+ await drain()
  const nativeBytes=await value(await call(api+'/ingest/records?'+new URLSearchParams({signal:'metrics',metric:'synthetic.edge.bytes',limit:'200'}),{headers:auth(reader.secret)}))
  assert.equal(nativeBytes.records.length,60);assert.equal(nativeBytes.cursor,null)
  assert.ok(nativeBytes.records.reduce((n,row)=>n+Buffer.byteLength(JSON.stringify(row.payload)),0)>1024*1024,'the byte refusal is exercised below the row cap')
@@ -488,8 +503,7 @@ export async function standardSchemaProof({origin,cookie,call,source,reader,post
   const spans=Array.from({length:Math.min(100,2001-offset)},(_,index)=>({traceId:traceBudgetId,spanId:(offset+index+1).toString(16).padStart(16,'0'),name:'synthetic-porthole-6120',startTimeUnixNano:String(largeAt),endTimeUnixNano:String(largeAt+100n)}))
   await value(await call('/v1/traces',{method:'POST',headers:{...auth(source.secret),'content-type':'application/json'},body:JSON.stringify({resourceSpans:[{resource:{attributes},scopeSpans:[{spans}]}]})}))
  }
- let tracePending=1;for(let pass=0;pass<20&&tracePending;pass++)tracePending=(await value(await post(api+'/ingest/drain',{}))).pendingBatches
- assert.equal(tracePending,0)
+ await drain()
  const traceExhausted=await call('/api/traces/'+traceBudgetId,{headers:auth(reader.secret)})
  assert.equal(traceExhausted.status,422);assert.deepEqual(await traceExhausted.json(),{error:'standard_read_budget_exceeded'},'oversized traces refuse instead of silently returning the first page')
  const byteTraceId='61000000000000000000000000000003'
@@ -497,9 +511,15 @@ export async function standardSchemaProof({origin,cookie,call,source,reader,post
   const spans=Array.from({length:10},(_,index)=>({traceId:byteTraceId,spanId:(batch*10+index+1).toString(16).padStart(16,'0'),name:'synthetic-porthole-6121',startTimeUnixNano:String(largeAt),endTimeUnixNano:String(largeAt+100n),attributes:[{key:'synthetic.payload',value:{stringValue:'x'.repeat(20000)}}]}))
   await value(await call('/v1/traces',{method:'POST',headers:{...auth(source.secret),'content-type':'application/json'},body:JSON.stringify({resourceSpans:[{resource:{attributes},scopeSpans:[{spans}]}]})}))
  }
- let traceBytesPending=1;for(let pass=0;pass<20&&traceBytesPending;pass++)traceBytesPending=(await value(await post(api+'/ingest/drain',{}))).pendingBatches
- assert.equal(traceBytesPending,0)
+ await drain()
  const traceByteExhausted=await call('/api/traces/'+byteTraceId,{headers:auth(reader.secret)})
  assert.equal(traceByteExhausted.status,422);assert.deepEqual(await traceByteExhausted.json(),{error:'standard_read_budget_exceeded'},'trace bytes below the row cap still refuse the entire response')
+ if(compareBackend)await compareBackend(async()=>{
+  assert.equal((await call('/api/traces/'+traceBudgetId,{headers:auth(reader.secret)})).status,422)
+  assert.equal((await call('/api/traces/'+byteTraceId,{headers:auth(reader.secret)})).status,422)
+  assert.equal((await remoteRead(call,reader.secret,{from:4000000n,through:4002000n})).status,422)
+  assert.deepEqual(await remoteSeries(await remoteRead(call,reader.secret,query)),[],'the peer analytical store cannot resurrect erased samples')
+  assert.equal((await call('/api/traces/'+traceId,{headers:auth(reader.secret)})).status,404,'the peer analytical store cannot resurrect erased spans')
+ })
  console.log('PROBE PORT-061 schema and erasure: cumulative gauges, sums, buckets and summaries map exactly; raw float bits survive; delta and exponential inputs refuse; erased subject and replay remain absent after restart')
 }
