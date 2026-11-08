@@ -5,7 +5,7 @@ import {verifyCredential} from '../credentials/verify'
 import {allScope,emptyScope,fail,type Scope} from '../security/authority'
 import {privateHeaders} from '../document'
 import {fence,query,requireEnabled,type Configuration} from './client'
-export async function readAnalytical(request:Request,env:Bindings,config:Configuration,context:{principal?:ReadPrincipal;scope:Scope;actorRef:string;actorRevision:number;fence:{sql:string;args:unknown[]};snapshot:number;queryRef:string;queryScope:string;from:string;through:string;signal:string;limit:number;archive:boolean;logSearch?:LogSearchPlan}) {
+export async function readAnalytical(request:Request,env:Bindings,config:Configuration,context:{principal?:ReadPrincipal;scope:Scope;actorRef:string;actorRevision:number;fence:{sql:string;args:unknown[]};snapshot:number;queryRef:string;queryScope:string;from:string;through:string;signal:string;limit:number;archive:boolean;logSearch?:LogSearchPlan;saveSnapshot?:boolean}) {
  const credential=(use:Parameters<typeof verifyCredential>[2])=>context.principal?.clientId?agentCredential(request,env,context.principal,use!):verifyCredential(request,env,use)
  const params=new URL(request.url).searchParams,{scope,snapshot,from,through,signal,limit,archive,queryRef}=context
  requireEnabled(config)
@@ -31,7 +31,7 @@ export async function readAnalytical(request:Request,env:Bindings,config:Configu
  const selected=fence(config)
  const writes=(live:{sql:string;args:unknown[]})=>{
   const condition=`(${live.sql}) AND (${selected.sql})`,args=[...live.args,...selected.args]
-  return [env.DB.prepare(`SELECT 1 AS live WHERE ${condition}`).bind(...args),env.DB.prepare(`INSERT INTO porthole_query_snapshots SELECT ?,?,?,?,?,?,?,? WHERE ${condition}`).bind(queryRef,context.actorRef,context.queryScope,signal,from,through,snapshot,Date.now(),...args)]
+  return [env.DB.prepare(`SELECT 1 AS live WHERE ${condition}`).bind(...args),...(context.saveSnapshot===false?[]:[env.DB.prepare(`INSERT INTO porthole_query_snapshots SELECT ?,?,?,?,?,?,?,? WHERE ${condition}`).bind(queryRef,context.actorRef,context.queryScope,signal,from,through,snapshot,Date.now(),...args)])]
  }
  let results:D1Result[]
  if(context.principal?.clientId||request.headers.has('authorization')){

@@ -4489,7 +4489,7 @@
       "executable": false
     },
     "src/porthole/analytical/read.ts": {
-      "sha256": "3ffd6535f2e3ca3d8708f1fb8b7e338d242d6abe0a80a9403ee997b035a11068",
+      "sha256": "7c034ee615b450122be5e70ea48ca04c16b54dac5c2ffc9ee05e07920c879b64",
       "executable": false
     },
     "src/porthole/api/http.ts": {
@@ -4665,11 +4665,11 @@
       "executable": false
     },
     "src/porthole/explore/model.ts": {
-      "sha256": "6ce98ff29cdf764bf2c11b92994b4b647dd6a209a5b873d50e732dc408808509",
+      "sha256": "9e56bccaf2855098400f63f60935210cf7393c11f445cd8984fc79ac2e2c8bdb",
       "executable": false
     },
     "src/porthole/explore/normalize.ts": {
-      "sha256": "4458985cc570f94d04c1a509a9785b7c37cd03646a8927081e43d54fd8222bc2",
+      "sha256": "d8a7e0e0c749d499ad822d10dccbeaf173aa260414516a2e8785465487003fae",
       "executable": false
     },
     "src/porthole/explore/promql.ts": {
@@ -4785,7 +4785,7 @@
       "executable": false
     },
     "src/porthole/ingest/read.ts": {
-      "sha256": "11abd777744250cdebf6b7a3ef3cd2e8d9981b5b53d9a89da742b45cf1d26302",
+      "sha256": "90ce1274a9d437cb77a018fb060446dddcc34f8d8b1d62c91432d69e28194ee8",
       "executable": false
     },
     "src/porthole/ingest/status.ts": {
@@ -5197,7 +5197,19 @@
       "executable": false
     },
     "src/porthole/query/http.ts": {
-      "sha256": "65bbd7634292ee61d928a22a354bdcbfcebb4223153b7d5061086afd6d35ad6a",
+      "sha256": "f5c8b1b0d29cf92ca56945534531e392f2f8cd3eefd2d342149fee153e631332",
+      "executable": false
+    },
+    "src/porthole/query/range/evaluate.ts": {
+      "sha256": "c3186183d251a621a9b774fc36c45dde92d9f2345ac6ade32eb7b0802327099d",
+      "executable": false
+    },
+    "src/porthole/query/range/model.ts": {
+      "sha256": "fcbb9903169daac5b3b3cef69c8e1936d804dac8ef216e13f3d0bea1d6916216",
+      "executable": false
+    },
+    "src/porthole/query/range/read.ts": {
+      "sha256": "1ec3b3df0ecad7b7bc23d6d4beb2438a8a4adcc71b87ce64025d93aef04a8c12",
       "executable": false
     },
     "src/porthole/recovery/mail.ts": {
