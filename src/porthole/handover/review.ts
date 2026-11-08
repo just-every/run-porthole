@@ -43,8 +43,8 @@ export async function reviewedRemoval(request:Request,env:Bindings,id:string,dat
  const target=await targetFor(env,actor,id)
  const observedEpoch=await epoch(env),items=await inventory(env,id,actor)
  if(observedEpoch!==await epoch(env))fail('handover_inventory_changed',409)
- // An empty inventory retains the existing removal and invitation-cancel door.
- if(!data.token&&items.length)fail('handover_review_required',409)
+ // Cancelling an unused invitation confers no active ownership authority.
+ if(!data.token&&(target.row.status!=='invited'||items.length))fail('handover_review_required',409)
  let binding:Binding|undefined
  if(data.token) {
   try {
@@ -77,6 +77,7 @@ export async function reviewedRemoval(request:Request,env:Bindings,id:string,dat
   if(item.kind==='approval')statements.push(env.DB.prepare(`UPDATE porthole_objects SET state='inactive',updated_at=? WHERE state='approved' AND EXISTS(SELECT 1 FROM porthole_object_approvals a WHERE a.id=? AND a.object_id=porthole_objects.id AND a.revision=porthole_objects.revision)`).bind(now,item.id),env.DB.prepare('DELETE FROM porthole_object_approvals WHERE id=? AND actor_ref=?').bind(item.id,id))
   if(successor===null&&['move','hold'].includes(item.mode)&&item.kind!=='follow-up')statements.push(env.DB.prepare(`INSERT INTO porthole_follow_up(id,source,kind,scope,owner_id,state,reason,next_action,due_at,created_at,updated_at) VALUES(?,?,'handover',?,NULL,'blocked','Member removed; ownership requires review.',?,?,?,?)`).bind(crypto.randomUUID(),'handover:'+crypto.randomUUID()+':'+item.key,JSON.stringify(item.scope),'Review '+item.kind+' '+item.id+' at revision '+item.revision+'; existing collection and evaluation remain unchanged.',now+86400000,now,now))
  }
+ statements.push(env.DB.prepare("UPDATE porthole_signal_exports SET state='cancelled' WHERE owner_ref=? AND state!='cancelled'").bind(id))
  statements.push(env.DB.prepare('DELETE FROM porthole_notebook_shares WHERE owner_ref=?').bind(id))
  for(const [table,owner]of [['porthole_notebook_publications','owner_ref'],['porthole_dashboard_publications','owner_id']])statements.push(env.DB.prepare(`UPDATE ${table} SET state='revoked',revoked_at=?,updated_at=?,revision=revision+1 WHERE ${owner}=? AND state IN ('draft','published')`).bind(now,now,id))
  const receipt=crypto.randomUUID()

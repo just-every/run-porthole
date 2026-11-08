@@ -117,3 +117,15 @@ SLO versions, database source reviews, pipeline and span-metric approval
 provenance remain unchanged and enter named unassigned Follow-up. This removal
 door grants no held mutation, monitor ownership, route change, outbound
 delivery, scheduled report, device or running investigation authority.
+
+Active members require review even when the inventory is empty. Both Members
+controls open the preview; only its signed review can complete removal.
+Cancelling an unused invitation with no assignments retains the existing
+cancellation door. Approved signal exports end rather than transfer; existing
+installation archive jobs remain held private custody with named Follow-up,
+without transferring restore or export approval authority.
+
+Existing owner-only domain doors remain owner-only in a removal batch. An admin
+can review ordinary personal and credential revocation, but owned objects need
+a current native owner to review their handover. Membership administration is
+not delegated service, notebook, publication or follow-up administration.

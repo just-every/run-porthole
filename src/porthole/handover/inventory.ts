@@ -19,10 +19,14 @@ export async function inventory(env:Bindings,target:string,actor:Authority):Prom
  add('notebook-publication','end',await read(`SELECT p.id,p.revision,n.scope,n.name FROM porthole_notebook_publications p JOIN porthole_notebooks n ON n.id=p.notebook_id WHERE p.owner_ref=? AND p.state IN ('draft','published')`))
  add('dashboard-publication','end',await read(`SELECT p.id,p.revision,d.scope,d.name FROM porthole_dashboard_publications p JOIN porthole_dashboards d ON d.id=p.dashboard_id WHERE p.owner_id=? AND p.state IN ('draft','published')`))
  add('approval','void',await read(`SELECT a.id,a.revision,o.scope,o.name,o.id entityRef FROM porthole_object_approvals a JOIN porthole_objects o ON o.id=a.object_id WHERE a.actor_ref=?`))
+ add('signal-export','end',await read(`SELECT id,owner_revision revision,json_extract(selection,'$.scope') scope,'Signal export approval' name FROM porthole_signal_exports WHERE owner_ref=? AND state!='cancelled'`))
+ add('archive-job','hold',await read(`SELECT id,row_count+next_chunk+1 revision,'{}' scope,'Native archive '||direction||' ('||state||')' name FROM porthole_archive_jobs WHERE owner_ref=?`).then(rows=>rows.map(row=>({...row,scope:JSON.stringify(allScope)}))))
  add('database-source','hold',await read(`SELECT id,revision,json_object('services',json_array(service),'environments',json_array(environment),'teams',json_array(team)) scope,engine name FROM porthole_database_sources WHERE owner_id=?`))
  add('slo','hold',await read(`SELECT s.id,s.revision,'{}' scope,s.name FROM porthole_slo_versions s WHERE s.owner_id=? AND s.revision=(SELECT MAX(v.revision) FROM porthole_slo_versions v WHERE v.id=s.id)`).then(rows=>rows.map(row=>({...row,scope:JSON.stringify(allScope)}))))
  add('metric-rule','hold',await read(`SELECT r.id,r.revision,json_object('services',json_array(json_extract(definition,'$.service')),'environments',json_array(json_extract(definition,'$.environment')),'teams',json_array(json_extract(definition,'$.team'))) scope,json_extract(definition,'$.name') name FROM porthole_metric_rules r WHERE owner_id=? AND revision=(SELECT MAX(v.revision) FROM porthole_metric_rules v WHERE v.id=r.id)`))
  add('pipeline','hold',await read(`SELECT 'pipeline' id,revision,'{}' scope,'Pipeline approval provenance' name FROM porthole_pipeline_versions WHERE owner_id=? AND revision=(SELECT MAX(revision) FROM porthole_pipeline_versions)`).then(rows=>rows.map(row=>({...row,scope:JSON.stringify(allScope)}))))
+ // The batch does not delegate the existing owner-only domain mutation doors.
+ if(actor.member.role!=='owner'&&items.some(item=>!['credential','personal-credential','approval'].includes(item.kind)))fail('handover_owner_required')
  if(items.some(item=>!scopeWithin(item.scope,actor.member.scope)))fail('handover_scope_forbidden')
  return items.sort((a,b)=>a.key.localeCompare(b.key))
 }

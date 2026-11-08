@@ -83,7 +83,7 @@ export async function validateRow(payload: PortableRow, state: Validation): Prom
  if(item.table==='porthole_handover_history') {
   if(!uuid(row.id)||!uuid(row.target_ref)||!uuid(row.actor_ref)||!hex(row.inventory_digest)||!integer(row.occurred_at)||!['committed','quarantined'].includes(String(row.state)))bad()
   const decisions=json(row.decisions)
-  const key=/^(?:service:[a-f0-9]{32}|(?:notebook|event-filter|follow-up|credential|personal-credential|notebook-publication|dashboard-publication|approval|database-source|slo|metric-rule):[a-f0-9-]{36}|notebook-share:[a-f0-9-]{36}:(?:member:[a-f0-9-]{36}|team:[a-zA-Z0-9][a-zA-Z0-9._:/-]{0,119})|pipeline:pipeline)$/
+  const key=/^(?:service:[a-f0-9]{32}|(?:notebook|event-filter|follow-up|credential|personal-credential|notebook-publication|dashboard-publication|approval|signal-export|archive-job|database-source|slo|metric-rule):[a-f0-9-]{36}|notebook-share:[a-f0-9-]{36}:(?:member:[a-f0-9-]{36}|team:[a-zA-Z0-9][a-zA-Z0-9._:/-]{0,119})|pipeline:pipeline)$/
   if(!Array.isArray(decisions)||new Set(decisions.map(d=>d?.key)).size!==decisions.length||decisions.some(d=>!object(d)||Object.keys(d).some(k=>!['key','revision','mode','successor','entityRef'].includes(k))||typeof d.key!=='string'||!key.test(d.key)||!integer(d.revision,1)||!['move','end','void','hold','suspend','custody'].includes(String(d.mode))||d.successor!==null&&!uuid(d.successor)||!['move','custody'].includes(String(d.mode))&&d.successor!==null||d.mode==='custody'&&d.successor===null||d.entityRef!==undefined&&!uuid(d.entityRef)))bad()
  } else if(item.table==='porthole_custom_events') {
   await validateEventRow(row)

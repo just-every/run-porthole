@@ -1,3 +1,4 @@
+import {reviewRemoval} from './fixture.mjs'
 import {localAgentPolicy,refusal} from '../agent-door/local-policy.mjs'
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
@@ -86,7 +87,7 @@ export async function credentialJourney({ origin, cookie, sql, mutate, restartWo
  for (const kind of Object.keys(kindActions)) identities[kind] = await mint(kind)
  assert.notEqual(identities.proposal.credential.id, identities.execution.credential.id)
  const ownerId=(await sql("SELECT id FROM oa_operators WHERE email='owner@example.com'"))[0].id
- assert.equal((await post('/app/settings/members/remove',{operatorId:ownerId})).status,409)
+ assert.equal((await post('/app/settings/members/remove',await reviewRemoval(origin,ownerCookie,ownerId))).status,409)
  const afterRefusal=await inspect(identities.ingest.secret)
  assert.equal(afterRefusal.status,200)
  assert.equal((await afterRefusal.json()).custodianId,ownerId,'failed last-owner removal rolls custody back')

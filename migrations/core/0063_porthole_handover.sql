@@ -102,6 +102,12 @@ CREATE TRIGGER handover_epoch_porthole_notebooks_delete AFTER DELETE ON porthole
 CREATE TRIGGER handover_epoch_porthole_notebook_shares_insert AFTER INSERT ON porthole_notebook_shares BEGIN UPDATE porthole_handover_epoch SET revision=revision+1 WHERE singleton=1; END;
 CREATE TRIGGER handover_epoch_porthole_notebook_shares_update AFTER UPDATE ON porthole_notebook_shares BEGIN UPDATE porthole_handover_epoch SET revision=revision+1 WHERE singleton=1; END;
 CREATE TRIGGER handover_epoch_porthole_notebook_shares_delete AFTER DELETE ON porthole_notebook_shares BEGIN UPDATE porthole_handover_epoch SET revision=revision+1 WHERE singleton=1; END;
+CREATE TRIGGER handover_epoch_porthole_signal_exports_insert AFTER INSERT ON porthole_signal_exports BEGIN UPDATE porthole_handover_epoch SET revision=revision+1 WHERE singleton=1; END;
+CREATE TRIGGER handover_epoch_porthole_signal_exports_update AFTER UPDATE OF owner_ref,owner_revision,state,selection,credential_ref ON porthole_signal_exports BEGIN UPDATE porthole_handover_epoch SET revision=revision+1 WHERE singleton=1; END;
+CREATE TRIGGER handover_epoch_porthole_signal_exports_delete AFTER DELETE ON porthole_signal_exports BEGIN UPDATE porthole_handover_epoch SET revision=revision+1 WHERE singleton=1; END;
+CREATE TRIGGER handover_epoch_porthole_archive_jobs_insert AFTER INSERT ON porthole_archive_jobs BEGIN UPDATE porthole_handover_epoch SET revision=revision+1 WHERE singleton=1; END;
+CREATE TRIGGER handover_epoch_porthole_archive_jobs_update AFTER UPDATE OF owner_ref,state,row_count,next_chunk ON porthole_archive_jobs BEGIN UPDATE porthole_handover_epoch SET revision=revision+1 WHERE singleton=1; END;
+CREATE TRIGGER handover_epoch_porthole_archive_jobs_delete AFTER DELETE ON porthole_archive_jobs BEGIN UPDATE porthole_handover_epoch SET revision=revision+1 WHERE singleton=1; END;
 CREATE TRIGGER handover_epoch_porthole_notebook_publications_insert AFTER INSERT ON porthole_notebook_publications BEGIN UPDATE porthole_handover_epoch SET revision=revision+1 WHERE singleton=1; END;
 CREATE TRIGGER handover_epoch_porthole_notebook_publications_update AFTER UPDATE ON porthole_notebook_publications BEGIN UPDATE porthole_handover_epoch SET revision=revision+1 WHERE singleton=1; END;
 CREATE TRIGGER handover_epoch_porthole_notebook_publications_delete AFTER DELETE ON porthole_notebook_publications BEGIN UPDATE porthole_handover_epoch SET revision=revision+1 WHERE singleton=1; END;

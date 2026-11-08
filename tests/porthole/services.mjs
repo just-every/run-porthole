@@ -1,3 +1,4 @@
+import {reviewRemoval} from './fixture.mjs'
 import assert from 'node:assert/strict'
 import {mkdir} from 'node:fs/promises'
 import {join} from 'node:path'
@@ -178,14 +179,15 @@ export async function servicesJourney({origin,freshOwner,signIn,sql,restartWorke
  assert.ok(!(await read(api+query,eligibleCookie)).services.some(s=>s.id===checkout.id),'ownership does not preserve data access after scope revocation')
  assert.ok((await read(associationTrace,eligibleCookie)).spans.every(span=>span.service==='fulfillment'),'a historical association reference cannot confer the former service scope')
  await denied(api+'/'+checkout.id,{...values,revision:3},403,eligibleCookie)
- await send('/app/settings/members/remove',{operatorId:restrictedId})
+ await send('/app/settings/members/remove',await reviewRemoval(origin,cookie,restrictedId,{call}))
  cookie=await freshOwner()
- await send('/app/settings/members/remove',{operatorId:eligible.id})
+ await send('/app/settings/members/remove',await reviewRemoval(origin,cookie,eligible.id,{call}))
  await send('/api/porthole/v1/actors/erase',{actorRef:eligible.id,confirm:'erase'})
  const erased=await read(api+'/'+checkout.id+query)
+ assert.equal(erased.metadata.revision,4);assert.equal(erased.metadata.owner_ref,null,'reviewed removal appends explicit unassignment without changing telemetry')
  assert.equal(erased.names[eligible.id],'Unavailable member');assert.ok(!JSON.stringify(erased).includes('Eligible service owner'),'erased attribution has no retained identity label')
  await denied(api+'/'+checkout.id,{...values,revision:2},409)
- await denied(api+'/'+checkout.id,{...values,revision:3,ownerRef:eligible.id},403)
+ await denied(api+'/'+checkout.id,{...values,revision:4,ownerRef:eligible.id},403)
  assert.equal((await call(api,{headers:{cookie:restricted}})).status,401)
  await servicesBrowser({origin,path:'/app/services',contains:'unauthenticated',name:'services-unauthorized',status:401,dispatch:browserDispatch})
  assert.equal((await call(api+'?budget=3',{headers:{cookie}})).status,400)

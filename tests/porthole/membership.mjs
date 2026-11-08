@@ -1,3 +1,4 @@
+import {reviewRemoval} from './fixture.mjs'
 import assert from 'node:assert/strict'
 import {randomBytes,randomUUID} from 'node:crypto'
 import {hashToken} from '../../src/modules/operator-auth/crypto.mjs'
@@ -60,7 +61,7 @@ export async function membershipJourney({origin,cookie,foreignCookie,sql,mutate,
  assert.equal((await post('/app/settings/members/change',{operatorId:target.id,role:'read-only analyst',scope})).status,200)
  for(const c of [targetCookie,concurrentCookie]) assert.equal((await get('/auth/session',c)).status,401)
  assert.equal((await post('/app/settings/members/change',{operatorId:owner.id,role:'owner'})).status,403)
- assert.equal((await post('/app/settings/members/remove',{operatorId:owner.id})).status,409)
+ assert.equal((await post('/app/settings/members/remove',await reviewRemoval(origin,cookie,owner.id))).status,409)
  assert.equal((await sql(`SELECT COUNT(*) AS n FROM oa_operators WHERE role='owner' AND status='active'`))[0].n,1)
  // Age only the synthetic fixture's proof. Base's 10-minute window would pass;
  // the product must refuse once the required 5 minutes have elapsed.
@@ -84,7 +85,7 @@ export async function membershipJourney({origin,cookie,foreignCookie,sql,mutate,
  const personal=randomBytes(32).toString('base64url'),digest=await hashToken(sessionSecret,'credential',personal)
  await mutate(`INSERT INTO oa_credentials(id,token_hash,operator_id,operator_version,kind,expires_at) SELECT ${literal(randomUUID())},${literal(digest)},id,version,'native',${Date.now()+3600000} FROM oa_operators WHERE id=${literal(target.id)};`)
  assert.equal((await fetch(origin+'/api/porthole/v1/session',{headers:{authorization:'Bearer '+personal}})).status,200)
- assert.equal((await post('/app/settings/members/remove',{operatorId:target.id})).status,200)
+ assert.equal((await post('/app/settings/members/remove',await reviewRemoval(origin,cookie,target.id))).status,200)
  assert.equal((await fetch(origin+'/api/porthole/v1/session',{headers:{authorization:'Bearer '+personal}})).status,401)
  assert.equal((await get('/auth/session',targetCookie)).status,401)
  assert.ok((await sql(`SELECT revoked_at FROM oa_credentials WHERE operator_id=${literal(target.id)}`))[0].revoked_at)
@@ -148,6 +149,10 @@ export async function membershipBrowser({origin,cookie,contractorCookie}) {
    await managed.getByText('Manage '+manageName,{exact:true}).click()
    await managed.getByRole('checkbox').check()
    await managed.getByRole('button',{name:'Remove member',exact:true}).click()
+   await page.getByRole('heading',{name:'Review member removal',exact:true}).waitFor()
+   await page.getByRole('checkbox').check()
+   await page.getByRole('button',{name:'Commit handover and remove'}).click()
+   await page.waitForURL(origin+'/app/settings/members')
    const current=await (await fetch(origin+'/auth/operators',{headers:{cookie}})).json()
    assert.equal(current.find(row=>row.displayName===manageName).status,'inactive')
    if(process.env.PORTHOLE_EVIDENCE_DIR) await managed.screenshot({path:join(process.env.PORTHOLE_EVIDENCE_DIR,`members-removed-${width}.png`)})
@@ -187,7 +192,7 @@ async function staleBrowser({origin,cookie}) {
   const page=await context.newPage();await page.goto(origin+'/app/settings/members')
   const target=page.locator('li').filter({has:page.getByRole('heading',{name:'Checkout maintainer',exact:true})})
   await target.getByText('Manage Checkout maintainer',{exact:true}).click();await target.getByRole('checkbox').check()
-  const refusal=page.waitForResponse(response=>response.url().endsWith('/app/settings/members/remove') && response.request().method()==='POST')
+  const refusal=page.waitForResponse(response=>response.url().endsWith('/app/settings/members/preview') && response.request().method()==='POST')
   await target.getByRole('button',{name:'Remove member',exact:true}).click();assert.equal((await refusal).status(),403)
   await page.getByRole('alert').waitFor();assert.ok(await page.getByRole('button',{name:'Send confirmation link',exact:true}).isVisible())
   if(process.env.PORTHOLE_EVIDENCE_DIR) {await mkdir(process.env.PORTHOLE_EVIDENCE_DIR,{recursive:true});await page.screenshot({path:join(process.env.PORTHOLE_EVIDENCE_DIR,`members-stale-${width}.png`),fullPage:true})}
