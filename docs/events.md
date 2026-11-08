@@ -83,3 +83,7 @@ Kubernetes, AWS and integration connectors, authenticated provider provenance,
 provider event export, the remaining graph catalog, event-monitor evaluation
 and unchanged Datadog callers remain unqualified. Authorized AWS source identity
 is not supplied. The native slice does not establish PORT-069 DONE.
+
+The native event and saved-filter schema is added by
+`migrations/core/0061_porthole_events.sql`, after main’s applied service catalog
+migration `0060_porthole_services.sql`. Existing applied migrations stay unchanged.

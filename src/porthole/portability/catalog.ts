@@ -1,4 +1,5 @@
 import {eventColumns,filterColumns} from '../events/model'
+import {metadataColumns} from '../services/model'
 import {publicationColumns} from '../notebooks/publication-model'
 import {columns as notebookColumns} from '../notebooks/model'
 import { healthHistoryQuery } from './health-history'
@@ -14,6 +15,7 @@ const spec = (table: string, columns: string[], order: string): TableSpec => ({ 
 export const catalog: TableSpec[] = [
  spec('porthole_custom_events',eventColumns,'sequence'),
  spec('porthole_event_filters',filterColumns,'id'),
+ spec('porthole_service_versions',metadataColumns,'id,revision'),
  spec('porthole_notebook_versions',notebookColumns,'id,revision'),
  spec('porthole_notebooks',notebookColumns,'id'),
  spec('porthole_notebook_publications',publicationColumns,'id'),
@@ -64,6 +66,7 @@ function allPredicates(clauses:string[]):string {
 export const emptyProduct = allPredicates([emptyCustody,
  'NOT EXISTS(SELECT 1 FROM porthole_custom_events)',
  'NOT EXISTS(SELECT 1 FROM porthole_event_filters)',
+ 'NOT EXISTS(SELECT 1 FROM porthole_service_versions)',
  'NOT EXISTS(SELECT 1 FROM porthole_notebook_publications)',
  'NOT EXISTS(SELECT 1 FROM porthole_notebooks)',
  'NOT EXISTS(SELECT 1 FROM porthole_notebook_versions)',

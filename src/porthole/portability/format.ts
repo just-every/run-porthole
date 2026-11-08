@@ -1,4 +1,6 @@
 import {validateEventRow,eventFilter} from '../events/model'
+import {validateMetadata} from '../services/model'
+import {serviceId} from '../services/read'
 import {hostDefinition,validateHostEvidence} from '../monitors/types/host-heartbeat'
 import {assertGenAIMetadata} from '../genai/privacy'
 import {assertGenAIWire} from '../genai/wire'
@@ -39,6 +41,7 @@ const object = (value: unknown): value is Record<string,unknown> => !!value && t
 export function manifestInput(value: unknown): Manifest {
  if(!object(value) || Object.keys(value).sort().join(',')!==['format','id','createdAt','rowCount','chunks','rootHash','tables','inactive'].sort().join(',') || value.format!==format || !uuid(value.id) || !integer(value.createdAt) || !integer(value.rowCount) || !integer(value.chunks) || !hex(value.rootHash) || value.inactive!==true || !object(value.tables)) return bad()
  for(const table of ['porthole_custom_events','porthole_event_filters'])if(!Object.hasOwn(value.tables,table))value.tables[table]=0
+ if(!Object.hasOwn(value.tables,'porthole_service_versions'))value.tables.porthole_service_versions=0
  // Older archives predate export exclusions. Their absent journal is empty;
  // a later destination journal still wins during restore.
  for(const table of ['porthole_notebooks','porthole_notebook_versions','porthole_notebook_publications'])if(!Object.hasOwn(value.tables,table))value.tables[table]=0
@@ -80,6 +83,9 @@ export async function validateRow(payload: PortableRow, state: Validation): Prom
  } else if(item.table==='porthole_event_filters') {
   if(!uuid(row.id)||!uuid(row.owner_ref)||!str(row.name)||!integer(row.revision,1)||!integer(row.created_at)||!['active','quarantined'].includes(String(row.state)))bad()
   eventFilter(json(row.definition))
+ } else if(item.table==='porthole_service_versions') {
+  validateMetadata(row)
+  if(await serviceId(row as unknown as {service:string;environment:string;team:string})!==row.id)bad()
  } else if(item.table==='porthole_notebook_publications') {
   publicationRow(row)
  } else if(['porthole_notebooks','porthole_notebook_versions'].includes(item.table)) {
