@@ -4,7 +4,7 @@ Pack revision 1. Service image: `postgres:17.6`.
 Collector: unmodified OpenTelemetry Collector Contrib 0.135.0.
 Stock receiver: `postgresql`. Pinned source: https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.135.0/receiver/postgresqlreceiver.
 
-Required monitored-service permissions: CONNECT on selected database, pg_monitor; no application-table writes.
+Required monitored-service permissions: CONNECT on the selected database and SELECT on pg_stat_database; no pg_monitor, query samples or application-table access.
 Service signals: metrics. Collector diagnostics additionally
 require a logs ingest grant. All values remain scoped to the reviewed service,
 environment and team. A heartbeat is not proof of successful collection.

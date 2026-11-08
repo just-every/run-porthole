@@ -9,10 +9,10 @@ export function collectorConfiguration(b:Binding,origin:string) {
  else {receiver.endpoint=endpoint
   if(!['nginx','redis'].includes(b.pack))Object.assign(receiver,{username:value(prefix+'_USERNAME'),password:value(prefix+'_PASSWORD')})
   if(b.pack==='redis')Object.assign(receiver,{username:value(prefix+'_USERNAME'),password:value(prefix+'_PASSWORD')})
-  if(b.pack==='mysql')receiver.metrics={'mysql.commands':{enabled:true}}
+  if(b.pack==='mysql')receiver.metrics=p.receiverMetrics
   if(b.pack==='postgresql')Object.assign(receiver,{databases:[value(prefix+'_DATABASE')],tls:{insecure:true},metrics:{'postgresql.database.locks':{enabled:false}}})
  }
- const self='prometheus',receivers:Record<string,unknown>={[p.receiver]:receiver,[self]:{config:{scrape_configs:[{job_name:'collector',scrape_interval:'5s',static_configs:[{targets:['127.0.0.1:'+value('PORTHOLE_SELF_PORT')]}],metric_relabel_configs:[{source_labels:['__name__'],regex:'otelcol_(scraper_.*|fileconsumer_.*)',action:'keep'}]}]}}}
+ const self='prometheus',receivers:Record<string,unknown>={[p.receiver]:receiver,[self]:{config:{scrape_configs:[{job_name:'collector',scrape_interval:'2s',static_configs:[{targets:['127.0.0.1:'+value('PORTHOLE_SELF_PORT')]}],metric_relabel_configs:[{source_labels:['__name__'],regex:'otelcol_(scraper_.*|fileconsumer_.*)',action:'keep'}]}]}}}
  receivers['filelog']={include:[value('PORTHOLE_DIAGNOSTIC_LOG')],start_at:'beginning',storage:'file_storage',operators:[{type:'filter',expr:'body not matches "Error scraping metrics"'}]}
  const diagnosticStatements=[
   'set(attributes["porthole.setup.failure"], "receiver_failed")',

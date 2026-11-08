@@ -875,6 +875,8 @@ async function run(source) {
    })
    return
   }
+  const integrationCredential=await value(send('/app/settings/credentials/mint',{name:'Native integration backup',class:'ingest',scope:{...scope,signals:['metrics','logs'],actions:['telemetry.write']}}),201)
+  const integration=await value(send('/api/porthole/v1/integrations/enable',{pack:'redis',service:scope.services[0],environment:scope.environments[0],team:scope.teams[0],credentialId:integrationCredential.credential.id,revision:0,confirm:'review-local-collection'}),201)
   credential=await value(send('/app/settings/credentials/mint',{name:'synthetic-porthole-9705',class:'ingest',scope:{...scope,signals:['logs','traces'],actions:['telemetry.write']}}),201)
   const targetBatches=[]
   for(const offset of [0,1]) {
@@ -969,8 +971,13 @@ async function run(source) {
   const portable=await readFile(afterFile,'utf8')
   assert.ok(!portable.includes(identifier),'a subsequent native export contains no erased subject')
   assert.ok(portable.includes(peer),'native export retains the unrelated subject')
+  assert.ok(!portable.includes(integrationCredential.secret),'native installation export omits the pack intake secret')
   const destination=await clone('erasure-destination')
   await command(destination,['import','--input',afterFile,'--yes'])
+  const restoredIntegration=(await sql(destination,'SELECT state,credential_id,dashboard_id FROM porthole_integration_bindings WHERE id='+literal(integration.binding.id)))[0]
+  assert.equal(restoredIntegration.state,'quarantined');assert.equal(restoredIntegration.credential_id,null)
+  assert.equal((await sql(destination,'SELECT state FROM porthole_dashboards WHERE id='+literal(restoredIntegration.dashboard_id)))[0].state,'quarantined')
+  assert.equal((await sql(destination,'SELECT COUNT(*) AS n FROM porthole_credentials'))[0].n,0,'native restore transfers no pack collection credential')
   for(const table of liveHostTables) {
    assert.equal((await sql(destination,'SELECT COUNT(*) AS n FROM '+table))[0].n,0,'native restore never revives '+table)
    const retained=await sql(destination,'SELECT row,state FROM porthole_archive_health_history WHERE table_name='+literal(table))

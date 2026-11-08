@@ -17,6 +17,8 @@ export default {
  excludeTables:excluded,
  requiredConfiguration:['OWNER_EMAIL','SESSION_SECRET','SETUP_TOKEN','AUTH_ORIGIN','MAIL_PROVIDER','MAIL_FROM'],
  importSafety:{
+  porthole_integration_bindings:{state:['quarantined']},
+  porthole_dashboards:{state:['quarantined']},porthole_dashboard_versions:{state:['quarantined']},
   porthole_custom_events:{state:['quarantined']},porthole_event_filters:{state:['quarantined']},
   porthole_service_versions:{state:['quarantined']},
   porthole_pipeline_versions:{state:['quarantined']},
@@ -28,6 +30,8 @@ export default {
   porthole_monitor_state:{status:['Unknown']},
  },
  importRow(table,row) {
+  if(table==='porthole_integration_bindings')return {...row,state:'quarantined',credential_id:null}
+  if(['porthole_dashboards','porthole_dashboard_versions'].includes(table))return {...row,state:'quarantined'}
   if(['porthole_custom_events','porthole_event_filters'].includes(table))return {...row,state:'quarantined'}
   if(table==='porthole_service_versions')return {...row,state:'quarantined'}
   if(table==='porthole_pipeline_versions')return {...row,state:'quarantined'}
@@ -43,6 +47,7 @@ export default {
  async validateStaged({db,tables,read}) {
   // Database constraints and the shared portability semantic validator enforce
   // row types/foreign keys; this independent condition forbids active identities.
+  if(tables.porthole_integration_bindings){const bindings=await read('porthole_integration_bindings');if(bindings.some(b=>b.state!=='quarantined'||b.credential_id!==null))return false}
   const operators=tables.porthole_archive_actors
   if(!operators)return false
   const quote=value=>'"'+value.replaceAll('"','""')+'"'

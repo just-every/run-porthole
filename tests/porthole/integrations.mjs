@@ -27,9 +27,9 @@ async function nativeEnable(origin,cookie,data) {
  }finally{await browser.close()}
 }
 export async function integrationJourney({origin,freshOwner,restartWorker,signIn,sql,withEmptyDestination,withPinnedClock,analytics}) {
- let cookie=await freshOwner()
+ let cookie=await freshOwner(),lastHealth=null
  const get=(path,acting=cookie)=>fetch(origin+path,{headers:{cookie:acting}}),post=(path,data,acting=cookie)=>fetch(origin+path,form(origin,acting,data))
- const value=async(r,status=200)=>{assert.equal(r.status,status,await r.clone().text());return r.json()}
+ const value=async(r,status=200)=>{assert.equal(r.status,status,await r.clone().text());const body=await r.json();if(body.health)lastHealth=body.health;return body}
  const catalog=await value(await get(api));assert.ok(catalog.packs.length>0)
  assert.equal((await get(api,'')).status,401)
  await eventBrowser({origin,cookie,path:app,name:'integrations-empty'})
@@ -55,7 +55,7 @@ export async function integrationJourney({origin,freshOwner,restartWorker,signIn
   const wait=async(test,label,seconds=40)=>{
    let last
    for(let i=0;i<seconds;i++){if(collector?.child.exitCode!==null&&collector?.child.exitCode!==undefined)throw Error('stock_collector_exited_'+pack.id+' '+collector?.diagnostics());await drain();last=await test();if(last)return last;await pause(1000)}
-   throw Error('integration_wait_'+pack.id+'_'+label+' '+collector?.diagnostics())
+   throw Error('integration_wait_'+pack.id+'_'+label+' '+JSON.stringify(lastHealth)+' '+collector?.diagnostics())
   }
   try {
    const before=await sql('SELECT COUNT(*) AS n FROM porthole_integration_bindings')
@@ -84,7 +84,7 @@ export async function integrationJourney({origin,freshOwner,restartWorker,signIn
    for(const [name,expected]of Object.entries(extras)) {
     const observed=await readMetrics(undefined,name);assert.ok(observed.length,'stock extra preset signal is present')
     const lastTime=observed.at(-1).event_time_ns,latest=observed.filter(r=>r.event_time_ns===lastTime)
-    assert.ok(latest.some(r=>Number(r.payload.record.asInt??r.payload.record.asDouble)===expected&&(pack.id!=='mongodb'||attrs(r.payload.resource.attributes)['mongodb.database.name']==='porthole')&&(pack.id!=='kafka'||attrs(r.payload.record.attributes).group==='porthole')),'stock '+name+' agrees with the independently queried service statistic')
+    assert.ok(latest.some(r=>Number(r.payload.record.asInt??r.payload.record.asDouble)===expected&&(pack.id!=='mongodb'||attrs(r.payload.resource.attributes).database==='porthole')&&(pack.id!=='kafka'||attrs(r.payload.record.attributes).group==='porthole')),'stock '+name+' agrees with the independently queried service statistic')
     extraRows[name]={observed,lastTime}
    }
    const {integrationPresetJourney}=await import('./dashboards.mjs')
@@ -105,6 +105,7 @@ export async function integrationJourney({origin,freshOwner,restartWorker,signIn
    await eventBrowser({origin,cookie,path:app+'/'+binding.id,name:'integration-'+pack.id+'-denied'})
    await service.restore();await stop();await start()
    await wait(async()=>{const r=await value(await get(api+'/'+binding.id));return r.health.state==='Collecting'?r:null},'recovered')
+   if(service.denyRead){await service.denyRead();await stop();await start();await wait(async()=>{const r=await value(await get(api+'/'+binding.id));return r.health.state==='Failed'?r:null},'denied-statistics-view');await service.restoreRead();await stop();await start();await wait(async()=>{const r=await value(await get(api+'/'+binding.id));return r.health.state==='Collecting'?r:null},'recovered-statistics-view')}
    if(pack.id==='nginx') {
     for(const kind of ['ACCESS','ERROR']){
      await service.denyFile(kind);await stop();await start()
@@ -151,7 +152,7 @@ export async function integrationJourney({origin,freshOwner,restartWorker,signIn
  assert.equal((await get(api,reader)).status,401,'next-request session revocation removes catalog reads')
  const wire=(await sql("SELECT wire_base64 FROM porthole_ingest_batches WHERE signal='metrics' ORDER BY sequence LIMIT 1"))[0].wire_base64
  await value(await post('/app/settings/credentials/revoke',{id:source.credential.id,revision:source.credential.revision}))
- const denied=await fetch(origin+'/v1/metrics',{method:'POST',headers:{authorization:'Bearer '+source.secret,'content-type':'application/json'},body:Buffer.from(wire,'base64')});assert.equal(denied.status,403,'revoked intake credential refuses an actual unchanged collector envelope')
+ const denied=await fetch(origin+'/v1/metrics',{method:'POST',headers:{authorization:'Bearer '+source.secret,'content-type':'application/json'},body:Buffer.from(wire,'base64')});assert.equal(denied.status,401,'revoked intake credential refuses an actual unchanged collector envelope')
  assert.equal((await get(api+'/'+all[0].binding.id+'/configuration')).status,409)
  assert.equal((await value(await get(api+'/'+all[0].binding.id))).health.state,'Unknown')
  const {integrationArchiveJourney}=await import('./archive.mjs');await integrationArchiveJourney({origin,freshOwner,withEmptyDestination,bindings:all.map(r=>r.binding),secret:source.secret})

@@ -13,31 +13,32 @@ export async function integrationService(pack) {
  const env={PORTHOLE_SELF_PORT:String(await freePort()),PORTHOLE_DIAGNOSTIC_LOG:join(directory,'diagnostics.log'),PORTHOLE_STATE_DIR:join(directory,'state')},prefix='PORTHOLE_'+pack.id.toUpperCase(),args=['run','-d','--name',name],ex=async(...argv)=>(await execute('docker',['exec',name,...argv],{maxBuffer:1024*1024})).stdout
  const setting=(key,value)=>args.push('-e',key+'='+value)
  const publish=p=>args.push('-p',`127.0.0.1:${port}:${p}`)
- let endpoint,ready,setup=async()=>{},workload,stats,deny,restore,extraStats=async()=>({}),denyFile,restoreFile,metric=pack.metrics[0].name
+ let endpoint,ready,setup=async()=>{},workload,stats,deny,restore,denyRead,restoreRead,extraStats=async()=>({}),denyFile,restoreFile,metric=pack.metrics[0].name
  const fetchJson=async(path,options={},admin=false)=>{let r;try{r=await fetch(endpoint+path,{signal:AbortSignal.timeout(30000),...options,headers:{authorization:'Basic '+Buffer.from((admin?'elastic':user)+':'+password).toString('base64'),'content-type':'application/json',...options.headers}})}catch(error){throw Error('local_service_transport_'+pack.id+' '+path+' '+error.name)};if(!r.ok)throw Error('local_service_http_'+r.status);const text=await r.text();return text?JSON.parse(text):{}}
  const dispose=async()=>{for(const r of resources)await r().catch(()=>{});await execute('docker',['rm','-f','-v',name]).catch(()=>{});if(process.env.PORTHOLE_RECLAIM_PACK_IMAGES==='1')await execute('docker',['image','rm',pack.serviceImage]).catch(()=>{});await rm(directory,{recursive:true,force:true})}
  if(pack.id==='postgresql') {
   publish(5432);setting('POSTGRES_PASSWORD',password);setting('POSTGRES_DB','porthole');endpoint='127.0.0.1:'+port
-  const sql=query=>ex('psql','-U','postgres','-d','porthole','-Atc',query)
+  const sql=query=>ex('psql','-h','127.0.0.1','-U','postgres','-d','porthole','-Atc',query)
   ready=()=>sql('SELECT 1')
-  setup=()=>sql(`CREATE ROLE observe LOGIN PASSWORD '${password}'; GRANT pg_monitor TO observe; REVOKE CONNECT ON DATABASE porthole FROM PUBLIC; GRANT CONNECT ON DATABASE porthole TO observe`)
+  setup=async()=>{await sql(`CREATE ROLE observe LOGIN PASSWORD '${password}'; REVOKE SELECT ON pg_stat_database FROM PUBLIC; GRANT SELECT ON pg_stat_database TO observe; REVOKE CONNECT ON DATABASE porthole FROM PUBLIC; GRANT CONNECT ON DATABASE porthole TO observe`);await ex('psql','-h','127.0.0.1','-U','postgres','-d','postgres','-Atc','REVOKE SELECT ON pg_stat_database FROM PUBLIC; GRANT SELECT ON pg_stat_database TO observe')}
   workload=async()=>{for(let i=0;i<7;i++)await sql('BEGIN;SELECT 1;COMMIT');return 7}
   stats=async()=>Number((await sql("SELECT xact_commit FROM pg_stat_database WHERE datname='porthole'")).trim())
   deny=()=>sql('REVOKE CONNECT ON DATABASE porthole FROM observe; SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE usename=\'observe\'')
   restore=()=>sql('GRANT CONNECT ON DATABASE porthole TO observe')
+  denyRead=()=>ex('psql','-h','127.0.0.1','-U','postgres','-d','postgres','-Atc','REVOKE SELECT ON pg_stat_database FROM observe');restoreRead=()=>ex('psql','-h','127.0.0.1','-U','postgres','-d','postgres','-Atc','GRANT SELECT ON pg_stat_database TO observe')
   env[prefix+'_DATABASE']='porthole'
  }else if(pack.id==='mysql') {
   publish(3306);setting('MYSQL_ROOT_PASSWORD',password);endpoint='127.0.0.1:'+port
-  const sql=query=>ex('mysql','-uroot','-p'+password,'--batch','--skip-column-names','-e',query)
+  const sql=query=>ex('mysql','--protocol=TCP','-h127.0.0.1','-uroot','-p'+password,'--batch','--skip-column-names','-e',query)
   ready=()=>sql('SELECT 1')
-  setup=()=>sql(`CREATE USER observe IDENTIFIED BY '${password}'; GRANT PROCESS, REPLICATION CLIENT ON *.* TO observe; GRANT SELECT ON performance_schema.* TO observe`)
+  setup=()=>sql(`CREATE USER observe IDENTIFIED BY '${password}'`)
   workload=async()=>{for(let i=0;i<7;i++)await sql('SELECT 1');return 7}
   stats=async()=>Number((await sql("SHOW GLOBAL STATUS LIKE 'Com_select'")).trim().split(/\s+/).at(-1))
   deny=()=>sql(`ALTER USER observe ACCOUNT LOCK`);restore=()=>sql(`ALTER USER observe ACCOUNT UNLOCK`)
  }else if(pack.id==='redis') {
   publish(6379);endpoint='127.0.0.1:'+port
   const redis=(...a)=>ex('redis-cli',...a)
-  ready=()=>redis('PING');setup=()=>redis('ACL','SETUSER',user,'on','>'+password,'-@all','+info','+ping')
+  ready=()=>redis('PING');setup=()=>redis('ACL','SETUSER',user,'on','>'+password,'-@all','+info')
   workload=async()=>{for(let i=0;i<7;i++)await redis('SET','synthetic-porthole-'+i,'synthetic-porthole-66003');return 7}
   stats=async()=>Number((await redis('INFO','keyspace')).match(/db0:keys=(\d+)/)[1])
   deny=()=>redis('ACL','SETUSER',user,'-info');restore=()=>redis('ACL','SETUSER',user,'+info')
@@ -95,6 +96,6 @@ export async function integrationService(pack) {
   let ok=false;for(let i=0;i<120;i++){try{await ready();ok=true;break}catch{await pause(500)}}
   if(!ok)throw Error('service_not_ready_'+pack.id)
   await setup()
-  return {env,workload,stats,extraStats,denyFile,restoreFile,deny,restore,metric,password,directory,dispose}
+  return {env,workload,stats,extraStats,denyFile,restoreFile,denyRead,restoreRead,deny,restore,metric,password,directory,dispose}
  }catch(error){try{const logs=await execute('docker',['logs','--tail','12',name]);console.error((logs.stdout+logs.stderr).split(password).join('[REDACTED]'))}catch{};await dispose();throw error}
 }

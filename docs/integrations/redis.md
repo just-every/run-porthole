@@ -4,7 +4,7 @@ Pack revision 1. Service image: `redis:7.4.5`.
 Collector: unmodified OpenTelemetry Collector Contrib 0.135.0.
 Stock receiver: `redis`. Pinned source: https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.135.0/receiver/redisreceiver.
 
-Required monitored-service permissions: ACL +info and +ping only; no key read or write.
+Required monitored-service permissions: ACL +info only; no key read or write.
 Service signals: metrics. Collector diagnostics additionally
 require a logs ingest grant. All values remain scoped to the reviewed service,
 environment and team. A heartbeat is not proof of successful collection.
