@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import {literal} from './fixture.mjs'
 import {createServer} from 'node:http'
 import {createServer as socketServer} from 'node:net'
 import {spawn,execFile} from 'node:child_process'
@@ -422,28 +423,36 @@ export async function standardSchemaProof({origin,cookie,call,source,reader,post
   assert.equal(missing.length,1,'absent label equals empty string, including inherited object names')
  }
  assert.deepEqual(await remoteSeries(await remoteRead(call,reader.secret,{...query,matchers:[['__name__','synthetic_edge_gauge_milliseconds'],['privacy_subject','synthetic-porthole-6110',1]]})),[])
- const staleAt=2000000n,bits=['0000000000000080','020000000000f07f','000000000000f07f'],series=bits.map((hex,index)=>{
+ const staleAt=2000000n,bits=['0000000000000080','020000000000f07f','000000000000f07f'],floatWire=timestamp=>packed(cat(...bits.map((hex,index)=>{
   const labels={__name__:'synthetic_edge_float',service:scope.services[0],environment:'production',team:'commerce',edge:'synthetic-porthole-'+(6112+index)}
-  return msg(1,cat(...Object.entries(labels).map(([k,v])=>msg(1,cat(text(1,k),text(2,v)))),msg(2,cat(vint(9),Buffer.from(hex,'hex'),integer(2,staleAt)))))
- })
- const write=packed(cat(...series))
+  return msg(1,cat(...Object.entries(labels).map(([k,v])=>msg(1,cat(text(1,k),text(2,v)))),msg(2,cat(vint(9),Buffer.from(hex,'hex'),integer(2,timestamp)))))
+ })))
+ const write=floatWire(staleAt)
  assert.equal((await call('/api/v1/write',{method:'POST',headers:{...auth(source.secret),'content-type':'application/x-protobuf','content-encoding':'snappy','x-prometheus-remote-write-version':'0.1.0'},body:write})).status,204)
  await drain()
  const read=await remoteRead(call,reader.secret,{from:staleAt,through:staleAt,matchers:[['__name__','synthetic_edge_float']]})
  assert.equal(read.status,200)
  const response=unpack(Buffer.from(await read.arrayBuffer())),actual=fields(get(fields(response),1)).map(([,s])=>get(fields(get(fields(s),2)),1).toString('hex')).sort()
  assert.deepEqual(actual,bits.slice().sort(),'negative zero, stale NaN and infinity round-trip bit-exact')
- // Model a pre-upgrade retained record; its unchanged stock wire remains in
- // the original custody envelope. This is fixture setup, not an edit API.
+ // Model the older decoder before indexing: the original wire retains exact
+ // bits, while its normalized envelope has no valueBits field. Real indexing
+ // and replication must carry that same legacy payload into every copy.
  if(sql){
-  await sql("UPDATE porthole_telemetry_records SET payload=json_remove(payload,'$.record.valueBits') WHERE json_extract(payload,'$.metric.name')='synthetic_edge_float'")
-  const retained=await value(await call(api+'/ingest/records?'+new URLSearchParams({signal:'metrics',metric:'synthetic_edge_float'}),{headers:auth(reader.secret)}))
+  const legacyAt=staleAt+1n,legacyWire=floatWire(legacyAt)
+  const legacyIntake=await call('/api/v1/write',{method:'POST',headers:{...auth(source.secret),'content-type':'application/x-protobuf','content-encoding':'snappy','x-prometheus-remote-write-version':'0.1.0'},body:legacyWire})
+  assert.equal(legacyIntake.status,204)
+  const batch=legacyIntake.headers.get('x-porthole-batch');assert.match(batch,/^[a-f0-9-]{36}$/)
+  await sql("UPDATE porthole_ingest_batches SET records=(SELECT json_group_array(json_remove(value,'$.payload.record.valueBits')) FROM json_each(porthole_ingest_batches.records)) WHERE state='pending' AND id="+literal(batch))
+  const pending=await sql('SELECT state,records FROM porthole_ingest_batches WHERE id='+literal(batch))
+  assert.equal(pending[0].state,'pending');assert.ok(JSON.parse(pending[0].records).every(row=>!Object.hasOwn(row.payload.record,'valueBits')))
+  await drain()
+  const retained=await value(await call(api+'/ingest/records?'+new URLSearchParams({signal:'metrics',metric:'synthetic_edge_float',from:String(legacyAt*1000000n),through:String(legacyAt*1000000n)}),{headers:auth(reader.secret)}))
   const payloadBytes=retained.records.reduce((sum,row)=>sum+Buffer.byteLength(JSON.stringify(row.payload)),0)
   assert.equal(retained.records.length,3)
-  const recoveryQuota=await value(await post(credential+'/mint',{name:'Legacy wire scan budget',class:'read',scope,scannedBytesPerDay:payloadBytes+Math.floor(write.length/2)}),201)
-  const refusedRecovery=await remoteRead(call,recoveryQuota.secret,{from:staleAt,through:staleAt,matchers:[['__name__','synthetic_edge_float']]})
+  const recoveryQuota=await value(await post(credential+'/mint',{name:'Legacy wire scan budget',class:'read',scope,scannedBytesPerDay:payloadBytes+Math.floor(legacyWire.length/2)}),201)
+  const refusedRecovery=await remoteRead(call,recoveryQuota.secret,{from:legacyAt,through:legacyAt,matchers:[['__name__','synthetic_edge_float']]})
   assert.equal(refusedRecovery.status,429);assert.deepEqual(await refusedRecovery.json(),{error:'credential_quota_exceeded'},'legacy envelope recovery is metered in addition to retained payload scans')
-  const legacy=await remoteRead(call,reader.secret,{from:staleAt,through:staleAt,matchers:[['__name__','synthetic_edge_float']]})
+  const legacy=await remoteRead(call,reader.secret,{from:legacyAt,through:legacyAt,matchers:[['__name__','synthetic_edge_float']]})
   assert.equal(legacy.status,200)
   const decoded=unpack(Buffer.from(await legacy.arrayBuffer()))
   assert.deepEqual(fields(get(fields(decoded),1)).map(([,s])=>get(fields(get(fields(s),2)),1).toString('hex')).sort(),bits.slice().sort(),'legacy samples recover exact float bits from original wire')
