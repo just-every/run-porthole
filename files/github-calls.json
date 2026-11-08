@@ -1,0 +1,46 @@
+[
+  {
+    "number": 1,
+    "time": 1794141810.5929735,
+    "command": [
+      "gh",
+      "api",
+      "repos/just-every/run-porthole/actions/runs?head_sha=60c706e5a2db5024f19ac46bc8f75ada06411e15&per_page=100",
+      "--jq",
+      ".workflow_runs[] | {id,name,status,conclusion,head_sha,html_url}"
+    ]
+  },
+  {
+    "number": 2,
+    "time": 1794142111.6318517,
+    "command": [
+      "gh",
+      "api",
+      "repos/just-every/run-porthole/actions/runs/42481564286",
+      "--jq",
+      "{status,conclusion,head_sha,html_url}"
+    ]
+  },
+  {
+    "number": 3,
+    "time": 1794142412.6759646,
+    "command": [
+      "gh",
+      "api",
+      "repos/just-every/run-porthole/actions/runs/42481564286",
+      "--jq",
+      "{status,conclusion,head_sha,html_url}"
+    ]
+  },
+  {
+    "number": 4,
+    "time": 1794142713.722084,
+    "command": [
+      "gh",
+      "api",
+      "repos/just-every/run-porthole/actions/runs/42481564286",
+      "--jq",
+      "{status,conclusion,head_sha,html_url}"
+    ]
+  }
+]

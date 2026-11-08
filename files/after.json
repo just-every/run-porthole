@@ -1,0 +1,336 @@
+{
+  "schema": 1,
+  "phase": "after",
+  "outcomes": [
+    {
+      "door": "capture",
+      "sample": "private_tenant",
+      "statement": "SELECT count(*) FROM private_tenant WHERE customer = ?",
+      "intakeStatus": 201,
+      "stored": [
+        [
+          {
+            "environment": "production",
+            "eventTimeNs": "01794141414178000000",
+            "late": 0,
+            "outOfOrder": 0,
+            "payload": {
+              "databaseCapture": {
+                "collectedAt": 1794141414178,
+                "coverage": {
+                  "plans": "not_reviewed",
+                  "statistics": "collected",
+                  "waits": "collected"
+                },
+                "databaseTime": 1794141414178,
+                "engine": "mysql",
+                "queries": [
+                  {
+                    "calls": 1,
+                    "fingerprint": "select count ( * ) from [REDACTED] where customer = ?",
+                    "meanMs": 1,
+                    "plan": [],
+                    "queryId": "synthetic-porthole-16021",
+                    "rows": 1,
+                    "totalMs": 1
+                  }
+                ],
+                "revision": 1,
+                "sourceId": "synthetic-porthole-16020",
+                "version": "8.4.6",
+                "waits": []
+              },
+              "pipeline": {
+                "attributes": {
+                  "porthole.database.kind": "capture"
+                },
+                "errors": [],
+                "excluded": false,
+                "metrics": [],
+                "protected": false,
+                "revision": 1,
+                "status": "ok"
+              },
+              "record": {
+                "attributes": [
+                  {
+                    "key": "porthole.database.kind",
+                    "value": {
+                      "stringValue": "capture"
+                    }
+                  }
+                ],
+                "body": {
+                  "stringValue": "{\"collectedAt\":\"[REDACTED]\",\"coverage\":{\"plans\":\"not_reviewed\",\"statistics\":\"collected\",\"waits\":\"collected\"},\"databaseTime\":\"[REDACTED]\",\"engine\":\"mysql\",\"queries\":[{\"calls\":1,\"fingerprint\":\"select count ( * ) from [REDACTED] where customer = ?\",\"meanMs\":1,\"plan\":[],\"queryId\":\"synthetic-porthole-16021\",\"rows\":1,\"totalMs\":1}],\"revision\":1,\"sourceId\":\"synthetic-porthole-16020\",\"version\":\"8.4.6\",\"waits\":[]}"
+                },
+                "eventName": "porthole.database.capture"
+              }
+            },
+            "service": "synthetic-porthole-16020",
+            "spanId": null,
+            "team": "commerce",
+            "traceId": null
+          }
+        ]
+      ],
+      "chunkStatuses": [
+        200,
+        200,
+        200,
+        200
+      ],
+      "failure": null,
+      "manifestStatus": 200
+    },
+    {
+      "door": "capture",
+      "sample": "private_tenant_orders",
+      "statement": "SELECT count(*) FROM private_tenant_orders WHERE customer = ?",
+      "intakeStatus": 201,
+      "stored": [
+        [
+          {
+            "environment": "production",
+            "eventTimeNs": "01794141418669000000",
+            "late": 0,
+            "outOfOrder": 0,
+            "payload": {
+              "databaseCapture": {
+                "collectedAt": 1794141418669,
+                "coverage": {
+                  "plans": "not_reviewed",
+                  "statistics": "collected",
+                  "waits": "collected"
+                },
+                "databaseTime": 1794141418669,
+                "engine": "mysql",
+                "queries": [
+                  {
+                    "calls": 1,
+                    "fingerprint": "select count ( * ) from [REDACTED]_orders where customer = ?",
+                    "meanMs": 1,
+                    "plan": [],
+                    "queryId": "synthetic-porthole-16021",
+                    "rows": 1,
+                    "totalMs": 1
+                  }
+                ],
+                "revision": 1,
+                "sourceId": "synthetic-porthole-16020",
+                "version": "8.4.6",
+                "waits": []
+              },
+              "pipeline": {
+                "attributes": {
+                  "porthole.database.kind": "capture"
+                },
+                "errors": [],
+                "excluded": false,
+                "metrics": [],
+                "protected": false,
+                "revision": 1,
+                "status": "ok"
+              },
+              "record": {
+                "attributes": [
+                  {
+                    "key": "porthole.database.kind",
+                    "value": {
+                      "stringValue": "capture"
+                    }
+                  }
+                ],
+                "body": {
+                  "stringValue": "{\"collectedAt\":\"[REDACTED]\",\"coverage\":{\"plans\":\"not_reviewed\",\"statistics\":\"collected\",\"waits\":\"collected\"},\"databaseTime\":\"[REDACTED]\",\"engine\":\"mysql\",\"queries\":[{\"calls\":1,\"fingerprint\":\"select count ( * ) from [REDACTED]_orders where customer = ?\",\"meanMs\":1,\"plan\":[],\"queryId\":\"synthetic-porthole-16021\",\"rows\":1,\"totalMs\":1}],\"revision\":1,\"sourceId\":\"synthetic-porthole-16020\",\"version\":\"8.4.6\",\"waits\":[]}"
+                },
+                "eventName": "porthole.database.capture"
+              }
+            },
+            "service": "synthetic-porthole-16020",
+            "spanId": null,
+            "team": "commerce",
+            "traceId": null
+          }
+        ]
+      ],
+      "chunkStatuses": [
+        200,
+        200,
+        200,
+        200
+      ],
+      "failure": null,
+      "manifestStatus": 200
+    },
+    {
+      "door": "otlp",
+      "sample": "private_tenant",
+      "statement": "SELECT count(*) FROM private_tenant WHERE customer = ?",
+      "intakeStatus": 200,
+      "stored": [
+        [
+          {
+            "environment": "production",
+            "eventTimeNs": "01794141422669000000",
+            "late": 0,
+            "outOfOrder": 0,
+            "payload": {
+              "delivery": {
+                "arrivalDeltaNs": "6000000",
+                "clockAheadNs": "0",
+                "receivedTimeUnixNano": "1794141422675000000",
+                "uncertainTime": false
+              },
+              "record": {
+                "attributes": [
+                  {
+                    "key": "db.system",
+                    "value": {
+                      "stringValue": "mysql"
+                    }
+                  },
+                  {
+                    "key": "db.statement",
+                    "value": {
+                      "stringValue": "select count ( * ) from [REDACTED] where customer = ?"
+                    }
+                  }
+                ],
+                "endTimeUnixNano": "1794141422670000000",
+                "kind": 3,
+                "name": "synthetic-porthole-16021",
+                "spanId": "1234567890abcdef",
+                "startTimeUnixNano": "1794141422669000000",
+                "traceId": "1234567890abcdef1234567890abcdef"
+              },
+              "resource": {
+                "attributes": [
+                  {
+                    "key": "service.name",
+                    "value": {
+                      "stringValue": "synthetic-porthole-16020"
+                    }
+                  },
+                  {
+                    "key": "deployment.environment.name",
+                    "value": {
+                      "stringValue": "production"
+                    }
+                  },
+                  {
+                    "key": "team",
+                    "value": {
+                      "stringValue": "commerce"
+                    }
+                  }
+                ]
+              },
+              "resourceSchemaUrl": "",
+              "scope": {
+                "name": "synthetic-porthole-16020"
+              },
+              "scopeSchemaUrl": ""
+            },
+            "service": "synthetic-porthole-16020",
+            "spanId": "1234567890abcdef",
+            "team": "commerce",
+            "traceId": "1234567890abcdef1234567890abcdef"
+          }
+        ]
+      ],
+      "chunkStatuses": [
+        200,
+        200,
+        200,
+        200
+      ],
+      "failure": null,
+      "manifestStatus": 200
+    },
+    {
+      "door": "otlp",
+      "sample": "private_tenant_orders",
+      "statement": "SELECT count(*) FROM private_tenant_orders WHERE customer = ?",
+      "intakeStatus": 200,
+      "stored": [
+        [
+          {
+            "environment": "production",
+            "eventTimeNs": "01794141426476000000",
+            "late": 0,
+            "outOfOrder": 0,
+            "payload": {
+              "delivery": {
+                "arrivalDeltaNs": "5000000",
+                "clockAheadNs": "0",
+                "receivedTimeUnixNano": "1794141426481000000",
+                "uncertainTime": false
+              },
+              "record": {
+                "attributes": [
+                  {
+                    "key": "db.system",
+                    "value": {
+                      "stringValue": "mysql"
+                    }
+                  },
+                  {
+                    "key": "db.statement",
+                    "value": {
+                      "stringValue": "select count ( * ) from [REDACTED]_orders where customer = ?"
+                    }
+                  }
+                ],
+                "endTimeUnixNano": "1794141426477000000",
+                "kind": 3,
+                "name": "synthetic-porthole-16021",
+                "spanId": "1234567890abcdef",
+                "startTimeUnixNano": "1794141426476000000",
+                "traceId": "1234567890abcdef1234567890abcdef"
+              },
+              "resource": {
+                "attributes": [
+                  {
+                    "key": "service.name",
+                    "value": {
+                      "stringValue": "synthetic-porthole-16020"
+                    }
+                  },
+                  {
+                    "key": "deployment.environment.name",
+                    "value": {
+                      "stringValue": "production"
+                    }
+                  },
+                  {
+                    "key": "team",
+                    "value": {
+                      "stringValue": "commerce"
+                    }
+                  }
+                ]
+              },
+              "resourceSchemaUrl": "",
+              "scope": {
+                "name": "synthetic-porthole-16020"
+              },
+              "scopeSchemaUrl": ""
+            },
+            "service": "synthetic-porthole-16020",
+            "spanId": "1234567890abcdef",
+            "team": "commerce",
+            "traceId": "1234567890abcdef1234567890abcdef"
+          }
+        ]
+      ],
+      "chunkStatuses": [
+        200,
+        200,
+        200,
+        200
+      ],
+      "failure": null,
+      "manifestStatus": 200
+    }
+  ]
+}

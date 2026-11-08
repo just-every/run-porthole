@@ -1,0 +1,115 @@
+{
+  "tag": "sx-porthole-f268fix1",
+  "repository": "just-every/run-porthole",
+  "branch": "cloud/sx-porthole-f268fix1",
+  "base": "200e231217648e8d28a18fd57161d23b73f84ab7",
+  "merged_main": "cd7863ba62bcc0a996d7b1eecbcd89ce592783a8",
+  "baseline_probe_head": "ef86f415590a2be648522ee6aca2d80512ab503d",
+  "product_head": "60c706e5a2db5024f19ac46bc8f75ada06411e15",
+  "checks": [
+    {
+      "command": "npx -y @runeditrun/rer setup --owner-email fleet@runeditrun.com --non-interactive",
+      "exit": 0
+    },
+    {
+      "command": "node scripts/porthole/contract-docs.mjs write PORT-016 && node scripts/porthole/contract-docs.mjs check PORT-016",
+      "exit": 0,
+      "views_restored_from": "origin/main"
+    },
+    {
+      "command": "pnpm run source:lock && pnpm run source:check",
+      "exit": 0
+    },
+    {
+      "command": "npx -y @runeditrun/rer build",
+      "exit": 0
+    },
+    {
+      "command": "pnpm run typecheck",
+      "exit": 0
+    },
+    {
+      "command": "node trigger-probe.mjs before before.json",
+      "exit": 0
+    },
+    {
+      "command": "node trigger-probe.mjs after after.json",
+      "exit": 0
+    },
+    {
+      "command": "PORTHOLE_CHROMIUM_PATH=/usr/bin/chromium PORTHOLE_DATABASE_ONLY=1 cloud_run node tests/runtime.mjs",
+      "exit": 0,
+      "includes": [
+        "real PostgreSQL 17.6 and MySQL 8.4.6",
+        "official PostgreSQL/MySQL instrumentation and stock exporter",
+        "f260 redaction and replay regressions",
+        "masking with whole and partial identifiers",
+        "primary and standby analytical copies",
+        "native installation export/import/re-export",
+        "inactive product archive restore/re-export",
+        "restart and scope refusal"
+      ]
+    },
+    {
+      "command": "node scripts/porthole/public-schema.mjs --check",
+      "exit": 0
+    }
+  ],
+  "probe_counts": {
+    "before": {
+      "whole_token_success": 2,
+      "partial_token_success": 0,
+      "partial_token_failure": 2
+    },
+    "after": {
+      "whole_token_success": 2,
+      "partial_token_success": 2,
+      "partial_token_failure": 0
+    }
+  },
+  "contract_counts": {
+    "starting_candidate": {
+      "done": 10,
+      "partial": 20,
+      "missing": 68,
+      "total": 98
+    },
+    "merged_main_and_final": {
+      "done": 10,
+      "partial": 20,
+      "missing": 69,
+      "total": 99
+    }
+  },
+  "status_cells_edited_by_fix": false,
+  "test_registration_delta": 0,
+  "regression_assertion_delta": 1,
+  "publication_scan_run": false,
+  "ci": {
+    "run_id": 42481564286,
+    "status": "completed",
+    "head_sha": "60c706e5a2db5024f19ac46bc8f75ada06411e15",
+    "url": "https://github.com/just-every/run-porthole/actions/runs/42481564286",
+    "github_calls_used": 4,
+    "conclusion": "success",
+    "html_url": "https://github.com/just-every/run-porthole/actions/runs/42481564286"
+  },
+  "product_push": {
+    "status": "success",
+    "head": "60c706e5a2db5024f19ac46bc8f75ada06411e15",
+    "branch": "cloud/sx-porthole-f268fix1",
+    "remote_head": "60c706e5a2db5024f19ac46bc8f75ada06411e15"
+  },
+  "local_runtimes": {
+    "command_shell_node": "24.19.0",
+    "rer_selected_node": "22.20.0",
+    "pnpm": "10.12.4",
+    "chromium": "/usr/bin/chromium",
+    "docker_server": "28.4.0"
+  },
+  "publication_scan_omitted_reason": "The narrow FIX brief explicitly prohibits running it; the fleet owns publication scan and landing.",
+  "custody": "READY",
+  "pr_url": null,
+  "blockers": [],
+  "independent_gate": "Owned by fleet after frozen-rubric submission; not performed in this FIX"
+}

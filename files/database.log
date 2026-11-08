@@ -1,0 +1,26 @@
+verify:runtime
+Heavy job admitted: Porthole verify:runtime:suite [e05b6b48e785]
+▲ [WARNING] Proxy environment variables detected. We'll use your proxy for fetch requests.
+
+
+Installed owner claim rejects missing/wrong setup tokens and request demo flags
+HTTP-001 passed against emitted local Worker: health, the installed homepage, HTTP and document 404s
+PROBE PORT-016 literal redaction: stock PostgreSQL backslash separator followed by a planted literal -> no literal in pending wire or native trace; ambiguous sample withheld
+PROBE PORT-016 normalized plans: real customer=$1 and customer=? workloads -> reviewed structural plans and matching caller links
+PROBE PORT-016 caller identity: the same service runs identical SQL against PostgreSQL and MySQL -> each capture links only its engine callers
+Recipient fixture: parsing migrations
+Recipient fixture: migrations parsed
+Recipient fixture: starting emitted Worker
+Recipient fixture: D1 ready
+Recipient fixture: native bootstrap
+error accepting tls connection; kj::mv(e) = kj/compat/tls.c++:82: failed: OpenSSL error; message = error:10000416:SSL routines:OPENSSL_internal:SSLV3_ALERT_CERTIFICATE_UNKNOWN; clientId = 127.0.0.1:35602
+stack: [REDACTED]/node_modules/.pnpm/@cloudflare+workerd-linux-64@1.20260907.1/node_modules/@cloudflare/workerd-linux-64/bin/workerd@318e3f0 [REDACTED]/node_modules/.pnpm/@cloudflare+workerd-linux-64@1.20260907.1/node_modules/@cloudflare/workerd-linux-64/bin/workerd@3195ed0 [REDACTED]/node_modules/.pnpm/@cloudflare+workerd-linux-64@1.20260907.1/node_modules/@cloudflare/workerd-linux-64/bin/workerd@3196300 [REDACTED]/node_modules/.pnpm/@cloudflare+workerd-linux-64@1.20260907.1/node_modules/@cloudflare/workerd-linux-64/bin/workerd@3196428 [REDACTED]/node_modules/.pnpm/@cloudflare+workerd-linux-64@1.20260907.1/node_modules/@cloudflare/workerd-linux-64/bin/workerd@3196794 [REDACTED]/node_modules/.pnpm/@cloudflare+workerd-linux-64@1.20260907.1/node_modules/@cloudflare/workerd-linux-64/bin/workerd@5a392a8 [REDACTED]/node_modules/.pnpm/@cloudflare+workerd-linux-64@1.20260907.1/node_modules/@cloudflare/workerd-linux-64/bin/workerd@3197ac0
+PROBE PORT-016 analytical copies: identical real engine captures and stock caller spans -> exact statistics, plans and blocking identities through primary and standby, pagination and restart; stopped backend -> 503
+databaseArchiveJourney passed: actual PostgreSQL and MySQL diagnostics, sanitized pending and retained wire, inactive independent restore and exact re-export; no collection grant or credential transfer
+PROBE PORT-016 safe export: admitted password predicate -> unchanged [REDACTED] in product archive, inactive restored records and re-export
+PROBE PORT-016 native installation archive: real engine captures and stock spans -> decoded export, inactive independent native import and re-export preserve diagnostics with no credentials, collection authority or planted literal
+databaseArchiveJourney passed: actual PostgreSQL and MySQL diagnostics, sanitized pending and retained wire, inactive independent restore and exact re-export; no collection grant or credential transfer
+PROBE PORT-016 safe export: admitted password predicate -> unchanged [REDACTED] in product archive, inactive restored records and re-export
+PROBE PORT-016 approved masking: owner activates private_tenant mask, then admits a real engine capture -> alias absent from pending and retained samples; mask survives restart, inactive restore and re-export
+PROBE PORT-016 local PostgreSQL and MySQL: real missing-index SELECTs and blocked requests -> native statistics, plans, blockers and stock caller traces reconciled; role rotation, restriction, stop, replay, archive and restart passed
+APP-HOME passed against emitted local Worker: /app behind sign-in and setup, then the trace view with its stylesheets
