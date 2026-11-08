@@ -6,7 +6,7 @@ import type { StandardRow } from './read'
 /** Tempo 2.8 HTTP trace-by-ID v1: Trace.batches contains OTLP ResourceSpans.
  * Protobuf IDs remain bytes; protobuf JSON IDs use base64, as stock Tempo does. */
 export function tempoTrace(traceId:string,rows:StandardRow[]) {
- const unique=[...new Map(rows.map(row=>[canonical(row.payload),row])).values()]
+ const unique=[...new Map(rows.map(row=>[canonical({record:row.payload.record,resource:row.payload.resource,scope:row.payload.scope,resourceSchemaUrl:row.payload.resourceSchemaUrl,scopeSchemaUrl:row.payload.scopeSchemaUrl}),row])).values()]
  const graph=traceGraph(traceId,unique as unknown as TraceRecord[],false)
  const batches=unique.map(row=>({resource:row.payload.resource,schemaUrl:row.payload.resourceSchemaUrl,
   scopeSpans:[{scope:row.payload.scope,schemaUrl:row.payload.scopeSchemaUrl,spans:[row.payload.record]}]}))

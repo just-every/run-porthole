@@ -27,6 +27,12 @@ def ids(value, encode):
     return value
 
 
+if sys.argv[1] == '--trace':
+    message = ExportTraceServiceRequest()
+    message.ParseFromString(Path(sys.argv[2]).read_bytes())
+    print(json.dumps(ids(MessageToDict(message, use_integers_for_enums=True), False)))
+    raise SystemExit(0)
+
 source = Path(sys.argv[1])
 progress = json.loads((source / 'progress.json').read_text())
 if not progress['complete'] or progress['format'] != 'otlp-json':

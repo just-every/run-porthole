@@ -432,6 +432,11 @@ export async function signalExportJourney({origin,cookie,freshOwner,restartWorke
   // Save history before suppression, then carry the later portable journal
   // into an independent destination before restoring that older history.
   const olderArchive=await savedExport(origin,cookie,await post(api+'/exports',{}))
+  const {remoteRead,remoteSeries}=await import('./standard-reads.mjs')
+  const standardReader=await mint('read',{...scope,teams:[rows.find(row=>row.signal==='metrics').team]})
+  const standardQuery={from:time/1000000n,through:(time+100n)/1000000n,matchers:[['__name__','synthetic_porthole_211_milliseconds']]}
+  const standard=()=>remoteRead((path,options)=>fetch(origin+path,options),standardReader.secret,standardQuery)
+  assert.equal((await remoteSeries(await standard())).length,1,'existing exported OTLP metric is available through standard reads')
   const exclusions=scope.signals.map(signal=>({recordId:rows.find(row=>row.signal===signal).id,excludedAt:Date.now()}))
   const exclusionRoot='/api/porthole/v1/export-exclusions'
   const apply={confirm:'apply-exclusions',journal:{format:'porthole.export-exclusions.v1',records:exclusions}}
@@ -443,6 +448,7 @@ export async function signalExportJourney({origin,cookie,freshOwner,restartWorke
   assert.equal(journal.next,null)
   await value(await post(exclusionRoot,{...apply,journal:{...apply.journal,records:exclusions.map(row=>({...row,excludedAt:0}))}}))
   assert.deepEqual((await value(await fetch(origin+exclusionRoot,{headers:{cookie}}))).records,journal.records,'replaying an older journal cannot remove or roll back exclusions')
+  assert.deepEqual(await remoteSeries(await standard()),[],'the portable metric exclusion also fences standard reads')
   const excludedIds=new Set(exclusions.map(row=>row.recordId))
   let excludedCursor='',remaining=[]
   do {
@@ -1295,4 +1301,25 @@ export async function servicesArchiveJourney({origin,freshOwner,restartWorker,wi
  console.log('PROBE PORT-008 archive: actual native export, empty restore and re-export -> three exact inactive revisions; no source sessions, credentials or owner membership restored')
  console.log('PROBE PORT-008 archive-packets: largest stock-capture packet bytes='+Buffer.byteLength(JSON.stringify(largest))+' -> export retry and restore retry preserve its exact rows, digest and order')
  return {id:source.job.id,chunk:largest.index}
+}
+
+/** Standard reads remain credential-only after inactive installation restore. */
+export async function standardArchiveJourney({origin,freshOwner,withEmptyDestination,reader,scope,expected,traceId}) {
+ const cookie=await freshOwner(),saved=await savedExport(origin,cookie,await post(origin,cookie,api+'/exports',{}))
+ await withEmptyDestination(async destination=>{
+  const acting=await destination.freshOwner(),restore=await value(await post(destination.origin,acting,api+'/restores',{manifest:saved.manifest}),201)
+  for(const chunk of saved.chunks)await value(await post(destination.origin,acting,`${api}/restores/${restore.id}/chunks`,{chunk}))
+  await value(await post(destination.origin,acting,`${api}/restores/${restore.id}/commit`,{confirm:saved.manifest.rootHash}))
+  const call=(path,options)=>fetch(destination.origin+path,options)
+  const {remoteRead,remoteSeries}=await import('./standard-reads.mjs')
+  assert.equal((await remoteRead(call,reader.secret)).status,401,'archive transfers no source read authority')
+  assert.equal((await call('/api/traces/'+traceId,{headers:{cookie:acting}})).status,401,'destination owner cookie cannot replace a standard read credential')
+  assert.equal((await destination.sql('SELECT COUNT(*) AS n FROM porthole_credentials'))[0].n,0)
+  assert.equal((await destination.sql('SELECT paused FROM porthole_ingest_control'))[0].paused,1)
+  const minted=await value(await post(destination.origin,acting,'/app/settings/credentials/mint',{name:'Restored standard reader',class:'read',scope}),201)
+  assert.deepEqual(await remoteSeries(await remoteRead(call,minted.secret,{matchers:[['__name__','synthetic_.*',2]]})),expected)
+  await destination.restartWorker()
+  assert.deepEqual(await remoteSeries(await remoteRead(call,minted.secret,{matchers:[['__name__','synthetic_.*',2]]})),expected)
+ })
+ console.log('PROBE PORT-061 restore: inactive owner installation restore -> original samples with newly minted destination authority, no imported credentials, intake remains paused')
 }
