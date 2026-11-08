@@ -186,7 +186,9 @@ try {
    await fleetJourney({origin,restartWorker,withEmptyDestination,withPinnedClock,...helpers})
   } else if(process.env.PORTHOLE_COLLECTOR_INSTALL_ONLY==='1') {
    const {collectorInstallJourney}=await import('./porthole/collector-install.mjs')
-   await collectorInstallJourney({origin,restartWorker,withEmptyDestination,withPinnedClock,...helpers})
+   const proof=await collectorInstallJourney({origin,restartWorker,withEmptyDestination,withPinnedClock,...helpers})
+   const {collectorAnalyticalJourney}=await import('./porthole/analytics.mjs')
+   await collectorAnalyticalJourney(proof)
   } else if(process.env.PORTHOLE_DATABASE_ONLY==='1') {
    const {databaseJourney}=await import('./porthole/database.mjs')
    await databaseJourney({origin,cookie,restartWorker,withEmptyDestination,withPinnedClock,...helpers})

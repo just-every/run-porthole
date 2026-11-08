@@ -1,4 +1,6 @@
 extensions:
+  file_storage:
+    directory: /var/lib/porthole
   bearertokenauth:
     token: ${env:PORTHOLE_INGEST_TOKEN}
 receivers:
@@ -15,6 +17,7 @@ receivers:
     initial_delay: 1s
   filelog:
     include: [/var/lib/docker/containers/*/*.log]
+    storage: file_storage
     start_at: beginning
     include_file_path: true
     operators:
@@ -65,7 +68,7 @@ exporters:
       enabled: true
       queue_size: 100
 service:
-  extensions: [bearertokenauth]
+  extensions: [bearertokenauth, file_storage]
   pipelines:
     logs:
       receivers: [filelog]

@@ -138,6 +138,20 @@ export function sanitize<T>(input: T, rules: RedactionRule[] = [], identifiers =
 export function sanitizePayload(input: Record<string, unknown>, rules: RedactionRule[] = [], identifiers = false): Record<string, unknown> {
  const result = sanitize(input, rules, identifiers)
  const object = (value: unknown): Record<string, unknown> | undefined => value !== null && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : undefined
+ // A Docker container ID is a typed opaque identity, like a trace ID. A
+ // digit run inside its validated full SHA-256 form is not a phone number.
+ // Explicit owner masks still win, and arbitrary attribute strings retain
+ // all ordinary privacy filtering.
+ const resource=object(input.resource),cleanResource=object(result.resource)
+ if(Array.isArray(resource?.attributes)&&Array.isArray(cleanResource?.attributes)) {
+  for(let index=0;index<resource.attributes.length;index++) {
+   const attribute=object(resource.attributes[index]),clean=object(cleanResource.attributes[index]),value=object(attribute?.value)?.stringValue
+   if(attribute?.key!=='container.id'||clean?.key!=='container.id'||typeof value!=='string'||!/^[a-f0-9]{64}$/.test(value)||/^0+$/.test(value))continue
+   const explicitlyMasked=rules.some(rule=>value.replace(customPattern(rule.pattern),match=>rule.exceptions.includes(match)?match:mask)!==value)
+   const targetValue=object(clean.value)
+   if(!explicitlyMasked&&targetValue)targetValue.stringValue=value
+  }
+ }
  const source = object(input.record), target = object(result.record)
  if (source && target) {
   for (const [key, length] of [['traceId',32],['spanId',16],['parentSpanId',16]] as const) {

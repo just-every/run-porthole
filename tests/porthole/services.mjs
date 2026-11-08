@@ -254,6 +254,15 @@ export async function servicesBrowser({origin,cookie='',path,contains,name,statu
   assert.equal(await page.locator('button').evaluateAll(nodes=>nodes.filter(n=>!n.textContent.trim()).length),0,'every control has a text label')
   assert.ok(await page.locator('main').evaluate(node=>[...node.querySelectorAll('p,a,button,label,input,select,dt,dd,li')].every(n=>parseFloat(getComputedStyle(n).fontSize)>=13)),'ordinary text is at least 13px')
   const link=page.getByRole('link',{name:'All services',exact:true});if(await link.count()){await link.focus();assert.ok(await link.evaluate(n=>n===document.activeElement))}
+  if(path==='/app/settings/fleet'&&status===200){
+   const jsonLink=page.getByRole('link',{name:'Read fleet as JSON',exact:true})
+   await jsonLink.focus();assert.ok(await jsonLink.evaluate(n=>n===document.activeElement),'fleet JSON link is keyboard accessible')
+   await page.keyboard.press('Enter');await page.waitForURL(origin+'/api/porthole/v1/fleet')
+   assert.ok((await page.locator('body').innerText()).includes('installs'),'keyboard JSON pivot reads the actual owner fleet response')
+   await page.goto(origin+path)
+   const services=page.getByRole('link',{name:'Inspect Services',exact:true});await services.focus();assert.ok(await services.evaluate(n=>n===document.activeElement),'fleet service pivot is keyboard accessible')
+  }
+
   if(save){
    const stale=await context.newPage();await stale.goto(origin+path)
    await page.getByLabel('Runbook URL').fill('https://restricted.example/runbooks/reviewed');await page.getByLabel('Criticality',{exact:true}).selectOption('critical');await page.getByLabel('I approve these exact values').check()

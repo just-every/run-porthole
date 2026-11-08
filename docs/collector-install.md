@@ -42,7 +42,10 @@ daemon can inspect container environment variables. To avoid storing the token
 in container configuration, omit PORTHOLE_INGEST_TOKEN and instead set
 PORTHOLE_SECRET_FILE to an absolute private token file. The installer mounts it
 read-only at the container's secret path and configures the Collector's
-bearer-token extension to read that file. The reporter reads the same file.
+bearer-token extension to read that file. The reporter reads the same file. The file-mounted variant requests only
+DAC_READ_SEARCH in addition to the root user so a mode-0600 file owned by
+the installer remains readable inside the Collector. Review that read privilege;
+the env-file variant drops all capabilities.
 No credential is written to fleet records, portable archives or installer logs.
 For an installation using a private certificate authority, set PORTHOLE_CA_FILE
 to its PEM certificate file in the private env file. Both the Collector and
@@ -51,18 +54,28 @@ reporter validate TLS using that authority; certificate verification stays on.
 The Collector reads host proc and sys files, Docker json-file container logs and
 the Docker socket. Socket access grants substantial host control even with a
 read-only mount; review it explicitly. The image runs as root to read those
-files, with all capabilities dropped, no new privileges and no privileged
-mode. Fleet observations list the root user explicitly among the requested and
+files, with no new privileges and no privileged mode. The env-file variant
+drops every capability; the file-mounted secret variant adds only the reviewed
+read capability described above. Fleet observations list the root user explicitly among the requested and
 observed privileges. Original Docker log
 timestamps and container IDs accompany the native log records. Existing logs
 are read from the beginning: review scope and volume before installation.
-The exporter retries for 60 seconds with a bounded in-memory queue; this is not
+The installer excludes its own container log to prevent diagnostic feedback
+when an exporter is refused. File offsets persist in the named Docker volume
+`porthole-state-<install-id>` across Collector restarts; uninstall preserves that
+offset state. Treat the local file-offset and source-fingerprint volume as
+telemetry custody; it is not included in Porthole's portable product archive.
+The export queue remains bounded and in memory. The exporter
+retries for 60 seconds with a bounded in-memory queue; this is not
 a durable, lossless buffer. Delivery and loss accounting remain visible in
 Pipeline health, and queue exhaustion must not be interpreted as healthy.
 
 Open **Fleet coverage** under Settings, or GET `/api/porthole/v1/fleet` with your
 native owner session. It lists version, node, kernel, runtime limits, requested
-and observed grants, missing privileges and next actions. Removing host proc,
+and observed grants, actual Docker engine version, configured resource limits,
+Collector process state, missing privileges and next actions. A failed or
+unobservable Collector has an explicit collection gap; it cannot become empty
+healthy data. Removing host proc,
 host sys, container-log access or the socket produces a named gap. An absent
 reporter becomes stale after 90 seconds. Reports are authenticated collector
 observations rather than independent proof of successful telemetry collection.
@@ -132,7 +145,14 @@ fleet read shows the revoked or unavailable credential. After stopping, remove
 the named stopped container with `docker rm porthole-collector-one` if desired.
 Keep the private credential file until the reporter exits, then remove it using
 your normal secret handling process. Revoke the credential in Settings when it
-is no longer needed.
+is no longer needed. A revoked Collector cannot submit new loss reports with
+that revoked authority. Inspect its actual exporter dropped-item counters; a
+current native owner can record the observed count and source time range with
+POST `/api/porthole/v1/ingest/loss`, using sourceId, signal, service, environment,
+team, kind source_loss, count, from and through. The native delivery view then
+shows accounted source loss and Unknown coverage. A responder or revoked ingest
+credential cannot make this accounting assertion. This is an explicit owner
+report of observed dropped export attempts, not an automatic completeness claim.
 
 For Kubernetes:
 

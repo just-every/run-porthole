@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import {readFile,writeFile,mkdir,stat} from 'node:fs/promises'
+import {readFile,writeFile,mkdir,stat,chmod} from 'node:fs/promises'
 import {execFile} from 'node:child_process'
 import {promisify} from 'node:util'
 import {resolve,dirname} from 'node:path'
@@ -27,13 +27,18 @@ export async function observe(name,config,sequence,state='active') {
  let inspect
  try{inspect=JSON.parse(await docker(['inspect',name]))[0]}catch{throw Error('collector_inspection_unavailable')}
  const mounts=inspect.Mounts??[],granted=[]
+ if(mounts.some(m=>m.Type==='volume'&&m.Destination==='/var/lib/porthole'&&m.RW))granted.push('offset-state')
  if(inspect.Config.User==='0:0')granted.push('root-user')
+ const requested=['root-user','host-proc','host-sys','container-logs','docker-socket','offset-state']
+ if(config.PORTHOLE_SECRET_FILE){requested.push('CAP_DAC_READ_SEARCH');if((inspect.HostConfig.CapAdd??[]).some(c=>['DAC_READ_SEARCH','CAP_DAC_READ_SEARCH'].includes(c)))granted.push('CAP_DAC_READ_SEARCH')}
  for(const [cap,path]of [['host-proc','/hostfs/proc'],['host-sys','/hostfs/sys'],['container-logs','/var/lib/docker/containers'],['docker-socket','/var/run/docker.sock']])if(mounts.some(m=>m.Destination===path&&m.RW===false))granted.push(cap)
  // Mount presence is separate from the actual socket read. Never call the
  // container's privilege grant healthy when its socket is absent or refused.
  if(granted.includes('docker-socket'))try{await docker(['stats','--no-stream','--format','{{.ID}}',name])}catch{granted.splice(granted.indexOf('docker-socket'),1)}
+ const engine=(await docker(['version','--format','{{.Server.Version}}'])).trim()
+ const resourceLimits=[inspect.HostConfig.Memory?'memory-bytes-'+inspect.HostConfig.Memory:'memory-unlimited',inspect.HostConfig.CpuQuota>0?'cpu-quota-'+inspect.HostConfig.CpuQuota:'cpu-quota-unlimited']
  const token=config.PORTHOLE_INGEST_TOKEN??(await readFile(config.PORTHOLE_SECRET_FILE,'utf8')).trim()
- const report={id:config.PORTHOLE_INSTALL_ID,service:config.PORTHOLE_SERVICE,environment:config.PORTHOLE_ENVIRONMENT,team:config.PORTHOLE_TEAM,state:state==='stopped'||!inspect.State.Running?'stopped':'active',report:{platform:'docker',node:hostname(),kernel:release(),runtime:'docker',collectorVersion:version,obiVersion:null,requested:['root-user','host-proc','host-sys','container-logs','docker-socket'],granted,limits:['linux-only','docker-json-file-logs','bounded-memory-queue','no-ebpf-in-docker-install'],services:[],obi:'not-installed',sequence}}
+ const report={id:config.PORTHOLE_INSTALL_ID,service:config.PORTHOLE_SERVICE,environment:config.PORTHOLE_ENVIRONMENT,team:config.PORTHOLE_TEAM,state:state==='stopped'||!inspect.State.Running?'stopped':'active',report:{collector:inspect.State.Running?'running':inspect.State.ExitCode?'failed':'stopped',platform:'docker',node:hostname(),kernel:release(),runtime:'docker-'+engine,collectorVersion:version,obiVersion:null,requested,granted,limits:[...resourceLimits,'linux-only','docker-json-file-logs','bounded-memory-queue','no-ebpf-in-docker-install'],services:[],obi:'not-installed',sequence}}
  const url=new URL('/api/porthole/v1/fleet/report',config.PORTHOLE_ENDPOINT),body=JSON.stringify(report),ca=config.PORTHOLE_CA_FILE?await readFile(config.PORTHOLE_CA_FILE):undefined
  const receipt=await new Promise((resolve,reject)=>{
   const outgoing=(url.protocol==='https:'?httpsRequest:httpRequest)(url,{method:'POST',...(ca?{ca}:{}),timeout:10000,headers:{authorization:'Bearer '+token,'content-type':'application/json','content-length':Buffer.byteLength(body)}},response=>{
@@ -53,16 +58,26 @@ export async function install(file,{localTest=false,name,configPath=resolve(here
  if(!/^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$/.test(name))throw Error('invalid_container_name')
  let settings=await readFile(configPath,'utf8')
  const state=resolve('.cache/collector',id);await mkdir(state,{recursive:true,mode:0o700})
- const flags=['run','-d','--name',name,'--restart','unless-stopped','--user','0:0','--cap-drop','ALL','--security-opt','no-new-privileges','--env-file',resolve(file),'--label','porthole.install='+id]
+ const flags=['create','--name',name,'--restart','unless-stopped','--user','0:0','--cap-drop','ALL','--security-opt','no-new-privileges','--env-file',resolve(file),'--label','porthole.install='+id]
  const localProxy={}
  for(const key of ['NO_PROXY','no_proxy'])if(config[key]){localProxy[key]=config[key];flags.push('--env',key)}
- if(config.PORTHOLE_SECRET_FILE){settings=settings.replace('token: ${env:PORTHOLE_INGEST_TOKEN}','filename: /run/secrets/porthole_ingest');flags.push('--mount','type=bind,src='+resolve(config.PORTHOLE_SECRET_FILE)+',dst=/run/secrets/porthole_ingest,readonly')}
- if(config.PORTHOLE_CA_FILE){settings=settings.replace('    endpoint: ${env:PORTHOLE_ENDPOINT}','    endpoint: ${env:PORTHOLE_ENDPOINT}\n    tls:\n      ca_file: /etc/porthole-ca.pem');flags.push('--mount','type=bind,src='+resolve(config.PORTHOLE_CA_FILE)+',dst=/etc/porthole-ca.pem,readonly')}
- await writeFile(state+'/config.yaml',settings,{mode:0o600})
+ if(config.PORTHOLE_SECRET_FILE){flags.push('--cap-add','DAC_READ_SEARCH');settings=settings.replace('token: ${env:PORTHOLE_INGEST_TOKEN}','filename: /run/secrets/porthole_ingest');flags.push('--mount','type=bind,src='+resolve(config.PORTHOLE_SECRET_FILE)+',dst=/run/secrets/porthole_ingest,readonly')}
+ if(config.PORTHOLE_CA_FILE){
+  const ca=await readFile(config.PORTHOLE_CA_FILE,'utf8')
+  if(!ca.includes('-----BEGIN CERTIFICATE-----')||ca.includes('PRIVATE KEY'))throw Error('invalid_ca_certificate')
+  await writeFile(state+'/ca.pem',ca,{mode:0o644});await chmod(state+'/ca.pem',0o644)
+  settings=settings.replace('    endpoint: ${env:PORTHOLE_ENDPOINT}','    endpoint: ${env:PORTHOLE_ENDPOINT}\n    tls:\n      ca_file: /etc/porthole-ca.pem');flags.push('--mount','type=bind,src='+state+'/ca.pem,dst=/etc/porthole-ca.pem,readonly')
+ }
+ await writeFile(state+'/config.yaml',settings,{mode:0o644});await chmod(state+'/config.yaml',0o644)
  flags.push('--mount','type=bind,src='+state+'/config.yaml,dst=/etc/otelcol-contrib/config.yaml,readonly')
  for(const [key,src,dst]of [['host-proc','/proc','/hostfs/proc'],['host-sys','/sys','/hostfs/sys'],['container-logs','/var/lib/docker/containers','/var/lib/docker/containers'],['docker-socket','/var/run/docker.sock','/var/run/docker.sock']])if(!omit.includes(key))flags.push('--mount','type=bind,src='+src+',dst='+dst+',readonly')
+ if(!omit.includes('offset-state'))flags.push('--mount','type=volume,src=porthole-state-'+id+',dst=/var/lib/porthole')
  flags.push(collectorImage,'--config=/etc/otelcol-contrib/config.yaml')
- await docker(flags,localProxy)
+ const containerId=(await docker(flags,localProxy)).trim()
+ if(!/^[a-f0-9]{64}$/.test(containerId))throw Error('collector_identity_unavailable')
+ settings=settings.replace('    include: [/var/lib/docker/containers/*/*.log]','    include: [/var/lib/docker/containers/*/*.log]\n    exclude: [/var/lib/docker/containers/'+containerId+'/*.log]')
+ await writeFile(state+'/config.yaml',settings,{mode:0o644})
+ await docker(['start',name])
  return {name,config,state}
 }
 async function main() {

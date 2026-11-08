@@ -15,7 +15,8 @@ const docker=async args=>(await execute('docker',args,{maxBuffer:1024*1024})).st
  * or telemetry storage is replaced. The relay bridges Docker to the ephemeral
  * loopback Worker while preserving its configured origin. */
 export async function collectorInstallJourney({origin,freshOwner,signIn,sql,restartWorker,withEmptyDestination,withPinnedClock}) {
- let cookie=await freshOwner(),sequence=1
+ let cookie=await freshOwner(),sequence=1,capturing=true
+ const packets=[]
  const post=async(path,data,status=200,acting=cookie)=>{const r=await fetch(origin+path,form(origin,acting,data));assert.equal(r.status,status,await r.clone().text());return r.headers.get('content-type')?.includes('json')?r.json():r}
  const get=async(path=root,acting=cookie)=>{const r=await fetch(origin+path,{headers:{cookie:acting}});assert.equal(r.status,200,await r.clone().text());return r.json()}
  assert.equal((await fetch(origin+root)).status,401)
@@ -29,6 +30,7 @@ export async function collectorInstallJourney({origin,freshOwner,signIn,sql,rest
  const relay=createServer({key:await readFile(keyFile),cert:await readFile(caFile)},async(req,res)=>{
   try{const chunks=[];for await(const chunk of req)chunks.push(chunk)
    const r=await fetch(origin+req.url,{method:req.method,headers:{host:new URL(origin).host,authorization:req.headers.authorization,'content-type':req.headers['content-type'],...(req.headers['content-encoding']?{'content-encoding':req.headers['content-encoding']}:{})},...(req.method==='GET'?{}:{body:Buffer.concat(chunks)}),signal:AbortSignal.timeout(15000)})
+   if(capturing&&req.url==='/v1/logs'&&r.status===200)packets.push({body:Buffer.concat(chunks),type:req.headers['content-type'],encoding:req.headers['content-encoding']})
    res.writeHead(r.status,Object.fromEntries(r.headers));res.end(Buffer.from(await r.arrayBuffer()))
   }catch{res.writeHead(503);res.end('unavailable')}
  })
@@ -61,7 +63,7 @@ export async function collectorInstallJourney({origin,freshOwner,signIn,sql,rest
   }
   if(!found){{const log=await execute('docker',['logs',name]);console.log((log.stdout+log.stderr).slice(-8000))};console.log(lastBody)}
   assert.ok(found,'actual official filelog record queryable within sixty seconds')
-  const deliveryMs=Date.now()-start
+  const deliveryMs=Date.now()-start;capturing=false
   const exactNs=(text)=>{const m=text.match(/^(.*\.)(\d+)(Z)$/);return BigInt(Date.parse(m[1]+'000Z'))*1000000n+BigInt(m[2].padEnd(9,'0'))}
   assert.equal(BigInt(found.event_time_ns),exactNs(original.time),'original Docker nanosecond timestamp survives collection and custody')
   const container=found.payload.resource.attributes.find(a=>a.key==='container.id')
@@ -119,6 +121,26 @@ export async function collectorInstallJourney({origin,freshOwner,signIn,sql,rest
   await assert.rejects(observe(name,reporterConfig,++sequence),/fleet_report_refused_401/)
   assert.deepEqual(await sql('SELECT * FROM porthole_fleet_installs'),before,'revoked credential cannot change install or freshness')
   assert.equal((await get()).installs[0].credentialStatus,'revoked-or-unavailable')
+  const lossFrom=BigInt(Date.now())*1000000n
+  await docker(['start',name])
+  await docker(['exec',producer,'node','-e','require("node:fs").appendFileSync("/proc/1/fd/1",'+JSON.stringify('synthetic-porthole-8607-'+process.pid+String.fromCharCode(10))+')'])
+  let dropped=0,dropProof=''
+  const lossDeadline=Date.now()+30000
+  while(Date.now()<lossDeadline&&!dropped){
+   await new Promise(r=>setTimeout(r,500))
+   const capture=await execute('docker',['logs','--since',new Date(Number(lossFrom/1000000n)).toISOString(),name])
+   const lines=(capture.stdout+capture.stderr).split('\n')
+   for(const line of lines)if(line.includes('Dropping data'))try{const detail=JSON.parse(line.slice(line.indexOf('{')));if(detail['otelcol.signal']==='logs'&&/401|Unauthenticated/.test(detail.error??'')){dropped+=Number(detail.dropped_items??0);dropProof=detail.error}}catch{}
+  }
+  assert.ok(dropped>0,'the actual Collector records refused export loss after credential revocation')
+  await docker(['stop','--time','2',name])
+  const loss={sourceId:source.credential.id,signal:'logs',service:scope.services[0],environment:scope.environments[0],team:scope.teams[0],kind:'source_loss',count:dropped,from:String(lossFrom),through:String(BigInt(Date.now())*1000000n)}
+  assert.equal((await fetch(origin+'/api/porthole/v1/ingest/loss',form(origin,responder,loss))).status,403,'a responder cannot invent source loss accounting')
+  await post('/api/porthole/v1/ingest/loss',loss,201)
+  const delivery=(await get('/api/porthole/v1/ingest/status')).sources.find(s=>s.sourceId===source.credential.id&&s.signal==='logs')
+  assert.equal(delivery.lost,dropped);assert.equal(delivery.evaluation,'Unknown')
+  assert.ok(!JSON.stringify(await get('/api/porthole/v1/ingest/records?signal=logs&service='+scope.services[0]+'&limit=200')).includes('synthetic-porthole-8607-'+process.pid),'revoked export gains no retained custody')
+  console.log('PROBE PORT-003 revoked export: actual Collector '+dropProof+' -> '+dropped+' observed dropped records; current native owner records matching source loss, responder refuses, delivery remains Unknown')
   const forbidden=await fetch(origin+'/v1/logs',{method:'POST',headers:{authorization:'Bearer '+source.secret,'content-type':'application/json'},body:'{}'})
   assert.equal(forbidden.status,401)
   const {fleetArchiveJourney}=await import('./archive.mjs')
@@ -126,7 +148,8 @@ export async function collectorInstallJourney({origin,freshOwner,signIn,sql,rest
   console.log('PROBE PORT-003 Docker: actual official filelog receiver -> planted stdout in native Explore in '+deliveryMs+' ms; initial delivery observed before sixty seconds with exact source nanoseconds and container ID')
   console.log('PROBE PORT-003 gaps: remove host proc, host sys, container logs and Docker socket individually -> named gaps and next actions; restart preserves observations')
   console.log('PROBE PORT-003 uninstall: stop actual Collector -> stale install and retained original record; revoked credential refuses both report and intake unchanged')
- }finally{await stopInstaller();await clean(name);await clean(producer);await new Promise(r=>relay.close(r));await rm(dir,{recursive:true,force:true})}
+  return {packets,expected:{marker,scope,timeNs:found.event_time_ns,containerId:sourceInfo.Id}}
+ }finally{await stopInstaller();await clean(name);await clean(producer);await docker(['volume','rm','porthole-state-'+config.PORTHOLE_INSTALL_ID]).catch(()=>{});await new Promise(r=>relay.close(r));await rm(dir,{recursive:true,force:true})}
 }
 
 
@@ -141,7 +164,7 @@ export async function fleetJourney({origin,freshOwner,signIn,sql,restartWorker,w
  const scope={services:['synthetic-porthole-8610'],environments:['production'],teams:['synthetic-porthole-8611'],signals:['logs'],actions:['telemetry.write']}
  const credential=await post('/app/settings/credentials/mint',{name:'synthetic-porthole-8612',class:'ingest',scope},201)
  const other=await post('/app/settings/credentials/mint',{name:'synthetic-porthole-8613',class:'ingest',scope},201)
- const report={id:'synthetic-porthole-8614',service:scope.services[0],environment:scope.environments[0],team:scope.teams[0],state:'active',report:{platform:'docker',node:hostname(),kernel:release(),runtime:'docker',collectorVersion:'0.135.0',obiVersion:null,requested:['host-proc','host-sys','container-logs','docker-socket'],granted:[],limits:['protocol-observation-only'],services:[],obi:'not-installed',sequence}}
+ const report={id:'synthetic-porthole-8614',service:scope.services[0],environment:scope.environments[0],team:scope.teams[0],state:'active',report:{collector:'running',platform:'docker',node:hostname(),kernel:release(),runtime:'docker',collectorVersion:'0.135.0',obiVersion:null,requested:['host-proc','host-sys','container-logs','docker-socket'],granted:[],limits:['protocol-observation-only'],services:[],obi:'not-installed',sequence}}
  const send=async(data=report,secret=credential.secret,status=200)=>{
   const before=await sql('SELECT * FROM porthole_fleet_installs')
   const r=await fetch(origin+root+'/report',{method:'POST',headers:{authorization:'Bearer '+secret,'content-type':'application/json'},body:JSON.stringify(data)})
@@ -177,6 +200,8 @@ export async function fleetJourney({origin,freshOwner,signIn,sql,restartWorker,w
   assert.ok(observed.gaps.some(g=>g.code===missing&&g.action.length),'missing '+missing+' remains explicit')
   assert.deepEqual(observed.coverage,[],'no telemetry cannot masquerade as service health')
  }
+ report.report.collector='failed';report.report.sequence=++sequence;await send()
+ assert.ok((await get()).installs[0].gaps.some(g=>g.code==='collector-not-running'))
  await servicesBrowser({origin,cookie,path:screen,contains:'btf',name:'fleet-kernel-gap'})
 
  const address=['synthetic-porthole-8615','example.com'].join(String.fromCharCode(64))

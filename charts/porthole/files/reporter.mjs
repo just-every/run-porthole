@@ -47,8 +47,10 @@ async function report(state) {
 
  let runtime='kubernetes-unavailable'
  try{const node=await kube('/api/v1/nodes/'+encodeURIComponent(env.K8S_NODE_NAME),true);if(node?.status?.nodeInfo?.containerRuntimeVersion)runtime=node.status.nodeInfo.containerRuntimeVersion.replace('://','-')}catch{}
+ let collector='unknown'
+ try{const pod=await kube('/api/v1/namespaces/'+encodeURIComponent(env.POD_NAMESPACE)+'/pods/'+encodeURIComponent(env.POD_NAME),true),status=pod?.status?.containerStatuses?.find(s=>s.name==='collector');if(status?.state?.running)collector='running';else if(status?.state?.terminated)collector=status.state.terminated.exitCode?'failed':'stopped'}catch{}
  const token=(await readFile('/run/secrets/porthole/token','utf8')).trim()
- const body={id:env.PORTHOLE_RELEASE+'-'+env.K8S_NODE_NAME,service:env.PORTHOLE_SERVICE,environment:env.PORTHOLE_ENVIRONMENT,team:env.PORTHOLE_TEAM,state,report:{platform:'kubernetes',node:env.K8S_NODE_NAME,kernel:release(),runtime,collectorVersion:'0.135.0',obiVersion:'1.0.0',requested,granted,limits:[...deniedRules,'linux-only','kernel-btf-required','kernel-5.8-or-newer','supported-runtime-required','bounded-memory-queue','no-go-context-injection-without-sys-admin'],services:[],obi:found?'starting':'unavailable',sequence:++sequence}}
+ const body={id:env.PORTHOLE_RELEASE+'-'+env.K8S_NODE_NAME,service:env.PORTHOLE_SERVICE,environment:env.PORTHOLE_ENVIRONMENT,team:env.PORTHOLE_TEAM,state,report:{collector,platform:'kubernetes',node:env.K8S_NODE_NAME,kernel:release(),runtime,collectorVersion:'0.135.0',obiVersion:'1.0.0',requested,granted,limits:[...deniedRules,'linux-only','kernel-btf-required','kernel-5.8-or-newer','supported-runtime-required','bounded-memory-queue','no-go-context-injection-without-sys-admin'],services:[],obi:found?'starting':'unavailable',sequence:++sequence}}
  const response=await fetch(new URL('/api/porthole/v1/fleet/report',env.PORTHOLE_ENDPOINT),{method:'POST',headers:{authorization:'Bearer '+token,'content-type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(10000)})
  if(!response.ok)throw Error('fleet_report_refused_'+response.status)
 }
