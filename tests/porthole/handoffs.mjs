@@ -9,7 +9,7 @@ const encodedName=['checkout','blue'].join('/')
 const allFields=['identity','metadata','observedRed','coverage','freshness','traceReferences','logReferences']
 const canonical=value=>JSON.stringify(sort(value))
 const sort=value=>Array.isArray(value)?value.map(sort):value&&typeof value==='object'?Object.fromEntries(Object.entries(value).sort(([a],[b])=>a<b?-1:a>b?1:0).map(([k,v])=>[k,sort(v)])):value
-export async function handoffJourney({origin,freshOwner,signIn,sql,call=(path,options)=>fetch(origin+path,options),service,query,ownerCookie,responders,bearer,dispatch,withPinnedClock}) {
+export async function handoffJourney({origin,freshOwner,signIn,sql,call=(path,options)=>fetch(origin+path,options),service,query,ownerCookie,responders,bearer,dispatch,withPinnedClock,expectedLogs}) {
  let cookie=ownerCookie??await freshOwner()
  const send=async(path,data,status=200,acting=cookie,extra={})=>{const options=form(origin,acting,data),response=await call(path,{...options,headers:{...options.headers,...extra}});assert.equal(response.status,status,await response.clone().text());return response.json()}
  const read=async(path,acting=cookie,status=200)=>{const response=await call(path,{headers:{cookie:acting}});assert.equal(response.status,status,await response.clone().text());return response.json()}
@@ -28,7 +28,7 @@ export async function handoffJourney({origin,freshOwner,signIn,sql,call=(path,op
  const encodingSource=await send('/app/settings/credentials/mint',{name:'synthetic-porthole-8506',class:'ingest',scope:{services:[encodedName],environments:['production'],teams:['commerce'],signals:['traces'],actions:['telemetry.write']}},201)
  const encoded=await encodedService({origin,call,secret:encodingSource.secret});await send('/api/porthole/v1/ingest/drain',{})
  const encodedView=await read('/api/porthole/v1/services?'+new URLSearchParams(encoded)),encodedRecord=encodedView.services.find(row=>row.service===encodedName)
- assert.ok(encodedRecord,'actual stock producer exposes the encoded service through native Services')
+ assert.ok(encodedRecord,'actual stock producer exposes the encoded service through native Services');assert.equal(encodedRecord.handoffs.length,names.length)
  for(const link of encodedRecord.handoffs){const url=new URL(link.href);assert.ok(url.pathname.endsWith('/checkout%2Fblue'));assert.equal(url.searchParams.get('environment'),'production');assert.equal(url.searchParams.get('from'),encoded.from);assert.equal(url.searchParams.get('through'),encoded.through)}
  assert.equal((await call('/api/porthole/v1/services/'+encodedRecord.id+'?'+new URLSearchParams(encoded),{headers:{cookie:responders[0].cookie}})).status,404,'an out-of-scope encoded service has no handoff door')
  await send('/app/settings/credentials/revoke',{id:encodingSource.credential.id})
@@ -53,13 +53,12 @@ export async function handoffJourney({origin,freshOwner,signIn,sql,call=(path,op
     const expected=path.startsWith('/app/services/')?'https://handoff.example/'+id+'/service/'+encodeURIComponent(reader.serviceId===service.id?'checkout':'fulfillment')+'?environment=production&from='+from+'&through='+through:'https://handoff.example/'+id
     assert.ok(html.includes(expected.replaceAll('&','&#38;'))||html.includes(expected.replaceAll('&','&amp;')),path+' has exact encoded external target '+id)
    }
-   if(reader.serviceId!==service.id)assert.ok(!html.includes('service/checkout'),'foreign service values cannot enter a handoff')
+   if(reader.serviceId!==service.id)assert.ok(!html.includes('/service/checkout'),'foreign service values cannot enter a handoff')
   }
  }
  const privateIntegrations=await call('/app/settings/integrations',{headers:{cookie}});assert.equal(privateIntegrations.status,200);assert.ok((await privateIntegrations.text()).includes('/app/settings/integrations/handoffs'))
- await handoffBrowser({origin,cookie,path:'/app/help',contains:'Neighboring products',name:'help-configured',dispatch,follow:true})
- await handoffBrowser({origin,cookie:maintainer,path:'/app/integrations',contains:'Neighboring products',name:'integrations-configured',dispatch,follow:true})
- await handoffBrowser({origin,cookie:responders[0].cookie,path:'/app/services/'+service.id+query,contains:'Neighboring products',name:'service-handoffs',dispatch,follow:true})
+ for(const [role,reader]of [{cookie,serviceId:service.id},{cookie:maintainer,serviceId:service.id},...responders].entries())for(const [door,path]of ['/app/help','/app/integrations','/app/services/'+reader.serviceId+query].entries())await handoffBrowser({origin,cookie:reader.cookie,path,contains:'Neighboring products',name:['help-configured','integrations-configured','service-handoffs'][door]+'-'+role,dispatch,follow:true,capture:role===door||role===3&&door===2})
+ await handoffBrowser({origin,cookie,path:'/app/settings/integrations/handoffs',contains:'Handoff settings',name:'handoffs-invalid',dispatch,invalid:true})
  await handoffBrowser({origin,cookie,path:'/app/settings/integrations/handoffs',contains:'Handoff settings',name:'handoffs-settings',dispatch,edit:true})
  cookie=await freshOwner()
  const selected={serviceId:service.id,from,through,metadataRevision:service.metadata.revision,externalReference:'synthetic-porthole-8501',fields:allFields}
@@ -71,7 +70,7 @@ export async function handoffJourney({origin,freshOwner,signIn,sql,call=(path,op
  assert.equal(preview.packet.fields.coverage.fullTraffic,false);assert.equal(preview.packet.fields.coverage.partnerRecovery,'not-measured')
  assert.ok(preview.packet.fields.coverage.missing.length)
  assert.ok(preview.packet.fields.traceReferences.length>36,'real producer traces are resolved, not an empty-list proof')
- assert.equal(preview.packet.fields.logReferences.length,36,'all source-counted stock logger records belong to the packet')
+ assert.equal(preview.packet.fields.logReferences.length,expectedLogs,'all source-counted stock logger records belong to the packet')
  for(const [signal,key]of [['traces','traceReferences'],['logs','logReferences']]){
   const native=[],params=new URLSearchParams({signal,service:'checkout',environment:'production',team:'commerce',from,through,snapshot:String(preview.packet.snapshot),limit:'200'})
   let cursor=null
@@ -91,6 +90,7 @@ export async function handoffJourney({origin,freshOwner,signIn,sql,call=(path,op
  await denied(packets+'/'+preview.id+'/approve',{confirm:preview.id,digest:'0'.repeat(64)},409)
  assert.equal((await call(packets+'/'+preview.id+'/download',{headers:{cookie}})).status,409)
  await handoffBrowser({origin,cookie,path:'/app/services/'+service.id+query,contains:'Observed requests',name:'evidence-selection',dispatch,create:true})
+ await handoffBrowser({origin,cookie:responders[0].cookie,path:'/app/services/evidence/'+preview.id,contains:'export owner required',name:'evidence-unauthorized',dispatch,status:403})
  await handoffBrowser({origin,cookie,path:'/app/services/evidence/'+preview.id,contains:'Review exact packet',name:'evidence-preview',dispatch,approve:true})
  const download=await call(packets+'/'+preview.id+'/download',{headers:{cookie}});assert.equal(download.status,200);assert.match(download.headers.get('content-disposition'),/^attachment/)
  const downloaded=await download.json();assert.equal(downloaded.digest,preview.digest);assert.deepEqual(downloaded.packet,preview.packet)
@@ -124,7 +124,7 @@ export async function handoffJourney({origin,freshOwner,signIn,sql,call=(path,op
  return history
 }
 
-export async function handoffBrowser({origin,cookie='',path,contains,name,dispatch,status=200,follow=false,edit=false,approve=false,create=false}) {
+export async function handoffBrowser({origin,cookie='',path,contains,name,dispatch,status=200,follow=false,edit=false,approve=false,create=false,invalid=false,capture=true}) {
  const {chromium}=await import('@playwright/test'),browser=await chromium.launch({headless:true,executablePath:process.env.PORTHOLE_CHROMIUM_PATH,args:['--no-sandbox','--use-mock-keychain','--password-store=basic']})
  try{
   const context=await browser.newContext({viewport:{width:1440,height:900}})
@@ -137,10 +137,11 @@ export async function handoffBrowser({origin,cookie='',path,contains,name,dispat
   await page.keyboard.press('Tab');assert.ok(await page.evaluate(()=>document.activeElement?.tagName==='A'))
   assert.equal(await page.locator('button').evaluateAll(nodes=>nodes.filter(n=>!n.textContent.trim()).length),0)
   if(follow){let count=0;await context.route('https://handoff.example/**',async route=>{const request=route.request();assert.ok(!request.headers().authorization&&!request.headers().cookie&&!request.headers().referer,'plain external navigation carries no authority');count++;await route.fulfill({status:401,body:'Destination permission required'})});for(const [,name]of names){await page.getByRole('link',{name:'Open '+name,exact:true}).click();assert.match(await page.locator('body').innerText(),/Destination permission required/);await page.goto(origin+path)}assert.equal(count,names.length)}
-  if(edit){const form=page.locator('form').first(),stale=await context.newPage();await stale.goto(origin+path);await form.locator('input[name="confirm"]').check();await form.getByRole('button').click();assert.match(await page.locator('body').innerText(),/Revision 2/);await stale.locator('form').first().locator('input[name="confirm"]').check();const response=stale.waitForResponse(r=>r.request().method()==='POST');await stale.locator('form').first().getByRole('button').click();assert.equal((await response).status(),409);assert.match(await stale.locator('body').innerText(),/handoff revision changed/);await stale.close()}
+  if(edit){const form=page.locator('form').first(),stale=await context.newPage();await stale.goto(origin+path);await form.locator('input[name="confirm"]').check();await form.getByRole('button').click();assert.match(await page.locator('body').innerText(),/Revision 2/);await stale.locator('form').first().locator('input[name="confirm"]').check();const response=stale.waitForResponse(r=>r.request().method()==='POST');await stale.locator('form').first().getByRole('button').click();assert.equal((await response).status(),409);assert.match(await stale.locator('body').innerText(),/handoff revision changed/);if(process.env.PORTHOLE_EVIDENCE_DIR)for(const width of [1440,390]){await stale.setViewportSize({width,height:width===1440?900:844});await stale.screenshot({path:join(process.env.PORTHOLE_EVIDENCE_DIR,'handoffs-stale-revision-'+width+'.png'),fullPage:true})}await stale.close()}
+  if(invalid){const form=page.locator('form').first();await form.locator('input[name="destination"]').fill('http://handoff.example');await form.locator('input[name="confirm"]').check();const refused=page.waitForResponse(r=>r.request().method()==='POST');await form.getByRole('button').click();assert.equal((await refused).status(),400);assert.match(await page.locator('body').innerText(),/invalid handoff destination/)}
   if(create){await page.getByRole('link',{name:'Review service evidence packet',exact:true}).click();await page.getByLabel('External system reference',{exact:true}).fill('synthetic-porthole-8509');await page.getByRole('button',{name:'Preview packet',exact:true}).click();assert.match(await page.locator('body').innerText(),/Review exact packet/);await page.getByRole('button',{name:'Cancel packet',exact:true}).click();assert.match(await page.locator('body').innerText(),/State: cancelled/)}
   if(approve){const references=page.locator('details').first();if(await references.count()){await references.locator('summary').focus();await page.keyboard.press('Enter');assert.equal(await references.getAttribute('open'),'');await page.keyboard.press('Enter')}await page.getByLabel('Approve this exact packet and external reference').check();await page.getByRole('button',{name:'Approve packet',exact:true}).click();assert.match(await page.locator('body').innerText(),/State: approved/);assert.equal(await page.getByRole('link',{name:'Download approved packet',exact:true}).count(),1)}
-  if(process.env.PORTHOLE_EVIDENCE_DIR){await mkdir(process.env.PORTHOLE_EVIDENCE_DIR,{recursive:true});for(const width of [1440,390]){await page.setViewportSize({width,height:width===1440?900:844});await page.screenshot({path:join(process.env.PORTHOLE_EVIDENCE_DIR,name+'-'+width+'.png'),fullPage:true})}}
+  if(capture&&process.env.PORTHOLE_EVIDENCE_DIR){await mkdir(process.env.PORTHOLE_EVIDENCE_DIR,{recursive:true});for(const width of [1440,390]){await page.setViewportSize({width,height:width===1440?900:844});await page.screenshot({path:join(process.env.PORTHOLE_EVIDENCE_DIR,name+'-'+width+'.png'),fullPage:true})}}
   await context.close()
  }finally{await browser.close()}
 }
@@ -153,11 +154,11 @@ export async function routeInventory({origin,cookie,call=(path,options)=>fetch(o
  assert.ok(productPaths.includes('/api/porthole/v1/handoffs')&&productPaths.includes('/api/porthole/v1/service-evidence'))
  const forbiddenPattern=/\/(?:marketing|funnels|cmdb|siem|security-cases|whole-cloud|compliance-programs)(?:\/|$)/i
  assert.ok(productPaths.every(path=>!forbiddenPattern.test(path)))
- const routes=(await readdir('src/routes',{recursive:true})).filter(name=>/\.[jt]sx?$/.test(name));assert.ok(routes.every(path=>!forbiddenPattern.test('/'+path)))
+ const routes=(await readdir('./src/routes',{recursive:true})).filter(name=>/\.[jt]sx?$/.test(name));assert.ok(routes.every(path=>!forbiddenPattern.test('/'+path)))
  const files=await readdir('dist',{recursive:true}),builtPages=files.filter(path=>path.endsWith('.html'))
  assert.ok(builtPages.every(path=>!forbiddenPattern.test('/'+path)))
  const declarations=[]
- for(const file of (await readdir('src/porthole',{recursive:true})).filter(name=>name.endsWith('.ts'))){const source=await readFile(join('src/porthole',file),'utf8');for(const match of source.matchAll(/["'`](\/(?:app|api)\/[^"'`\s]*)["'`]/g))declarations.push(match[1])}
+ for(const file of (await readdir('./src/porthole',{recursive:true})).filter(name=>name.endsWith('.ts'))){const source=await readFile(join('./src/porthole',file),'utf8');for(const match of source.matchAll(/["'`](\/(?:app|api)\/[^"'`\s]*)["'`]/g))declarations.push(match[1])}
  assert.ok(declarations.every(path=>!forbiddenPattern.test(path)),'implemented product router declares no neighboring workflow')
  const inventory={declarations:[...new Set(declarations)].sort(),router:{probes:forbidden,methods:['GET','POST'],status:404},openapi:productPaths,routeModules:routes,builtPages}
  if(process.env.PORTHOLE_EVIDENCE_DIR){const {writeFile}=await import('node:fs/promises');await writeFile(join(process.env.PORTHOLE_EVIDENCE_DIR,'route-inventory.json'),JSON.stringify(inventory,null,2)+'\n')}
