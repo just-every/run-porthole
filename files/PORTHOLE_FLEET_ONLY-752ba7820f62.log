@@ -1,0 +1,10 @@
+verify:runtime
+Heavy job admitted: Porthole verify:runtime:suite [94c9ff1ec523]
+▲ [WARNING] Proxy environment variables detected. We'll use your proxy for fetch requests.
+
+
+Installed owner claim rejects missing/wrong setup tokens and request demo flags
+HTTP-001 passed against emitted local Worker: health, the installed homepage, HTTP and document 404s
+PROBE PORT-003 archive: actual export and empty restore -> inactive stale install, no credential or live collection
+PROBE PORT-003 fleet: native-owner observation and API -> exact live and stale states, named missing access, foreign binding and scope and revoked credential refuse unchanged; inactive restore has no credential
+APP-HOME passed against emitted local Worker: /app behind sign-in and setup, then the trace view with its stylesheets

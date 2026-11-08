@@ -1,0 +1,111 @@
+{
+  "head": "752ba7820f6299e91116d98ea39bffbf9776009b",
+  "checked_at": "2026-11-08T22:19:36.439210+00:00",
+  "checks": [
+    {
+      "name": "contract-write",
+      "command": [
+        "node",
+        "scripts/porthole/contract-docs.mjs",
+        "write",
+        "PORT-003"
+      ],
+      "exit": 0,
+      "seconds": 0.081,
+      "log": "contract-write.log",
+      "sha256": "869236812f49c26bc130da0937ac4b3021b76611225a35df78cdfbbc6c48d9d1"
+    },
+    {
+      "name": "contract-check",
+      "command": [
+        "node",
+        "scripts/porthole/contract-docs.mjs",
+        "check",
+        "PORT-003"
+      ],
+      "exit": 0,
+      "seconds": 0.076,
+      "log": "contract-check.log",
+      "sha256": "d976267fc0ead88f2875b34cf763227c2c410398f01e7de2aefe80b73decf712"
+    },
+    {
+      "name": "restore-views",
+      "command": [
+        "git",
+        "checkout",
+        "origin/main",
+        "--",
+        "ACCEPTANCE.md",
+        "docs/CLAIMS.md"
+      ],
+      "exit": 0,
+      "seconds": 0.005,
+      "log": "restore-views.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "typecheck",
+      "command": [
+        "pnpm",
+        "run",
+        "typecheck"
+      ],
+      "exit": 0,
+      "seconds": 0.392,
+      "log": "typecheck.log",
+      "sha256": "9e95a0805adef3186de3ddcd3bfb117a462d3356c907ecd7bf3b0c3f08ba5e74"
+    },
+    {
+      "name": "first-party",
+      "command": [
+        "pnpm",
+        "exec",
+        "rer",
+        "check",
+        "--profile",
+        "first-party"
+      ],
+      "exit": 0,
+      "seconds": 0.613,
+      "log": "first-party.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "public-schema",
+      "command": [
+        "node",
+        "scripts/porthole/public-schema.mjs",
+        "--check"
+      ],
+      "exit": 0,
+      "seconds": 0.839,
+      "log": "public-schema.log",
+      "sha256": "59450c15ddc9aa20226afa14d2e17fe7163e9c036617283e0185497a8c085d37"
+    },
+    {
+      "name": "source-lock",
+      "command": [
+        "pnpm",
+        "run",
+        "source:lock"
+      ],
+      "exit": 0,
+      "seconds": 0.554,
+      "log": "source-lock.log",
+      "sha256": "5438832bd4660de23290d9704ca24d32ba273c69c5abaae1f829fc0180b19750"
+    },
+    {
+      "name": "source-check",
+      "command": [
+        "pnpm",
+        "run",
+        "source:check"
+      ],
+      "exit": 0,
+      "seconds": 0.549,
+      "log": "source-check.log",
+      "sha256": "15b0705c7c308046f17ffd72debd000879c5f17e22dbbf1de1ab29b2d7538fe6"
+    }
+  ],
+  "clean": true
+}

@@ -1,0 +1,142 @@
+Official OBI v1.0.0 image probe, digest sha256:a68d70e934260f72540f157ccf4fb4adfa38f11de060d7d905696dad6a3fca02
+time=2026-11-08T21:24:04.204Z level=INFO msg="OpenTelemetry eBPF Instrumentation" Version=v1.0.0 Revision=d23be0d "OpenTelemetry SDK Version"=1.47.0
+time=2026-11-08T21:24:04.204Z level=INFO msg="configuration loaded" version=v1
+time=2026-11-08T21:24:04.204Z level=ERROR msg="can't start OpenTelemetry eBPF Instrumentation" error="kernel does not support BTF (CONFIG_DEBUG_INFO_BTF): no vmlinux BTF found"
+
+Fresh pinned kind v0.30.0 with node v1.34.0 failed. Initial default network attempt:
+Creating cluster "porthole-f462" ...
+ • Ensuring node image (kindest/node:v1.34.0) 🖼  ...
+ERROR: failed to create cluster: failed to ensure docker network: command "docker network create -d=bridge -o com.docker.network.bridge.enable_ip_masquerade=true -o com.docker.network.driver.mtu=1500 --ipv6 --subnet fc00:f853:ccd:e793::/64 kind" failed with error: exit status 1
+
+Command Output: Error response from daemon: setting default policy to DROP in FORWARD chain failed:  (iptables failed: ip6tables --wait -t filter -P FORWARD DROP: ip6tables v1.8.11 (legacy): can't initialize ip6tables table `filter': Table does not exist (do you need to insmod?)
+Perhaps ip6tables or your kernel needs to be upgraded.
+ (exit status 3))
+
+Second attempt using the existing IPv4 bridge reached kubeadm but failed kubelet health.
+Creating cluster "porthole-f462" ...
+ • Ensuring node image (kindest/node:v1.34.0) 🖼  ...
+WARNING: Overriding docker network due to KIND_EXPERIMENTAL_DOCKER_NETWORK
+WARNING: Here be dragons! This is not supported currently.
+ ✓ Ensuring node image (kindest/node:v1.34.0) 🖼
+ • Preparing nodes 📦   ...
+ ✓ Preparing nodes 📦 
+ • Writing configuration 📜  ...
+ ✓ Writing configuration 📜
+ • Starting control-plane 🕹️  ...
+ ✗ Starting control-plane 🕹️
+Deleted nodes: ["porthole-f462-control-plane"]
+ERROR: failed to create cluster: failed to init node with kubeadm: command "docker exec --privileged porthole-f462-control-plane kubeadm init --config=/kind/kubeadm.conf --skip-token-print --v=6" failed with error: exit status 1
+
+Command Output: I1108 21:23:28.735366     167 initconfiguration.go:260] loading configuration from "/kind/kubeadm.conf"
+W1108 21:23:28.735848     167 common.go:100] your configuration file uses a deprecated API spec: "kubeadm.k8s.io/v1beta3" (kind: "ClusterConfiguration"). Please use 'kubeadm config migrate --old-config old-config-file --new-config new-config-file', which will write the new, similar spec using a newer API version.
+W1108 21:23:28.736126     167 common.go:100] your configuration file uses a deprecated API spec: "kubeadm.k8s.io/v1beta3" (kind: "InitConfiguration"). Please use 'kubeadm config migrate --old-config old-config-file --new-config new-config-file', which will write the new, similar spec using a newer API version.
+W1108 21:23:28.736355     167 common.go:100] your configuration file uses a deprecated API spec: "kubeadm.k8s.io/v1beta3" (kind: "JoinConfiguration"). Please use 'kubeadm config migrate --old-config old-config-file --new-config new-config-file', which will write the new, similar spec using a newer API version.
+W1108 21:23:28.736599     167 initconfiguration.go:361] [config] WARNING: Ignored configuration document with GroupVersionKind kubeadm.k8s.io/v1beta3, Kind=JoinConfiguration
+I1108 21:23:28.737649     167 certs.go:111] creating a new certificate authority for ca
+[init] Using Kubernetes version: v1.34.0
+[certs] Using certificateDir folder "/etc/kubernetes/pki"
+[certs] Generating "ca" certificate and key
+I1108 21:23:29.142965     167 certs.go:472] validating certificate period for ca certificate
+[certs] Generating "apiserver" certificate and key
+[certs] apiserver serving cert is signed for DNS names [kubernetes kubernetes.default kubernetes.default.svc kubernetes.default.svc.cluster.local localhost porthole-f462-control-plane] and IPs [10.96.0.1 172.17.0.2 127.0.0.1]
+I1108 21:23:29.507272     167 certs.go:111] creating a new certificate authority for front-proxy-ca
+[certs] Generating "apiserver-kubelet-client" certificate and key
+[certs] Generating "front-proxy-ca" certificate and key
+I1108 21:23:29.613632     167 certs.go:472] validating certificate period for front-proxy-ca certificate
+[certs] Generating "front-proxy-client" certificate and key
+I1108 21:23:29.857079     167 certs.go:111] creating a new certificate authority for etcd-ca
+[certs] Generating "etcd/ca" certificate and key
+I1108 21:23:30.674712     167 certs.go:472] validating certificate period for etcd/ca certificate
+[certs] Generating "etcd/server" certificate and key
+[certs] etcd/server serving cert is signed for DNS names [localhost porthole-f462-control-plane] and IPs [172.17.0.2 127.0.0.1 ::1]
+[certs] Generating "etcd/peer" certificate and key
+[certs] etcd/peer serving cert is signed for DNS names [localhost porthole-f462-control-plane] and IPs [172.17.0.2 127.0.0.1 ::1]
+[certs] Generating "etcd/healthcheck-client" certificate and key
+[certs] Generating "apiserver-etcd-client" certificate and key
+I1108 21:23:31.323610     167 certs.go:77] creating new public/private key files for signing service account users
+[certs] Generating "sa" key and public key
+[kubeconfig] Using kubeconfig folder "/etc/kubernetes"
+I1108 21:23:31.572451     167 kubeconfig.go:111] creating kubeconfig file for admin.conf
+[kubeconfig] Writing "admin.conf" kubeconfig file
+I1108 21:23:31.752795     167 kubeconfig.go:111] creating kubeconfig file for super-admin.conf
+[kubeconfig] Writing "super-admin.conf" kubeconfig file
+I1108 21:23:31.849984     167 kubeconfig.go:111] creating kubeconfig file for kubelet.conf
+[kubeconfig] Writing "kubelet.conf" kubeconfig file
+I1108 21:23:32.001683     167 kubeconfig.go:111] creating kubeconfig file for controller-manager.conf
+[kubeconfig] Writing "controller-manager.conf" kubeconfig file
+I1108 21:23:32.125028     167 kubeconfig.go:111] creating kubeconfig file for scheduler.conf
+[kubeconfig] Writing "scheduler.conf" kubeconfig file
+[etcd] Creating static Pod manifest for local etcd in "/etc/kubernetes/manifests"
+I1108 21:23:32.385270     167 local.go:67] [etcd] wrote Static Pod manifest for a local etcd member to "/etc/kubernetes/manifests/etcd.yaml"
+I1108 21:23:32.385335     167 manifests.go:125] [control-plane] getting StaticPodSpecs
+[control-plane] Using manifest folder "/etc/kubernetes/manifests"
+[control-plane] Creating static Pod manifest for "kube-apiserver"
+I1108 21:23:32.385503     167 certs.go:472] validating certificate period for CA certificate
+I1108 21:23:32.385686     167 manifests.go:151] [control-plane] adding volume "ca-certs" for component "kube-apiserver"
+I1108 21:23:32.385722     167 manifests.go:151] [control-plane] adding volume "etc-ca-certificates" for component "kube-apiserver"
+I1108 21:23:32.385726     167 manifests.go:151] [control-plane] adding volume "k8s-certs" for component "kube-apiserver"
+I1108 21:23:32.385730     167 manifests.go:151] [control-plane] adding volume "usr-local-share-ca-certificates" for component "kube-apiserver"
+I1108 21:23:32.385741     167 manifests.go:151] [control-plane] adding volume "usr-share-ca-certificates" for component "kube-apiserver"
+[control-plane] Creating static Pod manifest for "kube-controller-manager"
+I1108 21:23:32.387066     167 manifests.go:180] [control-plane] wrote static Pod manifest for component "kube-apiserver" to "/etc/kubernetes/manifests/kube-apiserver.yaml"
+I1108 21:23:32.387083     167 manifests.go:125] [control-plane] getting StaticPodSpecs
+I1108 21:23:32.387179     167 manifests.go:151] [control-plane] adding volume "ca-certs" for component "kube-controller-manager"
+I1108 21:23:32.387182     167 manifests.go:151] [control-plane] adding volume "etc-ca-certificates" for component "kube-controller-manager"
+I1108 21:23:32.387184     167 manifests.go:151] [control-plane] adding volume "flexvolume-dir" for component "kube-controller-manager"
+I1108 21:23:32.387186     167 manifests.go:151] [control-plane] adding volume "k8s-certs" for component "kube-controller-manager"
+I1108 21:23:32.387189     167 manifests.go:151] [control-plane] adding volume "kubeconfig" for component "kube-controller-manager"
+I1108 21:23:32.387190     167 manifests.go:151] [control-plane] adding volume "usr-local-share-ca-certificates" for component "kube-controller-manager"
+I1108 21:23:32.387193     167 manifests.go:151] [control-plane] adding volume "usr-share-ca-certificates" for component "kube-controller-manager"
+I1108 21:23:32.387600     167 manifests.go:180] [control-plane] wrote static Pod manifest for component "kube-controller-manager" to "/etc/kubernetes/manifests/kube-controller-manager.yaml"
+I1108 21:23:32.387617     167 manifests.go:125] [control-plane] getting StaticPodSpecs
+[control-plane] Creating static Pod manifest for "kube-scheduler"
+I1108 21:23:32.387712     167 manifests.go:151] [control-plane] adding volume "kubeconfig" for component "kube-scheduler"
+I1108 21:23:32.388147     167 manifests.go:180] [control-plane] wrote static Pod manifest for component "kube-scheduler" to "/etc/kubernetes/manifests/kube-scheduler.yaml"
+I1108 21:23:32.388162     167 kubelet.go:69] Stopping the kubelet
+[kubelet-start] Writing kubelet environment file with flags to file "/var/lib/kubelet/kubeadm-flags.env"
+[kubelet-start] Writing kubelet configuration to file "/var/lib/kubelet/instance-config.yaml"
+[patches] Applied patch of type "application/strategic-merge-patch+json" to target "kubeletconfiguration"
+[kubelet-start] Writing kubelet configuration to file "/var/lib/kubelet/config.yaml"
+[kubelet-start] Starting the kubelet
+I1108 21:23:32.508741     167 loader.go:402] Config loaded from file:  /etc/kubernetes/admin.conf
+I1108 21:23:32.509003     167 envvar.go:172] "Feature gate default state" feature="ClientsPreferCBOR" enabled=false
+I1108 21:23:32.509018     167 envvar.go:172] "Feature gate default state" feature="InOrderInformers" enabled=true
+I1108 21:23:32.509021     167 envvar.go:172] "Feature gate default state" feature="InformerResourceVersion" enabled=false
+I1108 21:23:32.509023     167 envvar.go:172] "Feature gate default state" feature="WatchListClient" enabled=false
+I1108 21:23:32.509025     167 envvar.go:172] "Feature gate default state" feature="ClientsAllowCBOR" enabled=false
+[wait-control-plane] Waiting for the kubelet to boot up the control plane as static Pods from directory "/etc/kubernetes/manifests"
+[kubelet-check] Waiting for a healthy kubelet at http://127.0.0.1:10248/healthz. This can take up to 4m0s
+[kubelet-check] The kubelet is not healthy after 4m0.001398877s
+
+Unfortunately, an error has occurred, likely caused by:
+	- The kubelet is not running
+	- The kubelet is unhealthy due to a misconfiguration of the node in some way (required cgroups disabled)
+
+If you are on a systemd-powered system, you can try to troubleshoot the error with the following commands:
+	- 'systemctl status kubelet'
+	- 'journalctl -xeu kubelet'
+
+error: error execution phase wait-control-plane: failed while waiting for the kubelet to start: The HTTP call equal to 'curl -sSL http://127.0.0.1:10248/healthz' returned error: Get "http://127.0.0.1:10248/healthz": context deadline exceeded
+
+k8s.io/kubernetes/cmd/kubeadm/app/cmd/phases/workflow.(*Runner).Run.func1
+	k8s.io/kubernetes/cmd/kubeadm/app/cmd/phases/workflow/runner.go:262
+k8s.io/kubernetes/cmd/kubeadm/app/cmd/phases/workflow.(*Runner).visitAll
+	k8s.io/kubernetes/cmd/kubeadm/app/cmd/phases/workflow/runner.go:450
+k8s.io/kubernetes/cmd/kubeadm/app/cmd/phases/workflow.(*Runner).Run
+	k8s.io/kubernetes/cmd/kubeadm/app/cmd/phases/workflow/runner.go:234
+k8s.io/kubernetes/cmd/kubeadm/app/cmd.newCmdInit.func1
+	k8s.io/kubernetes/cmd/kubeadm/app/cmd/init.go:133
+github.com/spf13/cobra.(*Command).execute
+	github.com/spf13/cobra@v1.9.1/command.go:1015
+github.com/spf13/cobra.(*Command).ExecuteC
+	github.com/spf13/cobra@v1.9.1/command.go:1148
+github.com/spf13/cobra.(*Command).Execute
+	github.com/spf13/cobra@v1.9.1/command.go:1071
+k8s.io/kubernetes/cmd/kubeadm/app.Run
+	k8s.io/kubernetes/cmd/kubeadm/app/kubeadm.go:48
+main.main
+	k8s.io/kubernetes/cmd/kubeadm/kubeadm.go:25
+runtime.main
+	runtime/proc.go:283
+runtime.goexit
+	runtime/asm_amd64.s:1700

@@ -1,0 +1,22 @@
+verify:runtime
+Heavy job admitted: Porthole verify:runtime:suite [94c9ff1ec523]
+▲ [WARNING] Proxy environment variables detected. We'll use your proxy for fetch requests.
+
+
+Installed owner claim rejects missing/wrong setup tokens and request demo flags
+HTTP-001 passed against emitted local Worker: health, the installed homepage, HTTP and document 404s
+PORTHOLE_PIPELINE_EXCLUSION {"count":10,"excluded":2,"retained":8,"result":"passed","head":null}
+PROBE PORT-012 A: OTLP intValue 4 and doubleValue 4 through intake and query -> both arithmetic forms return numeric 8; strings, booleans and malformed integers refuse
+pipelineProcessors passed: 120 native inputs through preview, activation, intake and paginated query; source comparison remains unqualified
+PROBE PORT-012 BAR: isolated repeated-key samples through preview and intake -> sanitized queue, hot and archive; sensitive definition refused with unchanged history
+pipelineJourney passed: native preview, activation, bounded refusal, original-wire identity, sanitized custody, counted metrics, restart rollback and exclusion
+PROBE PORT-026 current and catalog: native owner REST and spawned CLI -> identical current definition and processor catalog; actual ingested log records revision and edition 53
+PROBE PORT-026 immutable history: 54 reviewed activations, seven-row snapshot pages, Worker restart and newer activation -> complete descending history without omissions or duplicates; exact revision unchanged; CLI resume matches
+PROBE PORT-026 refusal: invalid cursors, foreign scopes, non-owner, bearer beside owner cookie and next-request owner revocation -> explicit refusals and unchanged pipeline versions and previews
+Recipient fixture: parsing migrations
+Recipient fixture: migrations parsed
+Recipient fixture: starting emitted Worker
+Recipient fixture: D1 ready
+Recipient fixture: native bootstrap
+pipelineAnalyticalJourney passed: real log and span custody in primary and standby, native query, restart replay and revoked-source refusal
+APP-HOME passed against emitted local Worker: /app behind sign-in and setup, then the trace view with its stylesheets
