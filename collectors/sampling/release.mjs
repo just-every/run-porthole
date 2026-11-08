@@ -13,16 +13,12 @@ export async function acquireCollector(directory='.cache/otel-collector') {
  const archive=target+'/collector.tar.gz'
  try{await readFile(archive)}catch(error){
   if(error.code!=='ENOENT')throw error
-  const metadata=JSON.parse((await execute('gh',['api','/repos/open-telemetry/opentelemetry-collector-releases/releases/tags/v'+version],{maxBuffer:2000000})).stdout)
-  const asset=metadata.assets.find(a=>a.name==='otelcol-contrib_'+version+'_linux_amd64.tar.gz')
-  assert.ok(asset,'official collector release archive')
+  // Public release artifacts need no account authority. Preserve the pinned
+  // archive digest below before extracting or executing any downloaded byte.
   const file=archive+'.'+process.pid+'.partial'
   try {
-   // Stream the official API asset; no account token enters source or argv.
-   const {spawn}=await import('node:child_process'),{createWriteStream}=await import('node:fs'),{pipeline}=await import('node:stream/promises')
-   const child=spawn('gh',['api','/repos/open-telemetry/opentelemetry-collector-releases/releases/assets/'+asset.id,'-H','Accept: application/octet-stream'],{stdio:['ignore','pipe','inherit']})
-   const result=new Promise((resolve,reject)=>{child.once('error',reject);child.once('exit',code=>code===0?resolve():reject(Error('Official collector download failed')))})
-   await Promise.all([pipeline(child.stdout,createWriteStream(file,{flags:'wx'})),result]);await rename(file,archive)
+   await execute('curl',['--fail','--location','--retry','2','--connect-timeout','20','--max-time','180','--silent','--show-error','--output',file,'https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v'+version+'/otelcol-contrib_'+version+'_linux_amd64.tar.gz'],{timeout:200000})
+   await rename(file,archive)
   }finally{await rm(file,{force:true})}
  }
  const bytes=await readFile(archive)

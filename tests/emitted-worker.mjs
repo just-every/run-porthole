@@ -40,7 +40,7 @@ export function runtimeTransport() {
  setGlobalDispatcher(dispatcher)
  return async()=>{setGlobalDispatcher(previous);await dispatcher.destroy()}
 }
-export async function emittedWorker({config,persist,port,inspectorPort,bindings,onLog}) {
+export async function emittedWorker({config,persist,port,inspectorPort,bindings,onLog,services={}}) {
  const {workerOptions,main,externalWorkers}=unstable_getMiniflareWorkerOptions(resolve(config))
  const root=dirname(main)
  // The build already emitted every module. Preserve their individual paths
@@ -54,6 +54,6 @@ export async function emittedWorker({config,persist,port,inspectorPort,bindings,
   resourcePersistencePath:join(persist,'v3'),
   handleStructuredLogs:onLog,
   workers:[{...options,modulesRoot:root,modules:paths.map(path=>({type:'ESModule',path})),
-   bindings:{...options.bindings,...bindings}},...externalWorkers],
+   bindings:{...options.bindings,...bindings},serviceBindings:{...options.serviceBindings,...services}},...externalWorkers],
  }))
 }

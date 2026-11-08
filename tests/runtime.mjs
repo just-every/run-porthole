@@ -83,7 +83,7 @@ let ownerEmail='owner@example.com'
 let allOutput = ''
 async function startWorker() {
  worker = await emittedWorker({config:'dist/server/wrangler.json',persist,port,inspectorPort,
-  bindings:{AUTH_ORIGIN:origin,AUTH_LOCAL:'true',OWNER_EMAIL:ownerEmail,MAIL_FROM:'synthetic-porthole-4@example.com',SESSION_SECRET:'runtime-session-secret-1234567890123456',SETUP_TOKEN:setupToken},
+  services:integrationAnalytics?.services,bindings:{...integrationAnalytics?.bindings,AUTH_ORIGIN:origin,AUTH_LOCAL:'true',OWNER_EMAIL:ownerEmail,MAIL_FROM:'synthetic-porthole-4@example.com',SESSION_SECRET:'runtime-session-secret-1234567890123456',SETUP_TOKEN:setupToken},
   onLog:entry=>{allOutput+=entry.message+'\n'},
  })
  await worker.ready
@@ -95,6 +95,7 @@ async function restartWorker(changeStorage) {
  await stopWorker(); if (changeStorage) await changeStorage(); await startWorker()
  assert.ok((await fetch(`${origin}/health`)).ok,'restarted emitted Worker is healthy')
 }
+const integrationAnalytics=process.env.PORTHOLE_INTEGRATIONS_ONLY==='1'?await (await import('./porthole/analytics.mjs')).analyticalEstate():null
 const closeTransport=runtimeTransport()
 try {
   await startWorker()
@@ -136,7 +137,7 @@ try {
   const setupPage=await fetch(`${origin}/setup`, { headers: { cookie } })
   assert.equal(setupPage.status,200)
   assert.match(await setupPage.text(),/Independent notices off — incomplete coverage/)
-  if(!process.env.PORTHOLE_DATABASE_ONLY && !process.env.PORTHOLE_EVENTS_ONLY && !process.env.PORTHOLE_SERVICES_ONLY && !process.env.PORTHOLE_LOG_CLUSTERS_ONLY && !process.env.PORTHOLE_PIPELINES_ONLY && !process.env.PORTHOLE_GENAI_ONLY && !process.env.PORTHOLE_NOTEBOOKS_ONLY && !process.env.PORTHOLE_METRIC_RULES_ONLY && !process.env.PORTHOLE_SLO_ONLY && !process.env.PORTHOLE_ERASURE_ONLY && !process.env.PORTHOLE_API_ONLY && !process.env.PORTHOLE_DASHBOARD_ONLY && !process.env.PORTHOLE_EXPORT_ONLY && !process.env.PORTHOLE_MIGRATION_ONLY && !process.env.PORTHOLE_PROTOCOL_ONLY && !process.env.PORTHOLE_INGEST_ONLY && !process.env.PORTHOLE_ACCESS_ONLY && !process.env.PORTHOLE_TRACE_ONLY && (process.env.PORTHOLE_HEALTH_ONLY==='1' || !process.env.PORTHOLE_AUDIT_ONLY && !process.env.PORTHOLE_STOCK_ONLY)) {
+  if(!process.env.PORTHOLE_INTEGRATIONS_ONLY && !process.env.PORTHOLE_DATABASE_ONLY && !process.env.PORTHOLE_EVENTS_ONLY && !process.env.PORTHOLE_SERVICES_ONLY && !process.env.PORTHOLE_LOG_CLUSTERS_ONLY && !process.env.PORTHOLE_PIPELINES_ONLY && !process.env.PORTHOLE_GENAI_ONLY && !process.env.PORTHOLE_NOTEBOOKS_ONLY && !process.env.PORTHOLE_METRIC_RULES_ONLY && !process.env.PORTHOLE_SLO_ONLY && !process.env.PORTHOLE_ERASURE_ONLY && !process.env.PORTHOLE_API_ONLY && !process.env.PORTHOLE_DASHBOARD_ONLY && !process.env.PORTHOLE_EXPORT_ONLY && !process.env.PORTHOLE_MIGRATION_ONLY && !process.env.PORTHOLE_PROTOCOL_ONLY && !process.env.PORTHOLE_INGEST_ONLY && !process.env.PORTHOLE_ACCESS_ONLY && !process.env.PORTHOLE_TRACE_ONLY && (process.env.PORTHOLE_HEALTH_ONLY==='1' || !process.env.PORTHOLE_AUDIT_ONLY && !process.env.PORTHOLE_STOCK_ONLY)) {
    const {healthBrowser}=await import('./porthole/health.mjs')
    await healthBrowser({origin,cookie,name:'setup-notices-off',path:'/setup',contains:'Independent notices off — incomplete coverage'})
   }
@@ -180,7 +181,10 @@ try {
     return await run({origin,cookie:destinationCookie,persist,...destinationHelpers,restartWorker})
    } finally {await restartWorker(()=>{persist=savedStore;ownerEmail=savedOwner})}
   }
-  if(process.env.PORTHOLE_DATABASE_ONLY==='1') {
+  if(process.env.PORTHOLE_INTEGRATIONS_ONLY==='1') {
+   const {integrationJourney}=await import('./porthole/integrations.mjs')
+   await integrationJourney({origin,restartWorker,withEmptyDestination,withPinnedClock,analytics:integrationAnalytics,...helpers})
+  } else if(process.env.PORTHOLE_DATABASE_ONLY==='1') {
    const {databaseJourney}=await import('./porthole/database.mjs')
    await databaseJourney({origin,cookie,restartWorker,withEmptyDestination,withPinnedClock,...helpers})
   } else if(process.env.PORTHOLE_EVENTS_ONLY==='1') {
@@ -340,6 +344,7 @@ try {
 } finally {
   await closeTransport()
   await stopWorker()
+  await integrationAnalytics?.dispose()
   for(const store of stores) await rm(store, { recursive: true, force: true })
   // wrangler dev keeps its scratch (.wrangler/tmp) beside the config it runs, which here is the emitted Worker; the artifact producer refuses that folder in dist/server, so leave the build output as rer build wrote it.
   await rm('dist/server/.wrangler', { recursive: true, force: true })

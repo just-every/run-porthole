@@ -9,7 +9,7 @@ const execute=promisify(execFile),api='/api/porthole/v1/events'
 const address=n=>['synthetic-porthole-'+n,'example.com'].join(String.fromCharCode(64))
 const scope={services:['checkout'],environments:['production'],teams:['commerce']}
 export async function eventBrowser({origin,cookie,path,name,status=200,exercise}) {
- const {chromium}=await import('@playwright/test'),browser=await chromium.launch({headless:true,...(process.env.CI?{}:{executablePath:'/usr/bin/chromium'}),args:['--no-sandbox','--use-mock-keychain','--password-store=basic']})
+ const {chromium}=await import('@playwright/test'),browser=await chromium.launch({headless:true,env:{...process.env,DBUS_SESSION_BUS_ADDRESS:'unix:path=/nonexistent',NO_AT_BRIDGE:'1'},...(process.env.CI?{}:{executablePath:'/usr/bin/chromium'}),args:['--no-sandbox','--use-mock-keychain','--password-store=basic']})
  try {for(const width of [1440,390]) {
   const context=await browser.newContext({viewport:{width,height:width===1440?950:844}})
   if(cookie)await context.addCookies(cookie.split('; ').map(v=>({name:v.slice(0,v.indexOf('=')),value:v.slice(v.indexOf('=')+1),url:origin})))

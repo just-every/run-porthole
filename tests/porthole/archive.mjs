@@ -1295,3 +1295,29 @@ export async function servicesArchiveJourney({origin,freshOwner,restartWorker,wi
  console.log('PROBE PORT-008 archive-packets: largest stock-capture packet bytes='+Buffer.byteLength(JSON.stringify(largest))+' -> export retry and restore retry preserve its exact rows, digest and order')
  return {id:source.job.id,chunk:largest.index}
 }
+
+/** Pack declarations restore as inert scoped context, never collection grants. */
+export async function integrationArchiveJourney({origin,freshOwner,withEmptyDestination,bindings,secret}) {
+ const cookie=await freshOwner(),saved=await savedExport(origin,cookie,await post(origin,cookie,api+'/exports',{}))
+ const rows=saved.rows.filter(r=>r.table==='porthole_integration_bindings')
+ assert.equal(rows.length,bindings.length);assert.ok(rows.every(r=>r.row.credential_id===null))
+ assert.ok(!JSON.stringify(saved).includes(secret),'intake secret is absent from archives')
+ assert.ok(!JSON.stringify(saved).includes('synthetic-porthole-66002'),'monitored service password never entered any archived custody')
+ for(const batch of saved.rows.filter(row=>row.table==='porthole_ingest_batches')){const wire=Buffer.from(batch.row.wire_base64,'base64').toString();assert.ok(!wire.includes(secret));assert.ok(!wire.includes('synthetic-porthole-66002'),'raw collector wire excludes monitored-service passwords')}
+ await withEmptyDestination(async destination=>{
+  const acting=await destination.freshOwner(),start=await value(await post(destination.origin,acting,api+'/restores',{manifest:saved.manifest}),201)
+  for(const chunk of saved.chunks)await value(await post(destination.origin,acting,`${api}/restores/${start.id}/chunks`,{chunk}))
+  await value(await post(destination.origin,acting,`${api}/restores/${start.id}/commit`,{confirm:saved.manifest.rootHash}))
+  const catalog=await value(await get(destination.origin,acting,'/api/porthole/v1/integrations'))
+  const restored=catalog.packs.flatMap(p=>p.bindings);assert.equal(restored.length,bindings.length)
+  assert.ok(restored.every(b=>b.state==='quarantined'&&b.credential_id===null))
+  for(const b of restored) {
+   assert.equal((await get(destination.origin,acting,'/api/porthole/v1/integrations/'+b.id+'/configuration')).status,409)
+   assert.equal((await value(await get(destination.origin,acting,'/api/porthole/v1/integrations/'+b.id))).health.state,'Unknown')
+  }
+  const again=await savedExport(destination.origin,acting,await post(destination.origin,acting,api+'/exports',{}))
+  assert.equal(again.rows.filter(r=>r.table==='porthole_integration_bindings').length,bindings.length)
+  assert.ok(!JSON.stringify(again).includes(secret));assert.ok(!JSON.stringify(again).includes('synthetic-porthole-66002'))
+ })
+ console.log('integrationArchiveJourney passed: inactive pack and dashboard context, no credentials or active collection, exact re-export')
+}

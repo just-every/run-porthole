@@ -8,7 +8,8 @@
     "source": "https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.135.0/receiver/postgresqlreceiver",
     "receiver": "postgresql",
     "signals": [
-      "metrics"
+      "metrics",
+      "logs"
     ],
     "permissions": "CONNECT on selected database, pg_monitor; no application-table writes",
     "endpointExample": "localhost:5432",
@@ -22,10 +23,13 @@
     "metrics": [
       {
         "name": "postgresql.commits",
-        "unit": "{transaction}"
+        "unit": "1"
       }
     ],
-    "recommendedMonitors": "Unavailable: value-threshold engine and reviewed owner and service mapping remain required. No monitor is activated."
+    "recommendedMonitors": "Unavailable: value-threshold engine and reviewed owner and service mapping remain required. No monitor is activated.",
+    "serviceSignals": [
+      "metrics"
+    ]
   },
   {
     "id": "mysql",
@@ -36,7 +40,8 @@
     "source": "https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.135.0/receiver/mysqlreceiver",
     "receiver": "mysql",
     "signals": [
-      "metrics"
+      "metrics",
+      "logs"
     ],
     "permissions": "PROCESS and REPLICATION CLIENT, SELECT on performance_schema; no application-table writes",
     "endpointExample": "localhost:3306",
@@ -50,10 +55,13 @@
     "metrics": [
       {
         "name": "mysql.commands",
-        "unit": "{command}"
+        "unit": "1"
       }
     ],
-    "recommendedMonitors": "Unavailable: value-threshold engine and reviewed owner and service mapping remain required. No monitor is activated."
+    "recommendedMonitors": "Unavailable: value-threshold engine and reviewed owner and service mapping remain required. No monitor is activated.",
+    "serviceSignals": [
+      "metrics"
+    ]
   },
   {
     "id": "redis",
@@ -64,7 +72,8 @@
     "source": "https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.135.0/receiver/redisreceiver",
     "receiver": "redis",
     "signals": [
-      "metrics"
+      "metrics",
+      "logs"
     ],
     "permissions": "ACL +info and +ping only; no key read or write",
     "endpointExample": "localhost:6379",
@@ -77,11 +86,14 @@
     ],
     "metrics": [
       {
-        "name": "redis.commands.processed",
-        "unit": "{command}"
+        "name": "redis.db.keys",
+        "unit": "{key}"
       }
     ],
-    "recommendedMonitors": "Unavailable: value-threshold engine and reviewed owner and service mapping remain required. No monitor is activated."
+    "recommendedMonitors": "Unavailable: value-threshold engine and reviewed owner and service mapping remain required. No monitor is activated.",
+    "serviceSignals": [
+      "metrics"
+    ]
   },
   {
     "id": "kafka",
@@ -92,7 +104,8 @@
     "source": "https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.135.0/receiver/kafkametricsreceiver",
     "receiver": "kafkametrics",
     "signals": [
-      "metrics"
+      "metrics",
+      "logs"
     ],
     "permissions": "Describe topics and brokers, Describe groups and Read group offsets; no topic writes",
     "endpointExample": "localhost:9092",
@@ -106,10 +119,17 @@
     "metrics": [
       {
         "name": "kafka.partition.current_offset",
-        "unit": "{offset}"
+        "unit": "1"
+      },
+      {
+        "name": "kafka.consumer_group.lag",
+        "unit": "1"
       }
     ],
-    "recommendedMonitors": "Unavailable: value-threshold engine and reviewed owner and service mapping remain required. No monitor is activated."
+    "recommendedMonitors": "Unavailable: value-threshold engine and reviewed owner and service mapping remain required. No monitor is activated.",
+    "serviceSignals": [
+      "metrics"
+    ]
   },
   {
     "id": "nginx",
@@ -135,10 +155,14 @@
     "metrics": [
       {
         "name": "nginx.requests",
-        "unit": "{request}"
+        "unit": "requests"
       }
     ],
-    "recommendedMonitors": "Unavailable: value-threshold engine and reviewed owner and service mapping remain required. No monitor is activated."
+    "recommendedMonitors": "Unavailable: value-threshold engine and reviewed owner and service mapping remain required. No monitor is activated.",
+    "serviceSignals": [
+      "metrics",
+      "logs"
+    ]
   },
   {
     "id": "rabbitmq",
@@ -149,7 +173,8 @@
     "source": "https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.135.0/receiver/rabbitmqreceiver",
     "receiver": "rabbitmq",
     "signals": [
-      "metrics"
+      "metrics",
+      "logs"
     ],
     "permissions": "Monitoring-tag management user with read-only virtual-host permissions; no configure or write",
     "endpointExample": "http://localhost:15672",
@@ -163,10 +188,13 @@
     "metrics": [
       {
         "name": "rabbitmq.message.current",
-        "unit": "{message}"
+        "unit": "{messages}"
       }
     ],
-    "recommendedMonitors": "Unavailable: value-threshold engine and reviewed owner and service mapping remain required. No monitor is activated."
+    "recommendedMonitors": "Unavailable: value-threshold engine and reviewed owner and service mapping remain required. No monitor is activated.",
+    "serviceSignals": [
+      "metrics"
+    ]
   },
   {
     "id": "mongodb",
@@ -177,7 +205,8 @@
     "source": "https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.135.0/receiver/mongodbreceiver",
     "receiver": "mongodb",
     "signals": [
-      "metrics"
+      "metrics",
+      "logs"
     ],
     "permissions": "clusterMonitor on admin; no application collection read or write",
     "endpointExample": "localhost:27017",
@@ -191,10 +220,17 @@
     "metrics": [
       {
         "name": "mongodb.operation.count",
-        "unit": "{operation}"
+        "unit": "{operations}"
+      },
+      {
+        "name": "mongodb.object.count",
+        "unit": "{objects}"
       }
     ],
-    "recommendedMonitors": "Unavailable: value-threshold engine and reviewed owner and service mapping remain required. No monitor is activated."
+    "recommendedMonitors": "Unavailable: value-threshold engine and reviewed owner and service mapping remain required. No monitor is activated.",
+    "serviceSignals": [
+      "metrics"
+    ]
   },
   {
     "id": "elasticsearch",
@@ -205,7 +241,8 @@
     "source": "https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.135.0/receiver/elasticsearchreceiver",
     "receiver": "elasticsearch",
     "signals": [
-      "metrics"
+      "metrics",
+      "logs"
     ],
     "permissions": "Cluster monitor and index monitor only; no document read or write",
     "endpointExample": "http://localhost:9200",
@@ -218,10 +255,13 @@
     ],
     "metrics": [
       {
-        "name": "elasticsearch.document.count",
-        "unit": "{document}"
+        "name": "elasticsearch.node.documents",
+        "unit": "{documents}"
       }
     ],
-    "recommendedMonitors": "Unavailable: value-threshold engine and reviewed owner and service mapping remain required. No monitor is activated."
+    "recommendedMonitors": "Unavailable: value-threshold engine and reviewed owner and service mapping remain required. No monitor is activated.",
+    "serviceSignals": [
+      "metrics"
+    ]
   }
 ]

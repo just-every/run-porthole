@@ -130,3 +130,18 @@ async function dashboardBrowser({origin,cookie,path,restrictedCookie,restrictedP
   await restricted.close();await context.close()
  }}finally{await browser.close()}
 }
+
+/** Presets use the native dashboard writer and native renderers. The chart
+ * must contain the actual stock-exported values, not a separate pack cache. */
+export async function integrationPresetJourney({origin,cookie,binding,metric,rows}) {
+ const response=await fetch(origin+'/api/porthole/v1/dashboards/'+binding.dashboard_id,{headers:{cookie}})
+ assert.equal(response.status,200);const dashboard=await response.json()
+ assert.equal(dashboard.body.panels[0].metric,metric)
+ const page=await fetch(origin+'/app/dashboards/'+binding.dashboard_id,{headers:{cookie}})
+ assert.equal(page.status,200);const html=await page.text()
+ assert.ok(!html.includes('incompatible_metric_units'),'preset preserves the receiver unit')
+ for(const r of rows)assert.ok(html.includes('ns · '+String(r.payload.record.asInt??r.payload.record.asDouble)+' '),'native chart includes original measured values')
+ const {eventBrowser}=await import('./events.mjs')
+ await eventBrowser({origin,cookie,path:'/app/dashboards/'+binding.dashboard_id,name:'integration-'+binding.pack+'-dashboard'})
+ await eventBrowser({origin,cookie,path:'/app/settings/integrations/catalog/'+binding.id,name:'integration-'+binding.pack+'-collecting'})
+}

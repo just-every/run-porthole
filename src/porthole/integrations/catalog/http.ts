@@ -1,6 +1,6 @@
 import type {Bindings} from '../../../auth.server'
 import {AuthError} from '../../../modules/operator-auth/index.mjs'
-import {authority,administrative,fail,proofFence,scopeWithin,type Authority} from '../../security/authority'
+import {authority,administrative,fail,proofFence,scopeWithin,memberFor,type Authority} from '../../security/authority'
 import {input} from '../../security/input'
 import {privateHeaders,operationDocument as document,escape} from '../../document'
 import {credentialFor,listCredentials} from '../../credentials/store'
@@ -16,7 +16,8 @@ async function liveCredential(env:Bindings,actor:Authority,b:Binding) {
  const c=await credentialFor(env.DB,b.credential_id),scope=JSON.parse(c.scope),p=packFor(b.pack)
  if(c.class!=='ingest'||c.status!=='active'||c.expires_at<=Date.now()||!scopeWithin(bindingScope(b),scope)||!p.signals.every(s=>scope.signals.includes(s))||!scope.actions.includes('telemetry.write')||!scopeWithin(bindingScope(b),actor.member.scope))fail('integration_credential_unavailable',409)
  const held=await env.DB.prepare(`SELECT 1 FROM porthole_members m JOIN oa_operators o ON o.id=m.operator_id WHERE m.operator_id=? AND m.role IN ('owner','admin') AND o.role=m.role AND o.status='active'`).bind(c.custodian_id).first()
- if(!held)fail('integration_credential_unavailable',409)
+ const custodian=await memberFor(env.DB,c.custodian_id)
+ if(!held||!custodian||!scopeWithin(bindingScope(b),custodian.scope))fail('integration_credential_unavailable',409)
  return c
 }
 export async function integrationCatalogResponse(request:Request,env:Bindings):Promise<Response|null> {
@@ -42,10 +43,10 @@ export async function integrationCatalogResponse(request:Request,env:Bindings):P
    const gate=`${actor.fence} AND ${proof.sql} AND EXISTS(SELECT 1 FROM porthole_credentials WHERE id=? AND revision=? AND status='active' AND expires_at>?)`,args=[...actor.args,...proof.args,credential.id,credential.revision,Date.now()]
    const changed=old?await env.DB.prepare(`UPDATE porthole_integration_bindings SET credential_id=?,state='enabled',revision=?,owner_id=? WHERE id=? AND revision=? AND ${gate}`).bind(b.credential_id,b.revision,b.owner_id,b.id,old.revision,...args).run():await env.DB.prepare(`INSERT INTO porthole_integration_bindings SELECT ?,?,?,?,?,?,NULL,'enabled',1,?,? WHERE ${gate}`).bind(b.id,b.pack,b.service,b.environment,b.team,b.credential_id,b.created_at,b.owner_id,...args).run()
    if(!changed.meta.changes)fail('revision_or_authority_changed',409)
-   if(!b.dashboard_id) {
+   if(!b.dashboard_id||old?.state==='quarantined') {
     const body={panels:p.metrics.map((m,i)=>({id:'metric-'+i,title:m.name,signal:'metrics',aggregate:'average',service:b.service,metric:m.name,unit:m.unit,widget:'timeseries'})),variables:{team:b.team,environment:b.environment},range:{from:'0',through:'18446744073709551615'},annotations:[]}
     if(b.pack==='nginx')(body.panels as unknown[]).push({id:'logs',title:'Access and error logs',signal:'logs',aggregate:'count',service:b.service,unit:'records',widget:'log_stream'})
-    const response=await writeDashboard(new Request(new URL('/api/porthole/v1/dashboards',request.url),{method:'POST',headers:{'content-type':'application/json','idempotency-key':'integration-'+b.id},body:JSON.stringify({name:p.name+' · '+b.service,scope:bindingScope(b),body})}),env,actor)
+    const response=await writeDashboard(new Request(new URL('/api/porthole/v1/dashboards',request.url),{method:'POST',headers:{'content-type':'application/json','idempotency-key':'integration-'+b.id+'-review-'+b.revision},body:JSON.stringify({name:p.name+' · '+b.service,scope:bindingScope(b),body})}),env,actor)
     const result=await response.json() as {id:string};b.dashboard_id=result.id
     await env.DB.prepare(`UPDATE porthole_integration_bindings SET dashboard_id=? WHERE id=? AND revision=? AND ${gate}`).bind(result.id,b.id,b.revision,...args).run()
    }
