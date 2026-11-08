@@ -29,7 +29,8 @@ the client also accepts SAMPLES. Porthole performs no expression evaluation.
 
 Remote-write samples preserve original labels, milliseconds and float bits,
 including signed zero and stale NaN. Legacy samples recover their bits from retained original wire, within an
-additional eight MiB recovery budget; unavailable wire refuses explicitly. OTLP mapping pins OpenTelemetry specification v1.45.0,
+additional eight MiB recovery budget; those original envelope bytes also consume
+the credential scan quota. Unavailable wire refuses explicitly. OTLP mapping pins OpenTelemetry specification v1.45.0,
 Prometheus compatibility, with the Prometheus 3.5.0 OTLP receiver profile:
 normalized names and labels, logical JSON values for compound attributes
 (including exact integer labels), unit words before type suffixes, cumulative

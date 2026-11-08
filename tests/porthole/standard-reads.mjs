@@ -437,6 +437,12 @@ export async function standardSchemaProof({origin,cookie,call,source,reader,post
  // the original custody envelope. This is fixture setup, not an edit API.
  if(sql){
   await sql("UPDATE porthole_telemetry_records SET payload=json_remove(payload,'$.record.valueBits') WHERE json_extract(payload,'$.metric.name')='synthetic_edge_float'")
+  const retained=await value(await call(api+'/ingest/records?'+new URLSearchParams({signal:'metrics',metric:'synthetic_edge_float'}),{headers:auth(reader.secret)}))
+  const payloadBytes=retained.records.reduce((sum,row)=>sum+Buffer.byteLength(JSON.stringify(row.payload)),0)
+  assert.equal(retained.records.length,3)
+  const recoveryQuota=await value(await post(credential+'/mint',{name:'Legacy wire scan budget',class:'read',scope,scannedBytesPerDay:payloadBytes+Math.floor(write.length/2)}),201)
+  const refusedRecovery=await remoteRead(call,recoveryQuota.secret,{from:staleAt,through:staleAt,matchers:[['__name__','synthetic_edge_float']]})
+  assert.equal(refusedRecovery.status,429);assert.deepEqual(await refusedRecovery.json(),{error:'credential_quota_exceeded'},'legacy envelope recovery is metered in addition to retained payload scans')
   const legacy=await remoteRead(call,reader.secret,{from:staleAt,through:staleAt,matchers:[['__name__','synthetic_edge_float']]})
   assert.equal(legacy.status,200)
   const decoded=unpack(Buffer.from(await legacy.arrayBuffer()))

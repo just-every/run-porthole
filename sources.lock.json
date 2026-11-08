@@ -517,7 +517,7 @@
       "executable": false
     },
     "docs/standard-signal-apis.md": {
-      "sha256": "c51674f41909ee6d45e3f707aab11d32c11f9ba3a3cfccba2933030c30cf8b0a",
+      "sha256": "94ed6fc3670181feb4afe0a059b1aea67b5ab90e436d53eb6046e67cb09093d2",
       "executable": false
     },
     "edition.json": {
@@ -5325,7 +5325,7 @@
       "executable": false
     },
     "src/porthole/signals/standard/read.ts": {
-      "sha256": "03c64614b6eae3be86e61208ff7803ca1aec8a9fd6e67dd60277cde6b0c9ac38",
+      "sha256": "1a0de81b8733db7db690e77cbaff1fd4d5b6d7ebcee6382a96b8b682571e8f65",
       "executable": false
     },
     "src/porthole/signals/standard/tempo.ts": {
@@ -5917,7 +5917,7 @@
       "executable": false
     },
     "tests/porthole/standard-reads.mjs": {
-      "sha256": "fc31a6e218f4a779e148d141124f10e995a4aabe7e1acb84a891f731860d5409",
+      "sha256": "194e40d6970b3cf66dcca0989bf5cc7c2ec0d17c94096a0f55b23e623c4cdea4",
       "executable": false
     },
     "tests/porthole/stock-ingest.mjs": {
