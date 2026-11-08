@@ -36,13 +36,13 @@ export async function integrationJourney({origin,freshOwner,restartWorker,signIn
  const scope={services:catalog.packs.map(p=>'pack-'+p.id),environments:['test'],teams:['commerce']}
  const source=await value(await post('/app/settings/credentials/mint',{name:'Local integration matrix',class:'ingest',scope:{...scope,signals:['metrics','logs'],actions:['telemetry.write']},requestsPerMinute:6000,acceptedBytesPerMinute:100000000}),201)
  const all=[]
- const select=async role=>{cookie=await freshOwner();const current=await value(await get('/api/porthole/v1/analytics/configuration'));await value(await post('/api/porthole/v1/analytics/configuration',{revision:current.revision,role,enabled:true,confirm:'connect-analytical-workers'}))}
+ const select=async role=>{const current=await value(await get('/api/porthole/v1/analytics/configuration'));await value(await post('/api/porthole/v1/analytics/configuration',{revision:current.revision,role,enabled:true,confirm:'connect-analytical-workers'}))}
  await select('primary')
  for(const pack of catalog.packs) {
   console.log('Integration matrix starting '+pack.id)
   cookie=await freshOwner()
   const service=await integrationService(pack),data={pack:pack.id,service:'pack-'+pack.id,environment:'test',team:'commerce',credentialId:source.credential.id,revision:0,confirm:'review-local-collection'}
-  cookie=await freshOwner()
+  cookie=await freshOwner({force:true})
   let collector,configuration,binding
   const stop=async()=>{await collector?.stop();collector=null}
   const start=async()=>{collector=await integrationCollector({configuration,file:join(service.directory,'collector.json'),environment:service.env,secret:source.secret,serviceSecret:service.password})}

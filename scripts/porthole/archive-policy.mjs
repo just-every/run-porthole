@@ -17,7 +17,7 @@ export default {
  excludeTables:excluded,
  requiredConfiguration:['OWNER_EMAIL','SESSION_SECRET','SETUP_TOKEN','AUTH_ORIGIN','MAIL_PROVIDER','MAIL_FROM'],
  importSafety:{
-  porthole_integration_bindings:{state:['quarantined']},
+  porthole_integration_bindings:{state:['quarantined'],credential_id:[null]},
   porthole_dashboards:{state:['quarantined']},porthole_dashboard_versions:{state:['quarantined']},
   porthole_custom_events:{state:['quarantined']},porthole_event_filters:{state:['quarantined']},
   porthole_service_versions:{state:['quarantined']},
