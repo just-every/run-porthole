@@ -481,7 +481,7 @@
       "executable": false
     },
     "docs/programmatic-access.md": {
-      "sha256": "06a806c7bfb606e519873ee20ef7faa6361c33756f5bb2aea54587a6000e514c",
+      "sha256": "fbebdd598b72f41ded43f088cc12c542b142667908156dc8d032d3a8c211060e",
       "executable": false
     },
     "docs/query-reference.md": {
@@ -501,7 +501,7 @@
       "executable": false
     },
     "docs/signal-exports.md": {
-      "sha256": "a6e0f0778213a54b936b2a6a96bd5acfbcbcce4f33769b1679cacb8e2445f2f6",
+      "sha256": "6fb094e66c4d096152d3cec73b1e9cbe35fd0c4c92e1053de577f5b4972071ae",
       "executable": false
     },
     "docs/slos.md": {
@@ -514,6 +514,10 @@
     },
     "docs/splunk-collector.md": {
       "sha256": "1aa60e3c3e97c86129cc2c4de8ede27ebd2204101a2dc1754a64aabfa6c2474b",
+      "executable": false
+    },
+    "docs/standard-signal-apis.md": {
+      "sha256": "b140f0a82acf9b352aaf2c948224dfd2cfc67bac73d988d0555cb32cc492fb5e",
       "executable": false
     },
     "edition.json": {
@@ -881,7 +885,7 @@
       "executable": false
     },
     "package.json": {
-      "sha256": "e70c12cf03f53ad0208649e6ffa8060ae544f1f2eb544c155bb7a3ab0c4127dc",
+      "sha256": "ab4dc78a7f28255d74b2a5e22a477dcdc06f402dbdfb8f4b9c6925873a3ad897",
       "executable": false
     },
     "packaging.json": {
@@ -889,7 +893,7 @@
       "executable": false
     },
     "pnpm-lock.yaml": {
-      "sha256": "6767a56f55d44f1364a7a69a7a667dce2e1b4862c59add3c06feb58af2e78781",
+      "sha256": "9faac8436afb5466488f64400d6af9be13a815e4c0d05c52dcd9bf0084214cee",
       "executable": false
     },
     "public/brand/apple-touch-icon.png": {
@@ -4537,7 +4541,7 @@
       "executable": false
     },
     "src/porthole/audit/capture.ts": {
-      "sha256": "5be800fb7f2991cd2f911acd38c26ee4f7f77375e1e2ebee04336a8934e13544",
+      "sha256": "ece52bbb3d336a01cd94e445dc86e731f5d6f592139c9df4ea94fc9c2f7243be",
       "executable": false
     },
     "src/porthole/audit/export.ts": {
@@ -4789,7 +4793,7 @@
       "executable": false
     },
     "src/porthole/http.ts": {
-      "sha256": "84a9ec436406c76146ae7504576588f6af41d3716e20c8d6fdd55525b45f2863",
+      "sha256": "b458b1600b68331a488fd1e922b7091a8459854e7c45249772f6f5b394e771f2",
       "executable": false
     },
     "src/porthole/ingest/http.ts": {
@@ -4805,7 +4809,7 @@
       "executable": false
     },
     "src/porthole/ingest/otlp-proto.ts": {
-      "sha256": "8c26acdcabbc25e670070a5d617a8cba3ab278096a1f6fb7b42ddcd1bc3995dd",
+      "sha256": "3e4b59e6c3808d79721249c3a9aef2bf3781d02477896189ea031f6bec44d420",
       "executable": false
     },
     "src/porthole/ingest/processor.ts": {
@@ -4829,7 +4833,7 @@
       "executable": false
     },
     "src/porthole/ingest/vendor.ts": {
-      "sha256": "4a7eaefa50e121996b4d0e177588e3d34cd155ead33df0ce5e0af5f0eefb2777",
+      "sha256": "faa609be8d8f38b060126ddb57a6e34158794284795b6286edcae1b48c312a5f",
       "executable": false
     },
     "src/porthole/ingest/wire.ts": {
@@ -5286,6 +5290,26 @@
     },
     "src/porthole/signals/formats/otlp.ts": {
       "sha256": "c91c72d0fb4e701bb864042bfc59d2fd7cbddd503643cdc6b049e2f5776bca75",
+      "executable": false
+    },
+    "src/porthole/signals/standard/http.ts": {
+      "sha256": "c792a764bbc1667a9385e639e3e982829c927f8d43ebcd02799d187cfdcbf4c2",
+      "executable": false
+    },
+    "src/porthole/signals/standard/prometheus.ts": {
+      "sha256": "2f6195460bc3e9ef50ef6b959e4d40643bb4b07ad1c2ffa2fc38e6407d868f81",
+      "executable": false
+    },
+    "src/porthole/signals/standard/protobuf.ts": {
+      "sha256": "6bbd4fba7d91af847d6b317a9d20334005ca9943dba5f1d06ea6b5fa02c33145",
+      "executable": false
+    },
+    "src/porthole/signals/standard/read.ts": {
+      "sha256": "bb9bc8ea0a550090352ba80f71b240af0f3a426b502164b6b24bf26c31f12232",
+      "executable": false
+    },
+    "src/porthole/signals/standard/tempo.ts": {
+      "sha256": "bf8837472ab4a1d85fc95b14323b31283542547b38c91dc8afb19c160b3f3436",
       "executable": false
     },
     "src/porthole/slos/evaluate.ts": {
