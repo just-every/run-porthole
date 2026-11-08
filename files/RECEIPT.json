@@ -1,0 +1,196 @@
+{
+  "tag": "sx-porthole-c-f456-pc1",
+  "repository": "just-every/run-porthole",
+  "branch": "cloud/sx-porthole-c-f456-pc1",
+  "head": "7d576ff6aeef20ac77549589830a4d4a91ea9d3e",
+  "starting_head": "c6e2bdebeed263216b19e48da07bb59fcbf75cfb",
+  "origin_main": "6f990f7b880684e06e96755b79ee9747630f89f3",
+  "main_equal": false,
+  "product_pushed": true,
+  "push_attempts": 1,
+  "pr": null,
+  "checks": [
+    {
+      "command": "cloud_run npx -y @runeditrun/rer setup --owner-email fleet@runeditrun.com --non-interactive",
+      "exit": 0,
+      "detail": "fresh checkout installed, built and native owner claimed; private setup log excluded"
+    },
+    {
+      "command": "CI=true WRANGLER_SEND_METRICS=false PLAYWRIGHT_SKIP_BROWSER_GC=1 PORTHOLE_CHROMIUM_PATH=/usr/bin/chromium node scripts/verify-ci.mjs analytical",
+      "head": "c6e2bdebeed263216b19e48da07bb59fcbf75cfb",
+      "exit": 1,
+      "detail": "range journeys passed; logSearchBrowser lacked Playwright bundled executable; configured browser path was ignored"
+    },
+    {
+      "command": "PORTHOLE_METRIC_UNITS_ONLY=1 PORTHOLE_CHROMIUM_PATH=/usr/bin/chromium node tests/runtime.mjs",
+      "head": "cc87277118ac6c832115a2b9713517d8b50bf4d7",
+      "exit": 0,
+      "detail": "local and analytical exact-range qualification with 1440 and 390 browser evidence"
+    },
+    {
+      "command": "NODE_OPTIONS=--import=/tmp/porthole-system-browser.mjs PORTHOLE_DASHBOARD_ONLY=1 node tests/runtime.mjs",
+      "head": "cc87277118ac6c832115a2b9713517d8b50bf4d7",
+      "exit": 0,
+      "detail": "existing full dashboard runtime selection; all original assertions retained; external preload chooses system Chromium only"
+    },
+    {
+      "command": "pnpm run typecheck",
+      "exit": 0
+    },
+    {
+      "command": "cloud_run npx -y @runeditrun/rer check --profile first-party",
+      "exit": 0
+    },
+    {
+      "command": "node scripts/porthole/contract-docs.mjs write PORT-099",
+      "exit": 0
+    },
+    {
+      "command": "node scripts/porthole/contract-docs.mjs check PORT-099",
+      "exit": 0
+    },
+    {
+      "command": "git checkout origin/main -- ACCEPTANCE.md docs/CLAIMS.md",
+      "exit": 0,
+      "detail": "generated views not committed"
+    },
+    {
+      "command": "pnpm run source:lock",
+      "exit": 0
+    },
+    {
+      "command": "pnpm run source:check",
+      "exit": 0
+    },
+    {
+      "command": "node scripts/porthole/public-schema.mjs --check",
+      "head": "7d576ff6aeef20ac77549589830a4d4a91ea9d3e",
+      "exit": 0
+    },
+    {
+      "command": "git diff --check",
+      "exit": 0
+    },
+    {
+      "command": "git diff origin/main...HEAD -- CONTRACT.md",
+      "exit": 0,
+      "detail": "empty"
+    },
+    {
+      "command": "git status --short",
+      "exit": 0,
+      "detail": "clean"
+    },
+    {
+      "command": "cloud_run env CI=true WRANGLER_SEND_METRICS=false PLAYWRIGHT_SKIP_BROWSER_GC=1 PORTHOLE_CHROMIUM_PATH=/usr/bin/chromium timeout 1200 node scripts/verify-ci.mjs analytical",
+      "node": "22.20.0",
+      "exit": 0,
+      "detail": "full analytical shard: connection, metric range, native log search, clustering, host heartbeat and real PostgreSQL and MySQL native and analytical and archive journeys passed; relevant code matches final candidate"
+    }
+  ],
+  "ci": {
+    "id": 42511509001,
+    "event": "push",
+    "head_sha": "7d576ff6aeef20ac77549589830a4d4a91ea9d3e",
+    "status": "in_progress",
+    "conclusion": null,
+    "html_url": "https://github.com/just-every/run-porthole/actions/runs/42511509001",
+    "last_observed_utc": "2026-11-08T18:55:22Z"
+  },
+  "original_ci": {
+    "id": 42489688457,
+    "analytical_job_id": 128759263173,
+    "analytical_conclusion": "cancelled",
+    "failed_assertions": [],
+    "log_failed_command_exit": 0,
+    "log_failed_output_bytes": 0,
+    "full_log_command_exit": 0,
+    "full_log_output_bytes": 0,
+    "final_verify_job_id": 128762314186,
+    "final_verify_conclusion": "failure"
+  },
+  "proof_tree_difference": {
+    "from": "cc87277118ac6c832115a2b9713517d8b50bf4d7",
+    "to": "7d576ff6aeef20ac77549589830a4d4a91ea9d3e",
+    "files": [
+      "sources.lock.json"
+    ],
+    "code_and_test_bytes_changed": false
+  },
+  "source_scan": {
+    "commit": "7d576ff6aeef20ac77549589830a4d4a91ea9d3e",
+    "complete": false,
+    "historyScanned": null,
+    "findings": null,
+    "status": "not run in cloud; guarded lander owns publication scan"
+  },
+  "run_site": {
+    "status": "not run; main-only lander gate"
+  },
+  "status_counts": {
+    "before": {
+      "done": 10,
+      "partial": 20,
+      "missing": 69,
+      "total": 99
+    },
+    "after_builder": {
+      "done": 10,
+      "partial": 20,
+      "missing": 69,
+      "total": 99
+    },
+    "proposed_after_acceptance": {
+      "done": 11,
+      "partial": 20,
+      "missing": 68,
+      "total": 99
+    }
+  },
+  "screens": [
+    {
+      "file": "screens/metric-range-editor-1440.png",
+      "bytes": 201048,
+      "sha256": "21ff97798285e43f9ed7232524cab782c9884719c9b2fdd48def37fbc02a870a"
+    },
+    {
+      "file": "screens/metric-range-editor-390.png",
+      "bytes": 53278,
+      "sha256": "f9fd027aff1ee719feafbd4f27329232c8e838d3b8e856b5ac9d1f93f0fd457f"
+    },
+    {
+      "file": "screens/metric-range-refusal-1440.png",
+      "bytes": 42655,
+      "sha256": "990f7e7dbacf5662f7f5d5774010b22da21882d09d2c8fad2b816af007d2cf4f"
+    },
+    {
+      "file": "screens/metric-range-refusal-390.png",
+      "bytes": 33987,
+      "sha256": "fd53d8c736bce0e1ab011eebe51af767659380dd8ad41e2553fc1f8104e0f06c"
+    },
+    {
+      "file": "screens/metric-range-result-1440.png",
+      "bytes": 201676,
+      "sha256": "9fdbd79ce776b773c0a28a6c9e9247283e2053baf5326a158ac0a86842a6710c"
+    },
+    {
+      "file": "screens/metric-range-result-390.png",
+      "bytes": 173602,
+      "sha256": "3b3ead70f3928d154a7dc650e60a54231d2bcd222e260010ddb4d481d8f1bd8c"
+    }
+  ],
+  "github_explicit_calls_so_far": 8,
+  "migration_ledger": "not applicable; no migration changes",
+  "browser_evidence_inspected": [
+    "metric-range-result-1440.png",
+    "metric-range-result-390.png",
+    "metric-range-refusal-1440.png",
+    "metric-range-refusal-390.png",
+    "metric-range-editor-1440.png",
+    "metric-range-editor-390.png"
+  ],
+  "local_commands_pending": false,
+  "test_registration_delta": 0,
+  "remote_product_ref": "7d576ff6aeef20ac77549589830a4d4a91ea9d3e\trefs/heads/cloud/sx-porthole-c-f456-pc1",
+  "product_worktree_clean": true
+}
