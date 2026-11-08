@@ -63,7 +63,7 @@ export async function integrationJourney({origin,freshOwner,restartWorker,signIn
    assert.deepEqual(await sql('SELECT COUNT(*) AS n FROM porthole_integration_bindings'),before,'a service secret field cannot persist a setup')
    const id=await nativeEnable(origin,cookie,data),detail=await value(await get(api+'/'+id)),enabled={binding:detail.binding,configurationUrl:api+'/'+id+'/configuration'};binding=enabled.binding
    assert.equal((await value(await get(api+'/'+binding.id))).health.state,'Unknown')
-   configuration=await value(await get(enabled.configurationUrl));assert.ok(!JSON.stringify(configuration).includes(service.password));assert.ok(!JSON.stringify(configuration).includes(source.secret))
+   const download=await get(enabled.configurationUrl);assert.match(download.headers.get('content-disposition'),/^attachment; filename=porthole-[a-f0-9-]+\.json$/);configuration=await value(download);assert.ok(!JSON.stringify(configuration).includes(service.password));assert.ok(!JSON.stringify(configuration).includes(source.secret))
    await withPinnedClock(Date.now()+360000,async()=>{await value(await post(api+'/enable',{...data,revision:binding.revision}),403);assert.equal((await get(enabled.configurationUrl)).status,403);if(pack.id==='postgresql')await eventBrowser({origin,cookie,path:app+'/'+binding.id+'/configuration',name:'integration-proof-expired',status:403,exercise:async page=>{assert.equal(await page.getByRole('button',{name:'Send confirmation link'}).count(),1)}})})
    const count=await service.workload();assert.ok(count>=7)
    const beforeStat=await service.stats()
@@ -136,9 +136,13 @@ export async function integrationJourney({origin,freshOwner,restartWorker,signIn
  const invited=await value(await post('/app/settings/members/invite',{email:address,displayName:'Scoped integration reader',role:'read-only analyst',scope:restrictedScope}),202),reader=await signIn(address)
  assert.equal((await value(await get(api,reader))).packs.flatMap(p=>p.bindings).length,1)
  await value(await post(api+'/enable',{pack:'redis',service:'pack-redis',environment:'test',team:'commerce',credentialId:source.credential.id,revision:1,confirm:'review-local-collection'},reader),403)
+ const hiddenCredentialName='synthetic-porthole-66102'
+ await value(await post('/app/settings/credentials/mint',{name:hiddenCredentialName,class:'ingest',scope:{services:['other-integration-service'],environments:['test'],teams:['other-team'],signals:['metrics','logs'],actions:['telemetry.write']}}),201)
  const adminAddress=['synthetic-porthole-66101','example.com'].join(String.fromCharCode(64))
  await value(await post('/app/settings/members/invite',{email:adminAddress,displayName:'Scoped integration administrator',role:'admin',scope:restrictedScope}),202)
- const adminCookie=await signIn(adminAddress),redis=all.find(row=>row.pack==='redis').binding
+ const adminCookie=await signIn(adminAddress)
+ const adminCatalog=await get(app,adminCookie);assert.equal(adminCatalog.status,200);assert.ok(!(await adminCatalog.text()).includes(hiddenCredentialName),'a scoped admin cannot discover names of foreign collection credentials')
+ const redis=all.find(row=>row.pack==='redis').binding
  const reviewedId=await nativeEnable(origin,adminCookie,{pack:'redis',service:'pack-redis',environment:'test',team:'commerce',credentialId:source.credential.id,revision:redis.revision})
  assert.equal(reviewedId,redis.id);assert.equal((await value(await get(api+'/'+redis.id,adminCookie))).binding.revision,redis.revision+1,'a fresh scoped admin can review the native setup')
  cookie=await freshOwner()

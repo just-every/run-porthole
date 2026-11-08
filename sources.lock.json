@@ -481,7 +481,7 @@
       "executable": false
     },
     "docs/integrations/README.md": {
-      "sha256": "b68a5c328c2c376f51d3b87ba15ada15f1e2f9186ac5f047d288590fbee04eaa",
+      "sha256": "b150365173f221b5ec75ea58e8b80573180755681952c2c265668e56d68fb4e3",
       "executable": false
     },
     "docs/integrations/redis.md": {
@@ -4885,7 +4885,7 @@
       "executable": false
     },
     "src/porthole/integrations/catalog/http.ts": {
-      "sha256": "f2a268001487259c9b513c0ffae36c6a46225073a3ab3c68dcdb28631dee45cc",
+      "sha256": "77f971ff96f9ff7002a653e8701b3760a4d52147be83e4cf8da4bb7d09eaf248",
       "executable": false
     },
     "src/porthole/integrations/catalog/model.ts": {
@@ -5805,7 +5805,7 @@
       "executable": false
     },
     "tests/porthole/integrations.mjs": {
-      "sha256": "b10d125f7ac40a77fbfd630621fba41e7cf0404666ea9cab91ece7a0517fac6f",
+      "sha256": "91c701271c0c514124d072280730a4003e2a2471520fc838f519d0b6eb397144",
       "executable": false
     },
     "tests/porthole/live-recovery.mjs": {

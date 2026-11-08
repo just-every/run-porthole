@@ -49,8 +49,8 @@ errors identify the pack and its required permission and endpoint checks. A
 positive service value alone cannot establish setup health. This is collection
 setup evidence and does not establish overall service health or complete data.
 
-Archives carry reviewed pack and scope history with credential references
-removed. Restored setups and dashboards are inactive, and must be reviewed with
+Product archives carry reviewed pack and scope history with credential references
+removed. Native installation restore also clears these references. Restored setups and dashboards are inactive, and must be reviewed with
 new current authority before configuration download. No monitored-service
 secrets, collector configuration, monitor activation or provider authority is
 archived. The wider catalog, real Windows hosts and value-threshold monitor
