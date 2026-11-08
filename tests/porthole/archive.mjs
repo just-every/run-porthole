@@ -1317,22 +1317,22 @@ export async function servicesArchiveJourney({origin,freshOwner,restartWorker,wi
 }
 
 /** Standard reads remain credential-only after inactive installation restore. */
-export async function standardArchiveJourney({origin,freshOwner,withEmptyDestination,reader,scope,expected,traceId}) {
+export async function standardArchiveJourney({origin,freshOwner,withEmptyDestination,reader,scope,windows,expected,traceId}) {
  const cookie=await freshOwner(),saved=await savedExport(origin,cookie,await post(origin,cookie,api+'/exports',{}))
  await withEmptyDestination(async destination=>{
   const acting=await destination.freshOwner(),restore=await value(await post(destination.origin,acting,api+'/restores',{manifest:saved.manifest}),201)
   for(const chunk of saved.chunks)await value(await post(destination.origin,acting,`${api}/restores/${restore.id}/chunks`,{chunk}))
   await value(await post(destination.origin,acting,`${api}/restores/${restore.id}/commit`,{confirm:saved.manifest.rootHash}))
   const call=(path,options)=>fetch(destination.origin+path,options)
-  const {remoteRead,remoteSeries}=await import('./standard-reads.mjs')
+  const {remoteRead,remoteWindows}=await import('./standard-reads.mjs')
   assert.equal((await remoteRead(call,reader.secret)).status,401,'archive transfers no source read authority')
   assert.equal((await call('/api/traces/'+traceId,{headers:{cookie:acting}})).status,401,'destination owner cookie cannot replace a standard read credential')
   assert.equal((await destination.sql('SELECT COUNT(*) AS n FROM porthole_credentials'))[0].n,0)
   assert.equal((await destination.sql('SELECT paused FROM porthole_ingest_control'))[0].paused,1)
   const minted=await value(await post(destination.origin,acting,'/app/settings/credentials/mint',{name:'Restored standard reader',class:'read',scope}),201)
-  assert.deepEqual(await remoteSeries(await remoteRead(call,minted.secret,{matchers:[['__name__','synthetic_.*',2]]})),expected)
+  assert.deepEqual(await remoteWindows(call,minted.secret,windows),expected)
   await destination.restartWorker()
-  assert.deepEqual(await remoteSeries(await remoteRead(call,minted.secret,{matchers:[['__name__','synthetic_.*',2]]})),expected)
+  assert.deepEqual(await remoteWindows(call,minted.secret,windows),expected)
  })
  console.log('PROBE PORT-061 restore: inactive owner installation restore -> original samples with newly minted destination authority, no imported credentials, intake remains paused')
 }

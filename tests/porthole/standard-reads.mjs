@@ -48,6 +48,19 @@ export async function remoteSeries(response){
  }))
 }
 
+
+/** Reconcile the entire capture through disjoint bounded live reads. Each
+ * window still uses every page of the scoped reader; none may be truncated. */
+export async function remoteWindows(call,secret,windows){
+ const series=new Map()
+ for(const window of windows)for(const item of await remoteSeries(await remoteRead(call,secret,{...window,matchers:[['__name__','synthetic_.*',2]]}))){
+  const metric=Object.fromEntries(Object.entries(item.metric).sort()),key=JSON.stringify(metric)
+  if(!series.has(key))series.set(key,{metric,values:[]})
+  series.get(key).values.push(...item.values)
+ }
+ return [...series.entries()].sort(([a],[b])=>a.localeCompare(b)).map(([,item])=>item)
+}
+
 /** Existing journeys reuse the standard door on their actual retained inputs. */
 export async function assertTempoRead({origin,call=(path,options)=>fetch(origin+path,options),cookie,traceId,scope:grants,expected}){
  const post=(path,data)=>call(path,{method:'POST',headers:{origin,cookie,'content-type':'application/json'},body:JSON.stringify(data)})
@@ -152,7 +165,10 @@ async function stockMetrics({origin,cookie,call,reader,source,scratch}){
   assert.ok(actual.result.reduce((n,s)=>n+s.values.length,0)>100,'multiple real scrapes and pages are reconciled')
   assert.ok(sourceSamples.length>=5);assert.equal(otlpPackets.length,5)
   console.log('PROBE PORT-061 standard metrics: stock Prometheus 3.5.0 remote_read evaluates twelve fixed expressions over real scrape and stock OTLP input -> exact reference series, labels, timestamps and values')
-  return {otlpPackets,instant,sourceSamples,referenceOrigin,readerOrigin:remoteOrigin}
+  const generations=[...new Set(sourceSamples.map(sample=>sample.time))]
+  assert.equal(generations.length,5,'all five actual producer generations were scraped')
+  const split=BigInt(generations[3]),windows=[{from:0n,through:split-1n},{from:split,through:18446744073709n}]
+  return {otlpPackets,instant,sourceSamples,windows,referenceOrigin,readerOrigin:remoteOrigin}
  }finally{
   if(provider)await provider.shutdown()
   for(const child of children)if(child.exitCode===null){const stopped=new Promise(r=>child.once('exit',r));child.kill('SIGTERM');await stopped}
@@ -175,7 +191,7 @@ export async function standardReadJourney({origin,cookie,call=(path,options)=>fe
   let settled
   for(let pass=0;pass<20;pass++){settled=await value(await post(api+'/ingest/drain',{}));if(!settled.pendingBatches&&settled.analytical.complete)break}
   assert.equal(settled.pendingBatches,0);assert.equal(settled.analytical.complete,true,'the stock exporter shutdown flush is retained before snapshot comparison')
-  const all=await remoteSeries(await remoteRead(call,reader.secret,{matchers:[['__name__','synthetic_.*',2]]}))
+  const all=await remoteWindows(call,reader.secret,metrics.windows)
   assert.ok(all.length>24)
   const refusal=await remoteRead(call,quota.secret);assert.equal(refusal.status,429);assert.ok(Number(refusal.headers.get('retry-after'))>0)
   const foreign=await mint('read',{scope:{...scope,teams:['synthetic-porthole-6199']}})
@@ -248,8 +264,8 @@ export async function standardReadJourney({origin,cookie,call=(path,options)=>fe
   assert.deepEqual(decodedIds.sort(),expected.filter(s=>s.resource?.['team.name']==='fulfillment').map(s=>s.spanId).sort())
   const before=all
   await restartWorker();cookie=await freshOwner()
-  assert.deepEqual(await remoteSeries(await remoteRead(call,reader.secret,{matchers:[['__name__','synthetic_.*',2]]})),before,'restart preserves exact standard samples')
-  if(withEmptyDestination){const {standardArchiveJourney}=await import('./archive.mjs');await standardArchiveJourney({origin,freshOwner,withEmptyDestination,reader,scope,expected:before,traceId:selected})}
+  assert.deepEqual(await remoteWindows(call,reader.secret,metrics.windows),before,'restart preserves exact standard samples')
+  if(withEmptyDestination){const {standardArchiveJourney}=await import('./archive.mjs');await standardArchiveJourney({origin,freshOwner,withEmptyDestination,reader,scope,windows:metrics.windows,expected:before,traceId:selected})}
   if(withEmptyDestination)await standardSchemaProof({origin,cookie,call,source,reader,post,restartWorker,sql})
   console.log('STANDARD_READ_RESULT '+JSON.stringify({metricSeries:all.length,metricSamples:all.reduce((n,series)=>n+series.values.length,0),traceIds:traceIds.length,selectedTraceSpans:spans.length,prometheus:'3.5.0',tempoClient:'2.8.2',result:'passed'}))
   console.log('PROBE PORT-061 standard traces: captured stock HTTP and Kafka spans -> official OTLP binary reader exact spans and stock Tempo CLI; restricted span set and explicit partial evidence; restart and inactive restore')
@@ -271,9 +287,12 @@ export async function standardAnalyticalJourney(){
   await connect('primary')
   const result=await standardReadJourney({origin,call,cookie,restartWorker,...helpers})
   cookie=await helpers.freshOwner()
-  const original=await remoteSeries(await remoteRead(call,result.reader.secret))
+  const original=await remoteWindows(call,result.reader.secret,result.metrics.windows)
+  const window=result.metrics.windows[1]
+  const windowSamples=await remoteSeries(await remoteRead(call,result.reader.secret,window))
+  assert.ok(windowSamples.reduce((n,item)=>n+item.values.length,0)>200,'the authority probes scan more than one native page')
   await connect('standby')
-  assert.deepEqual(await remoteSeries(await remoteRead(call,result.reader.secret)),original,'both real analytical configurations return identical standard samples')
+  assert.deepEqual(await remoteWindows(call,result.reader.secret,result.metrics.windows),original,'both real analytical configurations return identical standard samples')
   const traceId=result.estate.spans[0].traceId
   const allTrace=await value(await post(credential+'/mint',{name:'Live trace reader',class:'read',scope:{...scope,services:['checkout','fulfillment'],teams:['commerce','fulfillment']}}),201)
   const trace=await call('/api/traces/'+traceId,{headers:auth(allTrace.secret)})
@@ -298,22 +317,22 @@ export async function standardAnalyticalJourney(){
   }
   const revoked=await mint()
   afterLast(async()=>value(await post(credential+'/revoke',{id:revoked.credential.id})))
-  const refusal=await remoteRead(call,revoked.secret);assert.equal(refusal.status,401);assert.deepEqual(await refusal.json(),{error:'invalid_credential'})
+  const refusal=await remoteRead(call,revoked.secret,window);assert.equal(refusal.status,401);assert.deepEqual(await refusal.json(),{error:'invalid_credential'})
   const narrowed=await mint()
   afterLast(async()=>value(await post(credential+'/rescope',{id:narrowed.credential.id,scope:{...scope,teams:['synthetic-porthole-6199']}})))
-  assert.equal((await remoteRead(call,narrowed.secret)).status,409,'final-page narrowing prevents accumulated result release')
+  assert.equal((await remoteRead(call,narrowed.secret,window)).status,409,'final-page narrowing prevents accumulated result release')
   const expired=await mint()
   afterLast(()=>getDb().prepare('UPDATE porthole_credentials SET expires_at=created_at+1 WHERE id=?').bind(expired.credential.id).run())
-  assert.equal((await remoteRead(call,expired.secret)).status,401,'expiry during a real analytical scan refuses the result')
-  const row=await getDb().prepare("SELECT * FROM porthole_telemetry_records WHERE service=? AND signal=? AND json_extract(payload,'$.metric.name')=? LIMIT 1").bind(scope.services[0],'metrics','synthetic.otel.gauge').first()
+  assert.equal((await remoteRead(call,expired.secret,window)).status,401,'expiry during a real analytical scan refuses the result')
+  const row=await getDb().prepare("SELECT * FROM porthole_telemetry_records WHERE service=? AND signal=? AND json_extract(payload,'$.metric.name')=? AND event_time_ns>=? LIMIT 1").bind(scope.services[0],'metrics','synthetic.otel.gauge',String(window.from*1000000n).padStart(20,'0')).first()
   afterLast(()=>getDb().prepare('DELETE FROM porthole_telemetry_records WHERE id=?').bind(row.id).run())
-  const custody=await remoteRead(call,result.reader.secret);assert.equal(custody.status,409);assert.deepEqual(await custody.json(),{error:'standard_read_custody_changed'})
+  const custody=await remoteRead(call,result.reader.secret,window);assert.equal(custody.status,409);assert.deepEqual(await custody.json(),{error:'standard_read_custody_changed'})
   const columns=Object.keys(row);await getDb().prepare('INSERT INTO porthole_telemetry_records('+columns.join(',')+') VALUES('+columns.map(()=>'?').join(',')+')').bind(...columns.map(k=>row[k])).run()
   afterLast(async()=>value(await post(api+'/export-exclusions',{confirm:'apply-exclusions',journal:{format:'porthole.export-exclusions.v1',records:[{recordId:row.id,excludedAt:Date.now()}]}})))
-  const excluded=await remoteSeries(await remoteRead(call,result.reader.secret))
-  assert.ok(excluded.reduce((n,s)=>n+s.values.length,0)<original.reduce((n,s)=>n+s.values.length,0),'portable exclusions applied after last analytical page suppress the actual sample')
+  const excluded=await remoteSeries(await remoteRead(call,result.reader.secret,window))
+  assert.ok(excluded.reduce((n,s)=>n+s.values.length,0)<windowSamples.reduce((n,s)=>n+s.values.length,0),'portable exclusions applied after last analytical page suppress the actual sample')
   await estate.stop('standby')
-  try{assert.equal((await remoteRead(call,result.reader.secret)).status,503)}finally{await estate.start('standby')}
+  try{assert.equal((await remoteRead(call,result.reader.secret,window)).status,503)}finally{await estate.start('standby')}
   await connect('primary')
   console.log('PROBE PORT-061 authority: both real analytical backends -> same stock samples; mid-read revoke and expiry -> 401; narrowing and custody change -> 409; quota -> 429; excluded records absent; unavailable backend -> 503')
  }})}finally{await estate.dispose()}
