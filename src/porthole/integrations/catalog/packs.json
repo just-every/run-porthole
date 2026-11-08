@@ -43,7 +43,7 @@
       "metrics",
       "logs"
     ],
-    "permissions": "A login restricted to SHOW GLOBAL STATUS, with no application data or query-sample grants",
+    "permissions": "A dedicated login for SHOW GLOBAL STATUS and SELECT on these performance_schema tables: table_io_waits_summary_by_table, table_io_waits_summary_by_index_usage, events_statements_summary_by_digest, table_lock_waits_summary_by_table. No application data or query-sample collection is enabled.",
     "endpointExample": "localhost:3306",
     "setup": [
       "Create the dedicated read-only monitoring role with the declared permissions.",

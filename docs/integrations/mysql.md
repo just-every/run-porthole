@@ -4,7 +4,7 @@ Pack revision 1. Service image: `mysql:8.4.6`.
 Collector: unmodified OpenTelemetry Collector Contrib 0.135.0.
 Stock receiver: `mysql`. Pinned source: https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.135.0/receiver/mysqlreceiver.
 
-Required monitored-service permissions: A login restricted to SHOW GLOBAL STATUS, with no application data or query-sample grants.
+Required monitored-service permissions: A dedicated login for SHOW GLOBAL STATUS and SELECT on these performance_schema tables: table_io_waits_summary_by_table, table_io_waits_summary_by_index_usage, events_statements_summary_by_digest, table_lock_waits_summary_by_table. No application data or query-sample collection is enabled.
 Service signals: metrics. Collector diagnostics additionally
 require a logs ingest grant. All values remain scoped to the reviewed service,
 environment and team. A heartbeat is not proof of successful collection.

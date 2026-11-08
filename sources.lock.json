@@ -465,7 +465,7 @@
       "executable": false
     },
     "docs/integrations/mysql.md": {
-      "sha256": "049edf74c6896240ef33251cc4bf929cc616a82349acb9a8f9d4d69302476a0f",
+      "sha256": "81b9ff321694432aceaabf4720da256b0546c8c0170e86170b0eb6fc5b116598",
       "executable": false
     },
     "docs/integrations/nginx.md": {
@@ -4897,7 +4897,7 @@
       "executable": false
     },
     "src/porthole/integrations/catalog/packs.json": {
-      "sha256": "c911644385282347f43edcf65cc24b38680c4f7c933c9e4f070d4de7d6ac9c3d",
+      "sha256": "376d87a90ef6f72aec4fde6f165535f132cf7152088d9b8a3443d109ef989d29",
       "executable": false
     },
     "src/porthole/integrations/registry/http.ts": {
@@ -5789,7 +5789,7 @@
       "executable": false
     },
     "tests/porthole/integration-matrix/estate.mjs": {
-      "sha256": "80ee993f9f182edd07e0502b51b703a0b361fe570e3a53b4fd973d1714253e93",
+      "sha256": "e76fe0554f398d3a0d0ae6ec2d016dd2b3640ab4b9a13135bd728cb2584855aa",
       "executable": false
     },
     "tests/porthole/integrations.mjs": {

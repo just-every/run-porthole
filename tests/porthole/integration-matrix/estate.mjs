@@ -31,7 +31,7 @@ export async function integrationService(pack) {
   publish(3306);setting('MYSQL_ROOT_PASSWORD',password);endpoint='127.0.0.1:'+port
   const sql=query=>ex('mysql','--protocol=TCP','-h127.0.0.1','-uroot','-p'+password,'--batch','--skip-column-names','-e',query)
   ready=()=>sql('SELECT 1')
-  setup=()=>sql(`CREATE USER observe IDENTIFIED BY '${password}'`)
+  setup=()=>sql(`CREATE USER observe IDENTIFIED BY '${password}'; GRANT SELECT ON performance_schema.table_io_waits_summary_by_table TO observe; GRANT SELECT ON performance_schema.table_io_waits_summary_by_index_usage TO observe; GRANT SELECT ON performance_schema.events_statements_summary_by_digest TO observe; GRANT SELECT ON performance_schema.table_lock_waits_summary_by_table TO observe`)
   workload=async()=>{for(let i=0;i<7;i++)await sql('SELECT 1');return 7}
   stats=async()=>Number((await sql("SHOW GLOBAL STATUS LIKE 'Com_select'")).trim().split(/\s+/).at(-1))
   deny=()=>sql(`ALTER USER observe ACCOUNT LOCK`);restore=()=>sql(`ALTER USER observe ACCOUNT UNLOCK`)
