@@ -1,0 +1,19 @@
+{
+  "head": "54efdb6297754c4f723cd0ff15390fd5fc6ab03e",
+  "checks": {
+    "sourceLock": 0,
+    "contractViews": 0,
+    "publicSchema": 0,
+    "typecheck": 0,
+    "firstParty": 0
+  },
+  "migrationLedger": "not applicable; no migrations changed",
+  "commands": {
+    "sourceLock": "pnpm run source:lock; pnpm run source:check",
+    "contractGeneration": "node scripts/porthole/contract-docs.mjs write PORT-061; node scripts/porthole/contract-docs.mjs check PORT-061; git checkout origin/main -- ACCEPTANCE.md docs/CLAIMS.md",
+    "contractWorkflowCheck": "node scripts/porthole/contract-docs.mjs check PORT-075",
+    "publicSchema": "node scripts/porthole/public-schema.mjs --check",
+    "typecheck": "pnpm typecheck",
+    "firstParty": "pnpm exec rer check --profile first-party"
+  }
+}

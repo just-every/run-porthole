@@ -1,0 +1,19 @@
+{
+  "head": "54efdb6297754c4f723cd0ff15390fd5fc6ab03e",
+  "run": 42519315359,
+  "job": 128849149694,
+  "command": "node scripts/verify-ci.mjs source",
+  "environment": {
+    "CI": "true",
+    "WRANGLER_SEND_METRICS": "false",
+    "PLAYWRIGHT_SKIP_BROWSER_GC": "1",
+    "SHARD": "source"
+  },
+  "node": "22.20.0",
+  "exit": 0,
+  "result": "VERIFY_NOT_REPRODUCED",
+  "ci_failure": "standardReadJourney at tests/porthole/standard-reads.mjs:178: expected 200; observed 422 standard_read_budget_exceeded",
+  "repair_commits": 0,
+  "reruns": 0,
+  "completed_utc": "2026-11-08T20:39:21.308098+00:00"
+}

@@ -1,0 +1,9 @@
+verify:runtime
+Heavy job admitted: Porthole verify:runtime:suite [46707e6cdd2e]
+▲ [WARNING] Proxy environment variables detected. We'll use your proxy for fetch requests.
+
+
+Installed owner claim rejects missing/wrong setup tokens and request demo flags
+HTTP-001 passed against emitted local Worker: health, the installed homepage, HTTP and document 404s
+subjectErasureJourney passed: exact four-signal mapping, no-effect preview, stale approval refusal, fresh native owner authorization, pending and retained envelope deletion, retry refusal, private journal, restart and old-archive re-export fence
+APP-HOME passed against emitted local Worker: /app behind sign-in and setup, then the trace view with its stylesheets

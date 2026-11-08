@@ -1,0 +1,55 @@
+Waiting to start (queue position 1/1): all job slots are in use (1 of 1; change slots in /home/agent/.rer/jobs/config.json).
+Ahead of this job:
+  running: Porthole verify:runtime:suite [46707e6cdd2e] in [REDACTED]
+Memory: 16.3 GiB available, floor 2.0 GiB. Change the floor with RER_JOBS_MIN_FREE_MEMORY_BYTES (bytes; 0 for no floor).
+Run from the project root. Inspect the queue with: 'node' 'node_modules/.pnpm/@runeditrun+rer@0.2.91/node_modules/@runeditrun/rer/modules/job-queue/cli.mjs' 'status' '--json'
+Waiting to start (queue position 1/1): all job slots are in use (1 of 1; change slots in /home/agent/.rer/jobs/config.json).
+Ahead of this job:
+  running: Porthole verify:runtime:suite [46707e6cdd2e] in [REDACTED]
+Memory: 15.9 GiB available, floor 2.0 GiB. Change the floor with RER_JOBS_MIN_FREE_MEMORY_BYTES (bytes; 0 for no floor).
+Run from the project root. Inspect the queue with: 'node' 'node_modules/.pnpm/@runeditrun+rer@0.2.91/node_modules/@runeditrun/rer/modules/job-queue/cli.mjs' 'status' '--json'
+Waiting to start (queue position 1/1): all job slots are in use (1 of 1; change slots in /home/agent/.rer/jobs/config.json).
+Ahead of this job:
+  running: Porthole verify:runtime:suite [46707e6cdd2e] in [REDACTED]
+Memory: 15.8 GiB available, floor 2.0 GiB. Change the floor with RER_JOBS_MIN_FREE_MEMORY_BYTES (bytes; 0 for no floor).
+Run from the project root. Inspect the queue with: 'node' 'node_modules/.pnpm/@runeditrun+rer@0.2.91/node_modules/@runeditrun/rer/modules/job-queue/cli.mjs' 'status' '--json'
+Waiting to start (queue position 1/2): all job slots are in use (1 of 1; change slots in /home/agent/.rer/jobs/config.json).
+Ahead of this job:
+  running: Porthole verify:runtime:suite [46707e6cdd2e] in [REDACTED]
+Memory: 15.8 GiB available, floor 2.0 GiB. Change the floor with RER_JOBS_MIN_FREE_MEMORY_BYTES (bytes; 0 for no floor).
+Run from the project root. Inspect the queue with: 'node' 'node_modules/.pnpm/@runeditrun+rer@0.2.91/node_modules/@runeditrun/rer/modules/job-queue/cli.mjs' 'status' '--json'
+Waiting to start (queue position 1/2): all job slots are in use (1 of 1; change slots in /home/agent/.rer/jobs/config.json).
+Ahead of this job:
+  running: Porthole verify:runtime:suite [46707e6cdd2e] in [REDACTED]
+Memory: 15.7 GiB available, floor 2.0 GiB. Change the floor with RER_JOBS_MIN_FREE_MEMORY_BYTES (bytes; 0 for no floor).
+Run from the project root. Inspect the queue with: 'node' 'node_modules/.pnpm/@runeditrun+rer@0.2.91/node_modules/@runeditrun/rer/modules/job-queue/cli.mjs' 'status' '--json'
+Waiting to start (queue position 1/2): all job slots are in use (1 of 1; change slots in /home/agent/.rer/jobs/config.json).
+Ahead of this job:
+  running: Porthole verify:runtime:suite [46707e6cdd2e] in [REDACTED]
+Memory: 15.8 GiB available, floor 2.0 GiB. Change the floor with RER_JOBS_MIN_FREE_MEMORY_BYTES (bytes; 0 for no floor).
+Run from the project root. Inspect the queue with: 'node' 'node_modules/.pnpm/@runeditrun+rer@0.2.91/node_modules/@runeditrun/rer/modules/job-queue/cli.mjs' 'status' '--json'
+Waiting to start (queue position 1/2): all job slots are in use (1 of 1; change slots in /home/agent/.rer/jobs/config.json).
+Ahead of this job:
+  running: Porthole verify:runtime:suite [46707e6cdd2e] in [REDACTED]
+Memory: 15.8 GiB available, floor 2.0 GiB. Change the floor with RER_JOBS_MIN_FREE_MEMORY_BYTES (bytes; 0 for no floor).
+Run from the project root. Inspect the queue with: 'node' 'node_modules/.pnpm/@runeditrun+rer@0.2.91/node_modules/@runeditrun/rer/modules/job-queue/cli.mjs' 'status' '--json'
+Waiting to start (queue position 1/2): all job slots are in use (1 of 1; change slots in /home/agent/.rer/jobs/config.json).
+Ahead of this job:
+  running: Porthole verify:runtime:suite [46707e6cdd2e] in [REDACTED]
+Memory: 15.8 GiB available, floor 2.0 GiB. Change the floor with RER_JOBS_MIN_FREE_MEMORY_BYTES (bytes; 0 for no floor).
+Run from the project root. Inspect the queue with: 'node' 'node_modules/.pnpm/@runeditrun+rer@0.2.91/node_modules/@runeditrun/rer/modules/job-queue/cli.mjs' 'status' '--json'
+Waiting to start (queue position 1/2): all job slots are in use (1 of 1; change slots in /home/agent/.rer/jobs/config.json).
+Ahead of this job:
+  running: Porthole verify:runtime:suite [46707e6cdd2e] in [REDACTED]
+Memory: 15.8 GiB available, floor 2.0 GiB. Change the floor with RER_JOBS_MIN_FREE_MEMORY_BYTES (bytes; 0 for no floor).
+Run from the project root. Inspect the queue with: 'node' 'node_modules/.pnpm/@runeditrun+rer@0.2.91/node_modules/@runeditrun/rer/modules/job-queue/cli.mjs' 'status' '--json'
+verify:runtime
+Heavy job admitted: Porthole verify:runtime:suite [46707e6cdd2e]
+▲ [WARNING] Proxy environment variables detected. We'll use your proxy for fetch requests.
+
+
+Installed owner claim rejects missing/wrong setup tokens and request demo flags
+HTTP-001 passed against emitted local Worker: health, the installed homepage, HTTP and document 404s
+traceArchiveJourney passed: source snapshot descriptor and original graph/ns replay after independent inactive restore; no source session or credential authority
+traceJourney passed: actual stock Node HTTP/gRPC instrumentation, async fanout, original graph/ns/restart/snapshot, explicit conflicting/missing/cyclic parent diagnostics, live scope/revocation and 1440/390 states; seven-language/Kafka qualification runs separately outside Verify
+APP-HOME passed against emitted local Worker: /app behind sign-in and setup, then the trace view with its stylesheets
