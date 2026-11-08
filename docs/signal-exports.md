@@ -157,7 +157,7 @@ complete subject-erasure implementation.
 
 ## Current qualification limits
 
-PORT-061 remains PARTIAL. Standard signal read APIs, automatic subject-to-record
+PORT-061 remains PARTIAL. Complete standard signal API qualification, automatic subject-to-record
 exclusion coverage and full erasure qualification remain open. The cost model
 projects owner-supplied rates; live provider tariffs and complete infrastructure
 cost qualification remain unproved. Independent OTLP and standard profile readers and portable
@@ -167,3 +167,7 @@ actual telemetry erasure. Export approvals are local authority and are
 excluded from both product archives and native installation archives. PORT-035
 inherits the telemetry-erasure obligation; PORT-026 inherits the same live
 scope, quota and revocation checks before adding configuration doors.
+
+Bounded Prometheus remote-read and Tempo trace-by-ID are described in
+[standard signal APIs](standard-signal-apis.md). They use current read credentials
+and portable exclusions; bulk reads still require the export door above.

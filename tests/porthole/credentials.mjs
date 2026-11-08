@@ -264,6 +264,10 @@ export async function credentialQueryJourney({origin,sql,freshOwner,restartWorke
  assert.equal(typeof getLogs,'function')
  for(const secret of secrets)for(const text of [command.stdout,command.stderr,auditText,getLogs()])assert.ok(!text.includes(secret),'transport, logs and audit outputs exclude header credentials')
  assert.ok((await sql('SELECT COUNT(*) AS n FROM porthole_query_snapshots'))[0].n>0)
+ const {remoteRead}=await import('./standard-reads.mjs')
+ const standard=(secret)=>remoteRead((path,options)=>fetch(origin+path,options),secret)
+ assert.equal((await standard(key.secret)).status,401,'revoked telemetry credential is refused by standard signal reads')
+ assert.equal((await standard(source.secret)).status,403,'write-only credentials cannot enter the standard read door')
  console.log('credentialQueryJourney passed: identical scoped REST/CLI/MCP reads, untrusted log data, mutation/approval refusal, shared quota and next-request revocation across restart')
  return secrets
 }
