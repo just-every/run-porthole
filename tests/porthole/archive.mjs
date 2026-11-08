@@ -566,6 +566,11 @@ export async function subjectErasureJourney({origin,freshOwner,restartWorker,sql
  let cookie=await freshOwner()
  const send=(path,data,session=cookie)=>post(origin,session,path,data)
  const source=await value(await send('/app/settings/credentials/mint',{name:'synthetic-porthole-1802',class:'ingest',scope}),201)
+ const standardReader=await value(await send('/app/settings/credentials/mint',{name:'Erasure standard reader',class:'read',scope:{...scope,actions:['telemetry.read']}}),201)
+ const {remoteRead,remoteSeries}=await import('./standard-reads.mjs')
+ const standardCall=(path,options)=>fetch(origin+path,options)
+ const standardMetrics=()=>remoteRead(standardCall,standardReader.secret,{matchers:[['__name__','synthetic_porthole_1803']]})
+ const standardTrace=()=>fetch(origin+'/api/traces/1234567890abcdef1234567890abcdef',{headers:{authorization:'Bearer '+standardReader.secret}})
  const time=BigInt(Date.now())*1000000n-5000000000n
  const attributes=marker=>[{key:'service.name',value:{stringValue:scope.services[0]}},{key:'deployment.environment.name',value:{stringValue:scope.environments[0]}},{key:'team.name',value:{stringValue:scope.teams[0]}},{key:'user.email',value:{stringValue:marker}}]
  const logs=otlpLogBatch([time,time+1n]);logs.resourceLogs[0].resource.attributes=attributes(identifier)
@@ -602,6 +607,8 @@ export async function subjectErasureJourney({origin,freshOwner,restartWorker,sql
  const mixedBefore=await sql('SELECT * FROM porthole_ingest_batches ORDER BY id')
  assert.equal((await send(root+'/apply',{identifier:mixedIdentifier,digest:mixedPreview.digest,confirm:'erase-exact-batches'})).status,409,'mixed envelope cannot erase unrelated records')
  assert.deepEqual(await sql('SELECT * FROM porthole_ingest_batches ORDER BY id'),mixedBefore,'mixedSubjectStorageUnchanged')
+ assert.equal((await remoteSeries(await standardMetrics())).length,1,'retained subject metric is served before erasure')
+ assert.equal((await standardTrace()).status,200,'retained subject trace is served before erasure')
  const before=await savedExport(origin,cookie,await send(api+'/exports',{}))
  // One D1 read captures every custody table consistently; parallel Wrangler
  // readers contend on the same local SQLite migration connection.
@@ -679,6 +686,8 @@ export async function subjectErasureJourney({origin,freshOwner,restartWorker,sql
   const response=await value(await get(origin,cookie,'/api/porthole/v1/ingest/records?'+new URLSearchParams({signal,service:scope.services[0]})))
   assert.equal(response.records.length,signal==='logs'?2:0,'query recomputes from remaining local records')
  }
+ assert.deepEqual(await remoteSeries(await standardMetrics()),[],'erased subject metric is absent from standard reads')
+ assert.equal((await standardTrace()).status,404,'erased subject trace is absent from trace-by-ID')
  const portable=await savedExport(origin,cookie,await send(api+'/exports',{}))
  assert.deepEqual(portable.rows.filter(row=>row.table==='porthole_erased_batches').map(row=>row.row),journal.records)
  await withEmptyDestination(async destination=>{
@@ -697,6 +706,10 @@ export async function subjectErasureJourney({origin,freshOwner,restartWorker,sql
   const selection={scope:{services:scope.services,environments:scope.environments,teams:scope.teams},signals:scope.signals,from:String(time),through:String(time+100n)}
   const exported=await value(await request('/api/porthole/v1/exports',selection),201)
   assert.equal(exported.estimate.totalRecords,1,'old archive plus later real erasure journal cannot export the erased envelopes')
+  const current=await value(await request('/app/settings/credentials/mint',{name:'Restored erasure reader',class:'read',scope:{...scope,actions:['telemetry.read']}}),201)
+  const restoredCall=(path,options)=>fetch(destination.origin+path,options)
+  assert.deepEqual(await remoteSeries(await remoteRead(restoredCall,current.secret,{matchers:[['__name__','synthetic_porthole_1803']]})),[],'later erasure journal fences standard samples in an older archive')
+  assert.equal((await restoredCall('/api/traces/1234567890abcdef1234567890abcdef',{headers:{authorization:'Bearer '+current.secret}})).status,404,'older archive cannot revive an erased trace')
   await value(await request('/api/porthole/v1/exports/'+exported.id+'/approve',{confirm:exported.id}))
   const page=await get(destination.origin,owner,'/api/porthole/v1/exports/'+exported.id+'/pages')
   assert.equal(page.status,200);assert.ok(!(await page.text()).includes(identifier))

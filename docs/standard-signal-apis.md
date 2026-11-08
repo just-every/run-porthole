@@ -64,7 +64,8 @@ has `batches` of OTLP ResourceSpans and protobuf-JSON base64 identifiers.
 `Accept: application/protobuf` returns the stock Tempo Trace protobuf, whose
 first repeated field is wire-compatible with OTLP TracesData. Resource and
 scope schemas, span attributes, links, events, flags and original nanoseconds
-are preserved. Exact duplicate copies collapse; conflicting variants remain.
+are preserved after mandatory intake privacy; source SQL is never recovered
+from the original exporter capture. Exact duplicate copies collapse; conflicting variants remain.
 Optional `start` and `end` are paired inclusive Unix-second bounds.
 
 Every successful response says `X-Porthole-Trace-Completeness: partial` and
