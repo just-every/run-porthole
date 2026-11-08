@@ -43,6 +43,12 @@ in this fixed receiver profile, matching the reference receiver. Compound labels
 [upstream Value.AsString implementation](https://github.com/open-telemetry/opentelemetry-collector/blob/pdata%2Fv1.34.0/pdata/pcommon/value.go)
 in pdata v1.34.0, the dependency embedded in that pinned Prometheus binary.
 
+Label normalization preserves repeated underscores, prefixes digit-leading names
+with `key_`, and prefixes a single leading underscore with `key`. Normalized
+collisions join attribute values in original key order. Metric names tokenize
+separators, avoid repeated unit tokens and put `total` last for counters. Bucket
+and quantile label values use fixed decimal notation, including small bounds.
+
 Delta temporality, exponential histograms, unsupported metric protocols,
 invalid distributions, negative histogram or summary sums, and conflicting
 values for one series and timestamp refuse with an explicit error. No implicit

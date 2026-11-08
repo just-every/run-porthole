@@ -134,10 +134,10 @@ async function stockMetrics({origin,cookie,call,reader,source,scratch}){
   const keyPath=join(scratch,'read-credential');await writeFile(keyPath,reader.secret,{mode:0o600})
   const remoteOrigin=await start('reader',`global:\n  scrape_interval: 1s\nremote_read:\n  - url: ${relayOrigin}/api/v1/read\n    read_recent: true\n    authorization:\n      credentials_file: ${keyPath}\n`)
   const exporter=new OTLPMetricExporter({url:relayOrigin+'/v1/metrics',headers:auth(source.secret)})
-  provider=new MeterProvider({resource:resourceFromAttributes({'service.name':scope.services[0],'service.instance.id':'synthetic-porthole-6101','deployment.environment.name':'production','team.name':'commerce'}),readers:[new PeriodicExportingMetricReader({exporter,exportIntervalMillis:3600000})],views:[{instrumentName:'synthetic.otel.histogram',aggregation:{type:AggregationType.EXPLICIT_BUCKET_HISTOGRAM,boundaries:[0.1,0.5,1]}}]})
-  const meter=provider.getMeter('synthetic-porthole-6102','1.0'),otelGauge=meter.createGauge('synthetic.otel.gauge',{unit:'ms'}),otelCounter=meter.createCounter('synthetic.otel.requests',{unit:'{request}'}),otelHistogram=meter.createHistogram('synthetic.otel.histogram',{unit:'s'}),velocity=meter.createGauge('synthetic.otel.velocity',{unit:['m','s'].join('/')}),ratio=meter.createGauge('synthetic.otel.ratio',{unit:'1'})
+  provider=new MeterProvider({resource:resourceFromAttributes({'service.name':scope.services[0],'service.instance.id':'synthetic-porthole-6101','deployment.environment.name':'production','team.name':'commerce'}),readers:[new PeriodicExportingMetricReader({exporter,exportIntervalMillis:3600000})],views:[{instrumentName:'synthetic.otel.histogram',aggregation:{type:AggregationType.EXPLICIT_BUCKET_HISTOGRAM,boundaries:[0.0000001,0.5,1]}}]})
+  const meter=provider.getMeter('synthetic-porthole-6102','1.0'),otelGauge=meter.createGauge('synthetic.otel.gauge',{unit:'ms'}),otelCounter=meter.createCounter('synthetic.otel.total.requests',{unit:'{request}'}),otelHistogram=meter.createHistogram('synthetic.otel.histogram',{unit:'s'}),velocity=meter.createGauge('synthetic.otel.meters.velocity',{unit:['m','s'].join('/')}),ratio=meter.createGauge('synthetic.otel.ratio',{unit:'1'})
   for(let i=0;i<5;i++){
-   await fetch(producerOrigin+'/work');const emittedAt=scrapeAt;await until(async()=>sourceSamples.some(s=>s.time===emittedAt),'reference scrapes each source generation');otelGauge.record(20+i,{region:'synthetic-porthole-6103',ready:true,shard:7,emptyZones:[],zones:['synthetic-porthole-6104','synthetic-porthole-6105'],weights:[1,2,3]});otelCounter.add(2,{region:'synthetic-porthole-6103'});otelHistogram.record(0.2,{region:'synthetic-porthole-6103'});velocity.record(i+1);ratio.record((i+1)/10)
+   await fetch(producerOrigin+'/work');const emittedAt=scrapeAt;await until(async()=>sourceSamples.some(s=>s.time===emittedAt),'reference scrapes each source generation');otelGauge.record(20+i,{region:'synthetic-porthole-6103',ready:true,shard:7,'9shard':'synthetic-porthole-6106',_edge:'synthetic-porthole-6107',__edge:'synthetic-porthole-6108','two..dots':'synthetic-porthole-6109',two__dots:'synthetic-porthole-6118',emptyZones:[],zones:['synthetic-porthole-6104','synthetic-porthole-6105'],weights:[1,2,3]});otelCounter.add(2,{region:'synthetic-porthole-6103'});otelHistogram.record(0.2,{region:'synthetic-porthole-6103'});velocity.record(i+1);ratio.record((i+1)/10)
    await provider.forceFlush();await delay(1100)
   }
   // End the real producer capture before the comparison workload. Stock
@@ -155,23 +155,25 @@ async function stockMetrics({origin,cookie,call,reader,source,scratch}){
   },'stock remote-write becomes queryable through stock remote-read',90000)
   console.log('Stock scrape generations '+JSON.stringify({scrapes:sourceSamples.length,timestamps:[...new Set(sourceSamples.map(s=>s.time))],counter:(await query(referenceOrigin,'synthetic_scrape_requests_total[2m]',instant)).result.slice(0,1)}))
   await until(async()=>{const data=await query(referenceOrigin,'min(count_over_time(synthetic_scrape_requests_total[2m]))',instant);return Number(data.result[0]?.value[1])>=3},'reference retains multiple real counter scrapes')
-  const expressions=['synthetic_scrape_gauge','sum by (producer) (synthetic_scrape_requests_total)','rate(synthetic_scrape_requests_total[2m])','increase(synthetic_scrape_requests_total[2m])','synthetic_scrape_latency_seconds_bucket','synthetic_otel_gauge_milliseconds','synthetic_otel_requests_total','synthetic_otel_histogram_seconds_bucket','synthetic_otel_histogram_seconds_sum','synthetic_otel_histogram_seconds_count','synthetic_otel_velocity_meters_per_second','synthetic_otel_ratio']
+  const expressions=['synthetic_scrape_gauge','sum by (producer) (synthetic_scrape_requests_total)','rate(synthetic_scrape_requests_total[2m])','increase(synthetic_scrape_requests_total[2m])','synthetic_scrape_latency_seconds_bucket','synthetic_otel_gauge_milliseconds','synthetic_otel_requests_total','synthetic_otel_histogram_seconds_bucket','synthetic_otel_histogram_seconds_sum','synthetic_otel_histogram_seconds_count','synthetic_otel_meters_velocity_per_second','synthetic_otel_ratio']
   for(const expression of expressions){
    const reference=await query(referenceOrigin,expression,instant),actual=await query(remoteOrigin,expression,instant)
    const sort=data=>({...data,result:data.result.slice().sort((a,b)=>JSON.stringify(a.metric).localeCompare(JSON.stringify(b.metric)))})
    assert.ok(reference.result.length>0,'reference has actual source data for '+expression+' '+JSON.stringify(await query(referenceOrigin,'synthetic_scrape_requests_total[2m]',instant)))
    assert.deepEqual(sort(actual),sort(reference),'stock evaluation parity: '+expression)
   }
-  const range='synthetic_scrape_gauge[2m]',reference=await query(referenceOrigin,range,instant),actual=await query(remoteOrigin,range,instant)
+  const range='{__name__=~"synthetic_.*"}[2m]',reference=await query(referenceOrigin,range,instant),actual=await query(remoteOrigin,range,instant)
   const normalize=data=>data.result.map(series=>({metric:Object.fromEntries(Object.entries(series.metric).sort()),values:series.values})).sort((a,b)=>JSON.stringify(a.metric).localeCompare(JSON.stringify(b.metric)))
   assert.deepEqual(normalize(actual),normalize(reference),'every original label, timestamp and value survives stock remote-read')
-  assert.ok(actual.result.reduce((n,s)=>n+s.values.length,0)>100,'multiple real scrapes and pages are reconciled')
+  assert.ok(actual.result.reduce((n,s)=>n+s.values.length,0)>1000,'every actual scrape and OTLP series crosses multiple pages')
+  const targets=await query(referenceOrigin,'target_info[2m]',instant),remoteTargets=await query(remoteOrigin,'target_info[2m]',instant)
+  assert.deepEqual(normalize(remoteTargets),normalize(targets),'resource target series also preserve every original label, timestamp and value')
   assert.ok(sourceSamples.length>=5);assert.equal(otlpPackets.length,5)
   console.log('PROBE PORT-061 standard metrics: stock Prometheus 3.5.0 remote_read evaluates twelve fixed expressions over real scrape and stock OTLP input -> exact reference series, labels, timestamps and values')
   const generations=[...new Set(sourceSamples.map(sample=>sample.time))]
   assert.equal(generations.length,5,'all five actual producer generations were scraped')
   const split=BigInt(generations[3]),windows=[{from:0n,through:split-1n},{from:split,through:18446744073709n}]
-  return {otlpPackets,instant,sourceSamples,windows,referenceOrigin,readerOrigin:remoteOrigin}
+  return {otlpPackets,instant,sourceSamples,windows,referenceSamples:normalize(reference).map(series=>({...series,values:series.values.map(([time,value])=>[time,Number(value)])})),referenceOrigin,readerOrigin:remoteOrigin}
  }finally{
   if(provider)await provider.shutdown()
   for(const child of children)if(child.exitCode===null){const stopped=new Promise(r=>child.once('exit',r));child.kill('SIGTERM');await stopped}
@@ -196,6 +198,7 @@ export async function standardReadJourney({origin,cookie,call=(path,options)=>fe
   assert.equal(settled.pendingBatches,0);assert.equal(settled.analytical.complete,true,'the stock exporter shutdown flush is retained before snapshot comparison')
   const all=await remoteWindows(call,reader.secret,metrics.windows)
   assert.ok(all.length>24)
+  assert.deepEqual(all,metrics.referenceSamples,'disjoint native windows reconcile the complete stock reference capture')
   const refusal=await remoteRead(call,quota.secret);assert.equal(refusal.status,429);assert.ok(Number(refusal.headers.get('retry-after'))>0)
   const foreign=await mint('read',{scope:{...scope,teams:['synthetic-porthole-6199']}})
   assert.deepEqual(await remoteSeries(await remoteRead(call,foreign.secret)),[],'restricted series never appear')
@@ -265,6 +268,21 @@ export async function standardReadJourney({origin,cookie,call=(path,options)=>fe
   const decodedIds=limited.batches.flatMap(r=>r.scopeSpans.flatMap(s=>s.spans)).map(s=>Buffer.from(s.spanId,'base64').toString('hex'))
   assert.ok(decodedIds.length>0&&decodedIds.length<expected.length)
   assert.deepEqual(decodedIds.sort(),expected.filter(s=>s.resource?.['team.name']==='fulfillment').map(s=>s.spanId).sort())
+  const traceQuota=await mint('read',{scope:{...scope,services:['checkout','fulfillment'],teams:['commerce','fulfillment']},scannedBytesPerDay:1})
+  const traceBudget=await call('/api/traces/'+selected,{headers:auth(traceQuota.secret)})
+  assert.equal(traceBudget.status,429);assert.ok(Number(traceBudget.headers.get('retry-after'))>0)
+  assert.deepEqual(await traceBudget.json(),{error:'credential_quota_exceeded'},'trace quota exhaustion releases no spans')
+  const narrowedTrace=await mint('read',{scope:{...scope,services:['checkout','fulfillment'],teams:['commerce','fulfillment']}})
+  await value(await post(credential+'/rescope',{id:narrowedTrace.credential.id,scope:{...scope,services:['fulfillment'],teams:['fulfillment']}}))
+  const narrowedBody=await value(await call('/api/traces/'+selected,{headers:auth(narrowedTrace.secret)}))
+  assert.deepEqual(narrowedBody.batches.flatMap(r=>r.scopeSpans.flatMap(s=>s.spans)).map(s=>Buffer.from(s.spanId,'base64').toString('hex')).sort(),decodedIds,'next-request narrowing releases only the newly permitted spans')
+  await value(await post(credential+'/revoke',{id:narrowedTrace.credential.id}))
+  assert.equal((await call('/api/traces/'+selected,{headers:{cookie,...auth(narrowedTrace.secret)}})).status,401)
+  if(withPinnedClock){
+   const expiringTrace=await mint('read',{scope:{...scope,services:['checkout','fulfillment'],teams:['commerce','fulfillment']},expiresAt:Date.now()+60000})
+   await withPinnedClock(Date.now()+120000,async()=>assert.equal((await call('/api/traces/'+selected,{headers:auth(expiringTrace.secret)})).status,401))
+  }
+
   const before=all
   await restartWorker();cookie=await freshOwner()
   assert.deepEqual(await remoteWindows(call,reader.secret,metrics.windows),before,'restart preserves exact standard samples')
@@ -313,6 +331,16 @@ export async function standardAnalyticalJourney(){
   estate.afterQuery(async()=>{await value(await post(credential+'/revoke',{id:midTrace.credential.id}))})
   const revokedTrace=await call('/api/traces/'+traceId,{headers:auth(midTrace.secret)})
   assert.equal(revokedTrace.status,401);assert.deepEqual(await revokedTrace.json(),{error:'invalid_credential'},'a revoked trace read releases no accumulated spans')
+  for(const change of ['narrow','expire']){
+   const key=await value(await post(credential+'/mint',{name:'Changing trace authority',class:'read',scope:{...scope,services:['checkout','fulfillment'],teams:['commerce','fulfillment']}}),201)
+   estate.afterQuery(async()=>{
+    if(change==='narrow')await value(await post(credential+'/rescope',{id:key.credential.id,scope:{...scope,services:['fulfillment'],teams:['fulfillment']}}))
+    else await getDb().prepare('UPDATE porthole_credentials SET expires_at=created_at+1 WHERE id=?').bind(key.credential.id).run()
+   })
+   const response=await call('/api/traces/'+traceId,{headers:auth(key.secret)})
+   assert.equal(response.status,change==='narrow'?409:401)
+   assert.deepEqual(await response.json(),{error:change==='narrow'?'authority_changed':'invalid_credential'},'a changed trace credential releases no accumulated spans')
+  }
   const root=await getDb().prepare("SELECT id,span_id FROM porthole_telemetry_records WHERE trace_id=? AND json_extract(payload,'$.record.parentSpanId') IS NULL LIMIT 1").bind(traceId).first()
   assert.ok(root)
   await value(await post(api+'/export-exclusions',{confirm:'apply-exclusions',journal:{format:'porthole.export-exclusions.v1',records:[{recordId:root.id,excludedAt:Date.now()}]}}))
@@ -358,8 +386,8 @@ export async function standardSchemaProof({origin,cookie,call,source,reader,post
   {name:'synthetic.edge.gauge',unit:'ms',gauge:{dataPoints:[{...point,asDouble:24.5}]}},
   {name:'synthetic.edge.counter',sum:{aggregationTemporality:2,isMonotonic:true,dataPoints:[{...point,asInt:'17'}]}},
   {name:'synthetic.edge.nonmonotonic',sum:{aggregationTemporality:2,isMonotonic:false,dataPoints:[{...point,asInt:'-3'}]}},
-  {name:'synthetic.edge.histogram',unit:'s',histogram:{aggregationTemporality:2,dataPoints:[{...point,count:'6',sum:2,explicitBounds:[0.1,0.5],bucketCounts:['1','2','3']}]}},
-  {name:'synthetic.edge.summary',summary:{dataPoints:[{...point,count:'8',sum:4,quantileValues:[{quantile:0.5,value:0.2},{quantile:0.9,value:0.8}]}]}},
+  {name:'synthetic.edge.histogram',unit:'s',histogram:{aggregationTemporality:2,dataPoints:[{...point,count:'6',sum:2,explicitBounds:[0.0000001,0.5],bucketCounts:['1','2','3']}]}},
+  {name:'synthetic.edge.summary',summary:{dataPoints:[{...point,count:'8',sum:4,quantileValues:[{quantile:0.0000001,value:0.2},{quantile:0.9,value:0.8}]}]}},
  ]
  const wire=JSON.stringify({resourceMetrics:[{resource:{attributes},scopeMetrics:[{scope:{name:'synthetic-porthole-6111'},metrics}]}]})
  await value(await call('/v1/metrics',{method:'POST',headers:{...auth(source.secret),'content-type':'application/json'},body:wire}))
@@ -370,8 +398,8 @@ export async function standardSchemaProof({origin,cookie,call,source,reader,post
  assert.equal(byName('synthetic_edge_gauge_milliseconds')[0].metric.structured,String.raw`{"nested":[false,"AQID",[],null],"sequence":9007199254740993,"text":"\u003c\u003e\u0026"}`,'logical nested attributes retain byte values and exact int64 JSON labels')
  assert.deepEqual(byName('synthetic_edge_counter_total')[0].values,[[1000000,17]])
  assert.deepEqual(byName('synthetic_edge_nonmonotonic')[0].values,[[1000000,-3]])
- assert.deepEqual(byName('synthetic_edge_histogram_seconds_bucket').map(s=>[s.metric.le,s.values[0][1]]).sort(),[['+Inf',6],['0.1',1],['0.5',3]].sort())
- assert.deepEqual(byName('synthetic_edge_summary').map(s=>[s.metric.quantile,s.values[0][1]]).sort(),[['0.5',0.2],['0.9',0.8]])
+ assert.deepEqual(byName('synthetic_edge_histogram_seconds_bucket').map(s=>[s.metric.le,s.values[0][1]]).sort(),[['+Inf',6],['0.0000001',1],['0.5',3]].sort())
+ assert.deepEqual(byName('synthetic_edge_summary').map(s=>[s.metric.quantile,s.values[0][1]]).sort(),[['0.0000001',0.2],['0.9',0.8]])
  for(const label of ['absent','constructor']){
   const missing=await remoteSeries(await remoteRead(call,reader.secret,{...query,matchers:[['__name__','synthetic_edge_gauge_milliseconds'],[label,'',0]]}))
   assert.equal(missing.length,1,'absent label equals empty string, including inherited object names')
@@ -455,5 +483,23 @@ export async function standardSchemaProof({origin,cookie,call,source,reader,post
  assert.equal(byteRefusal.status,422);assert.deepEqual(await byteRefusal.json(),{error:'standard_read_budget_exceeded'})
  const unchanged=await value(await call(api+'/ingest/records?'+new URLSearchParams({signal:'metrics',metric:'synthetic.edge.bytes',limit:'200'}),{headers:auth(reader.secret)}))
  assert.deepEqual(unchanged.records,nativeBytes.records,'a budget refusal changes no retained sample')
+ const traceBudgetId='61000000000000000000000000000002'
+ for(let offset=0;offset<2001;offset+=100){
+  const spans=Array.from({length:Math.min(100,2001-offset)},(_,index)=>({traceId:traceBudgetId,spanId:(offset+index+1).toString(16).padStart(16,'0'),name:'synthetic-porthole-6120',startTimeUnixNano:String(largeAt),endTimeUnixNano:String(largeAt+100n)}))
+  await value(await call('/v1/traces',{method:'POST',headers:{...auth(source.secret),'content-type':'application/json'},body:JSON.stringify({resourceSpans:[{resource:{attributes},scopeSpans:[{spans}]}]})}))
+ }
+ let tracePending=1;for(let pass=0;pass<20&&tracePending;pass++)tracePending=(await value(await post(api+'/ingest/drain',{}))).pendingBatches
+ assert.equal(tracePending,0)
+ const traceExhausted=await call('/api/traces/'+traceBudgetId,{headers:auth(reader.secret)})
+ assert.equal(traceExhausted.status,422);assert.deepEqual(await traceExhausted.json(),{error:'standard_read_budget_exceeded'},'oversized traces refuse instead of silently returning the first page')
+ const byteTraceId='61000000000000000000000000000003'
+ for(let batch=0;batch<6;batch++){
+  const spans=Array.from({length:10},(_,index)=>({traceId:byteTraceId,spanId:(batch*10+index+1).toString(16).padStart(16,'0'),name:'synthetic-porthole-6121',startTimeUnixNano:String(largeAt),endTimeUnixNano:String(largeAt+100n),attributes:[{key:'synthetic.payload',value:{stringValue:'x'.repeat(20000)}}]}))
+  await value(await call('/v1/traces',{method:'POST',headers:{...auth(source.secret),'content-type':'application/json'},body:JSON.stringify({resourceSpans:[{resource:{attributes},scopeSpans:[{spans}]}]})}))
+ }
+ let traceBytesPending=1;for(let pass=0;pass<20&&traceBytesPending;pass++)traceBytesPending=(await value(await post(api+'/ingest/drain',{}))).pendingBatches
+ assert.equal(traceBytesPending,0)
+ const traceByteExhausted=await call('/api/traces/'+byteTraceId,{headers:auth(reader.secret)})
+ assert.equal(traceByteExhausted.status,422);assert.deepEqual(await traceByteExhausted.json(),{error:'standard_read_budget_exceeded'},'trace bytes below the row cap still refuse the entire response')
  console.log('PROBE PORT-061 schema and erasure: cumulative gauges, sums, buckets and summaries map exactly; raw float bits survive; delta and exponential inputs refuse; erased subject and replay remain absent after restart')
 }
