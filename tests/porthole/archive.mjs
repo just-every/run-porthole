@@ -232,7 +232,7 @@ export async function archiveJourney({origin,cookie,sql,restartWorker,freshOwner
 
 async function archiveBrowserJourney({origin,cookie}) {
  const {chromium}=await import('@playwright/test')
- const browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']})
+ const browser=await chromium.launch({headless:true,...(process.env.PORTHOLE_CHROMIUM_PATH?{executablePath:process.env.PORTHOLE_CHROMIUM_PATH}:{}),args:['--no-sandbox','--use-mock-keychain','--password-store=basic']})
  try {
   for(const width of [1440,390]) {
    const context=await browser.newContext({viewport:{width,height:width===1440?900:844}})
@@ -1196,4 +1196,61 @@ export async function clusterArchiveJourney({origin,freshOwner,withEmptyDestinat
   await clusterBrowser({origin:destination.origin,cookie:acting,path:'/app/explore/clusters?'+new URLSearchParams({...query,limit:'50'}),name:'patterns-inactive-restored',contains:'236 retained records in 2 patterns'})
  })
  console.log('PROBE PORT-011 restore: owner installation archive -> independent inactive destination -> original pattern counts, members and re-export retained; zero restored credentials')
+}
+
+/** Reviewed service metadata restores as inactive history without authority. */
+export async function servicesArchiveJourney({origin,freshOwner,restartWorker,withEmptyDestination,id,query,expected,summary,associations,discovery}) {
+ let cookie=await freshOwner()
+ const source=await savedExport(origin,cookie,await post(origin,cookie,api+'/exports',{})),root='/api/porthole/v1/services/'+id
+ const largest=source.chunks.reduce((best,chunk)=>Buffer.byteLength(JSON.stringify(chunk))>Buffer.byteLength(JSON.stringify(best))?chunk:best)
+ if(restartWorker){await restartWorker();cookie=await freshOwner()}
+ assert.deepEqual(await value(await get(origin,cookie,`${api}/exports/${source.job.id}/chunks/${largest.index}`)),largest,'large archived stock captures replay exactly from the frozen snapshot')
+ const rows=source.rows.filter(row=>row.table==='porthole_service_versions')
+ assert.equal(rows.length,3);assert.deepEqual(rows.map(r=>r.row.revision),[1,2,3])
+ assert.equal(rows[2].row.runbook,expected.runbook)
+ await withEmptyDestination(async destination=>{
+  const owner=await destination.freshOwner(),start=await value(await post(destination.origin,owner,api+'/restores',{manifest:source.manifest}),201)
+  for(const chunk of source.chunks){
+   await value(await post(destination.origin,owner,`${api}/restores/${start.id}/chunks`,{chunk}))
+   if(chunk.index===largest.index){
+    await value(await post(destination.origin,owner,`${api}/restores/${start.id}/chunks`,{chunk}))
+    const before=await value(await get(destination.origin,owner,`${api}/restores/${start.id}`))
+    const staged=await destination.sql('SELECT ordinal,payload FROM porthole_archive_rows WHERE job_id='+literal(start.id)+' ORDER BY ordinal')
+    const changed={...chunk,previousHash:chunk.previousHash==='f'.repeat(64)?'e'.repeat(64):'f'.repeat(64)}
+    assert.equal((await value(await post(destination.origin,owner,`${api}/restores/${start.id}/chunks`,{chunk:changed}),409)).error,'archive_chunk_conflict')
+    assert.deepEqual(await value(await get(destination.origin,owner,`${api}/restores/${start.id}`)),before,'a conflicting large-packet replay changes no staged rows or progress')
+    assert.deepEqual(await destination.sql('SELECT ordinal,payload FROM porthole_archive_rows WHERE job_id='+literal(start.id)+' ORDER BY ordinal'),staged,'conflicting packet content leaves every staged row unchanged')
+   }
+  }
+  await value(await post(destination.origin,owner,`${api}/restores/${start.id}/commit`,{confirm:source.manifest.rootHash}))
+  const restored=await value(await get(destination.origin,owner,root+query))
+  assert.equal(restored.metadata.state,'quarantined');assert.equal(restored.metadata.runbook,expected.runbook);assert.equal(restored.metadata.criticality,expected.criticality)
+  assert.deepEqual(restored.summary,summary,'inactive restoration preserves the independently reconciled request and latency values')
+  assert.deepEqual(restored.associations,associations,'inactive restoration preserves the exact source dependency observations')
+  const discoveryFields=service=>Object.fromEntries(['id','service','environment','team','versions','summary','associations'].map(key=>[key,service[key]]))
+  assert.deepEqual((await value(await get(destination.origin,owner,'/api/porthole/v1/services'+discovery.query))).services.map(discoveryFields),discovery.services,'inactive restore preserves distinct environments, rolling versions and source trace references')
+  assert.equal(restored.history.length,3);assert.ok(restored.history.every(r=>r.state==='quarantined'))
+  assert.deepEqual(restored.alerts,[],'inactive monitor history cannot revive a firing episode after restore')
+  const originalFiring=source.rows.filter(r=>r.table==='porthole_monitor_evaluations'&&r.row.status==='Firing')
+  assert.ok(originalFiring.length,'the actual firing evaluation is included in the installation archive')
+  const retained=(await destination.sql('SELECT id,firing_episode FROM porthole_monitor_evaluations')).find(row=>row.id===originalFiring[0].row.id)
+  assert.equal(retained.firing_episode,originalFiring[0].row.firing_episode,'inactive restore preserves the exact original episode identity')
+  assert.equal((await get(destination.origin,cookie,root+query)).status,401,'source native session is never restored')
+  assert.equal((await destination.sql('SELECT COUNT(*) AS n FROM porthole_credentials'))[0].n,0)
+  assert.equal((await destination.sql('SELECT COUNT(*) AS n FROM porthole_members WHERE operator_id='+literal(expected.owner_ref)))[0].n,0,'metadata owner reference creates no destination member')
+  assert.ok(Object.values(restored.names).every(name=>name==='Unavailable member'))
+  const exported=await savedExport(destination.origin,owner,await post(destination.origin,owner,api+'/exports',{})),again=exported.rows.filter(r=>r.table==='porthole_service_versions')
+  const telemetry=rows=>rows.filter(row=>['porthole_ingest_batches','porthole_telemetry_records','porthole_telemetry_archive'].includes(row.table))
+  assert.deepEqual(telemetry(exported.rows),telemetry(source.rows),'large-packet restore and re-export retain every original wire byte and normalized record')
+  const retry=exported.chunks.reduce((best,chunk)=>Buffer.byteLength(JSON.stringify(chunk))>Buffer.byteLength(JSON.stringify(best))?chunk:best)
+  assert.deepEqual(await value(await get(destination.origin,owner,`${api}/exports/${exported.job.id}/chunks/${retry.index}`)),retry,'inactive re-export retains exact large-packet replay')
+  assert.deepEqual(again.map(r=>({...r.row,state:'active'})),rows.map(r=>r.row),'re-export preserves every exact metadata revision')
+  const {servicesBrowser}=await import('./services.mjs')
+  await servicesBrowser({origin:destination.origin,cookie:owner,path:'/app/services/'+id+query,contains:'Inactive restored metadata',name:'services-inactive-restored'})
+  await destination.restartWorker()
+  assert.equal((await value(await get(destination.origin,await destination.freshOwner(),root+query))).metadata.state,'quarantined')
+ })
+ console.log('PROBE PORT-008 archive: actual native export, empty restore and re-export -> three exact inactive revisions; no source sessions, credentials or owner membership restored')
+ console.log('PROBE PORT-008 archive-packets: largest stock-capture packet bytes='+Buffer.byteLength(JSON.stringify(largest))+' -> export retry and restore retry preserve its exact rows, digest and order')
+ return {id:source.job.id,chunk:largest.index}
 }

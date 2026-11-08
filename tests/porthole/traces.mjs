@@ -176,7 +176,7 @@ export async function traceJourney({origin,freshOwner,signIn,restartWorker,sql,w
 
 async function policyBrowser({origin,cookie,policyInput}) {
  const {chromium}=await import('@playwright/test')
- const browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']})
+ const browser=await chromium.launch({headless:true,...(process.env.PORTHOLE_CHROMIUM_PATH?{executablePath:process.env.PORTHOLE_CHROMIUM_PATH}:{}),args:['--no-sandbox','--use-mock-keychain','--password-store=basic']})
  try {for(const width of [1440,390]){
   const context=await browser.newContext({viewport:{width,height:width===1440?900:844}})
   await context.addCookies(cookie.split('; ').map(value=>({name:value.slice(0,value.indexOf('=')),value:value.slice(value.indexOf('=')+1),url:origin})))
@@ -190,4 +190,24 @@ async function policyBrowser({origin,cookie,policyInput}) {
   if(process.env.PORTHOLE_EVIDENCE_DIR){await mkdir(process.env.PORTHOLE_EVIDENCE_DIR,{recursive:true});await page.screenshot({path:join(process.env.PORTHOLE_EVIDENCE_DIR,'baggage-owner-policy-'+width+'.png'),fullPage:true})}
   await context.close()
  }}finally{await browser.close()}
+}
+
+/** Reconcile native catalog edges with independently captured stock parent IDs. */
+export async function serviceTopologyProof({read,proof,view,checkout,fulfillment}) {
+ // Inspect the exact retained source behind every association through the
+ // existing native trace API; a catalog label alone is insufficient evidence.
+ for(const service of view.services)for(const association of service.associations){
+  const graph=await read('/api/porthole/v1/traces/'+association.evidence.traceId+'?snapshot='+view.snapshot)
+  const span=graph.spans.find(span=>span.spanId===association.evidence.spanId)
+  assert.ok(span,'association refers to an actual retained stock span')
+  assert.equal(span.service,service.service);assert.equal(span.environment,service.environment);assert.equal(span.team,service.team)
+  assert.equal(span.endTimeNs,association.lastSeenNs)
+ }
+ const parents=new Map(proof.spans.map(span=>[span.traceId+':'+span.spanId,span]))
+ const cross=proof.spans.filter(span=>{const parent=parents.get(span.traceId+':'+span.parentSpanId);return parent&&parent.resource['service.name']!==span.resource['service.name']}).length
+ assert.ok(view.edges.some(edge=>edge.from===checkout.id&&edge.to===fulfillment.id&&edge.kind==='observed-parent'))
+ assert.equal(view.edges.filter(edge=>edge.to).reduce((count,edge)=>count+edge.observations,0),cross,'observed dependency totals reconcile against original stock parent identities')
+ const traceId=proof.spans.find(span=>span.kind===2&&span.resource['service.name']==='checkout').traceId
+ const graph=await read('/api/porthole/v1/traces/'+traceId)
+ assert.ok(graph.spans.some(span=>span.service==='fulfillment'),'the native trace door opens the actual checkout dependency')
 }

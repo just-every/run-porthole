@@ -1,4 +1,6 @@
 import { databasePrivacy,assertDatabaseWire } from '../database/privacy'
+import {validateMetadata} from '../services/model'
+import {serviceId} from '../services/read'
 import {hostDefinition,validateHostEvidence} from '../monitors/types/host-heartbeat'
 import {assertGenAIMetadata} from '../genai/privacy'
 import {assertGenAIWire} from '../genai/wire'
@@ -38,6 +40,7 @@ const bad = (): never => fail('archive_semantics_invalid',422)
 const object = (value: unknown): value is Record<string,unknown> => !!value && typeof value==='object' && !Array.isArray(value)
 export function manifestInput(value: unknown): Manifest {
  if(!object(value) || Object.keys(value).sort().join(',')!==['format','id','createdAt','rowCount','chunks','rootHash','tables','inactive'].sort().join(',') || value.format!==format || !uuid(value.id) || !integer(value.createdAt) || !integer(value.rowCount) || !integer(value.chunks) || !hex(value.rootHash) || value.inactive!==true || !object(value.tables)) return bad()
+ if(!Object.hasOwn(value.tables,'porthole_service_versions'))value.tables.porthole_service_versions=0
  // Older archives predate export exclusions. Their absent journal is empty;
  // a later destination journal still wins during restore.
  for(const table of ['porthole_notebooks','porthole_notebook_versions','porthole_notebook_publications'])if(!Object.hasOwn(value.tables,table))value.tables[table]=0
@@ -74,7 +77,10 @@ export async function validateRow(payload: PortableRow, state: Validation): Prom
  if(Object.keys(row).sort().join(',')!==[...item.columns].sort().join(',')) bad()
  for(const [key,value] of Object.entries(row)) if(value!==null && typeof value!=='string' && !(item.table==='porthole_metric_points'&&key==='value'?Number.isSafeInteger(value):integer(value))) bad()
  const required=(...keys:string[])=>{for(const key of keys)if(!str(row[key]) || !(row[key] as string).length)bad()}
- if(item.table==='porthole_notebook_publications') {
+ if(item.table==='porthole_service_versions') {
+  validateMetadata(row)
+  if(await serviceId(row as unknown as {service:string;environment:string;team:string})!==row.id)bad()
+ } else if(item.table==='porthole_notebook_publications') {
   publicationRow(row)
  } else if(['porthole_notebooks','porthole_notebook_versions'].includes(item.table)) {
   notebookRow(row)
