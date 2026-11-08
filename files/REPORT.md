@@ -56,7 +56,7 @@ The final diff is limited to `./src/porthole/signals/standard/prometheus.ts`, `.
 
 1. FAIL for full DONE: point 3 and the named held remainder are not complete. The requested bounded live-read outcomes are covered by the rubric above.
 2. PASS for the implemented slice: real seeded stock input, exact reference comparisons, allowed reads and dangerous refusals are exercised. There is no empty-list-only or happy-path-only authority proof.
-3. PENDING candidate Verify: verification.json invokes both standard journeys in the push source shard. The continuation base's push Verify 42526716070 completed successfully on ff590be64b7cac3eaf2128c9833c641072cd8fb5; that is not a green result for the new candidate.
+3. PASS exact-candidate Verify: verification.json invokes both standard journeys in the push source shard. Push Verify 42531988910 completed successfully on 4a86b252865d95d341e2a54d5b5b88e98c40bdd4. The earlier base Verify 42526716070 remains separate historical evidence.
 4. PASS local exact-candidate binding: final local receipt files name 4a86b252865d95d341e2a54d5b5b88e98c40bdd4 and a clean worktree. Earlier development runs are labeled separately and are not substituted for final proof.
 5. INSPECTED: receiving acceptance point 3 already names the archive and later-erasure-journal duty; the full inherited custody gaps remain explicit. This round changes no inheritance or acceptance text.
 6. PASS mechanical generation: the documented PORT-061 write and check commands pass, generated views are restored from main, and source-lock check passes. Status, Gap and Evidence cells are unchanged.
@@ -91,13 +91,24 @@ The expanded analytical erasure exercise then reached the existing `analytical_e
 An environment reconnect interrupted receipt collection for one earlier development trial. Its actual terminal assertion log is retained separately; it is not used as final candidate proof. The final runs use fresh complete receipt files.
 
 
+## CI triage
+
+The first exact-candidate Verify attempt failed in job 128888013610, the typecheck shard. TypeScript compilation and all seven incremental typecheck tests passed. The failing command was `node --input-type=module -e 'import {nativeBackupErasureJourney} from "./tests/porthole/archive.mjs"; await nativeBackupErasureJourney()'`. Wrangler's local D1 read of `porthole_host_heartbeats` failed with `workerd/util/sqlite.c++:1710: SENTRY_DO SQLite failed; NOSENTRY database is locked: SQLITE_BUSY`, exit 1. The full actual failed-step log is retained as ci-failed-typecheck.log; ci-jobs.json records every job outcome. The source shard containing both new standard journeys passed, as did exports, ingest, traces, runtime, dashboards, migration, follow-up and mail. The unrelated analytical shard was cancelled.
+
+Before any repair, the exact failed shard command `node scripts/verify-ci.mjs typecheck` ran unchanged on the candidate under Node 22.20.0 with CI, Wrangler and browser settings matching the cloud adaptation. It passed, exit 0, including native backup and both Services configurations. The same native-backup command then ran against main ff590be64b7cac3eaf2128c9833c641072cd8fb5 in the same runner after building main; it also passed, exit 0. The product checkout was restored to cloud/sx-porthole-c-f463 at the unchanged candidate. No source or assertion was edited during CI triage.
+
+This is a transient SQLite contention failure in unchanged backup code. The one permitted failed-job rerun was requested for run 42531988910. verify-reproduce.json, main-native-backup.json and ci-rerun.json retain actual commands, heads, exits and request time. This was an infrastructure rerun, not a code repair round. No nonzero local reproduction is claimed.
+
+
+
+
 ## Terminal candidate and receipts
 
 Candidate: 4a86b252865d95d341e2a54d5b5b88e98c40bdd4 on cloud/sx-porthole-c-f463. Current main at the final fetch was ff590be64b7cac3eaf2128c9833c641072cd8fb5. The final merge was already up to date. The fleet guard pushed the candidate successfully on its first attempt. Every candidate author and committer is the fleet identity; no trailer is present. Published history was not rewritten. No PR was required or created.
 
 All eight local checks passed with complete receipts bound to this exact candidate and a clean worktree. The native and analytical journeys returned 214 metric series, 1092 source-exact samples, three distinct stock trace cases and eight spans in the selected trace. Native elapsed time includes waiting behind the analytical run in the repository queue; no scale or latency claim is made.
 
-Verify run 42531988910 (push) on the exact candidate is in_progress, conclusion None. https://github.com/just-every/run-porthole/actions/runs/42531988910
+Verify run 42531988910 (push) on the exact candidate is completed, conclusion success. https://github.com/just-every/run-porthole/actions/runs/42531988910
 
 MECHANICAL lock=pnpm run source:lock then pnpm run source:check exit=0; views=node scripts/porthole/contract-docs.mjs write PORT-061 then check PORT-061, restored main views exit=0; ledger=none exit=0.
 
@@ -112,3 +123,5 @@ PROBE PORT-061 erasure: actual native erasure -> empty metrics and trace 404, re
 GAP PORT-061: Complete subject erasure, analytical deletion, external and derived custody, RUM and locked S3 proof, provider cost qualification and held log and profile prerequisites remain open. No DONE claim or count change.
 
 The full-history publication scan, main equality and Run site are unestablished in this cloud report and remain mandatory lander checks. Evidence publication transfers reports only and does not signal product acceptance or landing.
+
+Exact-SHA Verify completed successfully on attempt 2 after the one permitted infrastructure rerun. GitHub budget used: 10 calls, including baseline inspection, candidate discovery and polling, failed-job metadata and one log archive, the rerun request and the final status. No code repair was made.

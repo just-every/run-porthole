@@ -1,0 +1,10 @@
+{
+  "run": 42531988910,
+  "head": "4a86b252865d95d341e2a54d5b5b88e98c40bdd4",
+  "action": "rerun-failed-jobs",
+  "request_exit": 0,
+  "requested_at": "2026-11-08T23:18:08.165833+00:00",
+  "attempts_requested": 1,
+  "reason": "Transient workerd SQLite SQLITE_BUSY; unchanged full failed shard passes on candidate with Node 22.20.0, and the failed native-backup test passes on main in the same runner.",
+  "code_repair": false
+}

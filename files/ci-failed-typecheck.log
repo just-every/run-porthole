@@ -1,0 +1,150 @@
+shards (typecheck, true)	Run this shard	﻿2026-11-08T22:48:20.5295249Z ##[group]Run node scripts/verify-ci.mjs "$SHARD"
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:20.5295461Z [36;1mnode scripts/verify-ci.mjs "$SHARD"[0m
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:20.5309070Z shell: /usr/bin/bash -e {0}
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:20.5309203Z env:
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:20.5309305Z   CI: true
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:20.5309421Z   WRANGLER_SEND_METRICS: false
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:20.5309561Z   PLAYWRIGHT_SKIP_BROWSER_GC: 1
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:20.5309696Z   SHARD: typecheck
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:20.5309948Z ##[endgroup]
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:20.5526222Z > pnpm run verify:app
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:20.7111814Z 
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:20.7112643Z > @just-every/porthole@0.1.0 verify:app /home/runner/work/run-porthole/run-porthole
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:20.7113132Z > node scripts/verify-app.mjs
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:20.7113280Z 
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:20.7308079Z > pnpm run build
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:20.8890067Z 
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:20.8890569Z > @just-every/porthole@0.1.0 build /home/runner/work/run-porthole/run-porthole
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:20.8890834Z > rer build
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:20.8890904Z 
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:21.2691967Z Checking pinned pnpm
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:21.4174856Z 10.12.4
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:21.4737256Z Building your application
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:21.7058319Z build:app
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:22.9780902Z vite v8.2.2 building client environment for production...
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:22.9851295Z transforming...
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:23.0425073Z ✓ 141 modules transformed.
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:23.0834875Z rendering chunks...
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:23.1220728Z computing gzip size...
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:23.1260618Z dist/client/.assetsignore               0.02 kB
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:23.1261207Z dist/client/assets/index-CRqGoFgh.js  313.67 kB │ gzip: 101.76 kB
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:23.1261377Z 
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:23.2770079Z ✓ built in 300ms
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:23.2773508Z vite v8.2.2 building ssr environment for production...
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:23.2837614Z transforming...
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:23.6412005Z ✓ 828 modules transformed.
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:23.6958967Z rendering chunks...
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:23.8295772Z computing gzip size...
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:23.8659377Z dist/server/wrangler.json                                      1.65 kB │ gzip:   0.83 kB
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:23.8659969Z dist/server/.vite/manifest.json                                2.35 kB │ gzip:   0.53 kB
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:23.8660389Z dist/server/assets/empty-plugin-adapters-D_0twvAa.js           0.28 kB │ gzip:   0.18 kB
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:23.8660878Z dist/server/assets/start-BRPP0LUH.js                           0.28 kB │ gzip:   0.20 kB
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:23.8661382Z dist/server/assets/_tanstack-start-manifest_v-CiDJhoiU.js      0.37 kB │ gzip:   0.26 kB
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:23.8661904Z dist/server/assets/wire-C5pyjjqN.js                            7.77 kB │ gzip:   2.90 kB
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:23.8662482Z dist/server/assets/router-B-pF21YZ.js                         37.45 kB │ gzip:  10.06 kB
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:23.8662976Z dist/server/assets/Match-vf3DrRnt.js                         169.04 kB │ gzip:  42.60 kB
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:23.8663484Z dist/server/index.js                                       3,311.61 kB │ gzip: 808.85 kB
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:23.8663698Z 
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:23.8886337Z [INEFFECTIVE_DYNAMIC_IMPORT] src/porthole/ingest/otlp-proto.ts is dynamically imported by src/porthole/database/privacy.ts but also statically imported by src/porthole/genai/wire.ts, src/porthole/ingest/http.ts, src/porthole/signals/standard/tempo.ts, dynamic import will not move module into another chunk.
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:23.8905647Z 
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:23.8907536Z [INEFFECTIVE_DYNAMIC_IMPORT] src/modules/import-kit/src/d1/undo-snapshot.ts is dynamically imported by src/modules/import-kit/src/d1/apply.ts but also statically imported by src/modules/import-kit/src/d1/preserved-preview.ts, src/modules/import-kit/src/d1/preserved-reverse.ts, dynamic import will not move module into another chunk.
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:23.8909019Z 
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:23.8909550Z ✓ built in 611ms
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:24.2701490Z Your application is built
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:24.2919629Z build: complete (exit 0)
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:24.3113173Z > pnpm run typecheck
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:24.4753218Z 
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:24.4754715Z > @just-every/porthole@0.1.0 typecheck /home/runner/work/run-porthole/run-porthole
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:24.4755220Z > tsc --build --incremental
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:24.4755383Z 
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:29.7535091Z > pnpm run test:typecheck
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:29.9210989Z 
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:29.9211815Z > @just-every/porthole@0.1.0 test:typecheck /home/runner/work/run-porthole/run-porthole
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:29.9212260Z > rer queue test:typecheck -- sh -c "node --test tests/incremental-typecheck.test.mjs"
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:29.9212790Z 
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:29.9847208Z test:typecheck
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:30.0233957Z TAP version 13
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:45.2473111Z # Subtest: exported foundation incremental typecheck
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:45.2477218Z     # Subtest: cold and deleted-cache runs fully check; unchanged warm run skips the checker
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:45.2477737Z     ok 1 - cold and deleted-cache runs fully check; unchanged warm run skips the checker
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:45.2478235Z       ---
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:45.2478522Z       duration_ms: 14931.232114
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:45.2478768Z       type: 'test'
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:45.2478950Z       ...
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:49.5639128Z     # Subtest: a new local source error fails, including a repeated unchanged failing run
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:49.5642804Z     ok 2 - a new local source error fails, including a repeated unchanged failing run
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:49.5643209Z       ---
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:49.5643441Z       duration_ms: 4318.962333
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:49.5643711Z       type: 'test'
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:49.5643897Z       ...
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:51.7925592Z     # Subtest: an exported type edit invalidates its unchanged dependent file
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:51.7926929Z     ok 3 - an exported type edit invalidates its unchanged dependent file
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:51.7927529Z       ---
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:51.7927713Z       duration_ms: 2226.914744
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:51.7928044Z       type: 'test'
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:51.7928234Z       ...
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:54.1528797Z     # Subtest: reverting both edits restores a clean check and warm skip
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:54.1532066Z     ok 4 - reverting both edits restores a clean check and warm skip
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:54.1532409Z       ---
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:54.1532629Z       duration_ms: 2361.764339
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:54.1532861Z       type: 'test'
+shards (typecheck, true)	Run this shard	2026-11-08T22:48:54.1533045Z       ...
+shards (typecheck, true)	Run this shard	2026-11-08T22:49:08.9094098Z     # Subtest: a changed compiler option detects a previously valid unchanged source
+shards (typecheck, true)	Run this shard	2026-11-08T22:49:08.9098776Z     ok 5 - a changed compiler option detects a previously valid unchanged source
+shards (typecheck, true)	Run this shard	2026-11-08T22:49:08.9099313Z       ---
+shards (typecheck, true)	Run this shard	2026-11-08T22:49:08.9099572Z       duration_ms: 14756.127181
+shards (typecheck, true)	Run this shard	2026-11-08T22:49:08.9099783Z       type: 'test'
+shards (typecheck, true)	Run this shard	2026-11-08T22:49:08.9099957Z       ...
+shards (typecheck, true)	Run this shard	2026-11-08T22:49:16.3942335Z     # Subtest: metadata from a different TypeScript version forces a full recheck
+shards (typecheck, true)	Run this shard	2026-11-08T22:49:16.3944425Z     ok 6 - metadata from a different TypeScript version forces a full recheck
+shards (typecheck, true)	Run this shard	2026-11-08T22:49:16.3944815Z       ---
+shards (typecheck, true)	Run this shard	2026-11-08T22:49:16.3945188Z       duration_ms: 7484.786077
+shards (typecheck, true)	Run this shard	2026-11-08T22:49:16.3945468Z       type: 'test'
+shards (typecheck, true)	Run this shard	2026-11-08T22:49:16.3945655Z       ...
+shards (typecheck, true)	Run this shard	2026-11-08T22:49:16.4548934Z     1..6
+shards (typecheck, true)	Run this shard	2026-11-08T22:49:16.4552027Z ok 1 - exported foundation incremental typecheck
+shards (typecheck, true)	Run this shard	2026-11-08T22:49:16.4552352Z   ---
+shards (typecheck, true)	Run this shard	2026-11-08T22:49:16.4552552Z   duration_ms: 46408.200741
+shards (typecheck, true)	Run this shard	2026-11-08T22:49:16.4552777Z   type: 'test'
+shards (typecheck, true)	Run this shard	2026-11-08T22:49:16.4552961Z   ...
+shards (typecheck, true)	Run this shard	2026-11-08T22:49:16.4645284Z 1..1
+shards (typecheck, true)	Run this shard	2026-11-08T22:49:16.4647071Z # tests 7
+shards (typecheck, true)	Run this shard	2026-11-08T22:49:16.4647339Z # suites 0
+shards (typecheck, true)	Run this shard	2026-11-08T22:49:16.4647516Z # pass 7
+shards (typecheck, true)	Run this shard	2026-11-08T22:49:16.4647682Z # fail 0
+shards (typecheck, true)	Run this shard	2026-11-08T22:49:16.4648025Z # cancelled 0
+shards (typecheck, true)	Run this shard	2026-11-08T22:49:16.4648222Z # skipped 0
+shards (typecheck, true)	Run this shard	2026-11-08T22:49:16.4648392Z # todo 0
+shards (typecheck, true)	Run this shard	2026-11-08T22:49:16.4648596Z # duration_ms 46453.272863
+shards (typecheck, true)	Run this shard	2026-11-08T22:49:16.5286634Z > node --input-type=module -e 'import {nativeBackupErasureJourney} from "./tests/porthole/archive.mjs"; await nativeBackupErasureJourney()'
+shards (typecheck, true)	Run this shard	2026-11-08T22:49:51.7736947Z node:internal/errors:983
+shards (typecheck, true)	Run this shard	2026-11-08T22:49:51.7737266Z   const err = new Error(message);
+shards (typecheck, true)	Run this shard	2026-11-08T22:49:51.7737785Z               ^
+shards (typecheck, true)	Run this shard	2026-11-08T22:49:51.7738042Z 
+shards (typecheck, true)	Run this shard	2026-11-08T22:49:51.7739358Z Error: Command failed: /opt/hostedtoolcache/node/22.20.0/x64/bin/node /home/runner/work/run-porthole/run-porthole/node_modules/wrangler/bin/wrangler.js d1 execute foundation --local --persist-to /tmp/porthole-native-erasure-axq3EE/source/.wrangler/state --config /tmp/porthole-native-erasure-axq3EE/source/wrangler.jsonc --json --command SELECT * FROM porthole_host_heartbeats
+shards (typecheck, true)	Run this shard	2026-11-08T22:49:51.7740893Z e = workerd/util/sqlite.c++:1710: failed: SENTRY_DO SQLite failed; NOSENTRY database is locked: SQLITE_BUSY
+shards (typecheck, true)	Run this shard	2026-11-08T22:49:51.7744308Z stack: /home/runner/work/run-porthole/run-porthole/node_modules/.pnpm/@cloudflare+workerd-linux-64@1.20260907.1/node_modules/@cloudflare/workerd-linux-64/bin/workerd@387bf98 /home/runner/work/run-porthole/run-porthole/node_modules/.pnpm/@cloudflare+workerd-linux-64@1.20260907.1/node_modules/@cloudflare/workerd-linux-64/bin/workerd@388a987 /home/runner/work/run-porthole/run-porthole/node_modules/.pnpm/@cloudflare+workerd-linux-64@1.20260907.1/node_modules/@cloudflare/workerd-linux-64/bin/workerd@388a635 /home/runner/work/run-porthole/run-porthole/node_modules/.pnpm/@cloudflare+workerd-linux-64@1.20260907.1/node_modules/@cloudflare/workerd-linux-64/bin/workerd@37f0d94 /home/runner/work/run-porthole/run-porthole/node_modules/.pnpm/@cloudflare+workerd-linux-64@1.20260907.1/node_modules/@cloudflare/workerd-linux-64/bin/workerd@3299cf0 /home/runner/work/run-porthole/run-porthole/node_modules/.pnpm/@cloudflare+workerd-linux-64@1.20260907.1/node_modules/@cloudflare/workerd-linux-64/bin/workerd@266b0a0 /home/runner/work/run-porthole/run-porthole/node_modules/.pnpm/@cloudflare+workerd-linux-64@1.20260907.1/node_modules/@cloudflare/workerd-linux-64/bin/workerd@266abe6 /home/runner/work/run-porthole/run-porthole/node_modules/.pnpm/@cloudflare+workerd-linux-64@1.20260907.1/node_modules/@cloudflare/workerd-linux-64/bin/workerd@3d12ba8; sentryErrorContext = jsgInternalError; wdErrId = qt9koonu0mci6h97ooqlsu9g
+shards (typecheck, true)	Run this shard	2026-11-08T22:49:51.7746944Z 
+shards (typecheck, true)	Run this shard	2026-11-08T22:49:51.7747047Z     at genericNodeError (node:internal/errors:983:15)
+shards (typecheck, true)	Run this shard	2026-11-08T22:49:51.7747263Z     at wrappedFn (node:internal/errors:537:14)
+shards (typecheck, true)	Run this shard	2026-11-08T22:49:51.7747482Z     at ChildProcess.exithandler (node:child_process:417:12)
+shards (typecheck, true)	Run this shard	2026-11-08T22:49:51.7747700Z     at ChildProcess.emit (node:events:519:28)
+shards (typecheck, true)	Run this shard	2026-11-08T22:49:51.7748045Z     at maybeClose (node:internal/child_process:1101:16)
+shards (typecheck, true)	Run this shard	2026-11-08T22:49:51.7748428Z     at ChildProcess._handle.onexit (node:internal/child_process:304:5) {
+shards (typecheck, true)	Run this shard	2026-11-08T22:49:51.7748776Z   code: 1,
+shards (typecheck, true)	Run this shard	2026-11-08T22:49:51.7748985Z   killed: false,
+shards (typecheck, true)	Run this shard	2026-11-08T22:49:51.7749162Z   signal: null,
+shards (typecheck, true)	Run this shard	2026-11-08T22:49:51.7750047Z   cmd: '/opt/hostedtoolcache/node/22.20.0/x64/bin/node /home/runner/work/run-porthole/run-porthole/node_modules/wrangler/bin/wrangler.js d1 execute foundation --local --persist-to /tmp/porthole-native-erasure-axq3EE/source/.wrangler/state --config /tmp/porthole-native-erasure-axq3EE/source/wrangler.jsonc --json --command SELECT * FROM porthole_host_heartbeats',
+shards (typecheck, true)	Run this shard	2026-11-08T22:49:51.7750796Z   stdout: '\n' +
+shards (typecheck, true)	Run this shard	2026-11-08T22:49:51.7750911Z     '{\n' +
+shards (typecheck, true)	Run this shard	2026-11-08T22:49:51.7751025Z     '  "error": {\n' +
+shards (typecheck, true)	Run this shard	2026-11-08T22:49:51.7752683Z     '    "text": "Failed to parse body as JSON, got: Error: internal error; reference = qt9koonu0mci6h97ooqlsu9g\\n    at D1DatabaseObject.queryExecute (file:///home/runner/work/run-porthole/run-porthole/node_modules/.pnpm/miniflare@5.20260907.0-alpha_@types+node@22.18.8/node_modules/miniflare/dist/src/workers/d1/database.worker.js:198:73)\\n    at async D1DatabaseObject.fetch (file:///home/runner/work/run-porthole/run-porthole/node_modules/.pnpm/miniflare@5.20260907.0-alpha_@types+node@22.18.8/node_modules/miniflare/dist/src/workers/shared/index.worker.js:388:18)\\n    at async D1DatabaseObject.fetch (file:///home/runner/work/run-porthole/run-porthole/node_modules/.pnpm/miniflare@5.20260907.0-alpha_@types+node@22.18.8/node_modules/miniflare/dist/src/workers/shared/index.worker.js:555:14)"\n' +
+shards (typecheck, true)	Run this shard	2026-11-08T22:49:51.7755171Z     '  }\n' +
+shards (typecheck, true)	Run this shard	2026-11-08T22:49:51.7755337Z     '}\n',
+shards (typecheck, true)	Run this shard	2026-11-08T22:49:51.7755775Z   stderr: 'e = workerd/util/sqlite.c++:1710: failed: SENTRY_DO SQLite failed; NOSENTRY database is locked: SQLITE_BUSY\n' +
+shards (typecheck, true)	Run this shard	2026-11-08T22:49:51.7760914Z     'stack: /home/runner/work/run-porthole/run-porthole/node_modules/.pnpm/@cloudflare+workerd-linux-64@1.20260907.1/node_modules/@cloudflare/workerd-linux-64/bin/workerd@387bf98 /home/runner/work/run-porthole/run-porthole/node_modules/.pnpm/@cloudflare+workerd-linux-64@1.20260907.1/node_modules/@cloudflare/workerd-linux-64/bin/workerd@388a987 /home/runner/work/run-porthole/run-porthole/node_modules/.pnpm/@cloudflare+workerd-linux-64@1.20260907.1/node_modules/@cloudflare/workerd-linux-64/bin/workerd@388a635 /home/runner/work/run-porthole/run-porthole/node_modules/.pnpm/@cloudflare+workerd-linux-64@1.20260907.1/node_modules/@cloudflare/workerd-linux-64/bin/workerd@37f0d94 /home/runner/work/run-porthole/run-porthole/node_modules/.pnpm/@cloudflare+workerd-linux-64@1.20260907.1/node_modules/@cloudflare/workerd-linux-64/bin/workerd@3299cf0 /home/runner/work/run-porthole/run-porthole/node_modules/.pnpm/@cloudflare+workerd-linux-64@1.20260907.1/node_modules/@cloudflare/workerd-linux-64/bin/workerd@266b0a0 /home/runner/work/run-porthole/run-porthole/node_modules/.pnpm/@cloudflare+workerd-linux-64@1.20260907.1/node_modules/@cloudflare/workerd-linux-64/bin/workerd@266abe6 /home/runner/work/run-porthole/run-porthole/node_modules/.pnpm/@cloudflare+workerd-linux-64@1.20260907.1/node_modules/@cloudflare/workerd-linux-64/bin/workerd@3d12ba8; sentryErrorContext = jsgInternalError; wdErrId = qt9koonu0mci6h97ooqlsu9g\n'
+shards (typecheck, true)	Run this shard	2026-11-08T22:49:51.7763864Z }
+shards (typecheck, true)	Run this shard	2026-11-08T22:49:51.7763927Z 
+shards (typecheck, true)	Run this shard	2026-11-08T22:49:51.7763983Z Node.js v22.20.0
+shards (typecheck, true)	Run this shard	2026-11-08T22:49:51.7910048Z  ELIFECYCLE  Command failed with exit code 1.
+shards (typecheck, true)	Run this shard	2026-11-08T22:49:51.8113005Z ##[error]Process completed with exit code 1.

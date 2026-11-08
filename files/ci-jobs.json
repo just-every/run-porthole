@@ -1,0 +1,105 @@
+[
+  {
+    "conclusion": "success",
+    "id": 128887984436,
+    "name": "plan",
+    "status": "completed",
+    "steps": []
+  },
+  {
+    "conclusion": "success",
+    "id": 128888013606,
+    "name": "shards (source, false)",
+    "status": "completed",
+    "steps": []
+  },
+  {
+    "conclusion": "failure",
+    "id": 128888013610,
+    "name": "shards (typecheck, true)",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "failure",
+        "name": "Run this shard",
+        "number": 14
+      }
+    ]
+  },
+  {
+    "conclusion": "cancelled",
+    "id": 128888013612,
+    "name": "shards (analytical, true)",
+    "status": "completed",
+    "steps": []
+  },
+  {
+    "conclusion": "success",
+    "id": 128888013614,
+    "name": "shards (follow-up, true)",
+    "status": "completed",
+    "steps": []
+  },
+  {
+    "conclusion": "success",
+    "id": 128888013618,
+    "name": "shards (exports, true)",
+    "status": "completed",
+    "steps": []
+  },
+  {
+    "conclusion": "success",
+    "id": 128888013625,
+    "name": "shards (migration, true)",
+    "status": "completed",
+    "steps": []
+  },
+  {
+    "conclusion": "success",
+    "id": 128888013628,
+    "name": "shards (dashboards, true)",
+    "status": "completed",
+    "steps": []
+  },
+  {
+    "conclusion": "success",
+    "id": 128888013662,
+    "name": "shards (runtime, true)",
+    "status": "completed",
+    "steps": []
+  },
+  {
+    "conclusion": "success",
+    "id": 128888013673,
+    "name": "shards (ingest, true)",
+    "status": "completed",
+    "steps": []
+  },
+  {
+    "conclusion": "success",
+    "id": 128888013743,
+    "name": "shards (traces, true)",
+    "status": "completed",
+    "steps": []
+  },
+  {
+    "conclusion": "success",
+    "id": 128888013893,
+    "name": "shards (mail-receipts, true)",
+    "status": "completed",
+    "steps": []
+  },
+  {
+    "conclusion": "failure",
+    "id": 128890994154,
+    "name": "verify",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "failure",
+        "name": "Require every shard",
+        "number": 2
+      }
+    ]
+  }
+]

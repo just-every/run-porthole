@@ -1,0 +1,18 @@
+{
+  "name": "main-native-backup",
+  "head": "ff590be64b7cac3eaf2128c9833c641072cd8fb5",
+  "command": [
+    "timeout",
+    "1200",
+    "bash",
+    "-c",
+    "npx -y @runeditrun/rer build && node --input-type=module -e 'import {nativeBackupErasureJourney} from \"./tests/porthole/archive.mjs\"; await nativeBackupErasureJourney()'"
+  ],
+  "exit": 0,
+  "started": "2026-11-08T23:13:37.590796+00:00",
+  "finished": "2026-11-08T23:17:22.150066+00:00",
+  "seconds": 224.559,
+  "log": "main-native-backup.log",
+  "log_sha256": "f2b42898f18ffa6cd4950a13835a7941eb3239aa7bd9fabf2d7a586f1e188fe6",
+  "worktree_clean": true
+}

@@ -1,22 +1,22 @@
 {
   "files": [
     {
-      "blob": "152e302a4aabaf6848689d492518d1939c78768b",
-      "bytes": 255,
+      "blob": "4ae73585cdab33dad4f4d415ab5e6bbe9c0d14ef",
+      "bytes": 258,
       "path": "CI.json",
-      "sha256": "a3ed09adc5bcf4fb67331e34b590f8e1e522713967ae5bd36fe3a0c7078a1e6c"
+      "sha256": "7feabe6d9e386c1e795a426ff9b5f534c936a8b14366d7c043dfd369bb0ef241"
     },
     {
-      "blob": "2c502227a0b10e9f73437c15179bad47f2e88d54",
-      "bytes": 6122,
+      "blob": "39594a2ab65a755d49413214470e9de7cd287d86",
+      "bytes": 8665,
       "path": "RECEIPT.json",
-      "sha256": "8f43d9dda1a72059fb6e5cb8edd58ce9f58b783c9f9030409c3996fcfc250b0d"
+      "sha256": "f35e1dbc6b2e50481771adc516ee1cc0d45178c40d8a595f15d0a244dbfc9312"
     },
     {
-      "blob": "0b5c6db634980c1f1e91a4a393bf9fa3987ff6c5",
-      "bytes": 16066,
+      "blob": "3d8de45c4d3ce27dca3d081adcbcc7af3f934b32",
+      "bytes": 18146,
       "path": "REPORT.md",
-      "sha256": "87855439244a7112fb35518b75175502508af4a95fb34324214065891be6b357"
+      "sha256": "7865fc92f0f09752a96a8cfb5a534de2172df224ec06544938ea959569783cf7"
     },
     {
       "blob": "66c4ed5c0fac15dd18ec8452078f515060c6d082",
@@ -29,6 +29,30 @@
       "bytes": 2229,
       "path": "build.log",
       "sha256": "82eedc566512beef013caaf438d0d3580158494c7544451bbaf1c13c36c4d678"
+    },
+    {
+      "blob": "40be317306b1d277f189ba6dc1c45b152e4d9f40",
+      "bytes": 20311,
+      "path": "ci-failed-typecheck.log",
+      "sha256": "c25b2376348dabe4ab2b6f29ba81fe1fb47650b3a3067d0fd0a48459ae1eeef8"
+    },
+    {
+      "blob": "8b8954170a5fac9ed9088df30865ba28c67659d9",
+      "bytes": 626,
+      "path": "ci-failure.json",
+      "sha256": "3d53b29ca5d7fb2bef37fd0dd89060e39b1a05ec842714b149faedb923be678f"
+    },
+    {
+      "blob": "4b7d236c60ba7968fdda0337eda0fb3d670f7da7",
+      "bytes": 2068,
+      "path": "ci-jobs.json",
+      "sha256": "1454bf0470bb4b1098634ebb8cc7eb4e703fe85447cdc8d0957ad4acb76dae3c"
+    },
+    {
+      "blob": "84b21731f6c4819ab87d4a1839431fd48689c9c4",
+      "bytes": 427,
+      "path": "ci-rerun.json",
+      "sha256": "1b6755ea0e6905050b1e885152d60728a272fb3d2de15384e57bcc30154a4bae"
     },
     {
       "blob": "00c1b3a3d363cbfc09edc9b38a809cadf6395656",
@@ -103,6 +127,18 @@
       "sha256": "2c9881f8e661e44630e5e63965e65f6b0fab37fc4deba55162c5b4618e0b5ea5"
     },
     {
+      "blob": "8710abbab181de5ba7814299ee9bc74ca44084b6",
+      "bytes": 615,
+      "path": "main-native-backup.json",
+      "sha256": "2c72acff6683075186f7832e0c363fcd76825b81c93830ed07ef4cfacc7d2701"
+    },
+    {
+      "blob": "4bf2bfbc3490da1b58ef569d151765da8d6bfacc",
+      "bytes": 2405,
+      "path": "main-native-backup.log",
+      "sha256": "f2b42898f18ffa6cd4950a13835a7941eb3239aa7bd9fabf2d7a586f1e188fe6"
+    },
+    {
       "blob": "1bf7ea0cd9a2b1b822be6ebe6316f809e1ac4533",
       "bytes": 601,
       "path": "pre-fixture-fix-standard-analytical.json",
@@ -131,6 +167,12 @@
       "bytes": 1168,
       "path": "product-push.log",
       "sha256": "ddb9b78630b008a67a405e4923ab834f0fb09523df4da94ce5e1cd0ac2362f6d"
+    },
+    {
+      "blob": "ee4ca4c7f53995dd458c903330bb57b75a2aebd7",
+      "bytes": 243,
+      "path": "product-remote.json",
+      "sha256": "7b95edf1ace694b35d6e96042e792fc204f62e8c7719a256a8253ee77b5317eb"
     },
     {
       "blob": "7c64d3883a4fff154f887d01e79c6b813d3b7e18",
@@ -191,6 +233,18 @@
       "bytes": 242,
       "path": "typecheck.log",
       "sha256": "4b777a5bb00be862403c94c1042ec3802a40ec9b1191b48bdf4b8ca1218ca915"
+    },
+    {
+      "blob": "29c77ba72659b9afd628fee521fd9bcb193c879a",
+      "bytes": 468,
+      "path": "verify-reproduce.json",
+      "sha256": "785e0e9aca06950581bd650bba52a959974a89492206568aeb17dc39d76f6b62"
+    },
+    {
+      "blob": "568e227b0ab5776908dceb28235a0b5863cf639e",
+      "bytes": 31816,
+      "path": "verify-reproduce.log",
+      "sha256": "3a9e3ffc2f772682a651458469e955cf9dd51fb8c3fa2e03f36f6258cecd8cc7"
     }
   ],
   "product_branch": "cloud/sx-porthole-c-f463",

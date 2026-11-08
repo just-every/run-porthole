@@ -1,9 +1,9 @@
 {
-  "conclusion": null,
+  "conclusion": "success",
   "event": "push",
   "head_sha": "4a86b252865d95d341e2a54d5b5b88e98c40bdd4",
   "html_url": "https://github.com/just-every/run-porthole/actions/runs/42531988910",
   "id": 42531988910,
-  "name": "Verify",
-  "status": "in_progress"
+  "run_attempt": 2,
+  "status": "completed"
 }

@@ -4,19 +4,19 @@
   "repository": "just-every/run-porthole",
   "branch": "cloud/sx-porthole-c-f463",
   "head": "4a86b252865d95d341e2a54d5b5b88e98c40bdd4",
-  "recorded_at": "2026-11-08T22:50:02.099079+00:00",
-  "product_custody": "PUSHED",
+  "recorded_at": "2026-11-08T23:31:45.061137+00:00",
+  "product_custody": "READY",
   "push_guard": "cloud-push.py",
   "push_exit": 0,
   "push_attempts": 1,
   "verify": {
-    "conclusion": null,
+    "conclusion": "success",
     "event": "push",
     "head_sha": "4a86b252865d95d341e2a54d5b5b88e98c40bdd4",
     "html_url": "https://github.com/just-every/run-porthole/actions/runs/42531988910",
     "id": 42531988910,
-    "name": "Verify",
-    "status": "in_progress"
+    "run_attempt": 2,
+    "status": "completed"
   },
   "local_checks": [
     {
@@ -192,6 +192,71 @@
   },
   "main_at_final_fetch": "ff590be64b7cac3eaf2128c9833c641072cd8fb5",
   "main_equals_candidate": false,
+  "verification_triage": {
+    "failure": {
+      "head": "4a86b252865d95d341e2a54d5b5b88e98c40bdd4",
+      "run": 42531988910,
+      "job": 128888013610,
+      "shard": "typecheck",
+      "command": "node scripts/verify-ci.mjs typecheck",
+      "failed_command": "node --input-type=module -e 'import {nativeBackupErasureJourney} from \"./tests/porthole/archive.mjs\"; await nativeBackupErasureJourney()'",
+      "failure": "workerd/util/sqlite.c++:1710: SENTRY_DO SQLite failed; NOSENTRY database is locked: SQLITE_BUSY",
+      "ci_exit": 1,
+      "source_shard": {
+        "job": 128888013606,
+        "conclusion": "success"
+      },
+      "cancelled_analytical_job": 128888013612,
+      "code_repair_attempted": false
+    },
+    "candidate_reproduction": {
+      "name": "verify-reproduce",
+      "head": "4a86b252865d95d341e2a54d5b5b88e98c40bdd4",
+      "command": [
+        "timeout",
+        "1200",
+        "node",
+        "scripts/verify-ci.mjs",
+        "typecheck"
+      ],
+      "exit": 0,
+      "started": "2026-11-08T23:05:01.519157+00:00",
+      "finished": "2026-11-08T23:13:15.667805+00:00",
+      "seconds": 494.149,
+      "log": "verify-reproduce.log",
+      "log_sha256": "3a9e3ffc2f772682a651458469e955cf9dd51fb8c3fa2e03f36f6258cecd8cc7",
+      "worktree_clean": true
+    },
+    "main_comparison": {
+      "name": "main-native-backup",
+      "head": "ff590be64b7cac3eaf2128c9833c641072cd8fb5",
+      "command": [
+        "timeout",
+        "1200",
+        "bash",
+        "-c",
+        "npx -y @runeditrun/rer build && node --input-type=module -e 'import {nativeBackupErasureJourney} from \"./tests/porthole/archive.mjs\"; await nativeBackupErasureJourney()'"
+      ],
+      "exit": 0,
+      "started": "2026-11-08T23:13:37.590796+00:00",
+      "finished": "2026-11-08T23:17:22.150066+00:00",
+      "seconds": 224.559,
+      "log": "main-native-backup.log",
+      "log_sha256": "f2b42898f18ffa6cd4950a13835a7941eb3239aa7bd9fabf2d7a586f1e188fe6",
+      "worktree_clean": true
+    },
+    "rerun": {
+      "run": 42531988910,
+      "head": "4a86b252865d95d341e2a54d5b5b88e98c40bdd4",
+      "action": "rerun-failed-jobs",
+      "request_exit": 0,
+      "requested_at": "2026-11-08T23:18:08.165833+00:00",
+      "attempts_requested": 1,
+      "reason": "Transient workerd SQLite SQLITE_BUSY; unchanged full failed shard passes on candidate with Node 22.20.0, and the failed native-backup test passes on main in the same runner.",
+      "code_repair": false
+    },
+    "rerun_conclusion": "success"
+  },
   "pr": null,
   "published_history_rewritten": false,
   "candidate_commits": [
@@ -200,5 +265,6 @@
     "7fbd259eef519fed2a0b6f203d81437c071810b3",
     "300ce4e272f8d3739fe839e45b310905a666c8fd",
     "710ff8d1fd15c87e013f5e10b06149ca6f0f947e"
-  ]
+  ],
+  "github_calls": 10
 }

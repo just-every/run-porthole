@@ -1,0 +1,16 @@
+{
+  "head": "4a86b252865d95d341e2a54d5b5b88e98c40bdd4",
+  "run": 42531988910,
+  "job": 128888013610,
+  "shard": "typecheck",
+  "command": "node scripts/verify-ci.mjs typecheck",
+  "failed_command": "node --input-type=module -e 'import {nativeBackupErasureJourney} from \"./tests/porthole/archive.mjs\"; await nativeBackupErasureJourney()'",
+  "failure": "workerd/util/sqlite.c++:1710: SENTRY_DO SQLite failed; NOSENTRY database is locked: SQLITE_BUSY",
+  "ci_exit": 1,
+  "source_shard": {
+    "job": 128888013606,
+    "conclusion": "success"
+  },
+  "cancelled_analytical_job": 128888013612,
+  "code_repair_attempted": false
+}
