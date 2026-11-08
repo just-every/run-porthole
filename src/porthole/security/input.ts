@@ -1,5 +1,5 @@
 import { fail } from './authority'
-export async function input(request: Request): Promise<Record<string, unknown>> {
+export async function input(request: Request, repeated: string[] = []): Promise<Record<string, unknown>> {
  const type = request.headers.get('content-type')?.split(';')[0]
  if (!['application/json','application/x-www-form-urlencoded'].includes(type ?? '')) fail('unsupported_media_type', 415)
  const reader = request.body?.getReader()
@@ -22,7 +22,7 @@ export async function input(request: Request): Promise<Record<string, unknown>> 
    return data as Record<string, unknown>
   }
   const data: Record<string,unknown> = Object.create(null)
-  for (const [key,value] of new URLSearchParams(text)) { if (Object.hasOwn(data,key)) fail('invalid_input',400); data[key]=value }
+  for (const [key,value] of new URLSearchParams(text)) { if(repeated.includes(key)){ const values=(data[key]??[]) as string[]; values.push(value); data[key]=values }else{ if (Object.hasOwn(data,key)) fail('invalid_input',400); data[key]=value } }
   return data
  } catch { return fail('invalid_input',400) }
 }
