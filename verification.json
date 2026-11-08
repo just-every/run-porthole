@@ -39,7 +39,10 @@
         "pnpm run build",
         "python3 -m venv .cache/export-readers && .cache/export-readers/bin/pip install --disable-pip-version-check -r tests/porthole/export-readers.txt",
         "PORTHOLE_ERASURE_ONLY=1 pnpm run test:runtime",
-        "PORTHOLE_EXPORT_ONLY=1 pnpm run test:runtime"
+        "PORTHOLE_EXPORT_ONLY=1 pnpm run test:runtime",
+        "node scripts/porthole/standard-clients.mjs",
+        "PORTHOLE_STANDARD_ONLY=1 pnpm run test:runtime",
+        "PORTHOLE_STANDARD_ANALYTICAL_ONLY=1 pnpm run test:runtime"
       ]
     },
     {

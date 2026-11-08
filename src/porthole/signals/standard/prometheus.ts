@@ -50,7 +50,7 @@ function labels(values:Record<string,unknown>) {
 }
 function number(value:unknown):number {
  const n=Number(value)
- if(value===undefined||!Number.isFinite(n))fail('unmappable_metric_value',422)
+ if(value===undefined||value===null||!['number','string'].includes(typeof value)||typeof value==='string'&&!/^(?:[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?|NaN|[+-]?Infinity)$/.test(value))fail('unmappable_metric_value',422)
  return n
 }
 function metricName(name:string,unit:string,counter:boolean) {

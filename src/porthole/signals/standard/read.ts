@@ -1,6 +1,8 @@
 import type { Bindings } from '../../../auth.server'
 import { AuthError } from '../../../modules/operator-auth/index.mjs'
 import { readTelemetry } from '../../ingest/read'
+import { remoteWrite } from '../../ingest/vendor'
+import { unsnappy } from '../../ingest/wire'
 import { canonical } from '../../ingest/model'
 import { verifyCredential, CredentialLimit } from '../../credentials/verify'
 import { allScope, emptyScope, fail } from '../../security/authority'
@@ -27,6 +29,21 @@ export async function standardRead(request:Request,env:Bindings,signal:'metrics'
   rows.push(...page.records);totalBytes+=new TextEncoder().encode(JSON.stringify(page.records)).length
   if(rows.length>2000||totalBytes>1024*1024||cursor&&rows.length>=2000)fail('standard_read_budget_exceeded',422)
  }while(cursor)
+ // Older retained records predate float-bit metadata. Their original Snappy
+ // envelope remains authoritative, including negative zero and stale NaN.
+ const recovered=new Map<string,string>();let wireBytes=0
+ for(const batchId of new Set(rows.filter(row=>row.payload.protocol==='prometheus.WriteRequest'&&!(row.payload.record as Record<string,unknown>).valueBits).map(row=>row.batch_id))){
+  const batch=await env.DB.prepare('SELECT wire_base64 FROM porthole_ingest_batches WHERE id=?').bind(batchId).first<{wire_base64:string}>()
+  if(!batch?.wire_base64)fail('standard_sample_wire_unavailable',409)
+  wireBytes+=batch.wire_base64.length
+  if(wireBytes>8*1024*1024)fail('standard_read_budget_exceeded',422)
+  const decoded=remoteWrite(unsnappy(Uint8Array.from(atob(batch.wire_base64),c=>c.charCodeAt(0))),new Headers())
+  for(const row of rows.filter(row=>row.batch_id===batchId)){
+   const original=decoded[Number(row.id.split(':').at(-1))]?.payload.record as Record<string,unknown>|undefined
+   if(!original?.valueBits)fail('standard_sample_wire_unavailable',409)
+   recovered.set(row.id,String(original.valueBits))
+  }
+ }
  // Exclusions are intentionally additional to the native query rules. The
  // whole scanned set is verified, even records the protocol later filters out.
  const release=async()=>{
@@ -47,7 +64,7 @@ export async function standardRead(request:Request,env:Bindings,signal:'metrics'
   if(!result[0].results.length)fail('authority_changed',409)
   if(result.slice(1).some((r,i)=>r.results.length!==Math.min(100,rows.length-i*100)))fail('standard_read_custody_changed',409)
   const permitted=new Set(result.slice(1).flatMap(r=>r.results.filter(row=>!row.excluded).map(row=>row.id)))
-  return {records:rows.filter(row=>permitted.has(row.id)),headers:{'x-porthole-entity':queryRef,'x-porthole-actor':latest.credential.id,'x-porthole-actor-revision':String(latest.credential.revision),'x-porthole-snapshot':String(snapshot)}}
+  return {records:rows.filter(row=>permitted.has(row.id)).map(row=>recovered.has(row.id)?{...row,payload:{...row.payload,record:{...row.payload.record as object,valueBits:recovered.get(row.id)}}}:row),headers:{'x-porthole-entity':queryRef,'x-porthole-actor':latest.credential.id,'x-porthole-actor-revision':String(latest.credential.revision),'x-porthole-snapshot':String(snapshot)}}
  }
  return release()
 }

@@ -11,7 +11,7 @@ import { standardRead } from './read'
 import { tempoTrace } from './tempo'
 
 export function standardRoute(path:string) {
- return path==='/api/v1/read'||/^\/api\/v1\/(?:query|query_range|series|labels|label|metadata|exemplars)(?:\/|$)/.test(path)||/^\/api\/(?:v2\/)?(?:traces|search|echo|tags)(?:\/|$)/.test(path)
+ return path==='/api/v1/read'||/^\/api\/v1\/(?:query|query_range|query_exemplars|format_query|parse_query|series|labels|label|metadata|targets\/metadata|exemplars)(?:\/|$)/.test(path)||/^\/api\/(?:v2\/)?(?:traces|search|echo|tags|metrics)(?:\/|$)/.test(path)
 }
 export async function standardResponse(request:Request,env:Bindings):Promise<Response|null> {
  const url=new URL(request.url),path=url.pathname
@@ -25,7 +25,7 @@ export async function standardResponse(request:Request,env:Bindings):Promise<Res
    if(request.headers.get('content-type')?.split(';')[0]!=='application/x-protobuf'||request.headers.get('content-encoding')!=='snappy'||request.headers.get('x-prometheus-remote-read-version')!=='0.1.0')fail('unsupported_remote_read_version_or_encoding',415)
    const queries=readRequest(unsnappy(await readBytes(request.body)))
    const from=queries.reduce((n,q)=>q.start<n?q.start:n,queries[0].start)*1000000n,through=queries.reduce((n,q)=>q.end>n?q.end:n,queries[0].end)*1000000n+999999n
-   const read=await standardRead(request,env,'metrics',{from:String(from),through:String(through)})
+   const read=await standardRead(request,env,'metrics',{from:String(from),through:String(through>18446744073709551615n?18446744073709551615n:through)})
    return new Response(new Uint8Array(snappy(readResponse(queries,read.records))).buffer,{headers:{...privateHeaders,...read.headers,'content-type':'application/x-protobuf','content-encoding':'snappy','x-prometheus-remote-read-version':'0.1.0'}})
   }
   if(!path.startsWith('/api/traces/'))fail('standard_route_unsupported',501)
