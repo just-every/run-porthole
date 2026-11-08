@@ -6,7 +6,7 @@ import {mkdir} from 'node:fs/promises'
 import {join} from 'node:path'
 import {form,literal} from './fixture.mjs'
 import {hashToken} from '../../src/modules/operator-auth/crypto.mjs'
-import {localAgentPolicy,refusal} from '../agent-door/local-policy.mjs'
+import {localAgentPolicy} from '../agent-door/local-policy.mjs'
 const execute=promisify(execFile),address=n=>['synthetic-porthole-'+n,'example.com'].join(String.fromCharCode(64))
 const members='/app/settings/members',scope={services:['checkout'],environments:['production'],teams:['commerce']}
 
@@ -57,11 +57,14 @@ export async function handoverJourney({origin,freshOwner,signIn,sql,mutate,resta
  // A legacy held SLO owner is previewed, but this removal adds no SLO door.
  const sloId=randomUUID(),sloDefinition={type:'event-ratio',scope,sourceId:source.credential.id,targetPpm:990000,latencyMs:300,goodMetric:null,totalMetric:null,exclusions:[]}
  await mutate(`INSERT INTO porthole_slo_versions VALUES(${literal(sloId)},1,'synthetic-porthole-9107',${literal(JSON.stringify(sloDefinition))},${literal(departing.id)},${Date.now()},'active')`)
+ const databaseId=randomUUID()
+ await mutate(`INSERT INTO porthole_database_sources VALUES(${literal(databaseId)},${literal(source.credential.id)},'checkout','production','commerce','postgresql',${literal('0'.repeat(64))},1,1,${Date.now()},${literal(departing.id)})`)
+ const databaseBefore=await sql(`SELECT * FROM porthole_database_sources WHERE id=${literal(databaseId)}`)
  const heldBefore=await sql(`SELECT * FROM porthole_slo_versions WHERE id=${literal(sloId)}`)
  cookie=await freshOwner()
  await post(members+'/remove',{operatorId:departing.id},409)
  let review=await post(members+'/preview',{operatorId:departing.id})
- for(const kind of ['service','event-filter','follow-up','approval','slo'])assert.ok(review.items.some(i=>i.kind===kind),kind)
+ for(const kind of ['service','event-filter','follow-up','approval','slo','database-source','personal-credential'])assert.ok(review.items.some(i=>i.kind===kind),kind)
  assert.equal(new Set(review.items.map(i=>i.key)).size,review.items.length)
  const choices=review.items.map(i=>({key:i.key,successor:i.kind==='service'||i.kind==='follow-up'?successor.id:null}))
  const snapshot=async()=>({
@@ -75,6 +78,8 @@ export async function handoverJourney({origin,freshOwner,signIn,sql,mutate,resta
  const stable=await snapshot()
  await post(members+'/remove',{operatorId:departing.id,token:review.token,choices:choices.map(c=>c.key.startsWith('service:')?{...c,successor:wrong.id}:c)},403)
  assert.deepEqual(await snapshot(),stable,'non-covering successor leaves product storage unchanged')
+ await post(members+'/remove',{operatorId:departing.id,token:review.token,choices:choices.map(c=>c.key.startsWith('slo:')?{...c,successor:owner}:c)},403)
+ assert.deepEqual(await snapshot(),stable,'held source cannot be changed by assigning an otherwise privileged owner')
  const late=await post('/api/porthole/v1/events/filters',{name:'synthetic-porthole-9108',definition:{service:'checkout',environment:'production',team:'commerce'}},201,departing.cookie)
  const lateSnapshot=await snapshot()
  await post(members+'/remove',{operatorId:departing.id,token:review.token,choices},409)
@@ -83,6 +88,11 @@ export async function handoverJourney({origin,freshOwner,signIn,sql,mutate,resta
  await restartWorker()
  const committed=await post(members+'/remove',{operatorId:departing.id,token:review.token,choices:review.items.map(i=>({key:i.key,successor:i.kind==='service'||i.kind==='follow-up'?successor.id:null}))})
  assert.equal(committed.status,'inactive')
+ const audit=(await get('/api/v1/audit/export')).records.map(row=>row.entry)
+ const fact=audit.find(e=>e.action==='membership.handover'&&e.entityRef===committed.receipt&&e.phase==='committed')
+ assert.ok(fact,'private public audit contains the committed handover receipt')
+ assert.ok(audit.some(e=>e.operationRef===fact.operationRef&&e.action==='membership.status'&&e.entityRef===departing.id&&e.phase==='committed'),'removal and handover facts share one operation')
+ assert.ok(!JSON.stringify(audit).includes(personal),'handover audit contains no personal credential secret')
  assert.deepEqual(await readable(successor.cookie),allowedBefore,'handover never expands the successor telemetry set')
  assert.deepEqual(await readable(wrong.cookie),wrongBefore)
  const newService=(await get('/api/porthole/v1/services')).services.find(s=>s.id===service.id)
@@ -90,6 +100,7 @@ export async function handoverJourney({origin,freshOwner,signIn,sql,mutate,resta
  const rows=await sql(`SELECT owner_ref FROM porthole_event_filters WHERE id IN (${literal(filter.id)},${literal(late.id)})`)
  assert.ok(rows.every(r=>r.owner_ref===null))
  assert.deepEqual(await sql(`SELECT * FROM porthole_slo_versions WHERE id=${literal(sloId)}`),heldBefore,'held SLO version is byte-for-byte unchanged')
+ assert.deepEqual(await sql(`SELECT * FROM porthole_database_sources WHERE id=${literal(databaseId)}`),databaseBefore,'held database source and enabled collection remain unchanged')
  const pending=(await get('/api/porthole/v1/objects')).objects.find(o=>o.id===repair.id)
  assert.equal(pending.state,'inactive')
  assert.equal((await sql(`SELECT * FROM porthole_object_approvals WHERE object_id=${literal(repair.id)}`)).length,0,'old approval is void, not transferred')
@@ -101,8 +112,8 @@ export async function handoverJourney({origin,freshOwner,signIn,sql,mutate,resta
  for(const path of ['/auth/session','/api/porthole/v1/services','/api/porthole/v1/events/filters'])await get(path,departing.cookie,401)
  assert.equal((await fetch(origin+'/api/porthole/v1/session',{headers:{authorization:'Bearer '+personal}})).status,401)
  await localAgentPolicy(origin,cookie)
- const rpc=await fetch(origin+'/api/porthole/v1/mcp',{...form(origin,departing.cookie,{jsonrpc:'2.0',id:1,method:'tools/call',params:{name:'query_telemetry',arguments:{signal:'logs'}}}),headers:{...form(origin,departing.cookie,{}).headers,authorization:'Bearer '+personal}})
- assert.ok([401,403].includes(rpc.status),'removed personal credential cannot enter MCP')
+ const rpc=await fetch(origin+'/api/porthole/v1/mcp',{...form(origin,departing.cookie,{jsonrpc:'2.0',id:1,method:'tools/call',params:{name:'porthole.telemetry.query',arguments:{signal:'logs'}}}),headers:{...form(origin,departing.cookie,{}).headers,'mcp-protocol-version':'2025-11-25',authorization:'Bearer '+personal}})
+ assert.equal(rpc.status,401,'removed personal credential cannot enter MCP: '+await rpc.clone().text())
  const cli=await new Promise((resolve,reject)=>{
   const child=spawn(process.execPath,['cli/porthole.mjs',origin,'query'],{env:{...process.env,PORTHOLE_SESSION:departing.cookie,PORTHOLE_CREDENTIAL:personal},stdio:['pipe','pipe','pipe']})
   let out='';child.stderr.on('data',c=>out+=c);child.stdout.resume();child.on('error',reject);child.on('exit',code=>resolve({code,out}));child.stdin.end(JSON.stringify({signal:'logs'}))
@@ -112,16 +123,30 @@ export async function handoverJourney({origin,freshOwner,signIn,sql,mutate,resta
  await get('/auth/session',departing.cookie,401)
  assert.equal((await get('/api/porthole/v1/objects')).objects.find(o=>o.id===repair.id).state,'approved','only a new current approval survives restart')
  cookie=await freshOwner()
- await notebookCustody({origin,cookie,owner,member,post,get,sql,mutate,freshOwner,signIn,restartWorker,withEmptyDestination,source,scope,successor})
+ await notebookCustody({origin,cookie,owner,member,post,get,sql,mutate,freshOwner,signIn,restartWorker,withEmptyDestination,source,scope,successor,refresh:async()=>{cookie=await freshOwner({force:true});return cookie}})
  console.log('handoverJourney passed: complete native inventory, wrong-scope and stale refusals with no writes, mixed transfer and unassignment, void approvals, identical readable sets, next-request session and personal credential REST CLI MCP refusal, restart and inactive restore')
 }
 
-async function notebookCustody({origin,owner,member,post,get,sql,mutate,freshOwner,signIn,restartWorker,withEmptyDestination,source,scope,successor}) {
+async function notebookCustody({origin,owner,member,post,get,sql,mutate,freshOwner,signIn,restartWorker,withEmptyDestination,source,scope,successor,refresh}) {
+ console.log('Handover: native mixed batch, private audit and transport refusals checked')
  const former=await member(9120,'maintainer',scope)
  await post(members+'/change',{operatorId:former.id,role:'owner',confirmEmail:address(9120)})
  former.cookie=await signIn(address(9120))
+ await localAgentPolicy(origin,await freshOwner())
  const mint=(kind,actions)=>post('/app/settings/credentials/mint',{name:'synthetic-porthole-9121',class:kind,scope:{...scope,signals:['logs'],actions}},201,former.cookie)
  const ingest=await mint('ingest',['telemetry.write']),read=await mint('read',['telemetry.read'])
+ const proposal=await mint('proposal',['telemetry.read','proposal.create']),execution=await mint('execution',['plan.execute'])
+ const keyRequest=(path,data)=>fetch(origin+path,{...form(origin,'',data),headers:{...form(origin,'',{}).headers,...(path.endsWith('/mcp')?{'mcp-protocol-version':'2025-11-25'}:{}),authorization:'Bearer '+read.secret}})
+ const keyQuery={signal:'logs',service:'checkout',environment:'production',team:'commerce'}
+ assert.equal((await keyRequest('/api/porthole/v1/query',keyQuery)).status,200)
+ const rpcData={jsonrpc:'2.0',id:1,method:'tools/call',params:{name:'porthole.telemetry.query',arguments:keyQuery}}
+ const rpcBefore=await keyRequest('/api/porthole/v1/mcp',rpcData)
+ assert.equal(rpcBefore.status,200);assert.equal((await rpcBefore.json()).result.structuredContent.records.length,1)
+ const nativeCli=()=>new Promise((resolve,reject)=>{
+  const child=spawn(process.execPath,['cli/porthole.mjs',origin,'query'],{env:{...process.env,PORTHOLE_CREDENTIAL:read.secret},stdio:['pipe','pipe','pipe']})
+  let stdout='',stderr='';child.stdout.on('data',c=>stdout+=c);child.stderr.on('data',c=>stderr+=c);child.on('error',reject);child.on('exit',code=>resolve({code,stdout,stderr}));child.stdin.end(JSON.stringify(keyQuery))
+ })
+ assert.equal((await nativeCli()).code,0)
  const monitor=await post('/api/porthole/v1/objects',{kind:'monitor',name:'synthetic-porthole-9122',scope,body:{signal:'logs',operator:'above',threshold:0,windowSeconds:86400}},201)
  await post('/api/porthole/v1/objects/activate',{id:monitor.id,revision:1,confirm:'activate'})
  const heartbeat=await fetch(origin+'/api/v1/health/heartbeat',{method:'POST',headers:{authorization:'Bearer '+source.secret,'content-type':'application/json'},body:JSON.stringify({collectorId:'synthetic-porthole-9123',signal:'logs',service:'checkout',environment:'production',team:'commerce'})});assert.equal(heartbeat.status,200)
@@ -144,7 +169,7 @@ async function notebookCustody({origin,owner,member,post,get,sql,mutate,freshOwn
  const draft=await post(publications,{revision:current.revision,title:'Observed local request',summary:'Reviewed count only',cells:[{cellId:'logs',label:'Observed requests',unit:'records'}],expiresAt:Date.now()+3600000},201,former.cookie)
  await post(publications+'/'+draft.id+'/approve',{digest:draft.digest,revision:draft.source_revision,expiresAt:draft.expires_at,audience:'anyone-with-address',confirm:'reviewed-sanitized-notebook'},200,former.cookie)
  assert.equal((await fetch(origin+'/shared/notebooks/'+draft.id)).status,200)
- let cookie=await freshOwner()
+ let cookie=await refresh()
  const review=await post(members+'/preview',{operatorId:former.id})
  for(const kind of ['notebook','notebook-share','notebook-publication','credential'])assert.ok(review.items.some(i=>i.kind===kind))
  const choices=review.items.map(i=>({key:i.key,successor:i.mode==='custody'||i.kind==='notebook'&&i.id===notebook.id?owner:null}))
@@ -152,12 +177,15 @@ async function notebookCustody({origin,owner,member,post,get,sql,mutate,freshOwn
  const grantsBefore=await sql('SELECT * FROM porthole_notebook_shares ORDER BY notebook_id,kind,target')
  await post(members+'/remove',{operatorId:former.id,token:review.token,choices:invalid},403)
  assert.deepEqual(await sql('SELECT * FROM porthole_notebook_shares ORDER BY notebook_id,kind,target'),grantsBefore,'notebook assignment cannot create a role or private read grant')
- await handoverBrowser({origin,cookie,id:former.id,review,mutate,post,freshOwner})
+ await handoverBrowser({origin,cookie,id:former.id,review,mutate,post,freshOwner,refusedSuccessor:successor.id,owner})
+ await handoverUnavailableBrowser({origin,cookie,mutate})
  // Browser state probes deliberately invalidate their own review. Always
  // obtain the complete inventory again before committing through the door.
+ cookie=await refresh()
  const finalReview=await post(members+'/preview',{operatorId:former.id})
- const done=await post(members+'/remove',{operatorId:former.id,token:finalReview.token,choices:finalReview.items.map(i=>({key:i.key,successor:i.mode==='custody'||i.kind==='notebook'&&i.id===notebook.id?owner:null}))})
- assert.equal(done.status,'inactive')
+ assert.equal(finalReview.operatorId,former.id)
+ await handoverCommitBrowser({origin,cookie,notebook:notebook.id,owner})
+ assert.equal((await get('/auth/operators')).find(row=>row.id===former.id).status,'inactive')
  assert.equal((await sql(`SELECT owner_ref FROM porthole_notebooks WHERE id=${literal(notebook.id)}`))[0].owner_ref,owner)
  assert.equal((await sql(`SELECT owner_ref FROM porthole_notebooks WHERE id=${literal(unassigned.id)}`))[0].owner_ref,null)
  assert.equal((await sql(`SELECT COUNT(*) n FROM porthole_notebook_shares WHERE owner_ref=${literal(former.id)}`))[0].n,0)
@@ -165,7 +193,10 @@ async function notebookCustody({origin,owner,member,post,get,sql,mutate,freshOwn
  assert.equal((await fetch(origin+'/shared/notebooks/'+draft.id)).status,404)
  assert.equal((await sql(`SELECT state FROM porthole_notebook_publications WHERE id=${literal(draft.id)}`))[0].state,'revoked')
  const inspect=secret=>fetch(origin+'/api/porthole/v1/credential',{headers:{authorization:'Bearer '+secret}})
- assert.equal((await inspect(read.secret)).status,401)
+ for(const secret of [read.secret,proposal.secret,execution.secret])assert.equal((await inspect(secret)).status,401)
+ assert.equal((await keyRequest('/api/porthole/v1/query',keyQuery)).status,401)
+ assert.equal((await keyRequest('/api/porthole/v1/mcp',rpcData)).status,401)
+ assert.equal((await nativeCli()).code,1)
  assert.equal((await inspect(ingest.secret)).status,200)
  assert.equal((await (await inspect(ingest.secret)).json()).custodianId,owner)
  const monitorAfter=(await get('/api/porthole/v1/objects')).objects.find(o=>o.id===monitor.id)
@@ -173,10 +204,11 @@ async function notebookCustody({origin,owner,member,post,get,sql,mutate,freshOwn
  await restartWorker()
  assert.equal((await inspect(read.secret)).status,401);assert.equal((await inspect(ingest.secret)).status,200)
  await handoverCompletedBrowser({origin,cookie,id:former.id})
- if(withEmptyDestination)await handoverArchive({origin,cookie,withEmptyDestination,notebook:unassigned.id,publication:draft.id,ingest:ingest.secret,read:read.secret})
+ console.log('Handover: notebook, sharing, ingest custody and browser states checked')
+ if(withEmptyDestination)await handoverArchive({origin,cookie,withEmptyDestination,notebook:unassigned.id,publication:draft.id,ingest:ingest.secret,read:read.secret,otherSecrets:[proposal.secret,execution.secret]})
 }
 
-async function handoverBrowser({origin,cookie,id,review,mutate,post,freshOwner}) {
+async function handoverBrowser({origin,cookie,id,review,mutate,post,freshOwner,refusedSuccessor,owner}) {
  const {chromium}=await import('@playwright/test'),browser=await chromium.launch({headless:true,...(process.env.CI?{}:{executablePath:'/usr/bin/chromium'}),args:['--no-sandbox','--use-mock-keychain','--password-store=basic']})
  try {for(const width of [1440,390]) {
   const context=await browser.newContext({viewport:{width,height:width===1440?950:844}})
@@ -194,7 +226,19 @@ async function handoverBrowser({origin,cookie,id,review,mutate,post,freshOwner})
    assert.equal(await page.locator('button').evaluateAll(items=>items.filter(i=>!i.textContent.trim()).length),0)
   }
   if(process.env.PORTHOLE_EVIDENCE_DIR){await mkdir(process.env.PORTHOLE_EVIDENCE_DIR,{recursive:true});await page.screenshot({path:join(process.env.PORTHOLE_EVIDENCE_DIR,'handover-preview-'+width+'.png'),fullPage:true})}
-  for(const select of await page.locator('select').all())if(await select.locator('option:disabled').count())await select.selectOption({label:'Runtime Owner'})
+  for(const select of await page.locator('select').all())if(await select.locator('option:disabled').count())await select.selectOption(owner)
+  await page.locator('select').first().evaluate((select,id)=>{select.add(new Option('Ineligible successor',id));select.value=id},refusedSuccessor)
+  await page.getByRole('checkbox').check()
+  const refused=page.waitForResponse(r=>r.url().endsWith('/members/remove'))
+  await page.getByRole('button',{name:'Commit handover and remove'}).click()
+  const refusedResponse=await refused
+  if(width===1440)assert.equal(refusedResponse.status(),403)
+  await page.getByRole('alert').waitFor()
+  if(process.env.PORTHOLE_EVIDENCE_DIR)await page.screenshot({path:join(process.env.PORTHOLE_EVIDENCE_DIR,'handover-refused-'+width+'.png'),fullPage:true})
+  await page.getByRole('link',{name:'Return to Members',exact:true}).click()
+  await row.getByText('Manage synthetic-porthole-9120',{exact:true}).click()
+  await row.getByRole('button',{name:'Review removal and handover'}).click()
+  for(const select of await page.locator('select').all())if(await select.locator('option:disabled').count())await select.selectOption(owner)
   await page.getByRole('checkbox').check()
   // A new private filter invalidates the preview without modifying its objects.
   await post('/api/porthole/v1/events/filters',{name:'synthetic-porthole-9130-'+width,definition:{service:'checkout',environment:'production',team:'commerce'}},201)
@@ -218,7 +262,48 @@ async function handoverCompletedBrowser({origin,cookie,id}) {
   await context.close()
  }}finally{await browser.close()}
 }
-async function handoverArchive({origin,cookie,withEmptyDestination,notebook,publication,ingest,read}) {
+async function handoverArchive({origin,cookie,withEmptyDestination,notebook,publication,ingest,read,otherSecrets}) {
  const {handoverArchiveJourney}=await import('./archive.mjs')
- await handoverArchiveJourney({origin,cookie,withEmptyDestination,notebook,publication,ingest,read})
+ await handoverArchiveJourney({origin,cookie,withEmptyDestination,notebook,publication,ingest,read,otherSecrets})
+}
+
+async function handoverUnavailableBrowser({origin,cookie,mutate}) {
+ const {chromium}=await import('@playwright/test')
+ await mutate('ALTER TABLE porthole_handover_epoch RENAME TO handover_epoch_unavailable')
+ const browser=await chromium.launch({headless:true,...(process.env.CI?{}:{executablePath:'/usr/bin/chromium'}),args:['--no-sandbox','--use-mock-keychain','--password-store=basic']})
+ try {for(const width of [1440,390]) {
+  const context=await browser.newContext({viewport:{width,height:width===1440?950:844}})
+  await context.addCookies(cookie.split('; ').map(v=>({name:v.slice(0,v.indexOf('=')),value:v.slice(v.indexOf('=')+1),url:origin})))
+  const page=await context.newPage();await page.goto(origin+members)
+  const row=page.locator('li').filter({has:page.getByRole('heading',{name:'synthetic-porthole-9120',exact:true})})
+  await row.getByText('Manage synthetic-porthole-9120',{exact:true}).click()
+  const response=page.waitForResponse(r=>r.url().endsWith('/members/preview'))
+  await row.getByRole('button',{name:'Review removal and handover'}).click()
+  const unavailable=await response
+  if(width===1440){assert.equal(unavailable.status(),503);assert.equal(await page.locator('form').count(),0)}
+  await page.getByRole('alert').waitFor()
+  if(process.env.PORTHOLE_EVIDENCE_DIR)await page.screenshot({path:join(process.env.PORTHOLE_EVIDENCE_DIR,'handover-unavailable-'+width+'.png'),fullPage:true})
+  await context.close()
+ }}finally{await browser.close();await mutate('ALTER TABLE handover_epoch_unavailable RENAME TO porthole_handover_epoch')}
+}
+
+async function handoverCommitBrowser({origin,cookie,notebook,owner}) {
+ const {chromium}=await import('@playwright/test'),browser=await chromium.launch({headless:true,...(process.env.CI?{}:{executablePath:'/usr/bin/chromium'}),args:['--no-sandbox','--use-mock-keychain','--password-store=basic']})
+ try {
+  const context=await browser.newContext({viewport:{width:1440,height:950}})
+  await context.addCookies(cookie.split('; ').map(v=>({name:v.slice(0,v.indexOf('=')),value:v.slice(v.indexOf('=')+1),url:origin})))
+  const page=await context.newPage();await page.goto(origin+members)
+  const row=page.locator('li').filter({has:page.getByRole('heading',{name:'synthetic-porthole-9120',exact:true})})
+  await row.getByText('Manage synthetic-porthole-9120',{exact:true}).click()
+  await row.getByRole('button',{name:'Review removal and handover'}).click()
+  for(const select of await page.locator('select').all())if(await select.locator('option:disabled').count())await select.selectOption(owner)
+  await page.getByRole('heading',{name:'Review member removal',exact:true}).waitFor()
+  await page.getByLabel('Successor for notebook '+notebook,{exact:true}).selectOption(owner)
+  await page.getByRole('checkbox').check()
+  const completed=page.waitForResponse(r=>r.url().endsWith('/members/remove'))
+  await page.getByRole('button',{name:'Commit handover and remove'}).click()
+  assert.equal((await completed).status(),303)
+  await page.waitForURL(origin+members)
+  await context.close()
+ }finally{await browser.close()}
 }

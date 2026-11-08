@@ -101,7 +101,8 @@ export async function membershipJourney({origin,cookie,foreignCookie,sql,mutate,
  await mutate('ALTER TABLE porthole_members RENAME TO porthole_members_unavailable')
  try {await unavailableBrowser({origin,cookie})} finally {await mutate('ALTER TABLE porthole_members_unavailable RENAME TO porthole_members')}
  const {handoverJourney}=await import('./handover.mjs')
- await handoverJourney({origin,freshOwner,signIn,sql,mutate,restartWorker,withEmptyDestination,sessionSecret})
+ if(withEmptyDestination)await withEmptyDestination(destination=>handoverJourney({...destination,withEmptyDestination,sessionSecret}))
+ else await handoverJourney({origin,freshOwner,signIn,sql,mutate,restartWorker,sessionSecret})
  console.log('membershipJourney passed: seven roles, links, no escalation, fresh proof, revision fence, last owner and removal')
  return {cookie,target,admin,contractor,scope}
 }

@@ -20,7 +20,7 @@ export async function membershipResponse(request:Request,env:Bindings):Promise<R
    return document('Members',membersPage(actor,rows,migration),200,{forms:true})
   }
   if(request.method!=='POST') fail('method_not_allowed',405)
-  const data=await input(request)
+  const data=await input(request,url.pathname.endsWith('/remove')?1048576:8192)
   if(url.pathname.endsWith('/preview')) {
    const review=await preview(request,env,text(data.operatorId))
    return form?document('Review member removal',handoverPage(review),200,{forms:true}):Response.json(review,{headers:privateHeaders})

@@ -1298,14 +1298,14 @@ export async function servicesArchiveJourney({origin,freshOwner,restartWorker,wi
 }
 
 /** Handover receipts are private history, never restore-time authority. */
-export async function handoverArchiveJourney({origin,cookie,withEmptyDestination,notebook,publication,ingest,read}) {
+export async function handoverArchiveJourney({origin,cookie,withEmptyDestination,notebook,publication,ingest,read,otherSecrets=[]}) {
  const source=await savedExport(origin,cookie,await post(origin,cookie,api+'/exports',{}))
  const history=source.rows.filter(r=>r.table==='porthole_handover_history')
  assert.ok(history.length>=2);assert.ok(history.every(r=>r.row.state==='committed'))
  assert.ok(history.some(r=>JSON.parse(r.row.decisions).some(d=>d.mode==='void')))
  assert.ok(history.some(r=>JSON.parse(r.row.decisions).some(d=>d.mode==='custody')))
  assert.equal(source.rows.find(r=>r.table==='porthole_notebooks'&&r.row.id===notebook).row.owner_ref,null)
- assert.ok(!JSON.stringify(source.rows).includes(ingest)&&!JSON.stringify(source.rows).includes(read),'credential secrets never travel with handover history')
+ for(const secret of [ingest,read,...otherSecrets])assert.ok(!JSON.stringify(source.rows).includes(secret),'credential secrets never travel with handover history')
  assert.ok(!source.rows.some(r=>['porthole_credentials','porthole_object_approvals','porthole_notebook_shares'].includes(r.table)))
  await withEmptyDestination(async destination=>{
   const destCookie=await destination.freshOwner()
@@ -1319,7 +1319,7 @@ export async function handoverArchiveJourney({origin,cookie,withEmptyDestination
   assert.equal(restored.rows.find(r=>r.table==='porthole_notebooks'&&r.row.id===notebook).row.owner_ref,null)
   assert.equal(restored.rows.find(r=>r.table==='porthole_notebooks'&&r.row.id===notebook).row.state,'quarantined')
   assert.equal(restored.rows.find(r=>r.table==='porthole_notebook_publications'&&r.row.id===publication).row.state,'quarantined')
-  for(const secret of [ingest,read])assert.equal((await fetch(destination.origin+'/api/porthole/v1/credential',{headers:{authorization:'Bearer '+secret}})).status,401)
+  for(const secret of [ingest,read,...otherSecrets])assert.equal((await fetch(destination.origin+'/api/porthole/v1/credential',{headers:{authorization:'Bearer '+secret}})).status,401)
   assert.equal((await fetch(destination.origin+'/shared/notebooks/'+publication)).status,404)
   assert.ok(!(await destination.sql('SELECT id FROM porthole_object_approvals')).length)
   assert.ok(!(await destination.sql('SELECT notebook_id FROM porthole_notebook_shares')).length)
