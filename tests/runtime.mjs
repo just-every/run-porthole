@@ -193,6 +193,8 @@ try {
   } else if(process.env.PORTHOLE_SERVICES_ONLY==='1') {
    const {servicesJourney}=await import('./porthole/services.mjs')
    await servicesJourney({origin,restartWorker,withEmptyDestination,withPinnedClock,...helpers})
+   const {routeInventory}=await import('./porthole/handoffs.mjs')
+   await routeInventory({origin,cookie:await helpers.freshOwner()})
    const {servicesAnalyticalJourney}=await import('./porthole/analytics.mjs')
    await servicesAnalyticalJourney()
   } else if(process.env.PORTHOLE_PIPELINES_ONLY==='1') {

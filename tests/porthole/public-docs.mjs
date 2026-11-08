@@ -20,6 +20,8 @@ export async function publicDocsJourney({origin,cookie,freshOwner}) {
  try {
   const privateValues=[source.secret,reader.secret,cookie]
   const snippets=await browsePublicDocs(site.origin,privateValues)
+  const boundary=await fetch(site.origin+'/docs/v1/neighboring-products');assert.equal(boundary.status,200);const boundaryText=await boundary.text();for(const value of [...privateValues,'https://handoff.example/'])assert.ok(!boundaryText.includes(value),'signed-out boundary guide has no installation destinations')
+  const {routeInventory}=await import('./handoffs.mjs');await routeInventory({origin,cookie,site:site.origin})
   const schemaResponse=await fetch(site.origin+'/openapi/porthole-v1.json')
   assert.equal(schemaResponse.status,200)
   const schemaText=await schemaResponse.text(),schema=JSON.parse(schemaText)

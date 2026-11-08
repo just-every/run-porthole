@@ -1241,12 +1241,14 @@ export async function clusterArchiveJourney({origin,freshOwner,withEmptyDestinat
 }
 
 /** Reviewed service metadata restores as inactive history without authority. */
-export async function servicesArchiveJourney({origin,freshOwner,restartWorker,withEmptyDestination,id,query,expected,summary,associations,discovery}) {
+export async function servicesArchiveJourney({origin,freshOwner,restartWorker,withEmptyDestination,id,query,expected,summary,associations,discovery,handoffPacket}) {
  let cookie=await freshOwner()
  const source=await savedExport(origin,cookie,await post(origin,cookie,api+'/exports',{})),root='/api/porthole/v1/services/'+id
  const largest=source.chunks.reduce((best,chunk)=>Buffer.byteLength(JSON.stringify(chunk))>Buffer.byteLength(JSON.stringify(best))?chunk:best)
  if(restartWorker){await restartWorker();cookie=await freshOwner()}
  assert.deepEqual(await value(await get(origin,cookie,`${api}/exports/${source.job.id}/chunks/${largest.index}`)),largest,'large archived stock captures replay exactly from the frozen snapshot')
+ const declarations=source.rows.filter(row=>row.table==='porthole_handoff_versions'),packetHistory=source.rows.filter(row=>row.table==='porthole_service_packets')
+ assert.equal(declarations.length,13);assert.ok(packetHistory.some(row=>row.row.id===handoffPacket.id&&row.row.state==='approved'))
  const rows=source.rows.filter(row=>row.table==='porthole_service_versions')
  assert.equal(rows.length,3);assert.deepEqual(rows.map(r=>r.row.revision),[1,2,3])
  assert.equal(rows[2].row.runbook,expected.runbook)
@@ -1266,6 +1268,11 @@ export async function servicesArchiveJourney({origin,freshOwner,restartWorker,wi
   }
   await value(await post(destination.origin,owner,`${api}/restores/${start.id}/commit`,{confirm:source.manifest.rootHash}))
   const restored=await value(await get(destination.origin,owner,root+query))
+  const inactiveHandoffs=await destination.sql('SELECT * FROM porthole_handoff_versions ORDER BY product,revision'),inactivePackets=await destination.sql('SELECT * FROM porthole_service_packets ORDER BY id')
+  assert.equal(inactiveHandoffs.length,declarations.length);assert.ok(inactiveHandoffs.every(row=>row.state==='quarantined'))
+  assert.ok(inactivePackets.every(row=>row.state==='quarantined'));assert.equal(inactivePackets.find(row=>row.id===handoffPacket.id).digest,handoffPacket.digest)
+  assert.deepEqual((await value(await get(destination.origin,owner,'/api/porthole/v1/handoffs'))).handoffs,[],'restored declarations never become live external links')
+  assert.equal((await get(destination.origin,owner,'/api/porthole/v1/service-evidence/'+handoffPacket.id+'/download')).status,404,'historical packet approval cannot transfer to a destination owner')
   assert.equal(restored.metadata.state,'quarantined');assert.equal(restored.metadata.runbook,expected.runbook);assert.equal(restored.metadata.criticality,expected.criticality)
   assert.deepEqual(restored.summary,summary,'inactive restoration preserves the independently reconciled request and latency values')
   assert.deepEqual(restored.associations,associations,'inactive restoration preserves the exact source dependency observations')
@@ -1282,6 +1289,7 @@ export async function servicesArchiveJourney({origin,freshOwner,restartWorker,wi
   assert.equal((await destination.sql('SELECT COUNT(*) AS n FROM porthole_members WHERE operator_id='+literal(expected.owner_ref)))[0].n,0,'metadata owner reference creates no destination member')
   assert.ok(Object.values(restored.names).every(name=>name==='Unavailable member'))
   const exported=await savedExport(destination.origin,owner,await post(destination.origin,owner,api+'/exports',{})),again=exported.rows.filter(r=>r.table==='porthole_service_versions')
+  assert.ok(exported.rows.filter(row=>['porthole_handoff_versions','porthole_service_packets'].includes(row.table)).every(row=>row.row.state==='quarantined'),'re-export keeps handoff and packet history inactive')
   const telemetry=rows=>rows.filter(row=>['porthole_ingest_batches','porthole_telemetry_records','porthole_telemetry_archive'].includes(row.table))
   assert.deepEqual(telemetry(exported.rows),telemetry(source.rows),'large-packet restore and re-export retain every original wire byte and normalized record')
   const retry=exported.chunks.reduce((best,chunk)=>Buffer.byteLength(JSON.stringify(chunk))>Buffer.byteLength(JSON.stringify(best))?chunk:best)

@@ -21,12 +21,13 @@ export interface Handoff {product:string;revision:number;destination:string;temp
 export function destination(value:unknown,template=false):string {
  if(typeof value!=='string'||!value||value.length>2000)fail('invalid_handoff_destination',400)
  let decoded=value
- for(let n=0;n<3;n++){if(/[\u0000-\u0020\u007f-\u009f\\]/.test(decoded))fail('invalid_handoff_destination',400);try{const next=decodeURIComponent(decoded);if(next===decoded)break;decoded=next}catch{fail('invalid_handoff_destination',400)}}
+ for(let n=0;n<value.length;n++){if(/[\u0000-\u0020\u007f-\u009f\\]/.test(decoded))fail('invalid_handoff_destination',400);try{const next=decodeURIComponent(decoded);if(next===decoded)break;decoded=next}catch{fail('invalid_handoff_destination',400)}}
  const fields=[...value.matchAll(/\{([^{}]+)\}/g)].map(m=>m[1])
  if((!template&&fields.length)||fields.some(v=>!placeholders.includes(v as typeof placeholders[number]))||/[{}]/.test(value.replace(/\{(service|environment|from|through)\}/g,'')))fail('invalid_handoff_template',400)
  let url:URL;try{url=new URL(value.replace(/\{(service|environment|from|through)\}/g,'synthetic-porthole-1'))}catch{return fail('invalid_handoff_destination',400)}
  if(url.protocol!=='https:'||url.username||url.password||url.hash||/\{/.test(value.slice(0,value.indexOf('/',8)<0?value.length:value.indexOf('/',8))))fail('invalid_handoff_destination',400)
- for(const key of url.searchParams.keys())if(/token|secret|password|credential|auth|api.?key|signature|session|cookie|access.?key/i.test(key))fail('handoff_credentials_forbidden',400)
+ let decodedUrl:URL;try{decodedUrl=new URL(decoded.replace(/\{(service|environment|from|through)\}/g,'synthetic-porthole-1'))}catch{return fail('invalid_handoff_destination',400)}
+ for(const key of decodedUrl.searchParams.keys())if(/token|secret|password|credential|auth|api.?key|signature|session|cookie|access.?key/i.test(key))fail('handoff_credentials_forbidden',400)
  if(/(?:gh[pousr]_|github_pat_|Bearer\s|Basic\s)/i.test(decoded))fail('handoff_credentials_forbidden',400)
  return value
 }
