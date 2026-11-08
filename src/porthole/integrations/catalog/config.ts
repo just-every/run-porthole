@@ -27,7 +27,7 @@ export function collectorConfiguration(b:Binding,origin:string) {
  const pipelines:Record<string,unknown>={'logs':{receivers:['filelog'],processors:['transform','resource'],exporters:['otlphttp']},metrics:{receivers:[p.receiver,self],processors:['filter','resource'],exporters:['otlphttp']}}
  if(b.pack==='nginx') {
   const nginxLogs=['filelog','nginx'].join(String.fromCharCode(47))
-  receivers[nginxLogs]={include:[value('PORTHOLE_NGINX_ACCESS_LOG'),value('PORTHOLE_NGINX_ERROR_LOG')],start_at:'beginning',storage:'file_storage',include_file_path:true}
+  receivers[nginxLogs]={polls_to_archive:100000,include:[value('PORTHOLE_NGINX_ACCESS_LOG'),value('PORTHOLE_NGINX_ERROR_LOG')],start_at:'beginning',storage:'file_storage',include_file_path:true}
   pipelines[['logs','nginx'].join(String.fromCharCode(47))]={receivers:[nginxLogs],processors:['resource'],exporters:['otlphttp']}
  }
  return {extensions:{'file_storage':{directory:value('PORTHOLE_STATE_DIR'),create_directory:true}},receivers,processors:{'filter':{error_mode:'propagate',metrics:{metric:[metricRefusal]}},'resource':{attributes},'transform':{error_mode:'propagate',log_statements:[{context:'log',statements:diagnosticStatements}]}},exporters:{'otlphttp':{endpoint:origin,encoding:'json',compression:'none',headers:{Authorization:'Bearer '+value('PORTHOLE_INGEST_TOKEN')}}},service:{extensions:['file_storage'],telemetry:{logs:{level:'info',encoding:'json',disable_stacktrace:true,output_paths:[value('PORTHOLE_DIAGNOSTIC_LOG')]},metrics:{level:'detailed',readers:[{pull:{exporter:{prometheus:{host:'127.0.0.1',port:value('PORTHOLE_SELF_PORT')}}}}]}},pipelines}}

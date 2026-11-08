@@ -28,3 +28,8 @@ contains host environment references and uses an existing scoped ingest token.
 Denied collection shows sanitized collector diagnostic codes and the required
 permission or endpoint check. Missing input is Unknown. Restore keeps the pack
 inactive and removes its credential reference; a current fresh review is due.
+
+The stock filelog receiver archives offsets for 100000 poll cycles in the host
+checkpoint store. This preserves its known positions while a log file is
+temporarily unreadable, rather than forgetting it after three polls. Keep the
+checkpoint directory across collector restarts; its loss permits source replay.

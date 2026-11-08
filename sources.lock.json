@@ -469,7 +469,7 @@
       "executable": false
     },
     "docs/integrations/nginx.md": {
-      "sha256": "356d988a56f6be221672a57fb8676f696ea0745075ba7d40ffcd5443e9377dfa",
+      "sha256": "7f40a99c40d5190becee45076ada18730f01af17a604c856cfb0b7cc364a20f1",
       "executable": false
     },
     "docs/integrations/postgresql.md": {
@@ -4877,7 +4877,7 @@
       "executable": false
     },
     "src/porthole/integrations/catalog/config.ts": {
-      "sha256": "01c983e672ab74b7164d60b57c233711bd6918c4eb8517368098a97b0ebe97e1",
+      "sha256": "c61328df16b8964d1e455aaff00bab72ccd86df9421346df4dc7a18ea715ff3b",
       "executable": false
     },
     "src/porthole/integrations/catalog/health.ts": {
