@@ -5773,7 +5773,7 @@
       "executable": false
     },
     "tests/porthole/handover.mjs": {
-      "sha256": "e01f374378534dbf076bb760c621b7900b487ad436fc40d76fd4075c9dc25cc2",
+      "sha256": "d5ad97ca7b016e8eaa1585222649cd145fbbcecf089e1a69d3c0656c8e3c9865",
       "executable": false
     },
     "tests/porthole/health.mjs": {

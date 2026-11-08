@@ -157,6 +157,8 @@ async function notebookCustody({origin,owner,member,post,get,sql,mutate,freshOwn
  const keyQuery={signal:'logs',service:'checkout',environment:'production',team:'commerce'}
  assert.equal((await keyRequest('/api/porthole/v1/query',keyQuery)).status,200)
  const rpcData={jsonrpc:'2.0',id:1,method:'tools/call',params:{name:'porthole.telemetry.query',arguments:keyQuery}}
+ const standardRead=()=>fetch(origin+'/api/v1/query',{headers:{authorization:'Bearer '+read.secret}})
+ assert.equal((await standardRead()).status,501) // Authenticated unsupported query; no data disclosed.
  const rpcBefore=await keyRequest('/api/porthole/v1/mcp',rpcData)
  assert.equal(rpcBefore.status,200);assert.equal((await rpcBefore.json()).result.structuredContent.records.length,1)
  const nativeCli=()=>new Promise((resolve,reject)=>{
@@ -217,6 +219,7 @@ async function notebookCustody({origin,owner,member,post,get,sql,mutate,freshOwn
  for(const secret of [read.secret,proposal.secret,execution.secret])assert.equal((await inspect(secret)).status,401)
  assert.equal((await keyRequest('/api/porthole/v1/query',keyQuery)).status,401)
  assert.equal((await keyRequest('/api/porthole/v1/mcp',rpcData)).status,401)
+ assert.equal((await standardRead()).status,401)
  assert.equal((await nativeCli()).code,1)
  assert.equal((await inspect(ingest.secret)).status,200)
  assert.equal((await (await inspect(ingest.secret)).json()).custodianId,owner)
