@@ -2,10 +2,12 @@ import type { Bindings } from '../../auth.server'
 import { AuthError } from '../../modules/operator-auth/index.mjs'
 import { document,escape,privateHeaders } from '../document'
 import { authority, fail, type Scope } from '../security/authority'
+import { preview } from '../handover/review'
+import { handoverPage } from '../handover/page'
 import { input,text } from '../security/input'
 import { changeMember,inviteMember,listMembers,removeMember } from './store'
 import { membersPage,settingsNav } from './page'
-const paths=new Set(['/app/settings','/app/settings/members','/app/settings/members/invite','/app/settings/members/change','/app/settings/members/remove'])
+const paths=new Set(['/app/settings','/app/settings/members','/app/settings/members/invite','/app/settings/members/change','/app/settings/members/remove','/app/settings/members/preview'])
 export async function membershipResponse(request:Request,env:Bindings):Promise<Response|null> {
  const url=new URL(request.url)
  if(!paths.has(url.pathname)) return null
@@ -19,6 +21,10 @@ export async function membershipResponse(request:Request,env:Bindings):Promise<R
   }
   if(request.method!=='POST') fail('method_not_allowed',405)
   const data=await input(request)
+  if(url.pathname.endsWith('/preview')) {
+   const review=await preview(request,env,text(data.operatorId))
+   return form?document('Review member removal',handoverPage(review),200,{forms:true}):Response.json(review,{headers:privateHeaders})
+  }
   if(form) {
    const scope:Scope={services:[],environments:[],teams:[]}
    for(const key of ['services','environments','teams'] as const) scope[key]=typeof data[key]==='string' ? (data[key] as string).split(',').map(value=>value.trim()).filter(Boolean):[]
@@ -27,7 +33,7 @@ export async function membershipResponse(request:Request,env:Bindings):Promise<R
   let result:unknown,status=200
   if(url.pathname.endsWith('/invite')) {result=await inviteMember(request,env,data);status=202}
   else if(url.pathname.endsWith('/change')) result=await changeMember(request,env,text(data.operatorId),data)
-  else if(url.pathname.endsWith('/remove')) {if(form && data.confirm!=='remove') fail('confirmation_required',400);result=await removeMember(request,env,text(data.operatorId))}
+  else if(url.pathname.endsWith('/remove')) {if(form && data.confirm!=='remove') fail('confirmation_required',400);if(form && data.token) data.choices=Object.entries(data).filter(([key])=>key.startsWith('choice:')).map(([key,value])=>({key:key.slice(7),successor:value===''?null:value}));result=await removeMember(request,env,text(data.operatorId),data)}
   else fail('not_found',404)
   return form?new Response(null,{status:303,headers:{...privateHeaders,location:'/app/settings/members'}}):Response.json(result,{status,headers:privateHeaders})
  } catch(error) {

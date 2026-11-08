@@ -3,6 +3,7 @@ import { operatorMail } from '../../mail.server.mjs'
 import type { Operator } from '../../modules/operator-auth/index.mjs'
 import { administrative, allScope, authority, baseRole, emptyScope, fail, memberFor, parseScope, proofFence, roles, scopeWithin, type Authority, type ProductRole, type Scope } from '../security/authority'
 import { text } from '../security/input'
+import { reviewedRemoval } from '../handover/review'
 import { handoverIngest } from '../credentials/store'
 
 export interface MemberRow extends Operator { productRole: ProductRole; scope: Scope; revision: number }
@@ -94,19 +95,7 @@ export async function changeMember(request: Request, env: Bindings, id: string, 
  } catch(error) { if(String(error).includes('follow_up_handover_required')) fail('follow_up_handover_required',409);if(String(error).includes('last_owner')) fail('last_owner',409);if(String(error).includes('CHECK constraint failed')) fail('authority_changed',409);throw error }
  return env.DB.prepare(`SELECT ${columns} FROM oa_operators o JOIN porthole_members m ON m.operator_id=o.id WHERE o.id=?`).bind(id).first()
 }
-export async function removeMember(request: Request, env: Bindings, id: string) {
- const actor=await authority(request,env,{manage:true,post:true,stepUp:true}),target=await memberFor(env.DB,id)
- if(!target) fail('operator_not_found',404)
- canManage(actor,target.role,target.role)
- const row=await env.DB.prepare('SELECT version FROM oa_operators WHERE id=?').bind(id).first<{version:number}>()
- const proof=proofFence(actor)
- try {
-  const result=await env.DB.batch([
-   handoverIngest(env.DB,id,actor),
-   env.DB.prepare(`UPDATE oa_operators SET status='inactive' WHERE id=? AND version=? AND ${actor.fence} AND ${proof.sql} RETURNING id`).bind(id,row!.version,...actor.args,...proof.args),
-   env.DB.prepare('INSERT INTO porthole_transaction_guard(singleton,witness) VALUES(1,changes()) ON CONFLICT(singleton) DO UPDATE SET witness=excluded.witness'),
-  ])
-  if(!result[1].results.length) fail('authority_changed',409)
- } catch(error) { if(String(error).includes('follow_up_handover_required')) fail('follow_up_handover_required',409);if(String(error).includes('last_owner')) fail('last_owner',409);if(String(error).includes('CHECK constraint failed')) fail('authority_changed',409);throw error }
- return env.DB.prepare(`SELECT ${columns} FROM oa_operators o JOIN porthole_members m ON m.operator_id=o.id WHERE o.id=?`).bind(id).first()
+export async function removeMember(request: Request, env: Bindings, id: string, data: Record<string,unknown>={}) {
+ const actor=await authority(request,env,{manage:true,post:true,stepUp:true})
+ return reviewedRemoval(request,env,id,data,actor)
 }

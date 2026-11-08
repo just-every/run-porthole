@@ -3,7 +3,7 @@ import {randomBytes,randomUUID} from 'node:crypto'
 import {hashToken} from '../../src/modules/operator-auth/crypto.mjs'
 import {form,literal} from './fixture.mjs'
 
-export async function membershipJourney({origin,cookie,foreignCookie,sql,mutate,link,signIn,freshOwner,sessionSecret}) {
+export async function membershipJourney({origin,cookie,foreignCookie,sql,mutate,link,signIn,freshOwner,sessionSecret,restartWorker,withEmptyDestination}) {
  const get=(path,c=cookie)=>fetch(origin+path,{headers:{cookie:c},redirect:'manual'})
  const post=(path,data,c=cookie)=>fetch(origin+path,form(origin,c,data))
  const members=async()=>{const r=await get('/auth/operators');assert.equal(r.status,200);return r.json()}
@@ -100,6 +100,8 @@ export async function membershipJourney({origin,cookie,foreignCookie,sql,mutate,
  await membershipBrowser({origin,cookie,contractorCookie})
  await mutate('ALTER TABLE porthole_members RENAME TO porthole_members_unavailable')
  try {await unavailableBrowser({origin,cookie})} finally {await mutate('ALTER TABLE porthole_members_unavailable RENAME TO porthole_members')}
+ const {handoverJourney}=await import('./handover.mjs')
+ await handoverJourney({origin,freshOwner,signIn,sql,mutate,restartWorker,withEmptyDestination,sessionSecret})
  console.log('membershipJourney passed: seven roles, links, no escalation, fresh proof, revision fence, last owner and removal')
  return {cookie,target,admin,contractor,scope}
 }

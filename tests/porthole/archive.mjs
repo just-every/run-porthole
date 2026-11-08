@@ -1296,3 +1296,32 @@ export async function servicesArchiveJourney({origin,freshOwner,restartWorker,wi
  console.log('PROBE PORT-008 archive-packets: largest stock-capture packet bytes='+Buffer.byteLength(JSON.stringify(largest))+' -> export retry and restore retry preserve its exact rows, digest and order')
  return {id:source.job.id,chunk:largest.index}
 }
+
+/** Handover receipts are private history, never restore-time authority. */
+export async function handoverArchiveJourney({origin,cookie,withEmptyDestination,notebook,publication,ingest,read}) {
+ const source=await savedExport(origin,cookie,await post(origin,cookie,api+'/exports',{}))
+ const history=source.rows.filter(r=>r.table==='porthole_handover_history')
+ assert.ok(history.length>=2);assert.ok(history.every(r=>r.row.state==='committed'))
+ assert.ok(history.some(r=>JSON.parse(r.row.decisions).some(d=>d.mode==='void')))
+ assert.ok(history.some(r=>JSON.parse(r.row.decisions).some(d=>d.mode==='custody')))
+ assert.equal(source.rows.find(r=>r.table==='porthole_notebooks'&&r.row.id===notebook).row.owner_ref,null)
+ assert.ok(!JSON.stringify(source.rows).includes(ingest)&&!JSON.stringify(source.rows).includes(read),'credential secrets never travel with handover history')
+ assert.ok(!source.rows.some(r=>['porthole_credentials','porthole_object_approvals','porthole_notebook_shares'].includes(r.table)))
+ await withEmptyDestination(async destination=>{
+  const destCookie=await destination.freshOwner()
+  const start=await value(await post(destination.origin,destCookie,api+'/restores',{manifest:source.manifest}),201)
+  for(const chunk of source.chunks)await value(await post(destination.origin,destCookie,api+'/restores/'+start.id+'/chunks',{chunk}))
+  await value(await post(destination.origin,destCookie,api+'/restores/'+start.id+'/commit',{confirm:source.manifest.rootHash}))
+  const restored=await savedExport(destination.origin,destCookie,await post(destination.origin,destCookie,api+'/exports',{}))
+  const receipts=restored.rows.filter(r=>r.table==='porthole_handover_history')
+  assert.equal(receipts.length,history.length);assert.ok(receipts.every(r=>r.row.state==='quarantined'))
+  assert.deepEqual(receipts.map(r=>r.row.decisions).sort(),history.map(r=>r.row.decisions).sort())
+  assert.equal(restored.rows.find(r=>r.table==='porthole_notebooks'&&r.row.id===notebook).row.owner_ref,null)
+  assert.equal(restored.rows.find(r=>r.table==='porthole_notebooks'&&r.row.id===notebook).row.state,'quarantined')
+  assert.equal(restored.rows.find(r=>r.table==='porthole_notebook_publications'&&r.row.id===publication).row.state,'quarantined')
+  for(const secret of [ingest,read])assert.equal((await fetch(destination.origin+'/api/porthole/v1/credential',{headers:{authorization:'Bearer '+secret}})).status,401)
+  assert.equal((await fetch(destination.origin+'/shared/notebooks/'+publication)).status,404)
+  assert.ok(!(await destination.sql('SELECT id FROM porthole_object_approvals')).length)
+  assert.ok(!(await destination.sql('SELECT notebook_id FROM porthole_notebook_shares')).length)
+ })
+}

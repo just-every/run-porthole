@@ -868,6 +868,10 @@
       "sha256": "1f7dcbde9b34448bbd786742fe7b3cc9875838955f7263f1a726d19471a697f2",
       "executable": false
     },
+    "migrations/core/0063_porthole_handover.sql": {
+      "sha256": "dd5fe8ae774013c397625fbf3309c5b4bae09af65c588115c6789c3bb21e1ac4",
+      "executable": false
+    },
     "ONBOARDING.md": {
       "sha256": "3bfe0cb88ac22d51ebe29ff54d0143219096c0ac07eb3b2b81c574c5baf57332",
       "executable": false
@@ -4537,7 +4541,7 @@
       "executable": false
     },
     "src/porthole/audit/capture.ts": {
-      "sha256": "5be800fb7f2991cd2f911acd38c26ee4f7f77375e1e2ebee04336a8934e13544",
+      "sha256": "ca4a94cd672674ffda3f265e9d81474c51693dde54145dbfd8054e6ad843cc3b",
       "executable": false
     },
     "src/porthole/audit/export.ts": {
@@ -4673,7 +4677,7 @@
       "executable": false
     },
     "src/porthole/events/model.ts": {
-      "sha256": "faf7f3cfaf595641f9322a556b415f2eb2b7f36de34376e23a0c5c42eb55705a",
+      "sha256": "9c1cdde11abbdf583f0848d2caa4ecd75d0aa2e19dc4043f9f89caaadbdcf65f",
       "executable": false
     },
     "src/porthole/events/openapi.ts": {
@@ -4746,6 +4750,18 @@
     },
     "src/porthole/genai/wire.ts": {
       "sha256": "d59aab3af03e7825e0af6da8b998fb9b3758c897036d7a8c7f10bf3d1615a513",
+      "executable": false
+    },
+    "src/porthole/handover/inventory.ts": {
+      "sha256": "a53f1460d42bbb9bddcc53a5f9bb0dc782f5dfe19b46e0453377681205725304",
+      "executable": false
+    },
+    "src/porthole/handover/page.ts": {
+      "sha256": "50ee0bfcc1d388277419f242a3cc26086f9ad68856b07fb2536351a99c0565b0",
+      "executable": false
+    },
+    "src/porthole/handover/review.ts": {
+      "sha256": "8b230a36665f5943f5a215831940015093af1f9d19d473a4238cd18cdacefd4d",
       "executable": false
     },
     "src/porthole/health/access.ts": {
@@ -4857,15 +4873,15 @@
       "executable": false
     },
     "src/porthole/membership/http.ts": {
-      "sha256": "4e129cf4fbee2f5e1270cc398213975a79c47b54eb384fe497759de7a82bcf9e",
+      "sha256": "a16187dfbc40189ab54a0217ec8b3ee46798b7981191b88afd733927098af54e",
       "executable": false
     },
     "src/porthole/membership/page.ts": {
-      "sha256": "9fbd752803a060a586453a30342802f34cf2bf21b03dde82c38ea5b8a8807708",
+      "sha256": "2d94b7e5bdd01d30d10ee982ef5b2135483476dbe893fa6d56c58183a1d358d2",
       "executable": false
     },
     "src/porthole/membership/store.ts": {
-      "sha256": "f8986fcfa2c33de7b5d1b98af084fcc64e6bf99621678d275544db76d93d032f",
+      "sha256": "55aad65dd286792d68cc37357f5229c5393710155e04e0412064ea67c9753e6c",
       "executable": false
     },
     "src/porthole/membership/token.ts": {
@@ -5061,11 +5077,11 @@
       "executable": false
     },
     "src/porthole/notebooks/http.ts": {
-      "sha256": "21d14f1109fc768c745b3392481ada7bca59e6cb4ba384a628cf992320f082b1",
+      "sha256": "91959b62a320be8600ebc28db784df5c8002e67e30613c4be351411c87255909",
       "executable": false
     },
     "src/porthole/notebooks/model.ts": {
-      "sha256": "73ca9a15f9de6bd35e127e3afe2986af951aad8606dde88ffa7292a73b9594f3",
+      "sha256": "ba46753a11729247e0e72d3aaf3821560a92f4408c1dd55c9e0cc9eed02b3420",
       "executable": false
     },
     "src/porthole/notebooks/page.ts": {
@@ -5153,7 +5169,7 @@
       "executable": false
     },
     "src/porthole/portability/catalog.ts": {
-      "sha256": "80e0aeca59f18ea510021c1e8403b6da0ef1737f8dde002006a92909bf49cf71",
+      "sha256": "e88491f866831cce7ed5816a3e934c0c8ae8b1522a0e4476baae33466e2e288e",
       "executable": false
     },
     "src/porthole/portability/chunk-cache.ts": {
@@ -5165,7 +5181,7 @@
       "executable": false
     },
     "src/porthole/portability/format.ts": {
-      "sha256": "8e050bfcb77de0eb540768933f5aaba5d011dae329ba4d829095e6e30a62d374",
+      "sha256": "6f4d1bc24745991f5e90db2f37e2954aefdf4e89d17fecdb8484b311709acd8f",
       "executable": false
     },
     "src/porthole/portability/health-history.ts": {
@@ -5185,7 +5201,7 @@
       "executable": false
     },
     "src/porthole/portability/restore.ts": {
-      "sha256": "c6808ff2439a7ed550dd14c2382951e250be7bdb2374b9dd0c8827bd4e82507f",
+      "sha256": "18a02a0f4e13745ca0a99aa7a9495f0c1242723218f88ee93ed9e0610d02e336",
       "executable": false
     },
     "src/porthole/portability/store.ts": {
@@ -5649,7 +5665,7 @@
       "executable": false
     },
     "tests/porthole/archive.mjs": {
-      "sha256": "9752e3ac642b1e9016d73b971e225d23dd4ae5b186735feef17b8391b07b5f00",
+      "sha256": "7426d44d6b8f5c47f1ef6faf7aa42dbe59dbea0d369294518388213eb714d86c",
       "executable": false
     },
     "tests/porthole/audit.mjs": {
@@ -5665,7 +5681,7 @@
       "executable": false
     },
     "tests/porthole/credentials.mjs": {
-      "sha256": "69a97deaa066af9e65b0ca0a744010262541aad2f90978aeea6cfa5d58df4f8e",
+      "sha256": "1ac19f7f9181988ef9e115b598240ba998351e5300f976cd864f0fbb7ad53d87",
       "executable": false
     },
     "tests/porthole/dashboard-api.mjs": {
@@ -5724,6 +5740,10 @@
       "sha256": "88c3462f0d7ca9d774b216bc58d560b9e7bf7310d76302eed8114568fb3793ab",
       "executable": false
     },
+    "tests/porthole/handover.mjs": {
+      "sha256": "fc6fa39e9f1802ebb835448a97c431716770ab3b0e7f06ce346c01c4ebcf7f41",
+      "executable": false
+    },
     "tests/porthole/health.mjs": {
       "sha256": "b07c40533c34a5714d05598694e7e8fe5d408c74dd8ae2511afcbecb5df1b179",
       "executable": false
@@ -5749,7 +5769,7 @@
       "executable": false
     },
     "tests/porthole/membership.mjs": {
-      "sha256": "e702ba85ff88525bdde8563ed3617184c30eea84cc8649249438cd5da6afab50",
+      "sha256": "232b0d7a109e40d514987950131ed5c446265e9235134ef7652c890f3025edaf",
       "executable": false
     },
     "tests/porthole/metric-units.mjs": {
@@ -5897,7 +5917,7 @@
       "executable": false
     },
     "tests/runtime.mjs": {
-      "sha256": "fdb47b943f8303389f0280a2d085e19ca9ed399e55b300f98712f5d9fbab5a7a",
+      "sha256": "2cce4b916142973cde29e171cdb73ff5a15b4d904269a6cff2273c51c5ee0ad1",
       "executable": false
     },
     "tests/typecheck-checks.mjs": {
