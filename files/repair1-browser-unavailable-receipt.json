@@ -1,0 +1,17 @@
+{
+  "head": "843cefdeab89ace4ed4543f1ffdb55d0e22b3495",
+  "head_at_end": "843cefdeab89ace4ed4543f1ffdb55d0e22b3495",
+  "command": "CI=true SHARD=typecheck node scripts/verify-ci.mjs typecheck",
+  "node": "22.20.0",
+  "exit": 1,
+  "recorded_at": "2026-11-08T22:53:42.038705+00:00",
+  "clean": true,
+  "repair_round": 1,
+  "original_run": 42529380666,
+  "original_job": 128880097883,
+  "log": "repair1-browser-unavailable.log",
+  "sha256": "8350f7f946e5cb2718fe92ab7bc527fb593a4b027da53fed745521ea57fc5d5c",
+  "failure": "browserType.launch: Executable doesn't exist at the Playwright chromium_headless_shell-1243 cache path",
+  "classification": "local browser prerequisite: archive proof uses PORTHOLE_CHROMIUM while fleet proof uses PORTHOLE_CHROMIUM_PATH; only the latter was set",
+  "resolution": "Set both existing selectors to /usr/bin/chromium; no product or test edit. Explicit launch with --no-sandbox succeeded."
+}

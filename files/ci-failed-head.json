@@ -1,0 +1,17 @@
+{
+  "repository": "just-every/run-porthole",
+  "branch": "cloud/sx-porthole-c-f462",
+  "head": "752ba7820f6299e91116d98ea39bffbf9776009b",
+  "run_id": 42529380666,
+  "name": "Verify",
+  "event": "push",
+  "status": "completed",
+  "conclusion": "failure",
+  "html_url": "https://github.com/just-every/run-porthole/actions/runs/42529380666",
+  "observed_at": "2026-11-08T22:38:12.502935+00:00",
+  "explicit_github_api_calls": 9,
+  "head_sha": "752ba7820f6299e91116d98ea39bffbf9776009b",
+  "id": 42529380666,
+  "failed_job": 128880097883,
+  "failure": "TypeError: Body is unusable: Body has already been read at send (tests/porthole/collector-install.mjs:193:12)"
+}

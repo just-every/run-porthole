@@ -1,0 +1,18 @@
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mProxy environment variables detected. We'll use your proxy for fetch requests.[0m
+
+
+Installed owner claim rejects missing/wrong setup tokens and request demo flags
+HTTP-001 passed against emitted local Worker: health, the installed homepage, HTTP and document 404s
+PROBE PORT-003 receivers: official hostmetrics CPU and memory plus Docker stats -> measured producer CPU and memory with its actual container identity; Infrastructure display remains held
+PROBE PORT-003 revoked export: actual Collector not retryable error: Permanent error: rpc error: code = Unauthenticated desc = error exporting items, request to https://172.17.0.1:37067/v1/logs responded with HTTP Status Code 401 -> 1 observed dropped records; current native owner records matching source loss, responder refuses, delivery remains Unknown
+PROBE PORT-003 archive: actual export and empty restore -> inactive stale install, no credential or live collection, exact retained Docker log survives re-export and restart
+PROBE PORT-003 Docker: actual official filelog receiver -> planted stdout in native Explore in 1662 ms; initial delivery observed before sixty seconds with exact source nanoseconds and container ID
+PROBE PORT-003 gaps: remove host proc, host sys, container logs and Docker socket individually -> named gaps and next actions; restart preserves observations
+PROBE PORT-003 uninstall: stop actual Collector -> stale install and retained original record; revoked credential refuses both report and intake unchanged
+Recipient fixture: parsing migrations
+Recipient fixture: migrations parsed
+Recipient fixture: starting emitted Worker
+Recipient fixture: D1 ready
+Recipient fixture: native bootstrap
+PROBE PORT-003 analytical reads: exact stock Docker Collector wire -> primary and standby preserve identical original log timestamp and container identity; selected outage returns 503, restart retains evidence, revoked replay refuses unchanged
+APP-HOME passed against emitted local Worker: /app behind sign-in and setup, then the trace view with its stylesheets

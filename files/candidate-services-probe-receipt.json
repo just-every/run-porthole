@@ -1,0 +1,12 @@
+{
+  "head": "843cefdeab89ace4ed4543f1ffdb55d0e22b3495",
+  "comparison": "unchanged pushed candidate after full-shard viewport failure; no speculative code edit",
+  "command": "CI=true SEED_VERIFY_SHARD=typecheck PORTHOLE_SERVICES_ONLY=1 pnpm run test:runtime",
+  "node": "22.20.0",
+  "browser": "/usr/bin/chromium --no-sandbox",
+  "exit": 0,
+  "clean": true,
+  "recorded_at": "2026-11-08T23:10:48.073560+00:00",
+  "log": "candidate-services-probe.log",
+  "sha256": "c5ba03996cf8f3c4fb1c2ea2d1d2428ecd1e15a358bc247d806b89d82881ed40"
+}

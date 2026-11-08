@@ -1,0 +1,13 @@
+{
+  "head": "752ba7820f6299e91116d98ea39bffbf9776009b",
+  "job": 128880097883,
+  "run": 42529380666,
+  "command": "CI=true SHARD=typecheck node scripts/verify-ci.mjs typecheck",
+  "node": "22.20.0",
+  "exit": 1,
+  "recorded_at": "2026-11-08T22:43:12.780076+00:00",
+  "log": "verify-reproduce-node22.log",
+  "test": "fleetJourney wrong-credential report refusal",
+  "failure": "TypeError: Body is unusable: Body has already been read at send (tests/porthole/collector-install.mjs:193:12)",
+  "reproduced": true
+}

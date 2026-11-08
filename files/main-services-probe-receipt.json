@@ -1,0 +1,13 @@
+{
+  "head": "ff590be64b7cac3eaf2128c9833c641072cd8fb5",
+  "comparison": "updated main, same cloud runner and Node/browser versions",
+  "command": "CI=true SEED_VERIFY_SHARD=typecheck PORTHOLE_SERVICES_ONLY=1 pnpm run test:runtime",
+  "node": "22.20.0",
+  "browser": "/usr/bin/chromium --no-sandbox",
+  "exit": 0,
+  "recorded_at": "2026-11-08T23:07:42.760232+00:00",
+  "log": "main-services-probe.log",
+  "sha256": "c3be19413717970262d3d02d65f1e3a1b98a41521d89520ce1c3e0f07c5df226",
+  "tracked_source_unchanged": true,
+  "dependency_setup": "node_modules is an untracked symlink to the same locked dependency installation; no tracked source changes"
+}

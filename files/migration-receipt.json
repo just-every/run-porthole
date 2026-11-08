@@ -1,20 +1,8 @@
 {
-  "head": "752ba7820f6299e91116d98ea39bffbf9776009b",
-  "command": [
-    "pnpm",
-    "exec",
-    "wrangler",
-    "d1",
-    "migrations",
-    "list",
-    "foundation",
-    "--local",
-    "--config",
-    "dist/server/wrangler.json",
-    "--persist-to",
-    ".wrangler/state"
-  ],
+  "head": "843cefdeab89ace4ed4543f1ffdb55d0e22b3495",
+  "command": "pnpm exec wrangler d1 migrations list foundation --local --config dist/server/wrangler.json --persist-to .wrangler/state",
   "exit": 0,
-  "recorded_at": "2026-11-08T22:20:36.783530+00:00",
-  "log": "migration-ledger.log"
+  "recorded_at": "2026-11-08T22:51:42.695056+00:00",
+  "log": "migration-ledger.log",
+  "actual_apply_log": "migration-apply.log"
 }

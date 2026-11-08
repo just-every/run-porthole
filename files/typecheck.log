@@ -1,4 +1,3 @@
- WARN  Unsupported engine: wanted: {"node":"22.20.0"} (current: {"node":"v24.19.0","pnpm":"10.12.4"})
 
 > @just-every/porthole@0.1.0 typecheck /workspace/run-porthole
 > tsc --build --incremental

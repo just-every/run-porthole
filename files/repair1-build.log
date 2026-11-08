@@ -1,0 +1,39 @@
+Heavy job admitted: Porthole build:workflow [94c9ff1ec523]
+Checking pinned pnpm
+10.12.4
+Building your application
+build:app
+▲ [WARNING] Proxy environment variables detected. We'll use your proxy for fetch requests.
+
+
+vite v8.2.2 building client environment for production...
+transforming...
+✓ 141 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/client/.assetsignore               0.02 kB
+dist/client/assets/index-CRqGoFgh.js  313.67 kB │ gzip: 101.76 kB
+
+✓ built in 408ms
+vite v8.2.2 building ssr environment for production...
+transforming...
+✓ 831 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/server/wrangler.json                                      1.61 kB │ gzip:   0.82 kB
+dist/server/.vite/manifest.json                                2.35 kB │ gzip:   0.53 kB
+dist/server/assets/empty-plugin-adapters-D_0twvAa.js           0.28 kB │ gzip:   0.18 kB
+dist/server/assets/start-BRPP0LUH.js                           0.28 kB │ gzip:   0.20 kB
+dist/server/assets/_tanstack-start-manifest_v-DUR4zw_z.js      0.35 kB │ gzip:   0.26 kB
+dist/server/assets/wire-C5pyjjqN.js                            7.77 kB │ gzip:   2.90 kB
+dist/server/assets/router-B-pF21YZ.js                         37.45 kB │ gzip:  10.06 kB
+dist/server/assets/Match-vf3DrRnt.js                         169.04 kB │ gzip:  42.60 kB
+dist/server/index.js                                       3,328.62 kB │ gzip: 812.83 kB
+
+[INEFFECTIVE_DYNAMIC_IMPORT] src/porthole/ingest/otlp-proto.ts is dynamically imported by src/porthole/database/privacy.ts but also statically imported by src/porthole/genai/wire.ts, src/porthole/ingest/http.ts, src/porthole/signals/standard/tempo.ts, dynamic import will not move module into another chunk.
+
+[INEFFECTIVE_DYNAMIC_IMPORT] src/modules/import-kit/src/d1/undo-snapshot.ts is dynamically imported by src/modules/import-kit/src/d1/apply.ts but also statically imported by src/modules/import-kit/src/d1/preserved-preview.ts, src/modules/import-kit/src/d1/preserved-reverse.ts, dynamic import will not move module into another chunk.
+
+✓ built in 761ms
+Your application is built
+build: complete (exit 0)

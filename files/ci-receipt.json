@@ -1,15 +1,15 @@
 {
+  "conclusion": "cancelled",
+  "event": "push",
+  "head_branch": "cloud/sx-porthole-c-f462",
+  "head_sha": "843cefdeab89ace4ed4543f1ffdb55d0e22b3495",
+  "html_url": "https://github.com/just-every/run-porthole/actions/runs/42532000070",
+  "id": 42532000070,
+  "name": "Verify",
+  "status": "completed",
   "repository": "just-every/run-porthole",
   "branch": "cloud/sx-porthole-c-f462",
-  "head": "752ba7820f6299e91116d98ea39bffbf9776009b",
-  "run_id": 42529380666,
-  "name": "Verify",
-  "event": "push",
-  "status": "in_progress",
-  "conclusion": null,
-  "html_url": "https://github.com/just-every/run-porthole/actions/runs/42529380666",
-  "observed_at": "2026-11-08T22:24:06.765424+00:00",
-  "explicit_github_api_calls": 6,
-  "head_sha": "752ba7820f6299e91116d98ea39bffbf9776009b",
-  "id": 42529380666
+  "head": "843cefdeab89ace4ed4543f1ffdb55d0e22b3495",
+  "explicit_github_api_calls": 10,
+  "observed_at": "2026-11-08T23:02:00.477730+00:00"
 }

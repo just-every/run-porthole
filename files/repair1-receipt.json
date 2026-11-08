@@ -1,0 +1,18 @@
+{
+  "head": "843cefdeab89ace4ed4543f1ffdb55d0e22b3495",
+  "head_at_end": "843cefdeab89ace4ed4543f1ffdb55d0e22b3495",
+  "command": "CI=true SHARD=typecheck node scripts/verify-ci.mjs typecheck",
+  "browser": "/usr/bin/chromium --no-sandbox, both existing helper environment selectors",
+  "node": "22.20.0",
+  "exit": 1,
+  "recorded_at": "2026-11-08T23:00:34.887079+00:00",
+  "clean": true,
+  "repair_round": 1,
+  "original_run": 42529380666,
+  "original_job": 128880097883,
+  "log": "repair1-full-shard-node22.log",
+  "sha256": "371d9c40c6b120505df7fc0f7e515a8ac068345472eb94ea4730ed010dadf0bd",
+  "failure": "AssertionError: the original association span is in view at servicesBrowser tests/porthole/services.mjs:249:48",
+  "test": "servicesJourney association trace viewport",
+  "status": "main comparison pending"
+}

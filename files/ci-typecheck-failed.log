@@ -1,0 +1,183 @@
+shards (typecheck, true)	Run this shard	﻿2026-11-08T22:17:18.6779168Z ##[group]Run node scripts/verify-ci.mjs "$SHARD"
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:18.6779548Z [36;1mnode scripts/verify-ci.mjs "$SHARD"[0m
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:18.6791351Z shell: /usr/bin/bash -e {0}
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:18.6791616Z env:
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:18.6791823Z   CI: true
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:18.6792041Z   WRANGLER_SEND_METRICS: false
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:18.6792571Z   PLAYWRIGHT_SKIP_BROWSER_GC: 1
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:18.6792852Z   SHARD: typecheck
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:18.6793072Z ##[endgroup]
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:18.7079795Z > pnpm run verify:app
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:18.9377806Z 
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:18.9378816Z > @just-every/porthole@0.1.0 verify:app /home/runner/work/run-porthole/run-porthole
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:18.9379432Z > node scripts/verify-app.mjs
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:18.9379625Z 
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:18.9650410Z > pnpm run build
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:19.1958307Z 
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:19.1959198Z > @just-every/porthole@0.1.0 build /home/runner/work/run-porthole/run-porthole
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:19.1959814Z > rer build
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:19.1959995Z 
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:19.7213429Z Checking pinned pnpm
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:19.9382796Z 10.12.4
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:20.0061683Z Building your application
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:20.3441370Z build:app
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:22.2331698Z vite v8.2.2 building client environment for production...
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:22.2509270Z transforming...
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:22.3333171Z ✓ 141 modules transformed.
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:22.3593830Z rendering chunks...
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:22.4181630Z computing gzip size...
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:22.4241565Z dist/client/.assetsignore               0.02 kB
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:22.4242753Z dist/client/assets/index-CRqGoFgh.js  313.67 kB │ gzip: 101.76 kB
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:22.4243068Z 
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:22.6476585Z ✓ built in 415ms
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:22.6482520Z vite v8.2.2 building ssr environment for production...
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:22.6574611Z transforming...
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:23.1684679Z ✓ 824 modules transformed.
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:23.2487647Z rendering chunks...
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:23.4004002Z computing gzip size...
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:23.4464396Z dist/server/wrangler.json                                      1.65 kB │ gzip:   0.83 kB
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:23.4465295Z dist/server/.vite/manifest.json                                2.35 kB │ gzip:   0.53 kB
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:23.4466043Z dist/server/assets/empty-plugin-adapters-D_0twvAa.js           0.28 kB │ gzip:   0.18 kB
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:23.4466815Z dist/server/assets/start-BRPP0LUH.js                           0.28 kB │ gzip:   0.20 kB
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:23.4467537Z dist/server/assets/_tanstack-start-manifest_v-CiDJhoiU.js      0.37 kB │ gzip:   0.26 kB
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:23.4468242Z dist/server/assets/wire-C5pyjjqN.js                            7.77 kB │ gzip:   2.90 kB
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:23.4468931Z dist/server/assets/router-B-pF21YZ.js                         37.45 kB │ gzip:  10.06 kB
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:23.4469622Z dist/server/assets/Match-vf3DrRnt.js                         169.04 kB │ gzip:  42.60 kB
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:23.4470213Z dist/server/index.js                                       3,038.94 kB │ gzip: 739.95 kB
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:23.4470478Z 
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:23.4793718Z [INEFFECTIVE_DYNAMIC_IMPORT] src/modules/import-kit/src/d1/undo-snapshot.ts is dynamically imported by src/modules/import-kit/src/d1/apply.ts but also statically imported by src/modules/import-kit/src/d1/preserved-preview.ts, src/modules/import-kit/src/d1/preserved-reverse.ts, dynamic import will not move module into another chunk.
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:23.4796230Z 
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:23.4798426Z [INEFFECTIVE_DYNAMIC_IMPORT] src/porthole/ingest/otlp-proto.ts is dynamically imported by src/porthole/database/privacy.ts but also statically imported by src/porthole/genai/wire.ts, src/porthole/ingest/http.ts, dynamic import will not move module into another chunk.
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:23.4800033Z 
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:23.4800462Z ✓ built in 825ms
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:23.9241517Z Your application is built
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:23.9550111Z build: complete (exit 0)
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:23.9688775Z > pnpm run typecheck
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:24.1967576Z 
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:24.1968582Z > @just-every/porthole@0.1.0 typecheck /home/runner/work/run-porthole/run-porthole
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:24.1969603Z > tsc --build --incremental
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:24.1969789Z 
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:31.1720878Z > pnpm run test:typecheck
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:31.4055711Z 
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:31.4056969Z > @just-every/porthole@0.1.0 test:typecheck /home/runner/work/run-porthole/run-porthole
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:31.4058284Z > rer queue test:typecheck -- sh -c "node --test tests/incremental-typecheck.test.mjs"
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:31.4058857Z 
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:31.4930989Z test:typecheck
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:31.5347894Z TAP version 13
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:51.8479257Z # Subtest: exported foundation incremental typecheck
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:51.8484824Z     # Subtest: cold and deleted-cache runs fully check; unchanged warm run skips the checker
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:51.8487258Z     ok 1 - cold and deleted-cache runs fully check; unchanged warm run skips the checker
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:51.8487989Z       ---
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:51.8488437Z       duration_ms: 19903.800469
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:51.8488892Z       type: 'test'
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:51.8489229Z       ...
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:57.4050406Z     # Subtest: a new local source error fails, including a repeated unchanged failing run
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:57.4054459Z     ok 2 - a new local source error fails, including a repeated unchanged failing run
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:57.4055060Z       ---
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:57.4055439Z       duration_ms: 5561.151806
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:57.4055807Z       type: 'test'
+shards (typecheck, true)	Run this shard	2026-11-08T22:17:57.4056227Z       ...
+shards (typecheck, true)	Run this shard	2026-11-08T22:18:00.1741272Z     # Subtest: an exported type edit invalidates its unchanged dependent file
+shards (typecheck, true)	Run this shard	2026-11-08T22:18:00.1748560Z     ok 3 - an exported type edit invalidates its unchanged dependent file
+shards (typecheck, true)	Run this shard	2026-11-08T22:18:00.1749594Z       ---
+shards (typecheck, true)	Run this shard	2026-11-08T22:18:00.1750261Z       duration_ms: 2768.763753
+shards (typecheck, true)	Run this shard	2026-11-08T22:18:00.1750750Z       type: 'test'
+shards (typecheck, true)	Run this shard	2026-11-08T22:18:00.1751073Z       ...
+shards (typecheck, true)	Run this shard	2026-11-08T22:18:03.2819418Z     # Subtest: reverting both edits restores a clean check and warm skip
+shards (typecheck, true)	Run this shard	2026-11-08T22:18:03.2825530Z     ok 4 - reverting both edits restores a clean check and warm skip
+shards (typecheck, true)	Run this shard	2026-11-08T22:18:03.2826171Z       ---
+shards (typecheck, true)	Run this shard	2026-11-08T22:18:03.2826568Z       duration_ms: 3107.559466
+shards (typecheck, true)	Run this shard	2026-11-08T22:18:03.2826946Z       type: 'test'
+shards (typecheck, true)	Run this shard	2026-11-08T22:18:03.2827244Z       ...
+shards (typecheck, true)	Run this shard	2026-11-08T22:18:22.7373941Z     # Subtest: a changed compiler option detects a previously valid unchanged source
+shards (typecheck, true)	Run this shard	2026-11-08T22:18:22.7376742Z     ok 5 - a changed compiler option detects a previously valid unchanged source
+shards (typecheck, true)	Run this shard	2026-11-08T22:18:22.7377146Z       ---
+shards (typecheck, true)	Run this shard	2026-11-08T22:18:22.7377393Z       duration_ms: 19455.183594
+shards (typecheck, true)	Run this shard	2026-11-08T22:18:22.7377663Z       type: 'test'
+shards (typecheck, true)	Run this shard	2026-11-08T22:18:22.7377882Z       ...
+shards (typecheck, true)	Run this shard	2026-11-08T22:18:32.3517238Z     # Subtest: metadata from a different TypeScript version forces a full recheck
+shards (typecheck, true)	Run this shard	2026-11-08T22:18:32.3523103Z     ok 6 - metadata from a different TypeScript version forces a full recheck
+shards (typecheck, true)	Run this shard	2026-11-08T22:18:32.3526406Z       ---
+shards (typecheck, true)	Run this shard	2026-11-08T22:18:32.3526999Z       duration_ms: 9614.071924
+shards (typecheck, true)	Run this shard	2026-11-08T22:18:32.3527554Z       type: 'test'
+shards (typecheck, true)	Run this shard	2026-11-08T22:18:32.3528019Z       ...
+shards (typecheck, true)	Run this shard	2026-11-08T22:18:32.4388247Z     1..6
+shards (typecheck, true)	Run this shard	2026-11-08T22:18:32.4394596Z ok 1 - exported foundation incremental typecheck
+shards (typecheck, true)	Run this shard	2026-11-08T22:18:32.4395254Z   ---
+shards (typecheck, true)	Run this shard	2026-11-08T22:18:32.4395686Z   duration_ms: 60875.269084
+shards (typecheck, true)	Run this shard	2026-11-08T22:18:32.4396165Z   type: 'test'
+shards (typecheck, true)	Run this shard	2026-11-08T22:18:32.4396954Z   ...
+shards (typecheck, true)	Run this shard	2026-11-08T22:18:32.4497679Z 1..1
+shards (typecheck, true)	Run this shard	2026-11-08T22:18:32.4503811Z # tests 7
+shards (typecheck, true)	Run this shard	2026-11-08T22:18:32.4504342Z # suites 0
+shards (typecheck, true)	Run this shard	2026-11-08T22:18:32.4504786Z # pass 7
+shards (typecheck, true)	Run this shard	2026-11-08T22:18:32.4505208Z # fail 0
+shards (typecheck, true)	Run this shard	2026-11-08T22:18:32.4505642Z # cancelled 0
+shards (typecheck, true)	Run this shard	2026-11-08T22:18:32.4506149Z # skipped 0
+shards (typecheck, true)	Run this shard	2026-11-08T22:18:32.4506572Z # todo 0
+shards (typecheck, true)	Run this shard	2026-11-08T22:18:32.4507065Z # duration_ms 60929.06203
+shards (typecheck, true)	Run this shard	2026-11-08T22:18:32.5253461Z > node --input-type=module -e 'import {nativeBackupErasureJourney} from "./tests/porthole/archive.mjs"; await nativeBackupErasureJourney()'
+shards (typecheck, true)	Run this shard	2026-11-08T22:22:03.8315096Z nativeBackupErasureJourney passed: actual native backup, owner-only exact erasure of every matching batch and frozen custody, unchanged unrelated subject and trace history, capture and revoked-credential refusal, restart and native restore with no erased subject or live host authority
+shards (typecheck, true)	Run this shard	2026-11-08T22:22:04.1011831Z > PORTHOLE_SERVICES_ONLY=1 pnpm run test:runtime
+shards (typecheck, true)	Run this shard	2026-11-08T22:22:04.3407283Z 
+shards (typecheck, true)	Run this shard	2026-11-08T22:22:04.3408570Z > @just-every/porthole@0.1.0 test:runtime /home/runner/work/run-porthole/run-porthole
+shards (typecheck, true)	Run this shard	2026-11-08T22:22:04.3409595Z > rer queue test:runtime -- sh -c "node tests/runtime.mjs"
+shards (typecheck, true)	Run this shard	2026-11-08T22:22:04.3410016Z 
+shards (typecheck, true)	Run this shard	2026-11-08T22:22:04.4272435Z test:runtime
+shards (typecheck, true)	Run this shard	2026-11-08T22:22:11.4102621Z Installed owner claim rejects missing/wrong setup tokens and request demo flags
+shards (typecheck, true)	Run this shard	2026-11-08T22:22:11.4120169Z HTTP-001 passed against emitted local Worker: health, the installed homepage, HTTP and document 404s
+shards (typecheck, true)	Run this shard	2026-11-08T22:23:11.0918203Z Services: stock export drained; checking source counters and catalog
+shards (typecheck, true)	Run this shard	2026-11-08T22:23:42.8428385Z Services: scoped metadata refusal checks passed; checking native Settings
+shards (typecheck, true)	Run this shard	2026-11-08T22:25:32.9129052Z PROBE PORT-008 archive: actual native export, empty restore and re-export -> three exact inactive revisions; no source sessions, credentials or owner membership restored
+shards (typecheck, true)	Run this shard	2026-11-08T22:25:32.9298569Z PROBE PORT-008 archive-packets: largest stock-capture packet bytes=4327422 -> export retry and restore retry preserve its exact rows, digest and order
+shards (typecheck, true)	Run this shard	2026-11-08T22:25:36.4857344Z PROBE PORT-008 erasure: exact native-owner preview and approval of actual checkout envelopes -> derived associations disappear, original replay refuses, unrelated fulfillment stays exact; restart preserves missing evidence
+shards (typecheck, true)	Run this shard	2026-11-08T22:25:38.7164962Z PROBE PORT-008 discovery: stock two-team HTTP and Kafka estate plus replacement and staging runtimes -> three scope identities, two production versions, isolated staging version and source-counted summaries; production responder cannot read staging
+shards (typecheck, true)	Run this shard	2026-11-08T22:25:38.7167393Z PROBE PORT-008 association-pivots: native Services trace links and versioned trace API -> exact original span, service, environment, team and last-observed nanoseconds; current authority applies independently
+shards (typecheck, true)	Run this shard	2026-11-08T22:25:38.7179196Z PROBE PORT-008 summaries: 36 counted checkout requests, eight errors and eight slow requests -> exact observed counts, rates, endpoint values and p50, p95 and p99 from captured stock spans; client spans excluded
+shards (typecheck, true)	Run this shard	2026-11-08T22:25:38.7180667Z PROBE PORT-008 metadata: native reviewed owner reassignment, Settings edit, reload and restart -> three immutable audited revisions; stale, foreign, bearer and forbidden writes leave metadata unchanged
+shards (typecheck, true)	Run this shard	2026-11-08T22:25:38.7181904Z PROBE PORT-008 authority: restricted and revoked native readers -> hidden services absent and unresolved parent links; metadata grants no access; external runbook remains private
+shards (typecheck, true)	Run this shard	2026-11-08T22:25:38.7183230Z PROBE PORT-008 associations: 36 real PostgreSQL queries and 36 real Kafka sends and receives -> exact scoped database, messaging and detected host identities; replay adds no observations
+shards (typecheck, true)	Run this shard	2026-11-08T22:25:38.7184749Z PROBE PORT-008 fired-context: existing activated count monitor over actual checkout traces -> Firing episode with service revision 2; edit and restart -> original revision preserved and exact current revision 3 for owner and scoped responder, without grants or delivery
+shards (typecheck, true)	Run this shard	2026-11-08T22:25:38.7185987Z servicesJourney passed local: source counters and stock spans, multi-page bounds, ownership and native browser states
+shards (typecheck, true)	Run this shard	2026-11-08T22:25:45.2449879Z Recipient fixture: parsing migrations
+shards (typecheck, true)	Run this shard	2026-11-08T22:25:46.2997301Z Recipient fixture: migrations parsed
+shards (typecheck, true)	Run this shard	2026-11-08T22:25:46.3093240Z Recipient fixture: starting emitted Worker
+shards (typecheck, true)	Run this shard	2026-11-08T22:25:46.7814017Z Recipient fixture: D1 ready
+shards (typecheck, true)	Run this shard	2026-11-08T22:25:48.5472680Z Recipient fixture: native bootstrap
+shards (typecheck, true)	Run this shard	2026-11-08T22:26:01.6026103Z Services: stock export drained; checking source counters and catalog
+shards (typecheck, true)	Run this shard	2026-11-08T22:26:09.2789214Z Services: scoped metadata refusal checks passed; checking native Settings
+shards (typecheck, true)	Run this shard	2026-11-08T22:26:16.1137419Z PROBE PORT-008 discovery: stock two-team HTTP and Kafka estate plus replacement and staging runtimes -> three scope identities, two production versions, isolated staging version and source-counted summaries; production responder cannot read staging
+shards (typecheck, true)	Run this shard	2026-11-08T22:26:16.1139582Z PROBE PORT-008 association-pivots: native Services trace links and versioned trace API -> exact original span, service, environment, team and last-observed nanoseconds; current authority applies independently
+shards (typecheck, true)	Run this shard	2026-11-08T22:26:16.1141158Z PROBE PORT-008 summaries: 36 counted checkout requests, eight errors and eight slow requests -> exact observed counts, rates, endpoint values and p50, p95 and p99 from captured stock spans; client spans excluded
+shards (typecheck, true)	Run this shard	2026-11-08T22:26:16.1143049Z PROBE PORT-008 metadata: native reviewed owner reassignment, Settings edit, reload and restart -> three immutable audited revisions; stale, foreign, bearer and forbidden writes leave metadata unchanged
+shards (typecheck, true)	Run this shard	2026-11-08T22:26:16.1144907Z PROBE PORT-008 authority: restricted and revoked native readers -> hidden services absent and unresolved parent links; metadata grants no access; external runbook remains private
+shards (typecheck, true)	Run this shard	2026-11-08T22:26:16.1146500Z PROBE PORT-008 associations: 36 real PostgreSQL queries and 36 real Kafka sends and receives -> exact scoped database, messaging and detected host identities; replay adds no observations
+shards (typecheck, true)	Run this shard	2026-11-08T22:26:16.1148329Z PROBE PORT-008 fired-context: existing activated count monitor over actual checkout traces -> Firing episode with service revision 2; edit and restart -> original revision preserved and exact current revision 3 for owner and scoped responder, without grants or delivery
+shards (typecheck, true)	Run this shard	2026-11-08T22:26:16.1150171Z servicesJourney passed analytical: source counters and stock spans, multi-page bounds, ownership and native browser states
+shards (typecheck, true)	Run this shard	2026-11-08T22:26:18.3039934Z PROBE PORT-008 backends: selected real primary and standby -> identical source-checked catalog; stopped selected process -> 503; restart -> exact history and counters
+shards (typecheck, true)	Run this shard	2026-11-08T22:26:18.3724369Z APP-HOME passed against emitted local Worker: /app behind sign-in and setup, then the trace view with its stylesheets
+shards (typecheck, true)	Run this shard	2026-11-08T22:26:18.5223778Z > PORTHOLE_FLEET_ONLY=1 pnpm run test:runtime
+shards (typecheck, true)	Run this shard	2026-11-08T22:26:18.7539240Z 
+shards (typecheck, true)	Run this shard	2026-11-08T22:26:18.7540241Z > @just-every/porthole@0.1.0 test:runtime /home/runner/work/run-porthole/run-porthole
+shards (typecheck, true)	Run this shard	2026-11-08T22:26:18.7541088Z > rer queue test:runtime -- sh -c "node tests/runtime.mjs"
+shards (typecheck, true)	Run this shard	2026-11-08T22:26:18.7541467Z 
+shards (typecheck, true)	Run this shard	2026-11-08T22:26:18.8400195Z test:runtime
+shards (typecheck, true)	Run this shard	2026-11-08T22:26:25.8243043Z Installed owner claim rejects missing/wrong setup tokens and request demo flags
+shards (typecheck, true)	Run this shard	2026-11-08T22:26:25.8257255Z HTTP-001 passed against emitted local Worker: health, the installed homepage, HTTP and document 404s
+shards (typecheck, true)	Run this shard	2026-11-08T22:27:13.1430497Z 
+shards (typecheck, true)	Run this shard	2026-11-08T22:27:13.1602032Z node:internal/deps/undici/undici:5712
+shards (typecheck, true)	Run this shard	2026-11-08T22:27:13.1603023Z         throw new TypeError("Body is unusable: Body has already been read");
+shards (typecheck, true)	Run this shard	2026-11-08T22:27:13.1603683Z               ^
+shards (typecheck, true)	Run this shard	2026-11-08T22:27:13.1603985Z 
+shards (typecheck, true)	Run this shard	2026-11-08T22:27:13.1604502Z TypeError: Body is unusable: Body has already been read
+shards (typecheck, true)	Run this shard	2026-11-08T22:27:13.1605057Z     at consumeBody (node:internal/deps/undici/undici:5712:15)
+shards (typecheck, true)	Run this shard	2026-11-08T22:27:13.1605685Z     at _Response.json (node:internal/deps/undici/undici:5665:18)
+shards (typecheck, true)	Run this shard	2026-11-08T22:27:13.1606497Z     at send (file://[REDACTED]/tests/porthole/collector-install.mjs:193:12)
+shards (typecheck, true)	Run this shard	2026-11-08T22:27:13.1607577Z     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+shards (typecheck, true)	Run this shard	2026-11-08T22:27:13.1608194Z     at async fleetJourney (file://[REDACTED]/tests/porthole/collector-install.mjs:203:2)
+shards (typecheck, true)	Run this shard	2026-11-08T22:27:13.1608686Z     at async file://[REDACTED]/tests/runtime.mjs:186:4
+shards (typecheck, true)	Run this shard	2026-11-08T22:27:13.1608900Z 
+shards (typecheck, true)	Run this shard	2026-11-08T22:27:13.1609016Z Node.js v22.20.0
+shards (typecheck, true)	Run this shard	2026-11-08T22:27:13.2524545Z  ELIFECYCLE  Command failed with exit code 1.
+shards (typecheck, true)	Run this shard	2026-11-08T22:27:13.2820052Z  ELIFECYCLE  Command failed with exit code 1.
+shards (typecheck, true)	Run this shard	2026-11-08T22:27:13.2986737Z ##[error]Process completed with exit code 1.
