@@ -137,7 +137,7 @@ try {
   const setupPage=await fetch(`${origin}/setup`, { headers: { cookie } })
   assert.equal(setupPage.status,200)
   assert.match(await setupPage.text(),/Independent notices off — incomplete coverage/)
-  if(!process.env.PORTHOLE_DATABASE_ONLY && !process.env.PORTHOLE_EVENTS_ONLY && !process.env.PORTHOLE_SERVICES_ONLY && !process.env.PORTHOLE_LOG_CLUSTERS_ONLY && !process.env.PORTHOLE_PIPELINES_ONLY && !process.env.PORTHOLE_GENAI_ONLY && !process.env.PORTHOLE_NOTEBOOKS_ONLY && !process.env.PORTHOLE_METRIC_RULES_ONLY && !process.env.PORTHOLE_SLO_ONLY && !process.env.PORTHOLE_ERASURE_ONLY && !process.env.PORTHOLE_API_ONLY && !process.env.PORTHOLE_DASHBOARD_ONLY && !process.env.PORTHOLE_EXPORT_ONLY && !process.env.PORTHOLE_MIGRATION_ONLY && !process.env.PORTHOLE_PROTOCOL_ONLY && !process.env.PORTHOLE_INGEST_ONLY && !process.env.PORTHOLE_ACCESS_ONLY && !process.env.PORTHOLE_TRACE_ONLY && (process.env.PORTHOLE_HEALTH_ONLY==='1' || !process.env.PORTHOLE_AUDIT_ONLY && !process.env.PORTHOLE_STOCK_ONLY)) {
+  if(!process.env.PORTHOLE_FLEET_ONLY && !process.env.PORTHOLE_COLLECTOR_INSTALL_ONLY && !process.env.PORTHOLE_DATABASE_ONLY && !process.env.PORTHOLE_EVENTS_ONLY && !process.env.PORTHOLE_SERVICES_ONLY && !process.env.PORTHOLE_LOG_CLUSTERS_ONLY && !process.env.PORTHOLE_PIPELINES_ONLY && !process.env.PORTHOLE_GENAI_ONLY && !process.env.PORTHOLE_NOTEBOOKS_ONLY && !process.env.PORTHOLE_METRIC_RULES_ONLY && !process.env.PORTHOLE_SLO_ONLY && !process.env.PORTHOLE_ERASURE_ONLY && !process.env.PORTHOLE_API_ONLY && !process.env.PORTHOLE_DASHBOARD_ONLY && !process.env.PORTHOLE_EXPORT_ONLY && !process.env.PORTHOLE_MIGRATION_ONLY && !process.env.PORTHOLE_PROTOCOL_ONLY && !process.env.PORTHOLE_INGEST_ONLY && !process.env.PORTHOLE_ACCESS_ONLY && !process.env.PORTHOLE_TRACE_ONLY && (process.env.PORTHOLE_HEALTH_ONLY==='1' || !process.env.PORTHOLE_AUDIT_ONLY && !process.env.PORTHOLE_STOCK_ONLY)) {
    const {healthBrowser}=await import('./porthole/health.mjs')
    await healthBrowser({origin,cookie,name:'setup-notices-off',path:'/setup',contains:'Independent notices off — incomplete coverage'})
   }
@@ -181,7 +181,13 @@ try {
     return await run({origin,cookie:destinationCookie,persist,...destinationHelpers,restartWorker})
    } finally {await restartWorker(()=>{persist=savedStore;ownerEmail=savedOwner})}
   }
-  if(process.env.PORTHOLE_DATABASE_ONLY==='1') {
+  if(process.env.PORTHOLE_FLEET_ONLY==='1') {
+   const {fleetJourney}=await import('./porthole/collector-install.mjs')
+   await fleetJourney({origin,restartWorker,withEmptyDestination,withPinnedClock,...helpers})
+  } else if(process.env.PORTHOLE_COLLECTOR_INSTALL_ONLY==='1') {
+   const {collectorInstallJourney}=await import('./porthole/collector-install.mjs')
+   await collectorInstallJourney({origin,restartWorker,withEmptyDestination,withPinnedClock,...helpers})
+  } else if(process.env.PORTHOLE_DATABASE_ONLY==='1') {
    const {databaseJourney}=await import('./porthole/database.mjs')
    await databaseJourney({origin,cookie,restartWorker,withEmptyDestination,withPinnedClock,...helpers})
   } else if(process.env.PORTHOLE_EVENTS_ONLY==='1') {

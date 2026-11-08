@@ -1296,3 +1296,29 @@ export async function servicesArchiveJourney({origin,freshOwner,restartWorker,wi
  console.log('PROBE PORT-008 archive-packets: largest stock-capture packet bytes='+Buffer.byteLength(JSON.stringify(largest))+' -> export retry and restore retry preserve its exact rows, digest and order')
  return {id:source.job.id,chunk:largest.index}
 }
+
+
+export async function fleetArchiveJourney({origin,freshOwner,withEmptyDestination,id,found}) {
+ const cookie=await freshOwner(),source=await savedExport(origin,cookie,await post(origin,cookie,api+'/exports',{}))
+ const installs=source.rows.filter(r=>r.table==='porthole_fleet_installs')
+ assert.equal(installs.length,1);assert.equal(installs[0].row.id,id)
+ assert.ok(!Object.hasOwn(installs[0].row,'credential_id'),'install archive has no live credential binding')
+ await withEmptyDestination(async destination=>{
+  let owner=await destination.freshOwner()
+  const restore=await value(await post(destination.origin,owner,api+'/restores',{manifest:source.manifest}),201)
+  for(const chunk of source.chunks)await value(await post(destination.origin,owner,api+'/restores/'+restore.id+'/chunks',{chunk}))
+  await value(await post(destination.origin,owner,api+'/restores/'+restore.id+'/commit',{confirm:source.manifest.rootHash}))
+  const fleet=await value(await get(destination.origin,owner,'/api/porthole/v1/fleet'))
+  assert.equal(fleet.installs[0].state,'quarantined');assert.equal(fleet.installs[0].freshness,'stale');assert.equal(fleet.installs[0].credentialStatus,'not-restored')
+  assert.equal((await destination.sql('SELECT COUNT(*) AS n FROM porthole_credentials'))[0].n,0)
+  assert.equal((await destination.sql('SELECT credential_id FROM porthole_fleet_installs'))[0].credential_id,null)
+  if(found){const logs=await value(await get(destination.origin,owner,'/api/porthole/v1/ingest/records?signal=logs&service='+found.service+'&limit=200'));assert.ok(logs.records.some(r=>r.id===found.id&&r.event_time_ns===found.event_time_ns),'inactive restore keeps the exact original source timestamp')}
+  const again=await savedExport(destination.origin,owner,await post(destination.origin,owner,api+'/exports',{}))
+  assert.deepEqual(again.rows.filter(r=>r.table==='porthole_fleet_installs').map(r=>({...r.row,state:installs[0].row.state})),installs.map(r=>r.row))
+  await destination.restartWorker();owner=await destination.freshOwner()
+  assert.equal((await value(await get(destination.origin,owner,'/api/porthole/v1/fleet'))).installs[0].state,'quarantined')
+  const {servicesBrowser}=await import('./services.mjs')
+  await servicesBrowser({origin:destination.origin,cookie:owner,path:'/app/settings/fleet',contains:'quarantined',name:'fleet-restored'})
+ })
+ console.log('PROBE PORT-003 archive: actual export and empty restore -> inactive stale install, no credential or live collection, exact retained Docker log survives re-export and restart')
+}

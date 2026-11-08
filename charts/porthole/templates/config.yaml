@@ -1,0 +1,82 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}
+data:
+  collector.yaml: |
+    extensions:
+      bearertokenauth:
+        filename: /run/secrets/porthole/token
+    receivers:
+      otlp:
+        protocols:
+          http:
+            endpoint: 0.0.0.0:4318
+      hostmetrics:
+        root_path: /hostfs
+        collection_interval: 10s
+        scrapers:
+          cpu: {}
+          memory: {}
+      filelog:
+        include: [/var/log/pods/*/*/*.log]
+        include_file_path: true
+        start_at: beginning
+        operators:
+          - type: container
+    processors:
+      k8sattributes:
+        auth_type: serviceAccount
+        filter:
+          node_from_env_var: K8S_NODE_NAME
+        extract:
+          metadata: [k8s.namespace.name, k8s.pod.name, k8s.pod.uid, k8s.node.name, k8s.deployment.name]
+        pod_association:
+          - sources:
+              - from: resource_attribute
+                name: k8s.pod.uid
+          - sources:
+              - from: connection
+      resource:
+        attributes:
+          - key: service.name
+            value: {{ .Values.service | quote }}
+            action: insert
+          - key: team
+            value: {{ required "team is required" .Values.team | quote }}
+            action: upsert
+          - key: deployment.environment.name
+            value: {{ required "environment is required" .Values.environment | quote }}
+            action: upsert
+          - key: porthole.install.id
+            value: ${env:PORTHOLE_INSTALL_ID}
+            action: upsert
+      batch:
+        timeout: 1s
+        send_batch_size: 100
+    exporters:
+      otlphttp:
+        endpoint: {{ required "HTTPS endpoint is required" .Values.endpoint | quote }}
+        auth:
+          authenticator: bearertokenauth
+        retry_on_failure:
+          max_elapsed_time: 60s
+        sending_queue:
+          queue_size: 100
+    service:
+      extensions: [bearertokenauth]
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: [k8sattributes, resource, batch]
+          exporters: [otlphttp]
+        logs:
+          receivers: [filelog]
+          processors: [k8sattributes, resource, batch]
+          exporters: [otlphttp]
+        metrics:
+          receivers: [hostmetrics]
+          processors: [resource, batch]
+          exporters: [otlphttp]
+  reporter.mjs: |
+{{ .Files.Get "files/reporter.mjs" | indent 4 }}

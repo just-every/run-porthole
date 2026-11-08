@@ -19,7 +19,8 @@
         "pnpm run typecheck",
         "pnpm run test:typecheck",
         "node --input-type=module -e 'import {nativeBackupErasureJourney} from \"./tests/porthole/archive.mjs\"; await nativeBackupErasureJourney()'",
-        "PORTHOLE_SERVICES_ONLY=1 pnpm run test:runtime"
+        "PORTHOLE_SERVICES_ONLY=1 pnpm run test:runtime",
+        "PORTHOLE_FLEET_ONLY=1 pnpm run test:runtime"
       ]
     },
     {

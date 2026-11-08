@@ -1,0 +1,81 @@
+extensions:
+  bearertokenauth:
+    token: ${env:PORTHOLE_INGEST_TOKEN}
+receivers:
+  hostmetrics:
+    root_path: /hostfs
+    collection_interval: 10s
+    scrapers:
+      cpu: {}
+      memory: {}
+      load: {}
+  docker_stats:
+    endpoint: unix:///var/run/docker.sock
+    collection_interval: 10s
+    initial_delay: 1s
+  filelog:
+    include: [/var/lib/docker/containers/*/*.log]
+    start_at: beginning
+    include_file_path: true
+    operators:
+      - type: json_parser
+        timestamp:
+          parse_from: attributes.time
+          layout: '%Y-%m-%dT%H:%M:%S.%LZ'
+      - type: regex_parser
+        parse_from: attributes["log.file.path"]
+        regex: '^/var/lib/docker/containers/(?P<container_id>[a-f0-9]+)/.*$'
+      - type: move
+        from: attributes.container_id
+        to: resource["container.id"]
+      - type: move
+        from: attributes.log
+        to: body
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+processors:
+  resource:
+    attributes:
+      - key: service.name
+        value: ${env:PORTHOLE_SERVICE}
+        action: insert
+      - key: deployment.environment.name
+        value: ${env:PORTHOLE_ENVIRONMENT}
+        action: upsert
+      - key: team
+        value: ${env:PORTHOLE_TEAM}
+        action: upsert
+      - key: porthole.install.id
+        value: ${env:PORTHOLE_INSTALL_ID}
+        action: upsert
+  batch:
+    timeout: 1s
+    send_batch_size: 100
+exporters:
+  otlphttp:
+    endpoint: ${env:PORTHOLE_ENDPOINT}
+    auth:
+      authenticator: bearertokenauth
+    retry_on_failure:
+      enabled: true
+      max_elapsed_time: 60s
+    sending_queue:
+      enabled: true
+      queue_size: 100
+service:
+  extensions: [bearertokenauth]
+  pipelines:
+    logs:
+      receivers: [filelog]
+      processors: [resource, batch]
+      exporters: [otlphttp]
+    metrics:
+      receivers: [hostmetrics, docker_stats]
+      processors: [resource, batch]
+      exporters: [otlphttp]
+    traces:
+      receivers: [otlp]
+      processors: [resource, batch]
+      exporters: [otlphttp]
