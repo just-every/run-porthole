@@ -37,13 +37,46 @@ export function readRequest(input:Uint8Array):ReadQuery[] {
 }
 interface Sample {timestamp:bigint;value:number;bits?:string}
 interface Point extends Sample {labels:Record<string,string>}
-const unitNames:Record<string,string>={d:'days',h:'hours',min:'minutes',s:'seconds',ms:'milliseconds',us:'microseconds',ns:'nanoseconds',By:'bytes',KiBy:'kibibytes',MiBy:'mebibytes',GiBy:'gibibytes',TiBy:'tebibytes',kBy:'kilobytes',MBy:'megabytes',GBy:'gigabytes',TBy:'terabytes',m:'meters',V:'volts',A:'amperes',J:'joules',W:'watts',g:'grams',Cel:'celsius',Hz:'hertz','%':'percent','1':'ratio'}
+const unitNames:Record<string,string> = Object.assign(Object.create(null),{d:'days',h:'hours',min:'minutes',s:'seconds',ms:'milliseconds',us:'microseconds',ns:'nanoseconds',By:'bytes',KiBy:'kibibytes',MiBy:'mebibytes',GiBy:'gibibytes',TiBy:'tebibytes',kBy:'kilobytes',MBy:'megabytes',GBy:'gigabytes',TBy:'terabytes',m:'meters',V:'volts',A:'amperes',J:'joules',W:'watts',g:'grams',Cel:'celsius',Hz:'hertz','%':'percent','1':'ratio'})
 const normalize=(name:string,metric=false)=>{let n=name.replace(metric?/[^a-zA-Z0-9_:]/g:/[^a-zA-Z0-9_]/g,'_').replace(/_+/g,'_');if(/^\d/.test(n))n='_'+n;return n}
+const jsonString=(value:unknown)=>JSON.stringify(value).replace(/[<>&\u2028\u2029]/g,char=>'\\u'+char.charCodeAt(0).toString(16).padStart(4,'0'))
+/** Prometheus renders compound attributes from their logical OTLP values,
+ * without the protobuf JSON wrappers. Preserve int64 JSON lexemes exactly. */
+function attributeJSON(input:unknown):string {
+ if(!input||typeof input!=='object'||Array.isArray(input))fail('unmappable_metric_label',422)
+ const entries=Object.entries(input as Record<string,unknown>)
+ if(!entries.length)return 'null'
+ if(entries.length!==1)fail('unmappable_metric_label',422)
+ const [kind,value]=entries[0]
+ if(kind==='stringValue'&&typeof value==='string'||kind==='boolValue'&&typeof value==='boolean'||kind==='bytesValue'&&typeof value==='string')return jsonString(value)
+ if(kind==='intValue'&&(typeof value==='string'||typeof value==='number')){
+  try{const integer=BigInt(value);if(integer<-(1n<<63n)||integer>=(1n<<63n))fail('unmappable_metric_label',422);return integer.toString()}catch{fail('unmappable_metric_label',422)}
+ }
+ if(kind==='doubleValue'&&typeof value==='number'&&Number.isFinite(value))return JSON.stringify(value)
+ if(value&&typeof value==='object'){
+  const items=(value as {values?:unknown[]}).values??[]
+  if(kind==='arrayValue'&&Array.isArray(items))return '['+items.map(attributeJSON).join(',')+']'
+  if(kind==='kvlistValue'&&Array.isArray(items)){
+   const members=items as {key?:unknown;value?:unknown}[]
+   if(members.some(item=>!item||typeof item.key!=='string')||new Set(members.map(item=>item.key)).size!==members.length)fail('unmappable_metric_label',422)
+   return '{'+members.slice().sort((a,b)=>String(a.key)<String(b.key)?-1:String(a.key)>String(b.key)?1:0).map(item=>jsonString(item.key)+':'+attributeJSON(item.value)).join(',')+'}'
+  }
+ }
+ return fail('unmappable_metric_label',422)
+}
+function labelValue(value:unknown):string {
+ if(value&&typeof value==='object'){
+  if(!Object.keys(value).length)return ''
+  if('bytesValue' in value&&typeof value.bytesValue==='string')return value.bytesValue
+  return attributeJSON(value)
+ }
+ return String(value)
+}
 function labels(values:Record<string,unknown>) {
  const result:Record<string,string>=Object.create(null)
  for(const key of Object.keys(values).sort()){
   const name=normalize(key);if(!name)fail('unmappable_metric_label',422)
-  const raw=values[key],value=typeof raw==='object'?JSON.stringify(raw):String(raw)
+  const value=labelValue(values[key])
   result[name]=Object.hasOwn(result,name)?result[name]+';'+value:value
  }
  return result
@@ -56,7 +89,7 @@ function number(value:unknown):number {
 function metricName(name:string,unit:string,counter:boolean) {
  let n=normalize(name,true),u=unit.replace(/\{[^}]*\}/g,'')
  if(counter)n=n.replace(/_total$/,'')
- const perUnits:Record<string,string>={d:'day',h:'hour',min:'minute',s:'second',ms:'millisecond',us:'microsecond',ns:'nanosecond'}
+ const perUnits:Record<string,string> = Object.assign(Object.create(null),{d:'day',h:'hour',min:'minute',s:'second',ms:'millisecond',us:'microsecond',ns:'nanosecond'})
  const parts=u.split('/');u=parts.map((part,i)=>i?perUnits[part]??unitNames[part]??normalize(part):part==='1'&&parts.length>1?'':unitNames[part]??normalize(part)).join('_per_').replace(/^_+/,'')
  if(u&&!(counter&&unit==='1')&&!n.endsWith('_'+u))n+='_'+u
  if(counter)n+='_total'
@@ -81,9 +114,11 @@ export function metricPoints(row:StandardRow):Point[] {
  // This declared receiver profile disables scope-info series and scope labels,
  // as does the pinned Prometheus OTLP receiver. Resource identity still binds
  // every sample; remaining resource attributes form target_info.
- const job=resource['service.name']?String(resource['service.namespace']?resource['service.namespace']+'/'+resource['service.name']:resource['service.name']):undefined
+ const namespace=resource['service.namespace']===undefined?'':labelValue(resource['service.namespace'])
+ const job=resource['service.name']?namespace?namespace+'/'+labelValue(resource['service.name']):labelValue(resource['service.name']):undefined
+ const instance=resource['service.instance.id']===undefined?'':labelValue(resource['service.instance.id'])
  if(job)base.job=job
- if(resource['service.instance.id'])base.instance=String(resource['service.instance.id'])
+ if(instance)base.instance=instance
  const timestamp=BigInt(String(record.timeUnixNano??'0'))/1000000n,out:Point[]=[]
  const stale=(Number(record.flags??0)&1)!==0
  const add=(n:string,value:unknown,extra:Record<string,string>={})=>out.push({labels:{...base,...extra,__name__:n},timestamp,value:stale?NaN:number(value),...(stale?{bits:'020000000000f07f'}:{})})
@@ -102,13 +137,13 @@ export function metricPoints(row:StandardRow):Point[] {
   add(name+'_sum',record.sum)
   for(const quantile of (record.quantileValues??[]) as {quantile:number;value:number}[]){if(quantile.quantile<0||quantile.quantile>1)fail('unmappable_summary_quantile',422);add(name,quantile.value,{quantile:String(quantile.quantile)})}
  }
- if(job||resource['service.instance.id']){
+ if(job||instance){
   const extra=Object.fromEntries(Object.entries(resource).filter(([key])=>!['service.name','service.namespace','service.instance.id'].includes(key)))
   out.push({labels:{...labels(extra),...(job?{job}:{}),...(base.instance?{instance:base.instance}:{}),__name__:'target_info'},timestamp,value:1})
  }
  return out
 }
-const matches=(labels:Record<string,string>,matchers:Matcher[])=>matchers.every(m=>{const value=labels[m.name]??'',equal=m.regex?m.regex.matcher(value).matches():value===m.value;return m.type===1||m.type===3?!equal:equal})
+const matches=(labels:Record<string,string>,matchers:Matcher[])=>matchers.every(m=>{const value=Object.hasOwn(labels,m.name)?labels[m.name]:'',equal=m.regex?m.regex.matcher(value).matches():value===m.value;return m.type===1||m.type===3?!equal:equal})
 export function readResponse(queries:ReadQuery[],rows:StandardRow[]) {
  const points=rows.flatMap(metricPoints)
  let sampleCount=0

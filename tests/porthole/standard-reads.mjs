@@ -137,7 +137,7 @@ async function stockMetrics({origin,cookie,call,reader,source,scratch}){
   provider=new MeterProvider({resource:resourceFromAttributes({'service.name':scope.services[0],'service.instance.id':'synthetic-porthole-6101','deployment.environment.name':'production','team.name':'commerce'}),readers:[new PeriodicExportingMetricReader({exporter,exportIntervalMillis:3600000})],views:[{instrumentName:'synthetic.otel.histogram',aggregation:{type:AggregationType.EXPLICIT_BUCKET_HISTOGRAM,boundaries:[0.1,0.5,1]}}]})
   const meter=provider.getMeter('synthetic-porthole-6102','1.0'),otelGauge=meter.createGauge('synthetic.otel.gauge',{unit:'ms'}),otelCounter=meter.createCounter('synthetic.otel.requests',{unit:'{request}'}),otelHistogram=meter.createHistogram('synthetic.otel.histogram',{unit:'s'}),velocity=meter.createGauge('synthetic.otel.velocity',{unit:['m','s'].join('/')}),ratio=meter.createGauge('synthetic.otel.ratio',{unit:'1'})
   for(let i=0;i<5;i++){
-   await fetch(producerOrigin+'/work');const emittedAt=scrapeAt;await until(async()=>sourceSamples.some(s=>s.time===emittedAt),'reference scrapes each source generation');otelGauge.record(20+i,{region:'synthetic-porthole-6103'});otelCounter.add(2,{region:'synthetic-porthole-6103'});otelHistogram.record(0.2,{region:'synthetic-porthole-6103'});velocity.record(i+1);ratio.record((i+1)/10)
+   await fetch(producerOrigin+'/work');const emittedAt=scrapeAt;await until(async()=>sourceSamples.some(s=>s.time===emittedAt),'reference scrapes each source generation');otelGauge.record(20+i,{region:'synthetic-porthole-6103',ready:true,shard:7,emptyZones:[],zones:['synthetic-porthole-6104','synthetic-porthole-6105'],weights:[1,2,3]});otelCounter.add(2,{region:'synthetic-porthole-6103'});otelHistogram.record(0.2,{region:'synthetic-porthole-6103'});velocity.record(i+1);ratio.record((i+1)/10)
    await provider.forceFlush();await delay(1100)
   }
   // End the real producer capture before the comparison workload. Stock
@@ -353,7 +353,7 @@ export async function standardAnalyticalJourney(){
 export async function standardSchemaProof({origin,cookie,call,source,reader,post,restartWorker,sql}) {
  const attributes=[['service.name',scope.services[0]],['deployment.environment.name','production'],['team.name','commerce']].map(([key,stringValue])=>({key,value:{stringValue}}))
  const at=1000000000123456n,through=at+1000000n
- const point={timeUnixNano:String(at),attributes:[{key:'privacy.subject',value:{stringValue:'synthetic-porthole-6110'}}]}
+ const point={timeUnixNano:String(at),attributes:[{key:'privacy.subject',value:{stringValue:'synthetic-porthole-6110'}},{key:'structured',value:{kvlistValue:{values:[{key:'sequence',value:{intValue:'9007199254740993'}},{key:'nested',value:{arrayValue:{values:[{boolValue:false},{bytesValue:'AQID'},{arrayValue:{}},{}]}}},{key:'text',value:{stringValue:'<>&'}}]}}}]}
  const metrics=[
   {name:'synthetic.edge.gauge',unit:'ms',gauge:{dataPoints:[{...point,asDouble:24.5}]}},
   {name:'synthetic.edge.counter',sum:{aggregationTemporality:2,isMonotonic:true,dataPoints:[{...point,asInt:'17'}]}},
@@ -367,12 +367,15 @@ export async function standardSchemaProof({origin,cookie,call,source,reader,post
  const query={from:at/1000000n,through:through/1000000n,matchers:[['__name__','synthetic_edge_.*',2]]}
  const rows=await remoteSeries(await remoteRead(call,reader.secret,query)),byName=name=>rows.filter(s=>s.metric.__name__===name)
  assert.deepEqual(byName('synthetic_edge_gauge_milliseconds')[0].values,[[1000000,24.5]])
+ assert.equal(byName('synthetic_edge_gauge_milliseconds')[0].metric.structured,String.raw`{"nested":[false,"AQID",[],null],"sequence":9007199254740993,"text":"\u003c\u003e\u0026"}`,'logical nested attributes retain byte values and exact int64 JSON labels')
  assert.deepEqual(byName('synthetic_edge_counter_total')[0].values,[[1000000,17]])
  assert.deepEqual(byName('synthetic_edge_nonmonotonic')[0].values,[[1000000,-3]])
  assert.deepEqual(byName('synthetic_edge_histogram_seconds_bucket').map(s=>[s.metric.le,s.values[0][1]]).sort(),[['+Inf',6],['0.1',1],['0.5',3]].sort())
  assert.deepEqual(byName('synthetic_edge_summary').map(s=>[s.metric.quantile,s.values[0][1]]).sort(),[['0.5',0.2],['0.9',0.8]])
- const missing=await remoteSeries(await remoteRead(call,reader.secret,{...query,matchers:[['__name__','synthetic_edge_gauge_milliseconds'],['absent','',0]]}))
- assert.equal(missing.length,1,'absent label equals empty string')
+ for(const label of ['absent','constructor']){
+  const missing=await remoteSeries(await remoteRead(call,reader.secret,{...query,matchers:[['__name__','synthetic_edge_gauge_milliseconds'],[label,'',0]]}))
+  assert.equal(missing.length,1,'absent label equals empty string, including inherited object names')
+ }
  assert.deepEqual(await remoteSeries(await remoteRead(call,reader.secret,{...query,matchers:[['__name__','synthetic_edge_gauge_milliseconds'],['privacy_subject','synthetic-porthole-6110',1]]})),[])
  const staleAt=2000000n,bits=['0000000000000080','020000000000f07f','000000000000f07f'],series=bits.map((hex,index)=>{
   const labels={__name__:'synthetic_edge_float',service:scope.services[0],environment:'production',team:'commerce',edge:'synthetic-porthole-'+(6112+index)}
@@ -409,7 +412,19 @@ export async function standardSchemaProof({origin,cookie,call,source,reader,post
  const traceId='61000000000000000000000000000001',traceWire=JSON.stringify({resourceSpans:[{resource:{attributes},scopeSpans:[{spans:[{traceId,spanId:'6100000000000001',name:'synthetic-porthole-6119',startTimeUnixNano:String(at),endTimeUnixNano:String(at+100n),attributes:point.attributes}]}]}]})
  await value(await call('/v1/traces',{method:'POST',headers:{...auth(source.secret),'content-type':'application/json'},body:traceWire}))
  await value(await post(api+'/ingest/drain',{}))
- assert.equal((await call('/api/traces/'+traceId,{headers:auth(reader.secret)})).status,200)
+ const maskedTrace=await value(await call('/api/traces/'+traceId,{headers:auth(reader.secret)}))
+ const maskedSpan=maskedTrace.batches[0].scopeSpans[0].spans[0]
+ assert.deepEqual(maskedSpan.attributes.find(item=>item.key==='structured').value.kvlistValue.values.find(item=>item.key==='sequence').value,{stringValue:'[REDACTED]'},'mandatory scalar masks remain valid OTLP values')
+ assert.ok(!JSON.stringify(maskedTrace).includes('9007199254740993'),'trace retrieval never recovers masked source values')
+ const maskedBinary=await call('/api/traces/'+traceId,{headers:{...auth(reader.secret),accept:'application/protobuf'}})
+ assert.equal(maskedBinary.status,200,await maskedBinary.clone().text())
+ const maskedDirectory=await mkdtemp(join(tmpdir(),'porthole-masked-trace-'))
+ try{
+  const file=join(maskedDirectory,'trace.pb');await writeFile(file,Buffer.from(await maskedBinary.arrayBuffer()))
+  const python=process.env.PORTHOLE_EXPORT_PYTHON??resolve('.cache/export-readers/bin/python')
+  const decoded=JSON.parse((await execute(python,['tests/porthole/export-otlp-reader.py','--trace',file])).stdout)
+  assert.deepEqual(decoded.resourceSpans[0].scopeSpans[0].spans[0].attributes,maskedSpan.attributes,'official generated OTLP reader decodes every retained mask and compound attribute')
+ }finally{await rm(maskedDirectory,{recursive:true,force:true})}
  const preview=await value(await post(api+'/subject-erasure',{identifier:'synthetic-porthole-6110'}))
  assert.equal(preview.canApply,true)
  await value(await post(api+'/subject-erasure/apply',{identifier:'synthetic-porthole-6110',digest:preview.digest,confirm:'erase-exact-batches'}))

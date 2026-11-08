@@ -31,14 +31,17 @@ Remote-write samples preserve original labels, milliseconds and float bits,
 including signed zero and stale NaN. Legacy samples recover their bits from retained original wire, within an
 additional eight MiB recovery budget; unavailable wire refuses explicitly. OTLP mapping pins OpenTelemetry specification v1.45.0,
 Prometheus compatibility, with the Prometheus 3.5.0 OTLP receiver profile:
-normalized names and labels, unit words before type suffixes, cumulative
+normalized names and labels, logical JSON values for compound attributes
+(including exact integer labels), unit words before type suffixes, cumulative
 monotonic sums as counters, cumulative non-monotonic sums as gauges, explicit
 histograms as cumulative buckets plus count and eligible sum, and summaries as
 quantiles, count and eligible sum. Milliseconds truncate original nanoseconds;
 the native API and OTLP exports retain nanoseconds. Resource service namespace
 and name form `job`, and service instance forms `instance`. Other resource
 attributes form `target_info`. Scope-info metrics and scope labels are disabled
-in this fixed receiver profile, matching the reference receiver.
+in this fixed receiver profile, matching the reference receiver. Compound labels also follow the
+[upstream Value.AsString implementation](https://github.com/open-telemetry/opentelemetry-collector/blob/pdata%2Fv1.34.0/pdata/pcommon/value.go)
+in pdata v1.34.0, the dependency embedded in that pinned Prometheus binary.
 
 Delta temporality, exponential histograms, unsupported metric protocols,
 invalid distributions, negative histogram or summary sums, and conflicting
@@ -66,7 +69,9 @@ has `batches` of OTLP ResourceSpans and protobuf-JSON base64 identifiers.
 `Accept: application/protobuf` returns the stock Tempo Trace protobuf, whose
 first repeated field is wire-compatible with OTLP TracesData. Resource and
 scope schemas, span attributes, links, events, flags and original nanoseconds
-are preserved after mandatory intake privacy; source SQL is never recovered
+are preserved after mandatory intake privacy. A numeric, boolean or byte value
+replaced by mask text is represented as an OTLP string mask; the original
+value is never recovered. Source SQL is never recovered
 from the original exporter capture. Exact duplicate copies collapse; conflicting variants remain.
 Optional `start` and `end` are paired inclusive Unix-second bounds.
 
