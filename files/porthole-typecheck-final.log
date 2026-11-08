@@ -1,0 +1,4 @@
+
+> @just-every/porthole@0.1.0 typecheck /workspace/porthole-f460
+> tsc --build --incremental
+

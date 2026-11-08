@@ -1,0 +1,22 @@
+{
+  "command": [
+    "perl",
+    "-e",
+    "alarm 1800; exec @ARGV",
+    "--",
+    "env",
+    "NODE_OPTIONS=--import=/tmp/porthole-browser.mjs",
+    "PORTHOLE_SERVICES_ONLY=1",
+    "node",
+    "tests/runtime.mjs"
+  ],
+  "elapsed_seconds": 452.568,
+  "exit": 0,
+  "head": "a746624264211bd50cfeceeec56eadcb70524325",
+  "head_after": "a746624264211bd50cfeceeec56eadcb70524325",
+  "label": "services",
+  "log": "porthole-services-verified.log",
+  "log_sha256": "90b5b6e996f92de44ff8c124cfc9ef46feeec8be1ffb411c18ae2df33e478d5a",
+  "started_at": "2026-11-08T22:39:03.308933+00:00",
+  "tree": "62989cc8cfeff52638af4a73bb147737c358f301"
+}

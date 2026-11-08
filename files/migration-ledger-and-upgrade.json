@@ -1,0 +1,15 @@
+{
+  "command": [
+    "node",
+    "/tmp/porthole-upgrade.mjs"
+  ],
+  "elapsed_seconds": 43.966,
+  "exit": 0,
+  "head": "d28c08eb267b14c0ec0008349fef31e6149fef34",
+  "head_after": "d28c08eb267b14c0ec0008349fef31e6149fef34",
+  "label": "migration-ledger-and-upgrade",
+  "log": "porthole-migration-verified.log",
+  "log_sha256": "2381f82a8dae650146873b204a3e77cd7cfd73c992f4237663b3981f29ffa90a",
+  "started_at": "2026-11-08T22:49:16.314818+00:00",
+  "tree": "ae8e84049ef06a373e5891121a831f4c4421cf1f"
+}

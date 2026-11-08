@@ -1,0 +1,70 @@
+{
+  "head": "d28c08eb267b14c0ec0008349fef31e6149fef34",
+  "journeys": [
+    {
+      "path": "tests/porthole/handover.mjs",
+      "line": 16,
+      "declaration": "export async function handoverJourney({origin,freshOwner,signIn,sql,mutate,restartWorker,withEmptyDestination,sessionSecret}) {"
+    },
+    {
+      "path": "tests/porthole/handover.mjs",
+      "line": 147,
+      "declaration": "async function notebookCustody({origin,owner,member,post,get,sql,mutate,freshOwner,signIn,restartWorker,withEmptyDestination,source,scope,successor,refresh}) {"
+    },
+    {
+      "path": "tests/porthole/handover.mjs",
+      "line": 238,
+      "declaration": "async function handoverBrowser({origin,cookie,id,review,mutate,post,freshOwner,refusedSuccessor,owner}) {"
+    },
+    {
+      "path": "tests/porthole/handover.mjs",
+      "line": 280,
+      "declaration": "async function handoverCompletedBrowser({origin,cookie,id}) {"
+    },
+    {
+      "path": "tests/porthole/handover.mjs",
+      "line": 297,
+      "declaration": "async function handoverUnavailableBrowser({origin,cookie,mutate}) {"
+    },
+    {
+      "path": "tests/porthole/handover.mjs",
+      "line": 317,
+      "declaration": "async function handoverCommitBrowser({origin,cookie,notebook,owner}) {"
+    },
+    {
+      "path": "tests/porthole/membership.mjs",
+      "line": 7,
+      "declaration": "export async function membershipJourney({origin,cookie,foreignCookie,sql,mutate,link,signIn,freshOwner,sessionSecret,restartWorker,withEmptyDestination}) {"
+    },
+    {
+      "path": "tests/porthole/membership.mjs",
+      "line": 110,
+      "declaration": "export async function membershipBrowser({origin,cookie,contractorCookie}) {"
+    },
+    {
+      "path": "tests/porthole/archive.mjs",
+      "line": 725,
+      "declaration": "export async function followUpArchiveJourney({origin,freshOwner,withEmptyDestination}) {"
+    },
+    {
+      "path": "tests/porthole/archive.mjs",
+      "line": 1321,
+      "declaration": "export async function handoverArchiveJourney({origin,cookie,withEmptyDestination,notebook,publication,ingest,read,otherSecrets=[]}) {"
+    },
+    {
+      "path": "tests/porthole/credentials.mjs",
+      "line": 21,
+      "declaration": "export async function credentialJourney({ origin, cookie, sql, mutate, restartWorker, freshOwner, signIn, getLogs, browser = true }) {"
+    },
+    {
+      "path": "tests/porthole/health.mjs",
+      "line": 576,
+      "declaration": "export async function followUpJourney({origin,freshOwner,signIn,restartWorker,withPinnedClock,withEmptyDestination,sql}) {"
+    },
+    {
+      "path": "tests/porthole/services.mjs",
+      "line": 9,
+      "declaration": "export async function servicesJourney({origin,freshOwner,signIn,sql,restartWorker,withPinnedClock,withEmptyDestination,call=(path,options)=>fetch(origin+path,options),analytical=false,browserDispatch}) {"
+    }
+  ]
+}

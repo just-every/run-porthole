@@ -1,0 +1,22 @@
+{
+  "command": [
+    "perl",
+    "-e",
+    "alarm 1200; exec @ARGV",
+    "--",
+    "env",
+    "PORTHOLE_HANDOVER_ONLY=1",
+    "PORTHOLE_EVIDENCE_DIR=/home/agent/rer-consolidation/work/sx-porthole-c-f460/screens",
+    "node",
+    "tests/runtime.mjs"
+  ],
+  "elapsed_seconds": 234.157,
+  "exit": 0,
+  "head": "d28c08eb267b14c0ec0008349fef31e6149fef34",
+  "head_after": "d28c08eb267b14c0ec0008349fef31e6149fef34",
+  "label": "merged-handover",
+  "log": "porthole-merged-handover.log",
+  "log_sha256": "62770054114089166de5767d1a075ad337094e82a516b3c7ddd3925922fd025b",
+  "started_at": "2026-11-08T22:48:15.488635+00:00",
+  "tree": "ae8e84049ef06a373e5891121a831f4c4421cf1f"
+}

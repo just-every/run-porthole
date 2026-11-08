@@ -1,0 +1,100 @@
+{
+  "head": "d28c08eb267b14c0ec0008349fef31e6149fef34",
+  "recorded_at": "2026-11-08T22:49:21.341815+00:00",
+  "checks": [
+    {
+      "label": "typecheck",
+      "command": [
+        "pnpm",
+        "typecheck"
+      ],
+      "exit": 0,
+      "log": "porthole-typecheck-final.log",
+      "sha256": "590dd81fae1cd0b58deb4b9185731988d96d09ec675a4054941432e59460ffd5"
+    },
+    {
+      "label": "schema",
+      "command": [
+        "node",
+        "scripts/porthole/public-schema.mjs",
+        "--check"
+      ],
+      "exit": 0,
+      "log": "porthole-schema-final.log",
+      "sha256": "59450c15ddc9aa20226afa14d2e17fe7163e9c036617283e0185497a8c085d37"
+    },
+    {
+      "label": "first-party",
+      "command": [
+        "pnpm",
+        "run",
+        "check",
+        "--profile",
+        "first-party"
+      ],
+      "exit": 0,
+      "log": "porthole-first-party-final.log",
+      "sha256": "9f65d707f0f251e68fd3300bd734ca865f8e64b4e0e657b48bc0b43d12add35b"
+    },
+    {
+      "label": "views-write",
+      "command": [
+        "node",
+        "scripts/porthole/contract-docs.mjs",
+        "write",
+        "PORT-091"
+      ],
+      "exit": 0,
+      "log": "porthole-views-write-final.log",
+      "sha256": "dae6b5014fe7185319e288247c7ead9f25f045bdca98e628cbb81892cc683061"
+    },
+    {
+      "label": "views-check",
+      "command": [
+        "node",
+        "scripts/porthole/contract-docs.mjs",
+        "check",
+        "PORT-091"
+      ],
+      "exit": 0,
+      "log": "porthole-views-check-final.log",
+      "sha256": "2856037e4b12f25eaaf70f08cbe01bfcd066f52a12cff1826c601c13b9c07428"
+    },
+    {
+      "label": "restore-views",
+      "command": [
+        "git",
+        "checkout",
+        "origin/main",
+        "--",
+        "ACCEPTANCE.md",
+        "docs/CLAIMS.md"
+      ],
+      "exit": 0,
+      "log": "porthole-restore-views-final.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "lock",
+      "command": [
+        "pnpm",
+        "run",
+        "source:lock"
+      ],
+      "exit": 0,
+      "log": "porthole-lock-final.log",
+      "sha256": "bdf1bc795d4d2dac985dfe059f73ca68c94cf8f2f8648ac6415fc78a49b47ed0"
+    },
+    {
+      "label": "lock-check",
+      "command": [
+        "pnpm",
+        "run",
+        "source:check"
+      ],
+      "exit": 0,
+      "log": "porthole-lock-check-final.log",
+      "sha256": "594eff12cd9bfab2b1feaefbc7dd710c1aecfe8a8f7348bc9c509560eaa076c1"
+    }
+  ]
+}

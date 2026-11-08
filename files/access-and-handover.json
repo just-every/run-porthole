@@ -1,0 +1,23 @@
+{
+  "command": [
+    "perl",
+    "-e",
+    "alarm 1200; exec @ARGV",
+    "--",
+    "env",
+    "NODE_OPTIONS=--import=/tmp/porthole-browser.mjs",
+    "PORTHOLE_ACCESS_ONLY=1",
+    "PORTHOLE_EVIDENCE_DIR=/home/agent/rer-consolidation/work/sx-porthole-c-f460/screens",
+    "node",
+    "tests/runtime.mjs"
+  ],
+  "elapsed_seconds": 919.27,
+  "exit": 0,
+  "head": "1367791098a11906636fdc8e3e194ef1289c554f",
+  "head_after": "a746624264211bd50cfeceeec56eadcb70524325",
+  "label": "access-and-handover",
+  "log": "porthole-access-verified.log",
+  "log_sha256": "c723635288cea846929860b6d996c102b4fde3cb1d790fbfcf3ab2c95477d67f",
+  "started_at": "2026-11-08T22:24:57.373944+00:00",
+  "tree": "7366224505ec7bfacbc7ec0823f28beaf0f3447c"
+}

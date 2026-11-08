@@ -1,0 +1,17 @@
+{
+  "command": [
+    "npx",
+    "-y",
+    "@runeditrun/rer",
+    "build"
+  ],
+  "elapsed_seconds": 7.774,
+  "exit": 0,
+  "head": "d4f6de0b6ff226d1fc31a54246e324936b5ac53f",
+  "head_after": "d4f6de0b6ff226d1fc31a54246e324936b5ac53f",
+  "label": "build",
+  "log": "porthole-build-receipt.log",
+  "log_sha256": "2e99813e5ce900d0871ed5c7b30540d6ca8c03717303e9ca61fcfe7cc1e06814",
+  "started_at": "2026-11-08T22:47:45.372516+00:00",
+  "tree": "06731d1caa707c32c9be6be624f0855061df4bdf"
+}
