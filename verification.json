@@ -23,7 +23,8 @@
         "pnpm run build",
         "pnpm run typecheck",
         "pnpm run test:typecheck",
-        "node --input-type=module -e 'import {nativeBackupErasureJourney} from \"./tests/porthole/archive.mjs\"; await nativeBackupErasureJourney()'",
+        "PORTHOLE_SERVICES_ONLY=1 pnpm run test:runtime",
+        "PORTHOLE_FLEET_ONLY=1 pnpm run test:runtime",
         "PORTHOLE_HANDOVER_ONLY=1 pnpm run test:runtime"
       ]
     },
@@ -45,7 +46,7 @@
         "python3 -m venv .cache/export-readers && .cache/export-readers/bin/pip install --disable-pip-version-check -r tests/porthole/export-readers.txt",
         "PORTHOLE_ERASURE_ONLY=1 pnpm run test:runtime",
         "PORTHOLE_EXPORT_ONLY=1 pnpm run test:runtime",
-        "PORTHOLE_MAIL_ONLY=1 PORTHOLE_MAIL_PROVIDER=resend node tests/runtime.mjs"
+        "PORTHOLE_HOST_HEARTBEAT_ONLY=1 pnpm run test:runtime"
       ]
     },
     {
@@ -56,8 +57,7 @@
         "pnpm run build",
         "PORTHOLE_INGEST_ONLY=1 pnpm run test:runtime",
         "PORTHOLE_PIPELINES_ONLY=1 pnpm run test:runtime",
-        "PORTHOLE_METRIC_RULES_ONLY=1 pnpm run test:runtime",
-        "PORTHOLE_SERVICES_ONLY=1 pnpm run test:runtime"
+        "PORTHOLE_METRIC_RULES_ONLY=1 pnpm run test:runtime"
       ]
     },
     {
@@ -69,8 +69,7 @@
         "PORTHOLE_TRACE_ONLY=1 pnpm run test:runtime",
         "PORTHOLE_GENAI_ONLY=1 pnpm run test:runtime",
         "PORTHOLE_GENAI_ANALYTICAL_ONLY=1 pnpm run test:runtime",
-        "PORTHOLE_GENAI_CONTENT_ONLY=1 pnpm run test:runtime",
-        "PORTHOLE_HOST_HEARTBEAT_ONLY=1 pnpm run test:runtime"
+        "PORTHOLE_GENAI_CONTENT_ONLY=1 pnpm run test:runtime"
       ]
     },
     {
@@ -105,12 +104,13 @@
       ]
     },
     {
-      "name": "network",
+      "name": "mail-receipts",
       "browser": true,
       "hosted": false,
       "commands": [
         "pnpm run build",
-        "PORTHOLE_NETWORK_ONLY=1 pnpm run test:runtime"
+        "PORTHOLE_MAIL_ONLY=1 PORTHOLE_MAIL_PROVIDER=resend node tests/runtime.mjs",
+        "node --input-type=module -e 'import {nativeBackupErasureJourney} from \"./tests/porthole/archive.mjs\"; await nativeBackupErasureJourney()'"
       ]
     },
     {
@@ -123,6 +123,15 @@
         "PORTHOLE_SLO_ONLY=1 pnpm run test:runtime",
         "PORTHOLE_NOTEBOOKS_ONLY=1 pnpm run test:runtime",
         "PORTHOLE_SERVICES_ANALYTICAL_ONLY=1 pnpm run test:runtime"
+      ]
+    },
+    {
+      "name": "network",
+      "browser": true,
+      "hosted": false,
+      "commands": [
+        "pnpm run build",
+        "PORTHOLE_NETWORK_ONLY=1 pnpm run test:runtime"
       ]
     }
   ],

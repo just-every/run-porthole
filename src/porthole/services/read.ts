@@ -1,3 +1,5 @@
+import {handoffs} from '../handoffs/store'
+import {links} from '../handoffs/model'
 import type {Bindings} from '../../auth.server'
 import {readTelemetry,scopeWhere} from '../ingest/read'
 import {canonical,nano,sha256} from '../ingest/model'
@@ -8,8 +10,8 @@ import {networkEvidence,type EvidenceRecord} from '../network/model'
 import {messagingEvidence} from '../messaging/model'
 
 export const serviceId=async(row:{service:string;environment:string;team:string})=>(await sha256(new TextEncoder().encode(canonical([row.service,row.environment,row.team])))).slice(0,32)
-export async function serviceRead(request:Request,env:Bindings,actor:Authority) {
- const url=new URL(request.url),params=url.searchParams,now=Date.now()
+export async function serviceRead(request:Request,env:Bindings,actor:Authority,now=Date.now()) {
+ const url=new URL(request.url),params=url.searchParams
  const keys=['from','through','snapshot','budget']
  if([...params.keys()].some(k=>!keys.includes(k)||params.getAll(k).length!==1))fail('invalid_service_query',400)
  const from=nano(params.get('from')??String(BigInt(now-86400000)*1000000n)),through=nano(params.get('through')??String(BigInt(now)*1000000n))
@@ -40,6 +42,7 @@ export async function serviceRead(request:Request,env:Bindings,actor:Authority) 
   cursor=data.cursor;metrics.push(...data.records);ids.push(...data.records.map(r=>r.id))
  }while(cursor&&metrics.length<budget)
  const metricsPartial=!!cursor
+ const handoffRows=await handoffs(env,actor)
  const latest=await authority(request,env)
  if(latest.session.id!==actor.session.id||latest.member.revision!==actor.member.revision)fail('authority_changed',409)
  const where=scopeWhere(actor.member.scope,'v')
@@ -79,6 +82,6 @@ export async function serviceRead(request:Request,env:Bindings,actor:Authority) 
  const network=networkEvidence(rows,metrics,through,complete),messaging=messagingEvidence(rows,metrics,from,through,complete)
  const evidence={version:1,from,through,snapshot,scanComplete:complete,network,messaging,counterScope:'declared container network namespace; never an inferred per-edge loss rate',fullTraffic:false}
 
- return {...view,evidence,services:services.map(s=>({...s,metadata:latestMetadata.get(s.id)??null,history:metadata.filter(m=>m.id===s.id),alerts:alerts.filter(row=>scopeWithin({services:[s.service],environments:[s.environment],teams:[s.team]},JSON.parse(row.scope))).map(row=>({monitorId:row.id,name:row.name,revision:row.revision,status:row.status,evaluatedAt:row.evaluated_at,firingEpisode:row.firing_episode,firingEvaluationId:row.firing_evaluation_id,firstFiringAt:row.first_firing_at,metadataAtFirstFiring:metadata.find(m=>m.id===s.id&&m.created_at<=row.first_firing_at)??null,currentMetadata:latestMetadata.get(s.id)??null,delivery:'not-requested'}))})),edges:view.edges.map(e=>({...e,from:keyToId.get(e.from)!,to:e.to?keyToId.get(e.to)??null:null})),names,snapshot,from,through,budget,backend,checkedAt:now}
+ return {...view,evidence,services:services.map(s=>({...s,handoffs:links(handoffRows,{service:s.service,environment:s.environment,from,through}),metadata:latestMetadata.get(s.id)??null,history:metadata.filter(m=>m.id===s.id),alerts:alerts.filter(row=>scopeWithin({services:[s.service],environments:[s.environment],teams:[s.team]},JSON.parse(row.scope))).map(row=>({monitorId:row.id,name:row.name,revision:row.revision,status:row.status,evaluatedAt:row.evaluated_at,firingEpisode:row.firing_episode,firingEvaluationId:row.firing_evaluation_id,firstFiringAt:row.first_firing_at,metadataAtFirstFiring:metadata.find(m=>m.id===s.id&&m.created_at<=row.first_firing_at)??null,currentMetadata:latestMetadata.get(s.id)??null,delivery:'not-requested'}))})),edges:view.edges.map(e=>({...e,from:keyToId.get(e.from)!,to:e.to?keyToId.get(e.to)??null:null})),names,snapshot,from,through,budget,backend,checkedAt:now}
 }
 export type ServiceView=Awaited<ReturnType<typeof serviceRead>>

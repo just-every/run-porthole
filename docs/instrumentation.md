@@ -193,3 +193,8 @@ attribute permission refuse before any domain rows are published. Keep these
 qualification commands serial when they share dependencies and compiler caches. On
 a dedicated CI VM, the CLI's documented `CI=true` mode skips its local admission
 queue; it retains migrations, build, readiness and all journey assertions.
+
+
+Docker collection and the Linux Kubernetes DaemonSet are documented in
+[Collector installation](./collector-install.md), including privilege gaps,
+zero-code instrumentation limits and uninstall effects.

@@ -1,3 +1,4 @@
+import {hasHandoffCredentials} from '../../src/porthole/handoffs/credentials.mjs'
 // Shared rer export/import uses the same inactive custody boundary as Settings.
 // Native identities become opaque inactive archive actors; sessions and credentials
 // are omitted entirely, including hashes. Source ids remain audit references.
@@ -17,6 +18,7 @@ export default {
  excludeTables:excluded,
  requiredConfiguration:['OWNER_EMAIL','SESSION_SECRET','SETUP_TOKEN','AUTH_ORIGIN','MAIL_PROVIDER','MAIL_FROM'],
  importSafety:{
+  porthole_handoff_versions:{state:['quarantined']},porthole_service_packets:{state:['quarantined']},
   porthole_custom_events:{state:['quarantined']},porthole_event_filters:{state:['quarantined']},
   porthole_service_versions:{state:['quarantined']},
   porthole_pipeline_versions:{state:['quarantined']},
@@ -27,8 +29,12 @@ export default {
   porthole_ingest_control:{paused:[1]},porthole_health_receipts:{status:['Unknown'],expires_at:[0]},
   porthole_monitor_state:{status:['Unknown']},
  },
+ exportRow(table,row) {
+  if(table==='porthole_handoff_versions'&&(hasHandoffCredentials(row.destination)||hasHandoffCredentials(row.template)))throw Error('handoff_credentials_forbidden')
+  return row
+ },
  importRow(table,row) {
-  if(['porthole_custom_events','porthole_event_filters'].includes(table))return {...row,state:'quarantined'}
+  if(['porthole_handoff_versions','porthole_service_packets','porthole_custom_events','porthole_event_filters'].includes(table))return {...row,state:'quarantined'}
   if(table==='porthole_service_versions')return {...row,state:'quarantined'}
   if(table==='porthole_pipeline_versions')return {...row,state:'quarantined'}
   if(table==='porthole_metric_rules')return {...row,state:'quarantined'}
