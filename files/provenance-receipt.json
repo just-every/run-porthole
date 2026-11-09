@@ -1,0 +1,45 @@
+{
+  "after_product_head": "a4b8bed320f94b9bbeb1b0e1d21b232fb6b4c9ed",
+  "after_status_counts": {
+    "done": 10,
+    "missing": 69,
+    "partial": 20,
+    "total": 99
+  },
+  "before_source_head": "a4b8bed320f94b9bbeb1b0e1d21b232fb6b4c9ed",
+  "before_status_counts": {
+    "done": 10,
+    "missing": 69,
+    "partial": 20,
+    "total": 99
+  },
+  "branch": "cloud/sx-porthole-f460fix1-push-1",
+  "candidate_commit_count": 7,
+  "candidate_commits": [
+    "a4b8bed320f94b9bbeb1b0e1d21b232fb6b4c9ed",
+    "d28c08eb267b14c0ec0008349fef31e6149fef34",
+    "d4f6de0b6ff226d1fc31a54246e324936b5ac53f",
+    "a746624264211bd50cfeceeec56eadcb70524325",
+    "a60a7f73b1bdf35e8d1207bed84e9f8cfeab590b",
+    "abcdc2abc98cc90bf6b9086563a50cb303831764",
+    "0d303ddc67263d45cd0aad902bc1976b95116559"
+  ],
+  "clause_changes": [],
+  "contract_view_diff_paths": [],
+  "head": "a4b8bed320f94b9bbeb1b0e1d21b232fb6b4c9ed",
+  "identity_audit": "pass",
+  "main": "4a86b252865d95d341e2a54d5b5b88e98c40bdd4",
+  "merge_base": "4a86b252865d95d341e2a54d5b5b88e98c40bdd4",
+  "new_product_commits": 0,
+  "pr": null,
+  "product_commits_created": 0,
+  "remaining_blockers": [],
+  "remote_branch_verified": true,
+  "remote_ref": "a4b8bed320f94b9bbeb1b0e1d21b232fb6b4c9ed\trefs/heads/cloud/sx-porthole-f460fix1-push-1",
+  "repository": "just-every/run-porthole",
+  "source_branch": "cloud/sx-porthole-f460fix1",
+  "source_head": "a4b8bed320f94b9bbeb1b0e1d21b232fb6b4c9ed",
+  "trailer_audit": "pass: no trailers",
+  "tree": "e728909e1e87a0bd528edb2fd78f2b45e1fd8d0b",
+  "working_tree": "clean"
+}
