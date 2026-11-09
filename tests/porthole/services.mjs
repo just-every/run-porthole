@@ -1,3 +1,4 @@
+import {reviewRemoval} from './fixture.mjs'
 import assert from 'node:assert/strict'
 import {mkdir} from 'node:fs/promises'
 import {join} from 'node:path'
@@ -192,14 +193,15 @@ export async function servicesJourney({origin,freshOwner,signIn,sql,restartWorke
  assert.ok(!(await read(api+query,eligibleCookie)).services.some(s=>s.id===checkout.id),'ownership does not preserve data access after scope revocation')
  assert.ok((await read(associationTrace,eligibleCookie)).spans.every(span=>span.service==='fulfillment'),'a historical association reference cannot confer the former service scope')
  await denied(api+'/'+checkout.id,{...values,revision:3},403,eligibleCookie)
- await send('/app/settings/members/remove',{operatorId:restrictedId})
+ await send('/app/settings/members/remove',await reviewRemoval(origin,cookie,restrictedId,{call}))
  cookie=await freshOwner()
- await send('/app/settings/members/remove',{operatorId:eligible.id})
+ await send('/app/settings/members/remove',await reviewRemoval(origin,cookie,eligible.id,{call}))
  await send('/api/porthole/v1/actors/erase',{actorRef:eligible.id,confirm:'erase'})
  const erased=await read(api+'/'+checkout.id+query)
+ assert.equal(erased.metadata.revision,4);assert.equal(erased.metadata.owner_ref,null,'reviewed removal appends explicit unassignment without changing telemetry')
  assert.equal(erased.names[eligible.id],'Unavailable member');assert.ok(!JSON.stringify(erased).includes('Eligible service owner'),'erased attribution has no retained identity label')
  await denied(api+'/'+checkout.id,{...values,revision:2},409)
- await denied(api+'/'+checkout.id,{...values,revision:3,ownerRef:eligible.id},403)
+ await denied(api+'/'+checkout.id,{...values,revision:4,ownerRef:eligible.id},403)
  assert.equal((await call(api,{headers:{cookie:restricted}})).status,401)
  await servicesBrowser({origin,path:'/app/services',contains:'unauthenticated',name:'services-unauthorized',status:401,dispatch:browserDispatch})
  assert.equal((await call(api+'?budget=3',{headers:{cookie}})).status,400)
@@ -219,7 +221,7 @@ export async function servicesJourney({origin,freshOwner,signIn,sql,restartWorke
   if(backup)assert.equal((await call('/api/porthole/v1/archive/exports/'+backup.id+'/chunks/'+backup.chunk,{headers:{cookie}})).status,404,'erasure withdraws cached and reconstructed archive packets together')
   const removed=await read(api+'/'+checkout.id+query)
   assert.equal(removed.spanCount,0);assert.equal((await call('/api/porthole/v1/service-evidence/'+handoffPacket.id+'/download',{headers:{cookie}})).status,409,'erased input cannot survive as a downloadable packet')
-  assert.deepEqual(removed.associations,[]);assert.equal(removed.summary.p95Ns,null);assert.equal(removed.metadata.revision,3)
+  assert.deepEqual(removed.associations,[]);assert.equal(removed.summary.p95Ns,null);assert.equal(removed.metadata.revision,4);assert.equal(removed.metadata.owner_ref,null)
   assert.ok((await read(associationTrace)).spans.every(span=>span.service!=='checkout'),'an erased association pivot cannot restore its original input')
   assert.ok(removed.alerts.every(a=>a.status==='Unknown'),'erased input cannot leave firing context labeled as fresh measured evidence')
   const peer=(await read(api+'/'+fulfillment.id+query));assert.deepEqual(peer.summary,fulfillment.summary);assert.deepEqual(peer.associations,fulfillment.associations,'unrelated service evidence stays unchanged')
@@ -237,7 +239,7 @@ export async function servicesJourney({origin,freshOwner,signIn,sql,restartWorke
  console.log('PROBE PORT-008 discovery: stock two-team HTTP and Kafka estate plus replacement and staging runtimes -> three scope identities, two production versions, isolated staging version and source-counted summaries; production responder cannot read staging')
  console.log('PROBE PORT-008 association-pivots: native Services trace links and versioned trace API -> exact original span, service, environment, team and last-observed nanoseconds; current authority applies independently')
  console.log('PROBE PORT-008 summaries: 36 counted checkout requests, eight errors and eight slow requests -> exact observed counts, rates, endpoint values and p50, p95 and p99 from captured stock spans; client spans excluded')
- console.log('PROBE PORT-008 metadata: native reviewed owner reassignment, Settings edit, reload and restart -> three immutable audited revisions; stale, foreign, bearer and forbidden writes leave metadata unchanged')
+ console.log('PROBE PORT-008 metadata: native reviewed owner reassignment, Settings edit, reload and restart -> four immutable audited revisions including reviewed removal unassignment; stale, foreign, bearer and forbidden writes leave metadata unchanged')
  console.log('PROBE PORT-008 authority: restricted and revoked native readers -> hidden services absent and unresolved parent links; metadata grants no access; external runbook remains private')
  console.log('PROBE PORT-008 associations: 36 real PostgreSQL queries and 36 real Kafka sends and receives -> exact scoped database, messaging and detected host identities; replay adds no observations')
  console.log('PROBE PORT-008 fired-context: existing activated count monitor over actual checkout traces -> Firing episode with service revision 2; edit and restart -> original revision preserved and exact current revision 3 for owner and scoped responder, without grants or delivery')

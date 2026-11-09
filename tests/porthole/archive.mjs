@@ -1,3 +1,4 @@
+import {reviewRemoval} from './fixture.mjs'
 import assert from 'node:assert/strict'
 import {createHash} from 'node:crypto'
 import {mkdtemp,readFile,writeFile,rm} from 'node:fs/promises'
@@ -432,6 +433,11 @@ export async function signalExportJourney({origin,cookie,freshOwner,restartWorke
   // Save history before suppression, then carry the later portable journal
   // into an independent destination before restoring that older history.
   const olderArchive=await savedExport(origin,cookie,await post(api+'/exports',{}))
+  const {remoteRead,remoteSeries}=await import('./standard-reads.mjs')
+  const standardReader=await mint('read',{...scope,teams:[rows.find(row=>row.signal==='metrics').team]})
+  const standardQuery={from:time/1000000n,through:(time+100n)/1000000n,matchers:[['__name__','synthetic_porthole_211_milliseconds']]}
+  const standard=()=>remoteRead((path,options)=>fetch(origin+path,options),standardReader.secret,standardQuery)
+  assert.equal((await remoteSeries(await standard())).length,1,'existing exported OTLP metric is available through standard reads')
   const exclusions=scope.signals.map(signal=>({recordId:rows.find(row=>row.signal===signal).id,excludedAt:Date.now()}))
   const exclusionRoot='/api/porthole/v1/export-exclusions'
   const apply={confirm:'apply-exclusions',journal:{format:'porthole.export-exclusions.v1',records:exclusions}}
@@ -443,6 +449,7 @@ export async function signalExportJourney({origin,cookie,freshOwner,restartWorke
   assert.equal(journal.next,null)
   await value(await post(exclusionRoot,{...apply,journal:{...apply.journal,records:exclusions.map(row=>({...row,excludedAt:0}))}}))
   assert.deepEqual((await value(await fetch(origin+exclusionRoot,{headers:{cookie}}))).records,journal.records,'replaying an older journal cannot remove or roll back exclusions')
+  assert.deepEqual(await remoteSeries(await standard()),[],'the portable metric exclusion also fences standard reads')
   const excludedIds=new Set(exclusions.map(row=>row.recordId))
   let excludedCursor='',remaining=[]
   do {
@@ -545,7 +552,7 @@ export async function signalExportJourney({origin,cookie,freshOwner,restartWorke
   for(const suffix of ['', '/pages'])assert.equal((await fetch(origin+root+'/'+stale.id+suffix,{headers:{cookie}})).status,403,'narrowed owner cannot read old export metadata or payload')
   assert.equal((await rescope(allScope,'owner')).status,200);cookie=await freshOwner()
   for(const suffix of ['', '/pages'])assert.equal((await fetch(origin+root+'/'+stale.id+suffix,{headers:{cookie}})).status,409,'restored owner authority does not revive old export approval')
-  assert.equal((await post('/app/settings/members/remove',{operatorId:reviewerId})).status,200)
+  assert.equal((await post('/app/settings/members/remove',await reviewRemoval(origin,cookie,reviewerId))).status,200)
   const facts=await sql(`SELECT action FROM porthole_audit_facts WHERE entity_ref='${preview.id}'`)
   for(const action of ['signals.export-preview','signals.export-approved','signals.export-cancelled'])assert.ok(facts.some(row=>row.action===action))
  } finally {for(const path of [directory,otlpDirectory,revokeDirectory])await rm(path,{recursive:true,force:true})}
@@ -560,6 +567,11 @@ export async function subjectErasureJourney({origin,freshOwner,restartWorker,sql
  let cookie=await freshOwner()
  const send=(path,data,session=cookie)=>post(origin,session,path,data)
  const source=await value(await send('/app/settings/credentials/mint',{name:'synthetic-porthole-1802',class:'ingest',scope}),201)
+ const standardReader=await value(await send('/app/settings/credentials/mint',{name:'Erasure standard reader',class:'read',scope:{...scope,actions:['telemetry.read']}}),201)
+ const {remoteRead,remoteSeries}=await import('./standard-reads.mjs')
+ const standardCall=(path,options)=>fetch(origin+path,options)
+ const standardMetrics=()=>remoteRead(standardCall,standardReader.secret,{matchers:[['__name__','synthetic_porthole_1803']]})
+ const standardTrace=()=>fetch(origin+'/api/traces/1234567890abcdef1234567890abcdef',{headers:{authorization:'Bearer '+standardReader.secret}})
  const time=BigInt(Date.now())*1000000n-5000000000n
  const attributes=marker=>[{key:'service.name',value:{stringValue:scope.services[0]}},{key:'deployment.environment.name',value:{stringValue:scope.environments[0]}},{key:'team.name',value:{stringValue:scope.teams[0]}},{key:'user.email',value:{stringValue:marker}}]
  const logs=otlpLogBatch([time,time+1n]);logs.resourceLogs[0].resource.attributes=attributes(identifier)
@@ -596,6 +608,8 @@ export async function subjectErasureJourney({origin,freshOwner,restartWorker,sql
  const mixedBefore=await sql('SELECT * FROM porthole_ingest_batches ORDER BY id')
  assert.equal((await send(root+'/apply',{identifier:mixedIdentifier,digest:mixedPreview.digest,confirm:'erase-exact-batches'})).status,409,'mixed envelope cannot erase unrelated records')
  assert.deepEqual(await sql('SELECT * FROM porthole_ingest_batches ORDER BY id'),mixedBefore,'mixedSubjectStorageUnchanged')
+ assert.equal((await remoteSeries(await standardMetrics())).length,1,'retained subject metric is served before erasure')
+ assert.equal((await standardTrace()).status,200,'retained subject trace is served before erasure')
  const before=await savedExport(origin,cookie,await send(api+'/exports',{}))
  // One D1 read captures every custody table consistently; parallel Wrangler
  // readers contend on the same local SQLite migration connection.
@@ -673,6 +687,8 @@ export async function subjectErasureJourney({origin,freshOwner,restartWorker,sql
   const response=await value(await get(origin,cookie,'/api/porthole/v1/ingest/records?'+new URLSearchParams({signal,service:scope.services[0]})))
   assert.equal(response.records.length,signal==='logs'?2:0,'query recomputes from remaining local records')
  }
+ assert.deepEqual(await remoteSeries(await standardMetrics()),[],'erased subject metric is absent from standard reads')
+ assert.equal((await standardTrace()).status,404,'erased subject trace is absent from trace-by-ID')
  const portable=await savedExport(origin,cookie,await send(api+'/exports',{}))
  assert.deepEqual(portable.rows.filter(row=>row.table==='porthole_erased_batches').map(row=>row.row),journal.records)
  await withEmptyDestination(async destination=>{
@@ -691,6 +707,10 @@ export async function subjectErasureJourney({origin,freshOwner,restartWorker,sql
   const selection={scope:{services:scope.services,environments:scope.environments,teams:scope.teams},signals:scope.signals,from:String(time),through:String(time+100n)}
   const exported=await value(await request('/api/porthole/v1/exports',selection),201)
   assert.equal(exported.estimate.totalRecords,1,'old archive plus later real erasure journal cannot export the erased envelopes')
+  const current=await value(await request('/app/settings/credentials/mint',{name:'Restored erasure reader',class:'read',scope:{...scope,actions:['telemetry.read']}}),201)
+  const restoredCall=(path,options)=>fetch(destination.origin+path,options)
+  assert.deepEqual(await remoteSeries(await remoteRead(restoredCall,current.secret,{matchers:[['__name__','synthetic_porthole_1803']]})),[],'later erasure journal fences standard samples in an older archive')
+  assert.equal((await restoredCall('/api/traces/1234567890abcdef1234567890abcdef',{headers:{authorization:'Bearer '+current.secret}})).status,404,'older archive cannot revive an erased trace')
   await value(await request('/api/porthole/v1/exports/'+exported.id+'/approve',{confirm:exported.id}))
   const page=await get(destination.origin,owner,'/api/porthole/v1/exports/'+exported.id+'/pages')
   assert.equal(page.status,200);assert.ok(!(await page.text()).includes(identifier))
@@ -1250,7 +1270,7 @@ export async function servicesArchiveJourney({origin,freshOwner,restartWorker,wi
  const declarations=source.rows.filter(row=>row.table==='porthole_handoff_versions'),packetHistory=source.rows.filter(row=>row.table==='porthole_service_packets')
  assert.equal(declarations.length,13);assert.ok(packetHistory.some(row=>row.row.id===handoffPacket.id&&row.row.state==='approved'))
  const rows=source.rows.filter(row=>row.table==='porthole_service_versions')
- assert.equal(rows.length,3);assert.deepEqual(rows.map(r=>r.row.revision),[1,2,3])
+ assert.equal(rows.length,4);assert.deepEqual(rows.map(r=>r.row.revision),[1,2,3,4]);assert.equal(rows[3].row.owner_ref,null)
  assert.equal(rows[2].row.runbook,expected.runbook)
  await withEmptyDestination(async destination=>{
   const owner=await destination.freshOwner(),start=await value(await post(destination.origin,owner,api+'/restores',{manifest:source.manifest}),201)
@@ -1278,7 +1298,7 @@ export async function servicesArchiveJourney({origin,freshOwner,restartWorker,wi
   assert.deepEqual(restored.associations,associations,'inactive restoration preserves the exact source dependency observations')
   const discoveryFields=service=>Object.fromEntries(['id','service','environment','team','versions','summary','associations'].map(key=>[key,service[key]]))
   assert.deepEqual((await value(await get(destination.origin,owner,'/api/porthole/v1/services'+discovery.query))).services.map(discoveryFields),discovery.services,'inactive restore preserves distinct environments, rolling versions and source trace references')
-  assert.equal(restored.history.length,3);assert.ok(restored.history.every(r=>r.state==='quarantined'))
+  assert.equal(restored.history.length,4);assert.ok(restored.history.every(r=>r.state==='quarantined'));assert.equal(restored.metadata.owner_ref,null)
   assert.deepEqual(restored.alerts,[],'inactive monitor history cannot revive a firing episode after restore')
   const originalFiring=source.rows.filter(r=>r.table==='porthole_monitor_evaluations'&&r.row.status==='Firing')
   assert.ok(originalFiring.length,'the actual firing evaluation is included in the installation archive')
@@ -1300,7 +1320,57 @@ export async function servicesArchiveJourney({origin,freshOwner,restartWorker,wi
   await destination.restartWorker()
   assert.equal((await value(await get(destination.origin,await destination.freshOwner(),root+query))).metadata.state,'quarantined')
  })
- console.log('PROBE PORT-008 archive: actual native export, empty restore and re-export -> three exact inactive revisions; no source sessions, credentials or owner membership restored')
+ console.log('PROBE PORT-008 archive: actual native export, empty restore and re-export -> four exact inactive revisions; no source sessions, credentials or owner membership restored')
  console.log('PROBE PORT-008 archive-packets: largest stock-capture packet bytes='+Buffer.byteLength(JSON.stringify(largest))+' -> export retry and restore retry preserve its exact rows, digest and order')
  return {id:source.job.id,chunk:largest.index}
+}
+
+/** Handover receipts are private history, never restore-time authority. */
+export async function handoverArchiveJourney({origin,cookie,withEmptyDestination,notebook,publication,ingest,read,otherSecrets=[]}) {
+ const source=await savedExport(origin,cookie,await post(origin,cookie,api+'/exports',{}))
+ const history=source.rows.filter(r=>r.table==='porthole_handover_history')
+ assert.ok(history.length>=2);assert.ok(history.every(r=>r.row.state==='committed'))
+ assert.ok(history.some(r=>JSON.parse(r.row.decisions).some(d=>d.mode==='void')))
+ assert.ok(history.some(r=>JSON.parse(r.row.decisions).some(d=>d.mode==='custody')))
+ assert.equal(source.rows.find(r=>r.table==='porthole_notebooks'&&r.row.id===notebook).row.owner_ref,null)
+ for(const secret of [ingest,read,...otherSecrets])assert.ok(!JSON.stringify(source.rows).includes(secret),'credential secrets never travel with handover history')
+ assert.ok(!source.rows.some(r=>['porthole_credentials','porthole_object_approvals','porthole_notebook_shares'].includes(r.table)))
+ await withEmptyDestination(async destination=>{
+  const destCookie=await destination.freshOwner()
+  const start=await value(await post(destination.origin,destCookie,api+'/restores',{manifest:source.manifest}),201)
+  for(const chunk of source.chunks)await value(await post(destination.origin,destCookie,api+'/restores/'+start.id+'/chunks',{chunk}))
+  await value(await post(destination.origin,destCookie,api+'/restores/'+start.id+'/commit',{confirm:source.manifest.rootHash}))
+  const restored=await savedExport(destination.origin,destCookie,await post(destination.origin,destCookie,api+'/exports',{}))
+  const receipts=restored.rows.filter(r=>r.table==='porthole_handover_history')
+  assert.equal(receipts.length,history.length);assert.ok(receipts.every(r=>r.row.state==='quarantined'))
+  assert.deepEqual(receipts.map(r=>r.row.decisions).sort(),history.map(r=>r.row.decisions).sort())
+  assert.equal(restored.rows.find(r=>r.table==='porthole_notebooks'&&r.row.id===notebook).row.owner_ref,null)
+  assert.equal(restored.rows.find(r=>r.table==='porthole_notebooks'&&r.row.id===notebook).row.state,'quarantined')
+  assert.equal(restored.rows.find(r=>r.table==='porthole_notebook_publications'&&r.row.id===publication).row.state,'quarantined')
+  for(const secret of [ingest,read,...otherSecrets])assert.equal((await fetch(destination.origin+'/api/porthole/v1/credential',{headers:{authorization:'Bearer '+secret}})).status,401)
+  assert.equal((await fetch(destination.origin+'/shared/notebooks/'+publication)).status,404)
+  assert.ok(!(await destination.sql('SELECT id FROM porthole_object_approvals')).length)
+  assert.ok(!(await destination.sql('SELECT notebook_id FROM porthole_notebook_shares')).length)
+ })
+}
+
+/** Standard reads remain credential-only after inactive installation restore. */
+export async function standardArchiveJourney({origin,freshOwner,withEmptyDestination,reader,scope,windows,expected,traceId}) {
+ const cookie=await freshOwner(),saved=await savedExport(origin,cookie,await post(origin,cookie,api+'/exports',{}))
+ await withEmptyDestination(async destination=>{
+  const acting=await destination.freshOwner(),restore=await value(await post(destination.origin,acting,api+'/restores',{manifest:saved.manifest}),201)
+  for(const chunk of saved.chunks)await value(await post(destination.origin,acting,`${api}/restores/${restore.id}/chunks`,{chunk}))
+  await value(await post(destination.origin,acting,`${api}/restores/${restore.id}/commit`,{confirm:saved.manifest.rootHash}))
+  const call=(path,options)=>fetch(destination.origin+path,options)
+  const {remoteRead,remoteWindows}=await import('./standard-reads.mjs')
+  assert.equal((await remoteRead(call,reader.secret)).status,401,'archive transfers no source read authority')
+  assert.equal((await call('/api/traces/'+traceId,{headers:{cookie:acting}})).status,401,'destination owner cookie cannot replace a standard read credential')
+  assert.equal((await destination.sql('SELECT COUNT(*) AS n FROM porthole_credentials'))[0].n,0)
+  assert.equal((await destination.sql('SELECT paused FROM porthole_ingest_control'))[0].paused,1)
+  const minted=await value(await post(destination.origin,acting,'/app/settings/credentials/mint',{name:'Restored standard reader',class:'read',scope}),201)
+  assert.deepEqual(await remoteWindows(call,minted.secret,windows),expected)
+  await destination.restartWorker()
+  assert.deepEqual(await remoteWindows(call,minted.secret,windows),expected)
+ })
+ console.log('PROBE PORT-061 restore: inactive owner installation restore -> original samples with newly minted destination authority, no imported credentials, intake remains paused')
 }

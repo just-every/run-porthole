@@ -66,7 +66,7 @@ export async function notebookResponse(request:Request,env:Bindings):Promise<Res
    // shares, so a revoked actor cannot receive a formerly authorized result.
    await current(env,await authority(request,env),id)
    const names:Record<string,string>={}
-   for(const ref of new Set([selected.owner_ref,selected.author_ref,...body.comments.flatMap(c=>[c.authorRef,...c.mentions.map(m=>m.memberRef)])])) {
+   for(const ref of new Set([selected.author_ref,...(selected.owner_ref?[selected.owner_ref]:[]),...body.comments.flatMap(c=>[c.authorRef,...c.mentions.map(m=>m.memberRef)])])) {
     const name=await env.DB.prepare(`SELECT o.display_name,EXISTS(SELECT 1 FROM porthole_erased_actors e WHERE e.actor_ref=o.id) AS erased FROM oa_operators o WHERE o.id=? AND ${actor.fence}`).bind(ref,...actor.args).first<{display_name:string;erased:number}>()
     names[ref]=name?.erased?'Erased member':name?.display_name??'Unavailable member'
    }

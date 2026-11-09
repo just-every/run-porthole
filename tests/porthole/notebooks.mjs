@@ -1,3 +1,4 @@
+import {reviewRemoval} from './fixture.mjs'
 import assert from 'node:assert/strict'
 import {mkdir} from 'node:fs/promises'
 import {join} from 'node:path'
@@ -350,7 +351,7 @@ export async function notebookJourney({origin,freshOwner,signIn,restartWorker,wi
  await post('/app/settings/members/change',{operatorId:publishingOwner.id,role:'responder',scope:otherScope})
  await publicGet('/shared/notebooks/'+ownerPublication.id,404,'HEAD')
  await get(publications,401,publishingOwner.cookie)
- await post('/app/settings/members/remove',{operatorId:publishingOwner.id})
+ await post('/app/settings/members/remove',await reviewRemoval(origin,cookie,publishingOwner.id))
  await post('/api/porthole/v1/actors/erase',{actorRef:publishingOwner.id,confirm:'erase'})
  await publicGet('/shared/notebooks/'+ownerPublication.id,404)
  const stalePublication=await post(publications,previewData,201)
@@ -375,7 +376,7 @@ export async function notebookJourney({origin,freshOwner,signIn,restartWorker,wi
  await get(endpoint,401,responder.cookie)
  const narrowed=await signIn(address(2421));await get(endpoint,404,narrowed)
  cookie=await freshOwner()
- await post('/app/settings/members/remove',{operatorId:responder.id})
+ await post('/app/settings/members/remove',await reviewRemoval(origin,cookie,responder.id))
  await post('/api/porthole/v1/actors/erase',{actorRef:responder.id,confirm:'erase'})
  const preview=await post('/api/porthole/v1/subject-erasure',{identifier:'synthetic-porthole-2405'})
  assert.ok(preview.records>=205);assert.equal(preview.canApply,true)
