@@ -192,7 +192,7 @@ try {
    await servicesAnalyticalJourney()
   } else if(process.env.PORTHOLE_HANDOVER_ONLY==='1') {
    const {handoverJourney}=await import('./porthole/handover.mjs')
-   await handoverJourney({origin,restartWorker,withEmptyDestination,...helpers,sessionSecret:'runtime-session-secret-1234567890123456'})
+   await withEmptyDestination(destination=>handoverJourney({...destination,withEmptyDestination,sessionSecret:'runtime-session-secret-1234567890123456'}))
   } else if(process.env.PORTHOLE_STANDARD_ONLY==='1') {
    const {standardReadJourney}=await import('./porthole/standard-reads.mjs')
    await standardReadJourney({origin,cookie,restartWorker,withEmptyDestination,withPinnedClock,...helpers})
