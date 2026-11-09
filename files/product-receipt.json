@@ -1,0 +1,45 @@
+{
+  "branch": "cloud/sx-porthole-f460fix1",
+  "head": "a4b8bed320f94b9bbeb1b0e1d21b232fb6b4c9ed",
+  "tree": "e728909e1e87a0bd528edb2fd78f2b45e1fd8d0b",
+  "merged_main": "4a86b252865d95d341e2a54d5b5b88e98c40bdd4",
+  "parent_heads": [
+    "d28c08eb267b14c0ec0008349fef31e6149fef34",
+    "4a86b252865d95d341e2a54d5b5b88e98c40bdd4"
+  ],
+  "clean": true,
+  "tracked_tree_matches_merged_local_checks": true,
+  "contract_before": {
+    "missing": 69,
+    "done": 10,
+    "partial": 20,
+    "total": 99
+  },
+  "contract_after": {
+    "missing": 69,
+    "done": 10,
+    "partial": 20,
+    "total": 99
+  },
+  "clause_status_changes": [],
+  "ready": false,
+  "terminal_custody": "PUSHED",
+  "readiness_blocker": "Exact-SHA Verify completed/cancelled",
+  "fix_files": [
+    "src/porthole/portability/format.ts",
+    "tests/porthole/handover.mjs",
+    "sources.lock.json"
+  ],
+  "ci": {
+    "conclusion": "cancelled",
+    "event": "push",
+    "head_branch": "cloud/sx-porthole-f460fix1",
+    "head_sha": "a4b8bed320f94b9bbeb1b0e1d21b232fb6b4c9ed",
+    "html_url": "https://github.com/just-every/run-porthole/actions/runs/42539499708",
+    "id": 42539499708,
+    "name": "Verify",
+    "status": "completed",
+    "observed_at": "2026-11-09T00:33:50.018796+00:00"
+  },
+  "pr": null
+}

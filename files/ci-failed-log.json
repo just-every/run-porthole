@@ -1,0 +1,19 @@
+{
+  "command": [
+    "gh",
+    "run",
+    "view",
+    "42539499708",
+    "--repo",
+    "just-every/run-porthole",
+    "--job",
+    "128914505351",
+    "--log-failed"
+  ],
+  "exit": 0,
+  "run_id": 42539499708,
+  "job_id": 128914505351,
+  "log": "ci-verify-failed.log",
+  "stderr": "GH_CALLS=6\n",
+  "log_sha256": "cb6b707644858ef5f3a37ca8d746ddfafeda69fcacbb33085d56a8a580bb5bb9"
+}

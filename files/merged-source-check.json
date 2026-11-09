@@ -1,0 +1,27 @@
+{
+  "label": "merged-source-check",
+  "command": [
+    "pnpm",
+    "run",
+    "source:check"
+  ],
+  "started": "2026-11-09T00:14:52.850611+00:00",
+  "ended": "2026-11-09T00:14:53.405858+00:00",
+  "duration_seconds": 0.55,
+  "head": "d28c08eb267b14c0ec0008349fef31e6149fef34",
+  "tree": "ae8e84049ef06a373e5891121a831f4c4421cf1f",
+  "head_after": "d28c08eb267b14c0ec0008349fef31e6149fef34",
+  "files_before": {
+    "src/porthole/portability/format.ts": "f624467ace0be36763d2095d66574b98f6e7e5a713031d234a75be5e93eb5caa",
+    "tests/porthole/handover.mjs": "c1e3a87c7b719f09236d11d19294938a671218f30a539136ccff627bc61aa25e",
+    "sources.lock.json": "e81b7f7424b4f91a3e35782c51a4e23708dc0530b2a33cb80db2b017e2245936"
+  },
+  "files_after": {
+    "src/porthole/portability/format.ts": "f624467ace0be36763d2095d66574b98f6e7e5a713031d234a75be5e93eb5caa",
+    "tests/porthole/handover.mjs": "c1e3a87c7b719f09236d11d19294938a671218f30a539136ccff627bc61aa25e",
+    "sources.lock.json": "e81b7f7424b4f91a3e35782c51a4e23708dc0530b2a33cb80db2b017e2245936"
+  },
+  "exit": 0,
+  "log": "merged-source-check.log",
+  "log_sha256": "dee0c44ff8443971b61a5ba2c0b5018f978b5f73feb0a42148bfd789c125b3cc"
+}

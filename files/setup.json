@@ -1,0 +1,20 @@
+{
+  "global_identity": "Run Edit Run fleet <fleet@runeditrun.com>",
+  "launcher": "/workspace/rer-cloud-launcher/refresh.sh",
+  "launcher_refresh_exit": 0,
+  "full_history_clone": true,
+  "repository": "just-every/run-porthole",
+  "branch": "cloud/sx-porthole-f460fix1",
+  "dependency_install": "pnpm install --frozen-lockfile",
+  "dependency_install_exit": 0,
+  "owner_setup": "cloud_run npx -y @runeditrun/rer setup --owner-email fleet@runeditrun.com --non-interactive",
+  "owner_setup_exit": 0,
+  "build_node": "22.20.0 selected by rer",
+  "test_node": "24.19.0 from provided toolchain",
+  "pnpm": "10.12.4",
+  "hooks": "fleet cloud hook installed after clone and setup; repository hooks preserved",
+  "private_installer_outputs": "excluded",
+  "docker": "NOT RUN",
+  "services_journey": "NOT RUN as instructed",
+  "publication_scan": "NOT RUN as instructed"
+}

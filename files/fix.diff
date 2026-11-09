@@ -1,0 +1,43 @@
+diff --git a/src/porthole/portability/format.ts b/src/porthole/portability/format.ts
+index 1394dd4..87822fd 100644
+--- a/src/porthole/portability/format.ts
++++ b/src/porthole/portability/format.ts
+@@ -83,7 +83,7 @@ export async function validateRow(payload: PortableRow, state: Validation): Prom
+  if(item.table==='porthole_handover_history') {
+   if(!uuid(row.id)||!uuid(row.target_ref)||!uuid(row.actor_ref)||!hex(row.inventory_digest)||!integer(row.occurred_at)||!['committed','quarantined'].includes(String(row.state)))bad()
+   const decisions=json(row.decisions)
+-  const key=/^(?:service:[a-f0-9]{32}|(?:notebook|event-filter|follow-up|credential|personal-credential|notebook-publication|dashboard-publication|approval|signal-export|archive-job|database-source|slo|metric-rule):[a-f0-9-]{36}|notebook-share:[a-f0-9-]{36}:(?:member:[a-f0-9-]{36}|team:[a-zA-Z0-9][a-zA-Z0-9._:/-]{0,119})|pipeline:pipeline)$/
++  const key=/^(?:service:[a-f0-9]{32}|(?:notebook|event-filter|follow-up|credential|personal-credential|notebook-publication|dashboard-publication|approval|signal-export|archive-job|slo|metric-rule):[a-f0-9-]{36}|notebook-share:[a-f0-9-]{36}:(?:member:[a-f0-9-]{36}|team:[a-zA-Z0-9][a-zA-Z0-9._:/-]{0,119})|database-source:[a-zA-Z0-9_-]{1,80}|pipeline:pipeline)$/
+   if(!Array.isArray(decisions)||new Set(decisions.map(d=>d?.key)).size!==decisions.length||decisions.some(d=>!object(d)||Object.keys(d).some(k=>!['key','revision','mode','successor','entityRef'].includes(k))||typeof d.key!=='string'||!key.test(d.key)||!integer(d.revision,1)||!['move','end','void','hold','suspend','custody'].includes(String(d.mode))||d.successor!==null&&!uuid(d.successor)||!['move','custody'].includes(String(d.mode))&&d.successor!==null||d.mode==='custody'&&d.successor===null||d.entityRef!==undefined&&!uuid(d.entityRef)))bad()
+  } else if(item.table==='porthole_custom_events') {
+   await validateEventRow(row)
+diff --git a/tests/porthole/handover.mjs b/tests/porthole/handover.mjs
+index acffe40..a260830 100644
+--- a/tests/porthole/handover.mjs
++++ b/tests/porthole/handover.mjs
+@@ -57,9 +57,10 @@ export async function handoverJourney({origin,freshOwner,signIn,sql,mutate,resta
+  // A legacy held SLO owner is previewed, but this removal adds no SLO door.
+  const sloId=randomUUID(),sloDefinition={type:'event-ratio',scope,sourceId:source.credential.id,targetPpm:990000,latencyMs:300,goodMetric:null,totalMetric:null,exclusions:[]}
+  await mutate(`INSERT INTO porthole_slo_versions VALUES(${literal(sloId)},1,'synthetic-porthole-9107',${literal(JSON.stringify(sloDefinition))},${literal(departing.id)},${Date.now()},'active')`)
+- const databaseId=randomUUID()
+- await mutate(`INSERT INTO porthole_database_sources VALUES(${literal(databaseId)},${literal(source.credential.id)},'checkout','production','commerce','postgresql',${literal('0'.repeat(64))},1,1,${Date.now()},${literal(departing.id)})`)
+- const databaseBefore=await sql(`SELECT * FROM porthole_database_sources WHERE id=${literal(databaseId)}`)
++ const databaseIds=[randomUUID(),'local-postgresql','Synthetic_porthole_9110','S'.repeat(80)]
++ const databaseWhere=`id IN (${databaseIds.map(literal).join(',')})`
++ for(const databaseId of databaseIds)await mutate(`INSERT INTO porthole_database_sources VALUES(${literal(databaseId)},${literal(source.credential.id)},'checkout','production','commerce','postgresql',${literal('0'.repeat(64))},1,1,${Date.now()},${literal(departing.id)})`)
++ const databaseBefore=await sql(`SELECT * FROM porthole_database_sources WHERE ${databaseWhere} ORDER BY id`)
+  const heldBefore=await sql(`SELECT * FROM porthole_slo_versions WHERE id=${literal(sloId)}`)
+  cookie=await freshOwner()
+  await post(members+'/remove',{operatorId:departing.id},409)
+@@ -117,7 +118,10 @@ export async function handoverJourney({origin,freshOwner,signIn,sql,mutate,resta
+  const rows=await sql(`SELECT owner_ref FROM porthole_event_filters WHERE id IN (${literal(filter.id)},${literal(late.id)})`)
+  assert.ok(rows.every(r=>r.owner_ref===null))
+  assert.deepEqual(await sql(`SELECT * FROM porthole_slo_versions WHERE id=${literal(sloId)}`),heldBefore,'held SLO version is byte-for-byte unchanged')
+- assert.deepEqual(await sql(`SELECT * FROM porthole_database_sources WHERE id=${literal(databaseId)}`),databaseBefore,'held database source and enabled collection remain unchanged')
++ assert.deepEqual(await sql(`SELECT * FROM porthole_database_sources WHERE ${databaseWhere} ORDER BY id`),databaseBefore,'held database source and enabled collection remain unchanged')
++ const exported=await post('/api/porthole/v1/archive/exports',{},201),archiveRows=[]
++ for(let index=0;index<exported.totalChunks;index++)archiveRows.push(...(await get(`/api/porthole/v1/archive/exports/${exported.id}/chunks/${index}`)).rows)
++ assert.deepEqual(archiveRows.filter(r=>r.table==='porthole_handover_history').flatMap(r=>JSON.parse(r.row.decisions)).filter(d=>d.key.startsWith('database-source:')).map(d=>d.key).sort(),databaseIds.map(id=>'database-source:'+id).sort(),'archive export preserves handover continuity for every stored database source identifier form')
+  const pending=(await get('/api/porthole/v1/objects')).objects.find(o=>o.id===repair.id)
+  assert.equal(pending.state,'inactive')
+  assert.equal((await sql(`SELECT * FROM porthole_object_approvals WHERE object_id=${literal(repair.id)}`)).length,0,'old approval is void, not transferred')

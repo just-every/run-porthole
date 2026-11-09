@@ -1,0 +1,11 @@
+{
+  "observed_at": "2026-11-09T00:15:09.762745+00:00",
+  "base": "d28c08eb267b14c0ec0008349fef31e6149fef34",
+  "merged_main": "4a86b252865d95d341e2a54d5b5b88e98c40bdd4",
+  "pending_index_tree": "e728909e1e87a0bd528edb2fd78f2b45e1fd8d0b",
+  "unstaged_changes": [],
+  "main_max_migration": 62,
+  "candidate_migration": 63,
+  "id_map": "absent on main and candidate",
+  "contract_and_views_equal_main": true
+}

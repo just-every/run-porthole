@@ -1,0 +1,29 @@
+verify:runtime
+Heavy job admitted: Porthole verify:runtime:suite [def2b12df340]
+▲ [WARNING] Proxy environment variables detected. We'll use your proxy for fetch requests.
+
+
+Installed owner claim rejects missing/wrong setup tokens and request demo flags
+HTTP-001 passed against emitted local Worker: health, the installed homepage, HTTP and document 404s
+
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: {"error":"archive_semantics_invalid"}
+
+422 !== 200
+
+    at get (file://[REDACTED]/tests/porthole/handover.mjs:25:10)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async handoverJourney (file://[REDACTED]/tests/porthole/handover.mjs:123:74)
+    at async file://[REDACTED]/tests/runtime.mjs:187:4 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: 422,
+  expected: 200,
+  operator: 'strictEqual',
+  diff: 'simple'
+}
+
+Node.js v24.19.0

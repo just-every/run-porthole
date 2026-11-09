@@ -1,0 +1,35 @@
+{
+  "base_head": "d28c08eb267b14c0ec0008349fef31e6149fef34",
+  "main": "4a86b252865d95d341e2a54d5b5b88e98c40bdd4",
+  "merge_result": "Merged newer main cleanly without committing, reapplied the preserved two-file fix, regenerated source lock last; combined tree rerun.",
+  "main_is_ancestor": true,
+  "main_highest_migration": 62,
+  "candidate_migrations": [
+    "migrations/core/0063_porthole_handover.sql"
+  ],
+  "renumbering": "not needed: 0063 is above main 0062",
+  "id_map": "absent on main and candidate",
+  "contract_diff": "",
+  "before_counts": {
+    "done": 10,
+    "partial": 20,
+    "missing": 69,
+    "total": 99
+  },
+  "after_counts": {
+    "done": 10,
+    "partial": 20,
+    "missing": 69,
+    "total": 99
+  },
+  "new_test_registrations": 0,
+  "new_substantive_regression_assertions": 1,
+  "removed_or_weakened_assertions": 0,
+  "source_id_cases": [
+    "UUID",
+    "local-postgresql",
+    "mixed case and underscore",
+    "80 characters"
+  ],
+  "initial_main": "ff590be64b7cac3eaf2128c9833c641072cd8fb5"
+}

@@ -1,0 +1,22 @@
+{
+  "label": "before-handover",
+  "command": [
+    "env",
+    "PORTHOLE_HANDOVER_ONLY=1",
+    "node",
+    "tests/runtime.mjs"
+  ],
+  "head": "d28c08eb267b14c0ec0008349fef31e6149fef34",
+  "exit": 1,
+  "observed_status": 422,
+  "expected_status": 200,
+  "error": "archive_semantics_invalid",
+  "door": "GET /api/porthole/v1/archive/exports/<job>/chunks/<index>",
+  "setup_build": "npx -y @runeditrun/rer setup --owner-email fleet@runeditrun.com --non-interactive (exit 0; original validator)",
+  "test_changes": "Existing journey extended; product source unchanged from HEAD",
+  "source_sha256": "86f54335101af0c67fb519e4efbfeb5ee2087df581d021dfcdf5877df7c4015e",
+  "test_sha256": "c1e3a87c7b719f09236d11d19294938a671218f30a539136ccff627bc61aa25e",
+  "log": "before-handover.log",
+  "log_sha256": "1fb507e33763e01e1258307e2e3e0973cfaffc3405629e2d2f84b0707611c252",
+  "ended": "2026-11-09T00:09:45.125238+00:00"
+}

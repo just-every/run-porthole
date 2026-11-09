@@ -1,0 +1,11 @@
+{
+  "conclusion": "cancelled",
+  "event": "push",
+  "head_branch": "cloud/sx-porthole-f460fix1",
+  "head_sha": "a4b8bed320f94b9bbeb1b0e1d21b232fb6b4c9ed",
+  "html_url": "https://github.com/just-every/run-porthole/actions/runs/42539499708",
+  "id": 42539499708,
+  "name": "Verify",
+  "status": "completed",
+  "observed_at": "2026-11-09T00:33:50.018796+00:00"
+}
