@@ -1,0 +1,12 @@
+{
+  "command": "CI=true WRANGLER_SEND_METRICS=false PLAYWRIGHT_SKIP_BROWSER_GC=1 node scripts/verify-ci.mjs analytical",
+  "failedSHA": "a9e9d8ae410e9289ee8bf33744c52e573564be37",
+  "comparisonMainSHA": "85b79464fa8a79597741711f6689f1b21132cd89",
+  "exitOnCandidate": 1,
+  "exitOnMain": 1,
+  "test": "analyticalConnectionJourney",
+  "location": "tests/porthole/analytics.mjs:225",
+  "failure": "Expected Firing, observed Unknown",
+  "classification": "also fails on main on the same cloud runner",
+  "codeRepair": false
+}

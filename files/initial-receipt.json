@@ -1,0 +1,31 @@
+{
+  "head": "a9e9d8ae410e9289ee8bf33744c52e573564be37",
+  "branch": "cloud/sx-porthole-c-f466-pc1",
+  "counts": {
+    "done": 10,
+    "partial": 20,
+    "missing": 69
+  },
+  "statusRow": "| `PORT-060` | Network and messaging performance | target | missing |  | No implementation for network and messaging performance; the complete public-door journey above remains required. |",
+  "typecheck": {
+    "command": "pnpm run typecheck",
+    "exit": 0
+  },
+  "priorVerify": {
+    "run": 42557874976,
+    "exports": {
+      "job": 128967693092,
+      "conclusion": "failure",
+      "annotation": "Process completed with exit code 1."
+    },
+    "typecheck": {
+      "job": 128967693069,
+      "conclusion": "cancelled"
+    },
+    "analytical": {
+      "job": 128967693118,
+      "conclusion": "cancelled"
+    }
+  },
+  "githubCommandsUsed": 7
+}

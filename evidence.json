@@ -1,0 +1,112 @@
+{
+  "files": [
+    {
+      "blob": "6ca688a325891e90adec627c2ba10cf5a9fc7cb1",
+      "bytes": 11687,
+      "path": "REPORT.md",
+      "sha256": "c86d12f7a4ba3464644a5fbf811dd7b37813f87d134570a4e6c90855515c626f"
+    },
+    {
+      "blob": "505ee90592a85d704838b482c2e7f6f083422e85",
+      "bytes": 522,
+      "path": "analytical-comparison-receipt.json",
+      "sha256": "33bcd0073ff9c7d5013c39e2704cb935a7f7d799cbd6fcd1e00607419d372858"
+    },
+    {
+      "blob": "783c66df6ded6bbab4df0a7f10dc712c2670e178",
+      "bytes": 3139,
+      "path": "candidate-receipt.json",
+      "sha256": "d5b2d6468042f4b04e122e0acd5e9ec8774fd39365c93a15868e41e5f4243fd6"
+    },
+    {
+      "blob": "69e83b1bc45b488abae3ac18a0e1b80ea3ed4d3b",
+      "bytes": 188,
+      "path": "ci-receipt.json",
+      "sha256": "34dc7ab4360ea67efd4241fca637b140c2731cdc18c09bcda8189cb24b659d5f"
+    },
+    {
+      "blob": "3e8264da5fe9bac5996a3c8002c14c9377bac8f0",
+      "bytes": 774,
+      "path": "exports-receipt.json",
+      "sha256": "a6484ef9e2c95dab9fe8d7b3331db51fe8dd2ad418229a520df213ea878182dd"
+    },
+    {
+      "blob": "1e831c3c34e18661bd828cb1174b482d77a496c2",
+      "bytes": 838,
+      "path": "initial-receipt.json",
+      "sha256": "8d0ccdd08e7a74f354f734c02f5ab268eea4e382a06f6c9a6247402185ebf404"
+    },
+    {
+      "blob": "b280101e5e874fcdc897c0e2561a5ec59acc5f2f",
+      "bytes": 1272,
+      "path": "logs-receipt.json",
+      "sha256": "c58e0387c233d9c4cfe0ddad76f08e3baefa74dc2632f0da52eac5bd21189bd2"
+    },
+    {
+      "blob": "8a1e1f8d9c5f43a7a2a53897f453a733bf8d5ac7",
+      "bytes": 16198,
+      "path": "porthole-analytical-main.log",
+      "sha256": "db924b3782fb4bbe67b5c08278fd8ff8ab211f82a7c6e614b15a7c00225f0f3f"
+    },
+    {
+      "blob": "c696089ddc3dcbce60639db9fbddfef5fb104146",
+      "bytes": 14121,
+      "path": "porthole-analytical-shard-original.log",
+      "sha256": "a3fda80c3bc45a43145a0d849f79f4a4879ded65b79d577b909f7eba93774900"
+    },
+    {
+      "blob": "319ba64366280e59a29f03a0d18da605d2a18807",
+      "bytes": 5523,
+      "path": "porthole-exports-original-ready.log",
+      "sha256": "0fc209bc63b2af88ce063ce7d9bd749cd096971f8b04663477bbd293ad1311e9"
+    },
+    {
+      "blob": "b9cc9cddf9448fa56a78b2cdd54600548a7f673f",
+      "bytes": 5994,
+      "path": "porthole-exports-original.log",
+      "sha256": "17397bd9d2a2a10480c5798e19f62126cd66515ef2d5fdb2ff12396fef87a56e"
+    },
+    {
+      "blob": "e07d221410e57cc6efcbeb9a6c7c43e418c8ddd2",
+      "bytes": 93,
+      "path": "porthole-final-typecheck.log",
+      "sha256": "37919d61121823e2526998b42a7fe01fdfee38929d74b136066eddaf57766b73"
+    },
+    {
+      "blob": "a838a512c326eba8f063e4878cbf7f3e17452402",
+      "bytes": 108,
+      "path": "porthole-final-views.log",
+      "sha256": "dafa1f219cbe8fe382ed8e9b1937fd01ad39513b707bf49aa65bdc5ef8995f2a"
+    },
+    {
+      "blob": "266a79514e5f433cbcb3f4e61b13dab0093b2829",
+      "bytes": 24527,
+      "path": "porthole-services-analytical-final.log",
+      "sha256": "6e91b38b8bd1205c01a822179c73c680baf6936d461b65d233f5aa33ea479750"
+    },
+    {
+      "blob": "409af61f506de031680c1912812e50c2515fcd27",
+      "bytes": 24527,
+      "path": "porthole-services-runtime-comparison.log",
+      "sha256": "52b23f566770a6acd25d4726741e3ae6c82582fde3cf54cf46ff3ee24649adde"
+    },
+    {
+      "blob": "e07d221410e57cc6efcbeb9a6c7c43e418c8ddd2",
+      "bytes": 93,
+      "path": "porthole-typecheck-original.log",
+      "sha256": "37919d61121823e2526998b42a7fe01fdfee38929d74b136066eddaf57766b73"
+    },
+    {
+      "blob": "92f0719495fee8a612c8e379788324e83dde8f2a",
+      "bytes": 9182,
+      "path": "porthole-typecheck-shard-original.log",
+      "sha256": "8caedd9c0a6d564685531e068f5107dd91887998c182e422e0d16d5dc3c1c75d"
+    }
+  ],
+  "product_branch": "cloud/sx-porthole-c-f466-pc1",
+  "product_head": "d9e6b48a489b5e0fb3f963617db44dcb761561f7",
+  "ref": "refs/heads/evidence/sx-porthole-c-f466-pc1",
+  "repository": "just-every/run-porthole",
+  "schema": 1,
+  "tag": "sx-porthole-c-f466-pc1"
+}

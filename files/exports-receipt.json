@@ -1,0 +1,22 @@
+{
+  "head": "a9e9d8ae410e9289ee8bf33744c52e573564be37",
+  "command": "CI=true WRANGLER_SEND_METRICS=false PLAYWRIGHT_SKIP_BROWSER_GC=1 node scripts/verify-ci.mjs exports",
+  "exit": 0,
+  "journeys": [
+    "subjectErasureJourney",
+    "signalExportJourney"
+  ],
+  "runtime": "Node 22.20.0",
+  "browser": "System Chromium 154.0.8037.57",
+  "adaptations": [
+    "PORTHOLE_CHROMIUM_PATH=/usr/bin/chromium",
+    "Playwright local headless-shell executable path linked to /usr/bin/chromium for existing helpers"
+  ],
+  "ciFlake": {
+    "run": 42557874976,
+    "job": 128967693092,
+    "error": "MiniflareCoreError [ERR_ADDRESS_IN_USE]: Address already in use (127.0.0.1:40885).",
+    "command": "PORTHOLE_EXPORT_ONLY=1 pnpm run test:runtime"
+  },
+  "productFilesChanged": false
+}

@@ -1,0 +1,42 @@
+[
+  {
+    "file": "porthole-exports-original-ready.log",
+    "bytes": 5523,
+    "sha256": "0fc209bc63b2af88ce063ce7d9bd749cd096971f8b04663477bbd293ad1311e9"
+  },
+  {
+    "file": "porthole-typecheck-shard-original.log",
+    "bytes": 9182,
+    "sha256": "8caedd9c0a6d564685531e068f5107dd91887998c182e422e0d16d5dc3c1c75d"
+  },
+  {
+    "file": "porthole-analytical-shard-original.log",
+    "bytes": 14121,
+    "sha256": "a3fda80c3bc45a43145a0d849f79f4a4879ded65b79d577b909f7eba93774900"
+  },
+  {
+    "file": "porthole-analytical-main.log",
+    "bytes": 16198,
+    "sha256": "db924b3782fb4bbe67b5c08278fd8ff8ab211f82a7c6e614b15a7c00225f0f3f"
+  },
+  {
+    "file": "porthole-services-runtime-comparison.log",
+    "bytes": 24527,
+    "sha256": "52b23f566770a6acd25d4726741e3ae6c82582fde3cf54cf46ff3ee24649adde"
+  },
+  {
+    "file": "porthole-services-analytical-final.log",
+    "bytes": 24527,
+    "sha256": "6e91b38b8bd1205c01a822179c73c680baf6936d461b65d233f5aa33ea479750"
+  },
+  {
+    "file": "porthole-final-typecheck.log",
+    "bytes": 93,
+    "sha256": "37919d61121823e2526998b42a7fe01fdfee38929d74b136066eddaf57766b73"
+  },
+  {
+    "file": "porthole-final-views.log",
+    "bytes": 108,
+    "sha256": "dafa1f219cbe8fe382ed8e9b1937fd01ad39513b707bf49aa65bdc5ef8995f2a"
+  }
+]
