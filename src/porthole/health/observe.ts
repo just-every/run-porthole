@@ -66,6 +66,7 @@ export async function observeHealth(env: HealthBindings): Promise<HealthState> {
   }),
  ])
  const recovery=await env.DB.prepare('SELECT active,restored_at FROM porthole_control_recovery WHERE singleton=1').first<{active:number;restored_at:number}>()
+ if(recovery?.active&&recovery.restored_at===0){await env.DB.prepare('UPDATE porthole_control_recovery SET restored_at=? WHERE singleton=1 AND active=1 AND restored_at=0').bind(now).run();recovery.restored_at=now}
  let recovering=!!recovery?.active
  if(recovering){
   // Every restored scope needs both new destination acceptance and a new live

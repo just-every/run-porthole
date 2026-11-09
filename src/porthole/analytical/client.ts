@@ -5,7 +5,7 @@ import {fail} from '../security/authority'
 export const roles=['primary','standby'] as const
 export type Role=typeof roles[number]
 export interface Configuration {source_identity:string;enabled:number;active_role:Role;revision:number;changed_at:number;configured_by:string|null;configurer_revision:number;configurer_version:number;live:number}
-export interface Coverage {requiredWatermark?:number;sourceIdentity:string|null;watermark:number;highestSequence:number;lastAcceptedAt:number|null;lastQueryableAt:number|null;recordCount:number;batchCount:number;stopped?:boolean}
+export interface Coverage {requiredWatermark?:number;sourceIdentity:string|null;watermark:number;highestSequence:number;lastAcceptedAt:number|null;lastQueryableAt:number|null;recordCount:number;batchCount:number;stopped?:boolean;recovery?:{inventory_digest:string;retained_batches:number;retained_records:number;fenced_batches:number;fenced_records:number;recovered_at:number}|null}
 export interface AnalyticalRecord {id:string;batch_id:string;source_id:string;signal:string;team:string;service:string;environment:string;event_time_ns:string;trace_id:string|null;span_id:string|null;payload:Record<string,unknown>;indexed_at:number;late:number;out_of_order:number}
 export interface Query extends Record<string,unknown> {signal:string;from:string;through:string;scope:Scope;snapshot?:number;limit?:number;mode?:'records'|'count';trace?:string;uncertain?:boolean}
 export async function configuration(env:Bindings):Promise<Configuration> {

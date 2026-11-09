@@ -12,6 +12,7 @@ import {emittedWorker,runtimeTransport} from '../emitted-worker.mjs'
 import {ownerSigninDigest} from '../../src/modules/operator-auth/owner-signin-grant.mjs'
 import {form} from './fixture.mjs'
 import {healthBrowser} from './health.mjs'
+import {recoveryCollector} from './recovery-collector.mjs'
 import {heartbeatTransportFailure} from '../../collectors/heartbeat/process.mjs'
 
 const execute=promisify(execFile),root=process.cwd(),pause=ms=>new Promise(resolve=>setTimeout(resolve,ms))
@@ -26,7 +27,7 @@ const snapshotTables=['porthole_ingest_batches','porthole_telemetry_records','po
  * owner-signin edge fixture; no session or telemetry row is fabricated. */
 export async function controlPlaneRecoveryJourney(){
  const scratch=await mkdtemp(join(tmpdir(),'porthole-control-recovery-')),workers=[],collectors=[],statuses=[]
- let estate,closeTransport
+ let estate,closeTransport,bufferedCollector
  const receipt={journey:'controlPlaneRecoveryJourney',candidate:(await execute('git',['rev-parse','HEAD'],{cwd:root})).stdout.trim(),runtime:'local emitted Workers; no deployment qualification',steps:[]}
  const record=(step,details={})=>{receipt.steps.push({step,...details});console.log(step,JSON.stringify(details))}
  async function clone(name){
@@ -96,6 +97,8 @@ export async function controlPlaneRecoveryJourney(){
   await source.post('/api/porthole/v1/objects/activate',{id:monitor.id,revision:monitor.revision,confirm:'activate'})
   await source.post('/api/v1/health/tick',{})
   const sourceIdentity=(await source.db.prepare('SELECT source_identity FROM porthole_analytical_configuration').first()).source_identity
+  bufferedCollector=await recoveryCollector(scratch)
+  await bufferedCollector.start(source.origin,credentials[0].secret)
   const before=await source.snapshot(),file=join(sourceDirectory,'exports','installation.rer')
   await native(sourceDirectory,['export','--output',file])
   const archive=(await readFile(file,'utf8')).trim().split('\n').map(line=>JSON.parse(line)),manifest=archive.find(row=>row.kind==='manifest'),rows=archive.filter(row=>row.kind==='part').flatMap(row=>row.items).filter(row=>row.kind==='row')
@@ -119,7 +122,10 @@ export async function controlPlaneRecoveryJourney(){
   record('stopped control plane reported outside it',{status:'control_plane_unreachable',lastAcceptedAcknowledgements:beats.map(beat=>beat.rows.find(row=>row.status==='control_plane_unreachable').lastAccepted),analyticalRecords:8})
   // The collector's source buffer retains original payloads until destination
   // authority is explicitly supplied; no source credential crosses the restore.
-  for(let i=8;i<12;i++)packets[i]=packet(i,scopes[i%2])
+  assert.equal(bufferedCollector.alive(),true)
+  for(let i=8;i<12;i++){packets[i]=packet(i,scopes[i%2]);for(let retry=0;retry<2;retry++){const response=await fetch(bufferedCollector.origin+'/v1/logs',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(packets[i])});assert.equal(response.status,200,'stock collector queues the outage payload')}}
+  record('stock collector queued outage telemetry',{uniqueRecords:4,queuedSubmissions:8,processRunning:bufferedCollector.alive()})
+  for(const role of ['primary','standby'])await estate.rotate(role,'synthetic-porthole-recovery-'+randomBytes(16).toString('hex'))
   const destinationDirectory=await clone('explicit-destination')
   await native(destinationDirectory,['import','--input',file,'--yes'])
   await install(destinationDirectory,mailbox('synthetic-porthole-8003'))
@@ -169,9 +175,12 @@ export async function controlPlaneRecoveryJourney(){
   await healthBrowser({origin:destination.origin,cookie:destination.cookie,name:'control-recovery-reconnecting',contains:'reconnecting'})
   const destinationCredentials=[]
   for(const [index,scope]of scopes.entries())destinationCredentials.push(await destination.post('/app/settings/credentials/mint',{name:'Destination recovery '+index,class:'ingest',scope:{...scope,signals:['logs'],actions:['telemetry.write']}},201))
-  for(let i=8;i<12;i++){await submit(destination,destinationCredentials[i%2],i);await submit(destination,destinationCredentials[i%2],i)}
+  const bufferedCredential=await destination.post('/app/settings/credentials/mint',{name:'Reconnected buffered collector',class:'ingest',scope:{services:scopes.flatMap(row=>row.services),environments:['production'],teams:scopes.flatMap(row=>row.teams),signals:['logs'],actions:['telemetry.write']}},201)
+  await bufferedCollector.stop();await bufferedCollector.start(destination.origin,bufferedCredential.secret)
+  for(let attempt=0;attempt<100;attempt++){const count=await destination.db.prepare('SELECT COUNT(*) AS n FROM porthole_ingest_batches').first();if(count.n===10)break;await pause(100)}
   await destination.post('/api/porthole/v1/ingest/drain',{})
   await unknown() // Data alone cannot satisfy fresh authenticated heartbeats.
+  for(const beat of beats){await beat.stop();assert.equal(beat.child.exitCode,2,'supervisor receives the last outage status when replacing its configuration')}
   for(const [index,credential]of destinationCredentials.entries()){
    const beat=await collector(destination,credential.secret,heartbeats[index]);await beat.wait(row=>row.status==='heartbeat_accepted')
    if(index===0)await unknown()
@@ -183,10 +192,11 @@ export async function controlPlaneRecoveryJourney(){
   assert.equal(final.records.length,10);assert.equal(new Set(final.records.map(row=>row.id)).size,10);assert.equal(archiveRows.records.length,10)
   assert.deepEqual(final.records.filter(row=>!before.porthole_telemetry_records.some(old=>old.id===row.id)).map(row=>row.event_time_ns).sort(),packets.slice(8).map(row=>row.resourceLogs[0].scopeLogs[0].logRecords[0].timeUnixNano.padStart(20,'0')).sort())
   const accounting=await destination.read('/api/porthole/v1/ingest/status')
-  for(const credential of destinationCredentials){const row=accounting.sources.find(row=>row.sourceId===credential.credential.id);assert.equal(row.accepted,2);assert.equal(row.queryable,2);assert.equal(row.archived,2);assert.equal(row.duplicates,2);assert.equal(row.lost,0)}
+  const delivered=accounting.sources.filter(row=>row.sourceId===bufferedCredential.credential.id)
+  assert.equal(delivered.reduce((n,row)=>n+row.accepted,0),4);assert.equal(delivered.reduce((n,row)=>n+row.queryable,0),4);assert.equal(delivered.reduce((n,row)=>n+row.archived,0),4);assert.equal(delivered.reduce((n,row)=>n+row.duplicates,0),4);assert.equal(delivered.reduce((n,row)=>n+row.lost,0),0)
+  const gap=await destination.read('/api/porthole/v1/analytics/configuration');assert.ok(gap.workers.every(row=>row.recovery.fenced_records===2),'gap remains visible after reconnection and fresh destination sequences')
   await healthBrowser({origin:destination.origin,cookie:destination.cookie,name:'control-recovery-recovered',contains:'Healthy'})
-  // The original process clears once the selected installation answers again.
-  await source.start();for(const beat of beats){const start=beat.rows.length;for(let i=0;i<700&&!beat.rows.slice(start).some(row=>row.status==='heartbeat_accepted');i++)await pause(100);assert.ok(beat.rows.slice(start).some(row=>row.status==='heartbeat_accepted'))}
+  record('heartbeat check cleared after reviewed destination reconnection',{status:'heartbeat_accepted',telemetryHealth:'Unknown'})
   await destination.stop()
   const occupiedBefore=await readFile(file)
   await native(destinationDirectory,['import','--input',file,'--yes'],{refused:true})
@@ -198,6 +208,7 @@ export async function controlPlaneRecoveryJourney(){
   receipt.result='passed'
  }catch(error){receipt.result='failed';receipt.failure=String(error.stack??error);throw error}
  finally{
+  await bufferedCollector?.stop()
   for(const child of collectors)if(child.exitCode===null&&child.signalCode===null){child.kill('SIGTERM');await once(child,'exit')}
   for(const worker of workers)await worker.stop()
   await estate?.dispose();await closeTransport?.()

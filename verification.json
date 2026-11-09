@@ -78,8 +78,7 @@
         "pnpm run build",
         "PORTHOLE_ANALYTICAL_ONLY=1 pnpm run test:runtime",
         "PORTHOLE_HOST_HEARTBEAT_ONLY=1 pnpm run test:runtime",
-        "PORTHOLE_DATABASE_ONLY=1 pnpm run test:runtime",
-        "PORTHOLE_CONTROL_RECOVERY_ONLY=1 pnpm run test:runtime"
+        "PORTHOLE_DATABASE_ONLY=1 pnpm run test:runtime"
       ]
     },
     {
@@ -121,6 +120,15 @@
         "PORTHOLE_FOLLOW_UP_ONLY=1 pnpm run test:runtime",
         "PORTHOLE_SLO_ONLY=1 pnpm run test:runtime",
         "PORTHOLE_NOTEBOOKS_ONLY=1 pnpm run test:runtime"
+      ]
+    },
+    {
+      "name": "control-recovery",
+      "browser": true,
+      "hosted": false,
+      "commands": [
+        "pnpm run build",
+        "PORTHOLE_CONTROL_RECOVERY_ONLY=1 pnpm run test:runtime"
       ]
     }
   ],

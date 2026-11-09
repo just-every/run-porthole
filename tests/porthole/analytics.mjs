@@ -120,7 +120,7 @@ export async function analyticalEstate() {
   }]))
   const bindings=Object.fromEntries(servers.map(server=>['ANALYTICS_'+server.role.toUpperCase()+'_TOKEN',server.token]))
   const inspect=async role=>JSON.parse((await execute(process.execPath,[wrangler,'d1','execute','DB','--local','--config',find(role).config,'--persist-to',find(role).persist,'--json','--command','SELECT * FROM analytics_records'],{cwd:scratch,env})).stdout).flatMap(result=>result.results??[])
-  return {afterQuery:run=>{afterQuery=run},inspect,bindings,services,stop:role=>stop(find(role)),start:role=>start(find(role)),dispose,origin:role=>find(role).origin}
+  return {rotate:async(role,token)=>{const server=find(role);await stop(server);server.token=token;bindings['ANALYTICS_'+role.toUpperCase()+'_TOKEN']=token;await start(server)},afterQuery:run=>{afterQuery=run},inspect,bindings,services,stop:role=>stop(find(role)),start:role=>start(find(role)),dispose,origin:role=>find(role).origin}
  }catch(error){await dispose();throw error}
 }
 

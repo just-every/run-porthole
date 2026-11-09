@@ -39,6 +39,7 @@ try {
    ])await proxy.env.DB.prepare(`INSERT INTO porthole_archive_health_history(stream,table_name,row_key,row,state) SELECT ?,?,json_array(${keys.join(',')}),json_object(${columns.map(column=>"'"+column+"',"+column).join(',')}),'quarantined' FROM ${table}`).bind(crypto.randomUUID(),table).run()
    await proxy.env.DB.prepare("INSERT INTO porthole_archive_actors(actor_ref,role,scope,state) SELECT operator_id,role,scope,'inactive' FROM porthole_members WHERE 1 ON CONFLICT(actor_ref) DO UPDATE SET role=excluded.role,scope=excluded.scope").run()
   } else {
+  if(event.kind==='import'&&event.phase==='succeeded')await proxy.env.DB.prepare('UPDATE porthole_control_recovery SET restored_at=? WHERE singleton=1 AND active=1 AND restored_at=0').bind(Date.now()).run()
   const actor=await proxy.env.DB.prepare("SELECT id,version FROM oa_operators WHERE role='owner' AND status='active' ORDER BY created_at,id LIMIT 1").first()
   const input={operationRef:event.operationRef,actorRef:actor?.id??null,actorRevision:actor?.version??null,action:`installation.${event.kind}.command`,entityRef:null,revision:null,occurredAt:event.occurredAt,status:null}
   await append(proxy.env.DB,{...input,phase:'attempted'})

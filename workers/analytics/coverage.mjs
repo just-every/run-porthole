@@ -26,7 +26,8 @@ export async function coverage(db, input, { allowStopped = false } = {}) {
  if (control.source_identity !== input.sourceIdentity) fail('analytics_source_mismatch', 409);
  const result = await watermark(db);
  if (result.watermark < input.requiredWatermark) fail('analytics_incomplete_coverage', 409);
- return { ...result, sourceIdentity: control.source_identity, requiredWatermark: input.requiredWatermark, complete: true };
+ const recovery=await activeInventory(db)?await db.prepare('SELECT inventory_digest,retained_batches,retained_records,fenced_batches,fenced_records,recovered_at FROM analytics_recoveries WHERE destination_identity=? ORDER BY recovered_at DESC LIMIT 1').bind(control.source_identity).first():null;
+ return { ...result, sourceIdentity: control.source_identity, requiredWatermark: input.requiredWatermark, complete: true, recovery };
 }
 export async function coverageRequest(db, input) {
  keys(input, ['sourceIdentity', 'requiredWatermark']);

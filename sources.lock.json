@@ -2049,7 +2049,7 @@
       "executable": false
     },
     "scripts/porthole/archive-policy.mjs": {
-      "sha256": "1d24d718c99ee0746fbe62983b0c5cb64fa2654ca081311f10608902ddb556cc",
+      "sha256": "8b167caec43bfab8c060dfb82cda3664d14f8cf85e48bdc899a1c3c267b41147",
       "executable": false
     },
     "scripts/porthole/archive.mjs": {
@@ -2085,7 +2085,7 @@
       "executable": false
     },
     "scripts/porthole/project-native-audit.mjs": {
-      "sha256": "89048fc1f3b668e7a9ce010cca2f56ab9645aec558260199e1829a71811ba82d",
+      "sha256": "574810f6983b9ca2079fb7f844c30dd28fde9f0d5351eb3471912356cdc7cc7c",
       "executable": false
     },
     "scripts/porthole/public-schema.mjs": {
@@ -4505,11 +4505,11 @@
       "executable": false
     },
     "src/porthole/analytical/client.ts": {
-      "sha256": "f7f3dc5b44cb9d0ab5eca329ac868ddc305f7db59509cec4cca27aa05cdd5785",
+      "sha256": "c419c7bcb91e456d3b6a22d264f39babb00ac942b0def65d85c88bb9bc7b0695",
       "executable": false
     },
     "src/porthole/analytical/http.ts": {
-      "sha256": "b7fff9c9df1f6d9781d45aa008752e5a28f7a2ea9f0f9bf15bba274f79c9746b",
+      "sha256": "8d21d22c7895b7d4513ae44ac7bdb2b2ae319515f0a8ec13e4d762ae8d180a5f",
       "executable": false
     },
     "src/porthole/analytical/read.ts": {
@@ -4781,7 +4781,7 @@
       "executable": false
     },
     "src/porthole/health/observe.ts": {
-      "sha256": "1bf49519b8975ecb5692087f704e8d964747ecde12edf1d7d037e8e675645174",
+      "sha256": "e24518be0d982cd13f9bba1906a08ba76924b9ae02d21dbb2b57c0e670446bd8",
       "executable": false
     },
     "src/porthole/health/page.ts": {
@@ -5257,7 +5257,7 @@
       "executable": false
     },
     "src/porthole/recovery/control-plane/analytical.ts": {
-      "sha256": "e00afa030b56a2dc9c7c89f66449c3d0479580b3317934478c1b75575875ec4e",
+      "sha256": "620980a97ce08767601233e67600960f25c02084283b4ba91f3c51e57421f664",
       "executable": false
     },
     "src/porthole/recovery/mail.ts": {
@@ -5681,7 +5681,7 @@
       "executable": false
     },
     "tests/porthole/analytics.mjs": {
-      "sha256": "d98b70689685dc4e1d89cbdcfb18d1ddc4b250fc1f7ce7b4194a215d24fe8754",
+      "sha256": "97ff21644b96ffa92db7bf370b8ae225e5c0a404c26c47ad302305ce5f836a03",
       "executable": false
     },
     "tests/porthole/api.mjs": {
@@ -5689,7 +5689,7 @@
       "executable": false
     },
     "tests/porthole/archive.mjs": {
-      "sha256": "8f39035897253395e151edfb94bc45c66ffccbd94d6d44bb48ef44d9f1a0ed66",
+      "sha256": "c6ad5a05b3df507dfdd87a48351cc3a83fd1e0ca4a1613b7cd2c912f3f29268a",
       "executable": false
     },
     "tests/porthole/audit.mjs": {
@@ -5705,7 +5705,7 @@
       "executable": false
     },
     "tests/porthole/control-plane-recovery.mjs": {
-      "sha256": "10bf804e92e08f46cbcc25db3c45683c9f9b53ad1305c5fab5a4483d7a8d4435",
+      "sha256": "0c02d1da2340dca09fc380ba92b9470b2967425f4f9bd56bab294d0d7518a154",
       "executable": false
     },
     "tests/porthole/credentials.mjs": {
@@ -5884,6 +5884,10 @@
       "sha256": "a1b111df926b0329fe12935acb6209b7e36863a11850c37412d3f6ea03e8659b",
       "executable": false
     },
+    "tests/porthole/recovery-collector.mjs": {
+      "sha256": "878907eb8c32ea2d985e5e76fce637e0c7a548c8f6284003cac91a08e4d43ea1",
+      "executable": false
+    },
     "tests/porthole/sampling-process.mjs": {
       "sha256": "903827e157b447461578a728b92249a3c6b3246313e09f40315c43c688dc1ae1",
       "executable": false
@@ -5961,7 +5965,7 @@
       "executable": false
     },
     "verification.json": {
-      "sha256": "210880479aa6568268a97d643189d447d5763ceceba6aab6c3b08b8a7b12baa3",
+      "sha256": "4e5a124f4227479aaa66b48f6ce014b010dd0be246fbd7ace3375f608f36cb00",
       "executable": false
     },
     "VERIFY-WORKFLOW.md": {
@@ -5977,7 +5981,7 @@
       "executable": false
     },
     "workers/analytics/coverage.mjs": {
-      "sha256": "ee887bc330c798cb670c9b9bf113f7cc1f11b2efec4c777539e8d04ec69c0b17",
+      "sha256": "e29020bcd110117cdfbc090f5bcfc793499f9495590d67f5549f0fd4df870492",
       "executable": false
     },
     "workers/analytics/index.mjs": {

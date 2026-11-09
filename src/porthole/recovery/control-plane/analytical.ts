@@ -11,6 +11,7 @@ export async function recoverAnalytical(env:Bindings,actor:Authority,data:Record
  if(Object.keys(data).some(key=>!['mode','role','previousIdentity','confirmation'].includes(key)))fail('invalid_recovery',400)
  const role=data.role as Role,mode=data.mode
  if(!roles.includes(role)||!['preview','commit'].includes(String(mode))||typeof data.previousIdentity!=='string'||!data.previousIdentity.length||data.previousIdentity.length>256)fail('invalid_recovery',400)
+ if(!Object.values(actor.member.scope).every(values=>values.includes('*')))fail('global_pipeline_authority_required')
  const config=await configuration(env)
  if(config.enabled)fail('recovery_requires_paused_connection',409)
  const batches=(await env.DB.prepare("SELECT id,completion_sequence,source_id,signal,digest,accepted_at,completed_at FROM porthole_ingest_batches WHERE state='complete' ORDER BY completion_sequence LIMIT 1001").all<{id:string;completion_sequence:number;source_id:string;signal:string;digest:string;accepted_at:number;completed_at:number}>()).results
