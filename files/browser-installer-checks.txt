@@ -1,0 +1,4 @@
+PASS: healthy launch performs no apt/dpkg/sudo work.
+PASS: cold failure invokes one bounded dependency installer and reprobes.
+PASS: cached packages are applied once and checked without apt network work.
+PASS: a browser still failing after cached library installation fails the job.

@@ -1,0 +1,124 @@
+{
+  "files": [
+    {
+      "blob": "ac0127aace90293cf11050f2d23ba7edd0f984c3",
+      "bytes": 41477,
+      "path": "RECEIPT.json",
+      "sha256": "11044527305d2d635dbb391de7720dff169a47b9515953a2bc67e4524126f30a"
+    },
+    {
+      "blob": "3f1a96412965ea5321270eca0f3b5957126fd36a",
+      "bytes": 10106,
+      "path": "REPORT.md",
+      "sha256": "ac8a59a1aab7d8a385fa35527896bc0a3412791066aace45b21d5308d03aee42"
+    },
+    {
+      "blob": "dbbcb0e7c733fec88076b022fa29a2cde4296aa1",
+      "bytes": 49885,
+      "path": "baseline-42561706552-jobs.json",
+      "sha256": "df5865c7c990e60b8fce0518005fad8298696936799b3b952887b57a38af0438"
+    },
+    {
+      "blob": "73ac309750442bd380467dd3aed4c4725ade50f1",
+      "bytes": 49890,
+      "path": "baseline-42565710026-jobs.json",
+      "sha256": "4aef81a089d0c8281d4ad2179614a1e75f97286d55f40f1ac8ab54a0d51e5ce9"
+    },
+    {
+      "blob": "231a0f777123b202c387cbd453516e0a0e6d8baf",
+      "bytes": 1422,
+      "path": "baseline-analytical-timing.txt",
+      "sha256": "e94c2cb209b1a7a56118663ab6fbaa7483da56d0b0e91eed8a5d0797e3b990c7"
+    },
+    {
+      "blob": "b24dffc085be0171bfd3960d7fd9278a4bb03565",
+      "bytes": 11001,
+      "path": "baseline-timings.json",
+      "sha256": "25f267b47037955543597c4ae8f0759cd4b9cafdcec3777cc764692b0a229d74"
+    },
+    {
+      "blob": "da0f89e8efdadd4f7f2e09dfab02fd28b992a0a0",
+      "bytes": 2092,
+      "path": "browser-installer-check.sh",
+      "sha256": "a87a0caee9683fd44cea0cb934558e5397064b388d63adc5b2770ef4b45b818f"
+    },
+    {
+      "blob": "5f897032ad519eae17679ff90494f7ceb6c2ed9b",
+      "bytes": 283,
+      "path": "browser-installer-checks.txt",
+      "sha256": "b190070d7b12f4886dbe3e665f788d0f8edffb0501fdd4ad4ba7bbd929331013"
+    },
+    {
+      "blob": "891ef41c05ecaa32e1c2594a67ec9859130aab2c",
+      "bytes": 12387,
+      "path": "candidate-runs.json",
+      "sha256": "6bdc4582c7e6c6fef8323f7a1c01ab60ca277b20fd8adb4183364be4626b7de5"
+    },
+    {
+      "blob": "307d4e474548c8689770931340676cd6eafe1b83",
+      "bytes": 178,
+      "path": "candidate-status.json",
+      "sha256": "714665a02219c86bd22d85c7ff4850ec174fd2aac4fdc28dffe36ff1e1139688"
+    },
+    {
+      "blob": "9d760b2295e6caa85c03d9bb1e643d6e3b355f7b",
+      "bytes": 35468,
+      "path": "candidate-timings.json",
+      "sha256": "cd985035f48ab23604ab9b25408a9938b78607edce359c968baa4256b0670311"
+    },
+    {
+      "blob": "3ecdc574412186232e9e779c8c9726f1831887af",
+      "bytes": 2910,
+      "path": "ci-helper-check.mjs",
+      "sha256": "7f4d1790ef24efe1fee0a5736cf9e81f2e48f914ca2f40a8feac26869b81b28a"
+    },
+    {
+      "blob": "064f75eddbf6a1bee1d707cc4b4d27daa6437a91",
+      "bytes": 58205,
+      "path": "final-candidate-jobs.json",
+      "sha256": "ad366c0afa17e958f4b0fd3fae619427c8cbff03fcaf4220df6c807f41906dea"
+    },
+    {
+      "blob": "df55f40c311d3e7a2a97ce359543c4cd6671368c",
+      "bytes": 12416,
+      "path": "final-candidate-runs.json",
+      "sha256": "3fc03a9beda7de75f5ab14a8dfc112345f8dbcab95a0bd63c0141687a3e79d01"
+    },
+    {
+      "blob": "1a6097e209d00be6955771e2a240a8d06be4a15e",
+      "bytes": 627,
+      "path": "local-ci-checks.txt",
+      "sha256": "9fd99cc95ea36da9f26e482811fe0883d8af8cdd7ac96f1d84faea041fa40ca7"
+    },
+    {
+      "blob": "30c6a7829c4d7dc54892ba533dd5b070f86ebd43",
+      "bytes": 81,
+      "path": "product-remote-ref.txt",
+      "sha256": "1b7139b439254656b48ab8a4111b3353bb783c493f0938735c667da09a1ed1fe"
+    },
+    {
+      "blob": "84699aec72b8aabe8b3322c6d64cda1cbcde0be1",
+      "bytes": 551,
+      "path": "product-tree-check.json",
+      "sha256": "d10e903a1fdd0321bba35831fcbbbd97c98c9f0519804860667b5e5821a0352b"
+    },
+    {
+      "blob": "e07d221410e57cc6efcbeb9a6c7c43e418c8ddd2",
+      "bytes": 93,
+      "path": "typecheck-pinned-node.txt",
+      "sha256": "37919d61121823e2526998b42a7fe01fdfee38929d74b136066eddaf57766b73"
+    },
+    {
+      "blob": "09c1041a0bd1bff61afb50c3ad69e6ddd35371be",
+      "bytes": 199,
+      "path": "typecheck.txt",
+      "sha256": "9e95a0805adef3186de3ddcd3bfb117a462d3356c907ecd7bf3b0c3f08ba5e74"
+    }
+  ],
+  "product_branch": "cloud/sx-porthole-ci-shape-1",
+  "product_head": "a6be5702ed7022dcfc2c19bc5b26146c33cfa8b2",
+  "ref": "refs/heads/evidence/sx-porthole-ci-shape-1",
+  "repository": "just-every/run-porthole",
+  "schema": 1,
+  "tag": "sx-porthole-ci-shape-1"
+}

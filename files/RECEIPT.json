@@ -1,0 +1,1459 @@
+{
+  "schema": 1,
+  "tag": "sx-porthole-ci-shape-1",
+  "repository": "just-every/run-porthole",
+  "branch": "cloud/sx-porthole-ci-shape-1",
+  "head": "a6be5702ed7022dcfc2c19bc5b26146c33cfa8b2",
+  "base": "85b79464fa8a79597741711f6689f1b21132cd89",
+  "product_push": {
+    "command": "python3 $HOME/rer-consolidation/.tools/cloud-push.py origin cloud/sx-porthole-ci-shape-1",
+    "result": "success",
+    "attempts": 1,
+    "successful_pushes": 2,
+    "attempts_each": [
+      1,
+      1
+    ]
+  },
+  "local_checks": {
+    "setup": "passed",
+    "typecheck": "passed",
+    "yaml_parse": "passed",
+    "workflow_permissions": "passed",
+    "build_integrity_behavior": "passed",
+    "chromium_launch": "/usr/bin/chromium: passed",
+    "syntax": "passed",
+    "source_lock": "passed",
+    "coverage_commands_before": 45,
+    "coverage_commands_after": 45,
+    "non_build_commands_before": 34,
+    "non_build_commands_after": 34,
+    "push_shards_before": 11,
+    "push_shards_after": 11,
+    "tests_deleted": 0,
+    "typecheck_pinned_node": "Node 22.20.0: passed",
+    "browser_installer_behavior": "passed: healthy/cold/cache/unhealthy paths",
+    "candidate_build": "passed: production build on final a6be5702ed7022dcfc2c19bc5b26146c33cfa8b2",
+    "moved_journey_dependencies": "checked: heartbeat requires existing runtime/browser; native erasure is self-contained; standard reads retain Python/native-client preparation in source",
+    "product_test_files_added": 0,
+    "ci_validation_helpers_added": 2
+  },
+  "clauses_changed": [],
+  "ci": {
+    "id": 42573437878,
+    "head_sha": "a6be5702ed7022dcfc2c19bc5b26146c33cfa8b2",
+    "status": "completed",
+    "conclusion": "success",
+    "html_url": "https://github.com/just-every/run-porthole/actions/runs/42573437878",
+    "verified_exact_sha": true
+  },
+  "publication_scan": "deferred to fleet Mac as required by cloud brief",
+  "remote_ref_verified": true,
+  "prior_head": "04dd09bbb2b22d4f2486827c866709e28c82adcb",
+  "baseline_shard_minutes": {
+    "42561706552": 94.58,
+    "42565710026": 93.8
+  },
+  "github_invocations": 10,
+  "second_consecutive_green_run": "not obtained; no duplicate dispatch/rerun and ten-call budget",
+  "new_shard_timings": [
+    {
+      "id": 129015952624,
+      "name": "plan",
+      "status": "completed",
+      "conclusion": "success",
+      "seconds": 7.0,
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "conclusion": "success",
+          "seconds": 2.0
+        },
+        {
+          "name": "Run echo \"matrix=$(node scripts/verify-ci.mjs --matrix \"$TIER\")\" >> \"$GITHUB_OUTPUT\"",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success",
+          "seconds": 0.0
+        }
+      ]
+    },
+    {
+      "id": 129016002176,
+      "name": "prewarm",
+      "status": "completed",
+      "conclusion": "success",
+      "seconds": 50.0,
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "conclusion": "success",
+          "seconds": 2.0
+        },
+        {
+          "name": "Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "conclusion": "success",
+          "seconds": 7.0
+        },
+        {
+          "name": "Check edition source lock freshness",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Run npm install --global pnpm@10.12.4",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Cache frozen dependencies",
+          "conclusion": "success",
+          "seconds": 2.0
+        },
+        {
+          "name": "Run pnpm install --frozen-lockfile",
+          "conclusion": "success",
+          "seconds": 6.0
+        },
+        {
+          "name": "Run pnpm run deps",
+          "conclusion": "success",
+          "seconds": 5.0
+        },
+        {
+          "name": "Key browser libraries by Playwright and runner image",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Cache Chromium and downloaded system packages",
+          "conclusion": "success",
+          "seconds": 3.0
+        },
+        {
+          "name": "Prewarm Chromium and probe system libraries",
+          "conclusion": "success",
+          "seconds": 2.0
+        },
+        {
+          "name": "Build production output once",
+          "conclusion": "success",
+          "seconds": 4.0
+        },
+        {
+          "name": "Share this run's production output",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Post Share this run's production output",
+          "conclusion": "success",
+          "seconds": 2.0
+        },
+        {
+          "name": "Post Cache Chromium and downloaded system packages",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Post Cache frozen dependencies",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success",
+          "seconds": 0.0
+        }
+      ]
+    },
+    {
+      "id": 129016285161,
+      "name": "shards (source, false)",
+      "status": "completed",
+      "conclusion": "success",
+      "seconds": 667.0,
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success",
+          "seconds": 2.0
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "conclusion": "success",
+          "seconds": 2.0
+        },
+        {
+          "name": "Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "conclusion": "success",
+          "seconds": 5.0
+        },
+        {
+          "name": "Check edition source lock freshness",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Run npm install --global pnpm@10.12.4",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Restore frozen dependencies",
+          "conclusion": "success",
+          "seconds": 3.0
+        },
+        {
+          "name": "Restore prewarmed Chromium and system packages",
+          "conclusion": "skipped",
+          "seconds": 0.0
+        },
+        {
+          "name": "Run pnpm install --frozen-lockfile",
+          "conclusion": "success",
+          "seconds": 7.0
+        },
+        {
+          "name": "Run pnpm run deps",
+          "conclusion": "success",
+          "seconds": 5.0
+        },
+        {
+          "name": "Probe Chromium; install missing system libraries once",
+          "conclusion": "skipped",
+          "seconds": 0.0
+        },
+        {
+          "name": "Restore this run's production output",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Validate shared production output",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Reserve disk for native runtime journeys",
+          "conclusion": "skipped",
+          "seconds": 0.0
+        },
+        {
+          "name": "Run actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16",
+          "conclusion": "skipped",
+          "seconds": 0.0
+        },
+        {
+          "name": "Run hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd",
+          "conclusion": "skipped",
+          "seconds": 0.0
+        },
+        {
+          "name": "Build native Terraform provider",
+          "conclusion": "skipped",
+          "seconds": 0.0
+        },
+        {
+          "name": "Run this shard",
+          "conclusion": "success",
+          "seconds": 636.0
+        },
+        {
+          "name": "Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success",
+          "seconds": 1.0
+        }
+      ]
+    },
+    {
+      "id": 129016285191,
+      "name": "shards (migration, true)",
+      "status": "completed",
+      "conclusion": "success",
+      "seconds": 411.0,
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success",
+          "seconds": 2.0
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "conclusion": "success",
+          "seconds": 6.0
+        },
+        {
+          "name": "Check edition source lock freshness",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Run npm install --global pnpm@10.12.4",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Restore frozen dependencies",
+          "conclusion": "success",
+          "seconds": 2.0
+        },
+        {
+          "name": "Restore prewarmed Chromium and system packages",
+          "conclusion": "success",
+          "seconds": 3.0
+        },
+        {
+          "name": "Run pnpm install --frozen-lockfile",
+          "conclusion": "success",
+          "seconds": 5.0
+        },
+        {
+          "name": "Run pnpm run deps",
+          "conclusion": "success",
+          "seconds": 4.0
+        },
+        {
+          "name": "Probe Chromium; install missing system libraries once",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Restore this run's production output",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Validate shared production output",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Reserve disk for native runtime journeys",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Run actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16",
+          "conclusion": "skipped",
+          "seconds": 0.0
+        },
+        {
+          "name": "Run hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd",
+          "conclusion": "skipped",
+          "seconds": 0.0
+        },
+        {
+          "name": "Build native Terraform provider",
+          "conclusion": "skipped",
+          "seconds": 0.0
+        },
+        {
+          "name": "Run this shard",
+          "conclusion": "success",
+          "seconds": 381.0
+        },
+        {
+          "name": "Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success",
+          "seconds": 0.0
+        }
+      ]
+    },
+    {
+      "id": 129016285195,
+      "name": "shards (traces, true)",
+      "status": "completed",
+      "conclusion": "success",
+      "seconds": 365.0,
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success",
+          "seconds": 2.0
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "conclusion": "success",
+          "seconds": 2.0
+        },
+        {
+          "name": "Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "conclusion": "success",
+          "seconds": 6.0
+        },
+        {
+          "name": "Check edition source lock freshness",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Run npm install --global pnpm@10.12.4",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Restore frozen dependencies",
+          "conclusion": "success",
+          "seconds": 2.0
+        },
+        {
+          "name": "Restore prewarmed Chromium and system packages",
+          "conclusion": "success",
+          "seconds": 3.0
+        },
+        {
+          "name": "Run pnpm install --frozen-lockfile",
+          "conclusion": "success",
+          "seconds": 8.0
+        },
+        {
+          "name": "Run pnpm run deps",
+          "conclusion": "success",
+          "seconds": 6.0
+        },
+        {
+          "name": "Probe Chromium; install missing system libraries once",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Restore this run's production output",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Validate shared production output",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Reserve disk for native runtime journeys",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Run actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16",
+          "conclusion": "skipped",
+          "seconds": 0.0
+        },
+        {
+          "name": "Run hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd",
+          "conclusion": "skipped",
+          "seconds": 0.0
+        },
+        {
+          "name": "Build native Terraform provider",
+          "conclusion": "skipped",
+          "seconds": 0.0
+        },
+        {
+          "name": "Run this shard",
+          "conclusion": "success",
+          "seconds": 329.0
+        },
+        {
+          "name": "Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success",
+          "seconds": 0.0
+        }
+      ]
+    },
+    {
+      "id": 129016285198,
+      "name": "shards (dashboards, true)",
+      "status": "completed",
+      "conclusion": "success",
+      "seconds": 386.0,
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success",
+          "seconds": 2.0
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "conclusion": "success",
+          "seconds": 6.0
+        },
+        {
+          "name": "Check edition source lock freshness",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Run npm install --global pnpm@10.12.4",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Restore frozen dependencies",
+          "conclusion": "success",
+          "seconds": 3.0
+        },
+        {
+          "name": "Restore prewarmed Chromium and system packages",
+          "conclusion": "success",
+          "seconds": 4.0
+        },
+        {
+          "name": "Run pnpm install --frozen-lockfile",
+          "conclusion": "success",
+          "seconds": 5.0
+        },
+        {
+          "name": "Run pnpm run deps",
+          "conclusion": "success",
+          "seconds": 4.0
+        },
+        {
+          "name": "Probe Chromium; install missing system libraries once",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Restore this run's production output",
+          "conclusion": "success",
+          "seconds": 2.0
+        },
+        {
+          "name": "Validate shared production output",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Reserve disk for native runtime journeys",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Run actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16",
+          "conclusion": "success",
+          "seconds": 10.0
+        },
+        {
+          "name": "Run hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Build native Terraform provider",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Run this shard",
+          "conclusion": "success",
+          "seconds": 340.0
+        },
+        {
+          "name": "Post Run actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success",
+          "seconds": 0.0
+        }
+      ]
+    },
+    {
+      "id": 129016285259,
+      "name": "shards (runtime, true)",
+      "status": "completed",
+      "conclusion": "success",
+      "seconds": 590.0,
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success",
+          "seconds": 2.0
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "conclusion": "success",
+          "seconds": 3.0
+        },
+        {
+          "name": "Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "conclusion": "success",
+          "seconds": 6.0
+        },
+        {
+          "name": "Check edition source lock freshness",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Run npm install --global pnpm@10.12.4",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Restore frozen dependencies",
+          "conclusion": "success",
+          "seconds": 3.0
+        },
+        {
+          "name": "Restore prewarmed Chromium and system packages",
+          "conclusion": "success",
+          "seconds": 4.0
+        },
+        {
+          "name": "Run pnpm install --frozen-lockfile",
+          "conclusion": "success",
+          "seconds": 6.0
+        },
+        {
+          "name": "Run pnpm run deps",
+          "conclusion": "success",
+          "seconds": 4.0
+        },
+        {
+          "name": "Probe Chromium; install missing system libraries once",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Restore this run's production output",
+          "conclusion": "success",
+          "seconds": 2.0
+        },
+        {
+          "name": "Validate shared production output",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Reserve disk for native runtime journeys",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Run actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16",
+          "conclusion": "skipped",
+          "seconds": 0.0
+        },
+        {
+          "name": "Run hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd",
+          "conclusion": "skipped",
+          "seconds": 0.0
+        },
+        {
+          "name": "Build native Terraform provider",
+          "conclusion": "skipped",
+          "seconds": 0.0
+        },
+        {
+          "name": "Run this shard",
+          "conclusion": "success",
+          "seconds": 554.0
+        },
+        {
+          "name": "Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success",
+          "seconds": 0.0
+        }
+      ]
+    },
+    {
+      "id": 129016285297,
+      "name": "shards (analytical, true)",
+      "status": "completed",
+      "conclusion": "success",
+      "seconds": 506.0,
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success",
+          "seconds": 4.0
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "conclusion": "success",
+          "seconds": 2.0
+        },
+        {
+          "name": "Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "conclusion": "success",
+          "seconds": 8.0
+        },
+        {
+          "name": "Check edition source lock freshness",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Run npm install --global pnpm@10.12.4",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Restore frozen dependencies",
+          "conclusion": "success",
+          "seconds": 10.0
+        },
+        {
+          "name": "Restore prewarmed Chromium and system packages",
+          "conclusion": "success",
+          "seconds": 7.0
+        },
+        {
+          "name": "Run pnpm install --frozen-lockfile",
+          "conclusion": "success",
+          "seconds": 7.0
+        },
+        {
+          "name": "Run pnpm run deps",
+          "conclusion": "success",
+          "seconds": 6.0
+        },
+        {
+          "name": "Probe Chromium; install missing system libraries once",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Restore this run's production output",
+          "conclusion": "success",
+          "seconds": 3.0
+        },
+        {
+          "name": "Validate shared production output",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Reserve disk for native runtime journeys",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Run actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16",
+          "conclusion": "skipped",
+          "seconds": 0.0
+        },
+        {
+          "name": "Run hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd",
+          "conclusion": "skipped",
+          "seconds": 0.0
+        },
+        {
+          "name": "Build native Terraform provider",
+          "conclusion": "skipped",
+          "seconds": 0.0
+        },
+        {
+          "name": "Run this shard",
+          "conclusion": "success",
+          "seconds": 451.0
+        },
+        {
+          "name": "Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success",
+          "seconds": 0.0
+        }
+      ]
+    },
+    {
+      "id": 129016285305,
+      "name": "shards (mail-receipts, true)",
+      "status": "completed",
+      "conclusion": "success",
+      "seconds": 555.0,
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success",
+          "seconds": 2.0
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "conclusion": "success",
+          "seconds": 2.0
+        },
+        {
+          "name": "Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "conclusion": "success",
+          "seconds": 6.0
+        },
+        {
+          "name": "Check edition source lock freshness",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Run npm install --global pnpm@10.12.4",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Restore frozen dependencies",
+          "conclusion": "success",
+          "seconds": 3.0
+        },
+        {
+          "name": "Restore prewarmed Chromium and system packages",
+          "conclusion": "success",
+          "seconds": 3.0
+        },
+        {
+          "name": "Run pnpm install --frozen-lockfile",
+          "conclusion": "success",
+          "seconds": 8.0
+        },
+        {
+          "name": "Run pnpm run deps",
+          "conclusion": "success",
+          "seconds": 6.0
+        },
+        {
+          "name": "Probe Chromium; install missing system libraries once",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Restore this run's production output",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Validate shared production output",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Reserve disk for native runtime journeys",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Run actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16",
+          "conclusion": "skipped",
+          "seconds": 0.0
+        },
+        {
+          "name": "Run hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd",
+          "conclusion": "skipped",
+          "seconds": 0.0
+        },
+        {
+          "name": "Build native Terraform provider",
+          "conclusion": "skipped",
+          "seconds": 0.0
+        },
+        {
+          "name": "Run this shard",
+          "conclusion": "success",
+          "seconds": 518.0
+        },
+        {
+          "name": "Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success",
+          "seconds": 0.0
+        }
+      ]
+    },
+    {
+      "id": 129016285308,
+      "name": "shards (follow-up, true)",
+      "status": "completed",
+      "conclusion": "success",
+      "seconds": 339.0,
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success",
+          "seconds": 2.0
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "conclusion": "success",
+          "seconds": 6.0
+        },
+        {
+          "name": "Check edition source lock freshness",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Run npm install --global pnpm@10.12.4",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Restore frozen dependencies",
+          "conclusion": "success",
+          "seconds": 2.0
+        },
+        {
+          "name": "Restore prewarmed Chromium and system packages",
+          "conclusion": "success",
+          "seconds": 3.0
+        },
+        {
+          "name": "Run pnpm install --frozen-lockfile",
+          "conclusion": "success",
+          "seconds": 7.0
+        },
+        {
+          "name": "Run pnpm run deps",
+          "conclusion": "success",
+          "seconds": 5.0
+        },
+        {
+          "name": "Probe Chromium; install missing system libraries once",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Restore this run's production output",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Validate shared production output",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Reserve disk for native runtime journeys",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Run actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16",
+          "conclusion": "skipped",
+          "seconds": 0.0
+        },
+        {
+          "name": "Run hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd",
+          "conclusion": "skipped",
+          "seconds": 0.0
+        },
+        {
+          "name": "Build native Terraform provider",
+          "conclusion": "skipped",
+          "seconds": 0.0
+        },
+        {
+          "name": "Run this shard",
+          "conclusion": "success",
+          "seconds": 305.0
+        },
+        {
+          "name": "Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success",
+          "seconds": 0.0
+        }
+      ]
+    },
+    {
+      "id": 129016285316,
+      "name": "shards (ingest, true)",
+      "status": "completed",
+      "conclusion": "success",
+      "seconds": 413.0,
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success",
+          "seconds": 2.0
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "conclusion": "success",
+          "seconds": 2.0
+        },
+        {
+          "name": "Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "conclusion": "success",
+          "seconds": 6.0
+        },
+        {
+          "name": "Check edition source lock freshness",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Run npm install --global pnpm@10.12.4",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Restore frozen dependencies",
+          "conclusion": "success",
+          "seconds": 2.0
+        },
+        {
+          "name": "Restore prewarmed Chromium and system packages",
+          "conclusion": "success",
+          "seconds": 3.0
+        },
+        {
+          "name": "Run pnpm install --frozen-lockfile",
+          "conclusion": "success",
+          "seconds": 8.0
+        },
+        {
+          "name": "Run pnpm run deps",
+          "conclusion": "success",
+          "seconds": 6.0
+        },
+        {
+          "name": "Probe Chromium; install missing system libraries once",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Restore this run's production output",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Validate shared production output",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Reserve disk for native runtime journeys",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Run actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16",
+          "conclusion": "skipped",
+          "seconds": 0.0
+        },
+        {
+          "name": "Run hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd",
+          "conclusion": "skipped",
+          "seconds": 0.0
+        },
+        {
+          "name": "Build native Terraform provider",
+          "conclusion": "skipped",
+          "seconds": 0.0
+        },
+        {
+          "name": "Run this shard",
+          "conclusion": "success",
+          "seconds": 376.0
+        },
+        {
+          "name": "Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success",
+          "seconds": 0.0
+        }
+      ]
+    },
+    {
+      "id": 129016285325,
+      "name": "shards (exports, true)",
+      "status": "completed",
+      "conclusion": "success",
+      "seconds": 490.0,
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success",
+          "seconds": 2.0
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "conclusion": "success",
+          "seconds": 6.0
+        },
+        {
+          "name": "Check edition source lock freshness",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Run npm install --global pnpm@10.12.4",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Restore frozen dependencies",
+          "conclusion": "success",
+          "seconds": 3.0
+        },
+        {
+          "name": "Restore prewarmed Chromium and system packages",
+          "conclusion": "success",
+          "seconds": 4.0
+        },
+        {
+          "name": "Run pnpm install --frozen-lockfile",
+          "conclusion": "success",
+          "seconds": 7.0
+        },
+        {
+          "name": "Run pnpm run deps",
+          "conclusion": "success",
+          "seconds": 5.0
+        },
+        {
+          "name": "Probe Chromium; install missing system libraries once",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Restore this run's production output",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Validate shared production output",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Reserve disk for native runtime journeys",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Run actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16",
+          "conclusion": "skipped",
+          "seconds": 0.0
+        },
+        {
+          "name": "Run hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd",
+          "conclusion": "skipped",
+          "seconds": 0.0
+        },
+        {
+          "name": "Build native Terraform provider",
+          "conclusion": "skipped",
+          "seconds": 0.0
+        },
+        {
+          "name": "Run this shard",
+          "conclusion": "success",
+          "seconds": 455.0
+        },
+        {
+          "name": "Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success",
+          "seconds": 0.0
+        }
+      ]
+    },
+    {
+      "id": 129016285337,
+      "name": "shards (typecheck, true)",
+      "status": "completed",
+      "conclusion": "success",
+      "seconds": 383.0,
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "conclusion": "success",
+          "seconds": 2.0
+        },
+        {
+          "name": "Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "conclusion": "success",
+          "seconds": 5.0
+        },
+        {
+          "name": "Check edition source lock freshness",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Run npm install --global pnpm@10.12.4",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Restore frozen dependencies",
+          "conclusion": "success",
+          "seconds": 2.0
+        },
+        {
+          "name": "Restore prewarmed Chromium and system packages",
+          "conclusion": "success",
+          "seconds": 3.0
+        },
+        {
+          "name": "Run pnpm install --frozen-lockfile",
+          "conclusion": "success",
+          "seconds": 7.0
+        },
+        {
+          "name": "Run pnpm run deps",
+          "conclusion": "success",
+          "seconds": 5.0
+        },
+        {
+          "name": "Probe Chromium; install missing system libraries once",
+          "conclusion": "success",
+          "seconds": 2.0
+        },
+        {
+          "name": "Restore this run's production output",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Validate shared production output",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Reserve disk for native runtime journeys",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Run actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16",
+          "conclusion": "skipped",
+          "seconds": 0.0
+        },
+        {
+          "name": "Run hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd",
+          "conclusion": "skipped",
+          "seconds": 0.0
+        },
+        {
+          "name": "Build native Terraform provider",
+          "conclusion": "skipped",
+          "seconds": 0.0
+        },
+        {
+          "name": "Run this shard",
+          "conclusion": "success",
+          "seconds": 350.0
+        },
+        {
+          "name": "Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success",
+          "seconds": 0.0
+        }
+      ]
+    },
+    {
+      "id": 129019882224,
+      "name": "verify",
+      "status": "completed",
+      "conclusion": "success",
+      "seconds": 3.0,
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Require every shard",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success",
+          "seconds": 0.0
+        }
+      ]
+    }
+  ],
+  "terminal_custody": "READY",
+  "performance": {
+    "shard_minutes": 85.08,
+    "all_job_minutes": 86.08,
+    "longest_seconds": 667.0,
+    "mean_seconds": 464.09,
+    "longest_to_mean": 1.437,
+    "prewarm_seconds": 50.0,
+    "baseline_all_job_minutes": {
+      "42561706552": 94.73,
+      "42565710026": 93.92
+    },
+    "browser_provisioning_seconds": {
+      "shards (source, false)": 0.0,
+      "shards (migration, true)": 1.0,
+      "shards (traces, true)": 1.0,
+      "shards (dashboards, true)": 1.0,
+      "shards (runtime, true)": 1.0,
+      "shards (analytical, true)": 1.0,
+      "shards (mail-receipts, true)": 1.0,
+      "shards (follow-up, true)": 1.0,
+      "shards (ingest, true)": 1.0,
+      "shards (exports, true)": 1.0,
+      "shards (typecheck, true)": 2.0
+    },
+    "browser_prewarm_seconds": 2
+  },
+  "remaining_limits": [
+    "one completed final candidate sample; no per-shard p90 established",
+    "inherited 11-shard manifest retained",
+    "source 11:07; runtime 9:50; mail-receipts 9:15; future measured balancing remains useful"
+  ]
+}

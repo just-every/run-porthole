@@ -1,0 +1,7 @@
+PASS: build reuse, changed bytes, extra files, symlink, wrong commit, wrong workflow SHA, failure propagation, timing output, workflow YAML parse.
+Every local reusable workflow call grants what its jobs request.
+Chromium launch probe passed; no apt work needed.
+Shared production build write: 04dd09bbb2b22d4f2486827c866709e28c82adcb (112 files)
+Shared production build check: 04dd09bbb2b22d4f2486827c866709e28c82adcb (112 files)
+PASS: build reuse, changed bytes, extra files, symlink, wrong commit, wrong workflow SHA, failure propagation, timing output, workflow YAML parse.
+Chromium launch probe passed; no apt work needed.

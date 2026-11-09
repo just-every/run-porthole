@@ -1,0 +1,8 @@
+shards (analytical, true)	Run this shard	2026-11-09T05:46:49.3901321Z > pnpm run build
+shards (analytical, true)	Run this shard	2026-11-09T05:46:55.1956240Z > PORTHOLE_ANALYTICAL_ONLY=1 pnpm run test:runtime
+shards (analytical, true)	Run this shard	2026-11-09T05:48:59.3382645Z analyticalConnectionJourney passed: real independent primary/standby processes, product query/health/monitor, collector outage and direct provider-edge notice, behind refusal, explicit failover/failback, bounded 20/3 backlog, original ns and no duplicate records/notices
+shards (analytical, true)	Run this shard	2026-11-09T05:48:59.5418558Z > PORTHOLE_HOST_HEARTBEAT_ONLY=1 pnpm run test:runtime
+shards (analytical, true)	Run this shard	2026-11-09T05:53:18.7333183Z Host heartbeat journey passed: real process loss and return, exact per-host windows, pending restart, current authority, storage failure, native configuration and inactive archive
+shards (analytical, true)	Run this shard	2026-11-09T05:53:18.9034253Z > PORTHOLE_DATABASE_ONLY=1 pnpm run test:runtime
+shards (analytical, true)	Run this shard	2026-11-09T05:55:54.6500049Z databaseArchiveJourney passed: actual PostgreSQL and MySQL diagnostics, sanitized pending and retained wire, inactive independent restore and exact re-export; no collection grant or credential transfer
+shards (analytical, true)	Run this shard	2026-11-09T05:57:47.8410326Z ##[error]The operation was canceled.

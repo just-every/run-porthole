@@ -1,0 +1,21 @@
+{
+  "head": "a6be5702ed7022dcfc2c19bc5b26146c33cfa8b2",
+  "clean": true,
+  "paths": [
+    ".github/workflows/verify.yml",
+    "scripts/ci-browser.mjs",
+    "scripts/ci-browser.sh",
+    "scripts/ci-build.mjs",
+    "scripts/verify-app.mjs",
+    "sources.lock.json",
+    "verification.json"
+  ],
+  "coverage_multiset_unchanged": true,
+  "commands_before": 45,
+  "commands_after": 45,
+  "hosted_shards": 1,
+  "push_timeout_minutes": 12,
+  "product_source_files_changed": 0,
+  "contract_status_changes": 0,
+  "standard_read_dependencies_preserved": true
+}
