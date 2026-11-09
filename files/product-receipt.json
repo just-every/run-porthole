@@ -1,0 +1,60 @@
+{
+  "repository": "just-every/run-porthole",
+  "branch": "cloud/sx-porthole-f461fix1-push-1",
+  "source_branch": "cloud/sx-porthole-f461fix1",
+  "source_head": "07a6af131788ac851a58d9d824ff8f128276e426",
+  "head": "07a6af131788ac851a58d9d824ff8f128276e426",
+  "tree": "e445e42a2ebad94501484d9f6692a59d88641f89",
+  "origin_main": "85b79464fa8a79597741711f6689f1b21132cd89",
+  "candidate_commits_including_side_parents": [
+    "07a6af131788ac851a58d9d824ff8f128276e426",
+    "0e83e14c9d58e2e82cf82c4b8d5715fdf8b89c57",
+    "e4d2f871df5494c69221c2d50be81a0c94b107b3",
+    "aae559bd25c456dd069dadc511a8654fa65eb7bb",
+    "61ddb72549674a7529546fcf7ca3f17932f395fd",
+    "e2cfaedd2f158ea90c0f0176b9ea43fcee0fdffa",
+    "877815638e666850d29c996dae8366e093caa7c5",
+    "60c6317b256836b675f5bc54ef577e2c2a501a35",
+    "b5c157d1840c3daede98c071cf1098ad1415b2b6"
+  ],
+  "identity_and_trailers": "pass; all fleet, no trailers",
+  "working_tree_clean": true,
+  "product_commits_created": 0,
+  "product_files_edited": 0,
+  "counts_before": {
+    "done": 10,
+    "partial": 20,
+    "missing": 69
+  },
+  "counts_after": {
+    "done": 10,
+    "partial": 20,
+    "missing": 69
+  },
+  "clause_status_changes": [],
+  "PORT-054_status": [
+    "missing"
+  ],
+  "ci_run_id": 42561706552,
+  "ci_exact_sha": "07a6af131788ac851a58d9d824ff8f128276e426",
+  "ci_conclusion": "success",
+  "ci_status": "completed",
+  "tests_rerun": false,
+  "pr_created": false,
+  "plan": [
+    "Verify source head equals requested existing commit.",
+    "Confirm existing exact-SHA Verify completed successfully without rerunning CI.",
+    "Inspect all candidate identities, trailers and complete merge ancestry.",
+    "Push the same commit through the fleet guard to the requested new branch without force.",
+    "Publish only selected non-secret report and receipt files on the evidence ref.",
+    "Verify remote branch and remove the clone after successful publication."
+  ],
+  "push_exit": 0,
+  "push_succeeded": true,
+  "remote_ref_verified": {
+    "head": "07a6af131788ac851a58d9d824ff8f128276e426",
+    "ref": "refs/heads/cloud/sx-porthole-f461fix1-push-1"
+  },
+  "product_checkout_unchanged_after_push": true,
+  "blockers": []
+}

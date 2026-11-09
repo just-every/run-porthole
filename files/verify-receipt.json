@@ -1,0 +1,19 @@
+{
+  "command": [
+    "gh",
+    "run",
+    "view",
+    "42561706552",
+    "-R",
+    "just-every/run-porthole",
+    "--json",
+    "conclusion,headSha,status,url,name"
+  ],
+  "result": {
+    "conclusion": "success",
+    "headSha": "07a6af131788ac851a58d9d824ff8f128276e426",
+    "name": "Verify",
+    "status": "completed",
+    "url": "https://github.com/just-every/run-porthole/actions/runs/42561706552"
+  }
+}
