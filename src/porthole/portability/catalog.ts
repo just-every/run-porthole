@@ -13,6 +13,7 @@ import {journalColumns} from '../migration/erasure/journal'
 export interface TableSpec { table: string; columns: string[]; query: string; order: string }
 const spec = (table: string, columns: string[], order: string): TableSpec => ({ table, columns, order, query: `SELECT ${columns.join(',')} FROM ${table}` })
 export const catalog: TableSpec[] = [
+ spec('porthole_handover_history',['id','target_ref','actor_ref','inventory_digest','decisions','occurred_at','state'],'id'),
  spec('porthole_custom_events',eventColumns,'sequence'),
  spec('porthole_event_filters',filterColumns,'id'),
  spec('porthole_service_versions',metadataColumns,'id,revision'),
@@ -64,6 +65,7 @@ function allPredicates(clauses:string[]):string {
  return `(${allPredicates(clauses.slice(0,middle))} AND ${allPredicates(clauses.slice(middle))})`
 }
 export const emptyProduct = allPredicates([emptyCustody,
+ 'NOT EXISTS(SELECT 1 FROM porthole_handover_history)',
  'NOT EXISTS(SELECT 1 FROM porthole_database_sources)',
  'NOT EXISTS(SELECT 1 FROM porthole_custom_events)',
  'NOT EXISTS(SELECT 1 FROM porthole_event_filters)',

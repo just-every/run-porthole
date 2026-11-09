@@ -9,7 +9,7 @@ export interface QueryCell {id:string;kind:'query'|'chart'|'change';title:string
 export type Cell=TextCell|QueryCell
 export interface Comment {id:string;text:string;authorRef:string;createdAt:number;mentions:{memberRef:string;status:'undelivered'}[]}
 export interface Notebook {origin:{monitorId:string;revision:number;evaluationId:string};cells:Cell[];comments:Comment[]}
-export interface NotebookRow {id:string;name:string;owner_ref:string;author_ref:string;scope:string;body:string;revision:number;state:'active'|'quarantined';created_at:number;updated_at:number}
+export interface NotebookRow {id:string;name:string;owner_ref:string|null;author_ref:string;scope:string;body:string;revision:number;state:'active'|'quarantined';created_at:number;updated_at:number}
 export const columns=['id','name','owner_ref','author_ref','scope','body','revision','state','created_at','updated_at']
 export const object=(value:unknown):Record<string,unknown>=>value!==null&&typeof value==='object'&&!Array.isArray(value)?value as Record<string,unknown>:fail('invalid_notebook',400)
 export const label=(value:unknown,max=120):string=>typeof value==='string'&&value.trim().length>0&&value.length<=max?value:fail('invalid_notebook_text',400)
@@ -56,7 +56,7 @@ export function notebookBody(value:unknown):Notebook {
 }
 export function cellScope(cell:QueryCell):Scope {return {services:[cell.query.service],environments:[cell.query.environment],teams:[cell.query.team]}}
 export function notebookRow(value:Record<string,unknown>) {
- if(Object.keys(value).sort().join(',')!==[...columns].sort().join(',')||!uuid(value.id)||!uuid(value.owner_ref)||!uuid(value.author_ref)||!integer(value.revision,1)||!integer(value.created_at)||!integer(value.updated_at)||!['active','quarantined'].includes(String(value.state)))fail('invalid_notebook',400)
+ if(Object.keys(value).sort().join(',')!==[...columns].sort().join(',')||!uuid(value.id)||value.owner_ref!==null&&!uuid(value.owner_ref)||!uuid(value.author_ref)||!integer(value.revision,1)||!integer(value.created_at)||!integer(value.updated_at)||!['active','quarantined'].includes(String(value.state)))fail('invalid_notebook',400)
  label(value.name);const scope=parseScope(JSON.parse(String(value.scope))),body=notebookBody(JSON.parse(String(value.body)))
  if(body.cells.some(cell=>cell.kind!=='text'&&!scopeWithin(cellScope(cell),scope)))fail('invalid_notebook_scope',400)
 }
