@@ -65,6 +65,21 @@ export async function observeHealth(env: HealthBindings): Promise<HealthState> {
    return {status:fresh(queryable)?'Healthy':'Unknown',reason:fresh(queryable)?'Real indexed telemetry query answered with fresh records.':'No fresh queryable telemetry; last-known data does not establish current health.',lastQueryableAt:queryable,evidence:{lastKnown:rows.map(row => ({signal:row.signal,team:row.team,service:row.service,environment:row.environment,eventTimeNs:row.event_time_ns,indexedAt:iso(row.indexed_at)}))}}
   }),
  ])
+ const recovery=await env.DB.prepare('SELECT active,restored_at FROM porthole_control_recovery WHERE singleton=1').first<{active:number;restored_at:number}>()
+ let recovering=!!recovery?.active
+ if(recovering){
+  // Every restored scope needs both new destination acceptance and a new live
+  // heartbeat. Old archive timestamps cannot discharge this boundary.
+  const missing=await env.DB.prepare(`SELECT COUNT(*) AS n FROM (
+   SELECT DISTINCT team,service,environment,signal FROM porthole_telemetry_records
+  ) s WHERE NOT EXISTS(SELECT 1 FROM porthole_telemetry_records r JOIN porthole_ingest_batches b ON b.id=r.batch_id
+   JOIN porthole_credentials c ON c.id=b.source_id WHERE r.team=s.team AND r.service=s.service AND r.environment=s.environment AND r.signal=s.signal
+   AND b.accepted_at>=? AND c.status='active' AND c.expires_at>?)
+   OR NOT EXISTS(SELECT 1 FROM porthole_health_collectors h JOIN porthole_credentials c ON c.id=h.credential_id
+   WHERE h.team=s.team AND h.service=s.service AND h.environment=s.environment AND h.signal=s.signal AND h.observed_at>=? AND h.observed_at>=? AND c.status='active' AND c.expires_at>?)`).bind(recovery!.restored_at,now,recovery!.restored_at,now-config.freshness_ms,now).first<{n:number}>()
+  const newData=await env.DB.prepare("SELECT 1 FROM porthole_ingest_batches b JOIN porthole_credentials c ON c.id=b.source_id WHERE b.accepted_at>=? AND c.status='active' LIMIT 1").bind(recovery!.restored_at).first()
+  if(missing?.n===0&&newData&&!control?.paused){await env.DB.prepare('UPDATE porthole_control_recovery SET active=0 WHERE singleton=1 AND restored_at=?').bind(recovery!.restored_at).run();recovering=false}
+ }
  const receipts = await healthReceipts(env.DB), evaluatedAt=Date.now()
  const rows: HealthComponent[] = []
  for (const component of components) {
@@ -81,6 +96,7 @@ export async function observeHealth(env: HealthBindings): Promise<HealthState> {
    } catch {status='Unknown';reason='Durable ingest queue could not be read.'}
   }
   if (component === 'delivery' && (!enabled || env.AUTH_LOCAL==='true' || env.RER_DEMO==='1' || !independentMailConfigured(env))) {status='Unknown';reason=enabled?transportState(env):'Independent notices off — incomplete coverage. An owner or admin must configure a confirmed recipient.'}
+  if(recovering){status='Unknown';reason='Restored installation reconnecting: fresh destination telemetry and authenticated heartbeats are required for every restored scope.'}
   rows.push({component,status,reason,checkedAt,observedAt:iso(row?.observed_at),lastAcceptedAt:iso(max(receipts.filter(r=>r.component===component).map(r=>r.last_accepted_at))),lastQueryableAt:iso(max(receipts.filter(r=>r.component===component).map(r=>r.last_queryable_at))),evidence})
  }
  return {version:2,status:rows.every(row=>row.status==='Healthy')?'Healthy':'Unknown',checkedAt,lastAcceptedAt:iso(max(receipts.map(row=>row.last_accepted_at))),lastQueryableAt:iso(max(receipts.map(row=>row.last_queryable_at))),components:rows,configuration:{revision:config.revision,freshnessSeconds:config.freshness_ms/1000,noticesEnabled:enabled,recipient:config.recipient,transport:transportState(env),recipientStatus}}

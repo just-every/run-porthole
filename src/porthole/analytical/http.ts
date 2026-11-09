@@ -1,3 +1,4 @@
+import {recoverAnalytical} from '../recovery/control-plane/analytical'
 import type {Bindings} from '../../auth.server'
 import {AuthError} from '../../modules/operator-auth/index.mjs'
 import {authority,fail,proofFence} from '../security/authority'
@@ -6,13 +7,14 @@ import {operationDocument as document,escape,privateHeaders} from '../document'
 import {configuration,coverage,ready,reconcile,roles,watermark,rpc,type Coverage,type Role} from './client'
 export async function analyticalResponse(request:Request,env:Bindings):Promise<Response|null>{
  const url=new URL(request.url),page=['/app/settings/analytics','/app/settings/analytics/reconcile'].includes(url.pathname)
- if(!page&&!['/api/porthole/v1/analytics/configuration','/api/porthole/v1/analytics/reconcile'].includes(url.pathname))return null
+ if(!page&&!['/api/porthole/v1/analytics/configuration','/api/porthole/v1/analytics/reconcile','/api/porthole/v1/analytics/recovery'].includes(url.pathname))return null
  try{
   const actor=await authority(request,env,{post:request.method==='POST',stepUp:request.method==='POST'})
   if(actor.member.role!=='owner'||actor.session.kind!=='native')fail('owner_required')
   if(url.search)fail('invalid_query',400)
   let config=await configuration(env)
   if(request.method==='POST'){
+   if(url.pathname.endsWith('/recovery'))return Response.json(await recoverAnalytical(env,actor,await input(request)),{headers:privateHeaders})
    if(url.pathname.endsWith('/reconcile')){const result=await reconcile(env);return page?new Response(null,{status:303,headers:{...privateHeaders,location:'/app/settings/analytics'}}):Response.json(result,{headers:privateHeaders})}
    const data=await input(request)
    if(Object.keys(data).some(key=>!['revision','role','enabled','confirm'].includes(key)))fail('invalid_configuration',400)
@@ -30,6 +32,7 @@ export async function analyticalResponse(request:Request,env:Bindings):Promise<R
    return new Response(null,{status:303,headers:{...privateHeaders,location:'/app/settings/analytics'}})
   }
   if(url.pathname.endsWith('/reconcile'))fail('method_not_allowed',405)
+  if(url.pathname.endsWith('/recovery'))fail('method_not_allowed',405)
   if(request.method!=='GET')fail('method_not_allowed',405)
   const states=await Promise.all(roles.map(async role=>{try{const state=await coverage(env,config,role);return {role,status:'Caught up',watermark:state.watermark}}catch{return {role,status:ready(env,role)?'Unavailable or behind':'Binding missing',watermark:null}}}))
   if(!page)return Response.json({revision:config.revision,enabled:!!config.enabled&&!!config.live,role:config.active_role,requiredWatermark:await watermark(env),workers:states},{headers:privateHeaders})

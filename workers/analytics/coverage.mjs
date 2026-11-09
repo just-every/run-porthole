@@ -5,17 +5,19 @@ export async function state(db) {
  if (!row) fail('analytics_schema_unavailable', 503);
  return row;
 }
+export async function activeInventory(db) {return !!await db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='analytics_active_batches'").first()}
 export async function watermark(db) {
+ const active=await activeInventory(db),table=active?'analytics_active_batches':'analytics_batches'
  // Include sequence zero: a replica containing sequence 2 without 1 covers zero.
  // The smallest sequence with no successor is the contiguous prefix, even
  // when later completed batches have arrived out of order.
  return db.prepare(`SELECT
-  (SELECT MIN(p.sequence) FROM (SELECT 0 AS sequence UNION ALL SELECT completion_sequence FROM analytics_batches) p
-   WHERE NOT EXISTS(SELECT 1 FROM analytics_batches n WHERE n.completion_sequence=p.sequence+1)) AS watermark,
-  COALESCE(MAX(completion_sequence),0) AS highestSequence,
+  (SELECT MIN(p.sequence) FROM (SELECT 0 AS sequence UNION ALL SELECT completion_sequence FROM ${table}) p
+   WHERE NOT EXISTS(SELECT 1 FROM ${table} n WHERE n.completion_sequence=p.sequence+1)) AS watermark,
+  COALESCE(MAX(${active?'v':'b'}.completion_sequence),0) AS highestSequence,
   COUNT(*) AS batchCount,COALESCE(SUM(record_count),0) AS recordCount,
   MAX(replicated_at) AS lastReplicatedAt,MAX(accepted_at) AS lastAcceptedAt,
-  MAX(completed_at) AS lastQueryableAt FROM analytics_batches`).first();
+  MAX(completed_at) AS lastQueryableAt FROM analytics_batches b ${active?'JOIN analytics_active_batches v ON v.batch_id=b.id':''}`).first();
 }
 export async function coverage(db, input, { allowStopped = false } = {}) {
  text(input.sourceIdentity); integer(input.requiredWatermark);

@@ -1,6 +1,6 @@
 import {compileLogSearch} from './log-search.mjs';
 import { fail, integer, keys, limits, nano, object, signal, text } from './protocol.mjs';
-import { coverage } from './coverage.mjs';
+import { coverage, activeInventory } from './coverage.mjs';
 
 function cursor(value) {
  if (typeof value !== 'string' || value.length > 1024) fail('invalid_query_cursor');
@@ -19,7 +19,8 @@ export async function query(db, input) {
  if (input.archive !== undefined && typeof input.archive !== 'boolean') fail('invalid_archive');
  const limit = input.limit ?? 100; integer(limit, 1, input.trace ? 2000 : limits.page);
  const time=input.uncertain?"printf('%020d',CAST(json_extract(r.payload,'$.delivery.receivedTimeUnixNano') AS INTEGER))":'r.event_time_ns';
- const clauses = ['r.signal=?', `${time}>=?`, `${time}<=?`, 'b.completion_sequence<=?'];
+ const active=await activeInventory(db);
+ const clauses = ['r.signal=?', `${time}>=?`, `${time}<=?`, `${active?'v':'b'}.completion_sequence<=?`];
  if(input.uncertain!==undefined){if(input.uncertain!==true||input.mode!=='count')fail('invalid_query');clauses.push("json_extract(r.payload,'$.delivery.uncertainTime')=1")}
  if(input.trace!==undefined){if(input.signal!=='traces'||typeof input.trace!=='string'||!/^[a-f0-9]{32}$/.test(input.trace))fail('invalid_trace_id');clauses.push('r.trace_id=?')}
  if(input.metric!==undefined){if(input.signal!=='metrics'||typeof input.metric!=='string'||!input.metric.trim().length||input.metric.length>120||/[\u0000-\u001f\u007f-\u009f]/u.test(input.metric))fail('invalid_metric_name');clauses.push("json_extract(r.payload,'$.metric.name')=?")}
@@ -54,7 +55,7 @@ export async function query(db, input) {
   clauses.push(compiled.sql); args.push(...compiled.args);
  }
  const covered = await coverage(db, input);
- const selection = `FROM analytics_records r JOIN analytics_batches b ON b.id=r.batch_id WHERE ${clauses.join(' AND ')}`;
+ const selection = `FROM analytics_records r JOIN analytics_batches b ON b.id=r.batch_id ${active?'JOIN analytics_active_batches v ON v.batch_id=b.id':''} WHERE ${clauses.join(' AND ')}`;
  if (input.mode === 'count') {
   const row = await db.prepare(`SELECT COUNT(*) AS count ${selection}`).bind(...args).first();
   await coverage(db, input);

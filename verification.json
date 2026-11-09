@@ -78,7 +78,8 @@
         "pnpm run build",
         "PORTHOLE_ANALYTICAL_ONLY=1 pnpm run test:runtime",
         "PORTHOLE_HOST_HEARTBEAT_ONLY=1 pnpm run test:runtime",
-        "PORTHOLE_DATABASE_ONLY=1 pnpm run test:runtime"
+        "PORTHOLE_DATABASE_ONLY=1 pnpm run test:runtime",
+        "PORTHOLE_CONTROL_RECOVERY_ONLY=1 pnpm run test:runtime"
       ]
     },
     {

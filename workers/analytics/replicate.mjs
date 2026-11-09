@@ -1,5 +1,5 @@
 import { canonical, digest, fail, integer, keys, limits, nano, object, signal, text } from './protocol.mjs';
-import { state, watermark } from './coverage.mjs';
+import { state, watermark, activeInventory } from './coverage.mjs';
 
 function record(value, batch, ordinal) {
  keys(value, ['id', 'ordinal', 'team', 'service', 'environment', 'eventTimeNs', 'traceId', 'spanId', 'payload', 'indexedAt', 'archivedAt', 'late', 'outOfOrder']);
@@ -28,11 +28,15 @@ export async function replicate(db, input) {
   return { ...normalized, contentDigest: await digest(canonical(normalized)) };
  }));
  if (new Set(batches.map(batch => batch.id)).size !== batches.length || new Set(batches.map(batch => batch.completionSequence)).size !== batches.length) fail('duplicate_batch_identity');
+ const active=await activeInventory(db);
  const statements = [db.prepare('UPDATE analytics_control SET source_identity=? WHERE singleton=1 AND source_identity IS NULL').bind(input.sourceIdentity)];
  for (const batch of batches) {
   statements.push(db.prepare(`INSERT INTO analytics_batches(id,completion_sequence,source_id,signal,digest,content_digest,accepted_at,completed_at,replicated_at,record_count)
    SELECT ?,?,?,?,?,?,?,?,?,? WHERE (SELECT source_identity FROM analytics_control WHERE singleton=1)=? AND (SELECT stopped FROM analytics_control WHERE singleton=1)=0
    ON CONFLICT(id) DO NOTHING`).bind(batch.id, batch.completionSequence, batch.sourceId, batch.signal, batch.digest, batch.contentDigest, batch.acceptedAt, batch.completedAt, Date.now(), batch.records.length, input.sourceIdentity));
+  if(active)statements.push(db.prepare(`INSERT INTO analytics_active_batches(batch_id,completion_sequence)
+   SELECT id,? FROM analytics_batches WHERE id=? AND content_digest=? AND (SELECT source_identity FROM analytics_control WHERE singleton=1)=? AND (SELECT stopped FROM analytics_control WHERE singleton=1)=0
+   ON CONFLICT(batch_id) DO NOTHING`).bind(batch.completionSequence,batch.id,batch.contentDigest,input.sourceIdentity));
   statements.push(db.prepare(`INSERT INTO analytics_records(id,batch_id,ordinal,source_id,signal,team,service,environment,event_time_ns,trace_id,span_id,payload,indexed_at,archived_at,late,out_of_order)
    SELECT json_extract(j.value,'$.id'),b.id,CAST(j.key AS INTEGER),b.source_id,b.signal,
    json_extract(j.value,'$.team'),json_extract(j.value,'$.service'),json_extract(j.value,'$.environment'),json_extract(j.value,'$.eventTimeNs'),

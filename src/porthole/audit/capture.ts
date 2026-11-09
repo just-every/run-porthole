@@ -8,6 +8,7 @@ import { append, digest, type AuditInput } from './store'
 // Each existing administrative HTTP mutation has a fixed label. Future product
 // handlers must adopt this seam; this list does not claim to implement them.
 const actions: Record<string, string> = {
+ '/api/porthole/v1/analytics/recovery':'analytics.recovery',
  '/api/porthole/v1/database/sources':'database.review','/app/settings/database':'database.review',
  '/api/porthole/v1/database/captures':'database.capture','/api/porthole/v1/database/collection':'database.collection-review',
  '/api/porthole/v1/pipelines/preview':'pipeline.preview','/api/porthole/v1/pipelines/activate':'pipeline.activate',

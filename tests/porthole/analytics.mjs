@@ -36,7 +36,8 @@ try {
  for(const product of await stageAnalytics(scratch)){
   const listener=await port(),server={config:join(scratch,product.config),persist:join(scratch,product.role),port:listener,origin:`http://127.0.0.1:${listener}`}
   server.profileMigration=join(scratch,product.productDirectory,'migrations/core/0003_profiles.sql');server.pendingMigration=join(scratch,'profiles-'+product.role+'.sql')
-  await rename(server.profileMigration,server.pendingMigration)
+  server.recoveryMigration=join(scratch,product.productDirectory,'migrations/core/0004_recovery_epochs.sql');server.pendingRecovery=join(scratch,'recovery-'+product.role+'.sql')
+  await rename(server.profileMigration,server.pendingMigration);await rename(server.recoveryMigration,server.pendingRecovery)
   servers.push(server)
   await execute(process.execPath,[wrangler,'d1','migrations','apply','DB','--local','--config',server.config,'--persist-to',server.persist],{cwd:scratch,env})
   await start(server)
@@ -53,7 +54,7 @@ try {
  let read=await value(await post(primary,'/v1/query',query))
  assert.equal(read.records.length,1);assert.equal(read.records[0].event_time_ns,first.records[0].eventTimeNs);assert.deepEqual(read.records[0].payload,first.records[0].payload)
  const beforeUpgrade=read.records
- for(const server of servers){await stop(server);await rename(server.pendingMigration,server.profileMigration);await execute(process.execPath,[wrangler,'d1','migrations','apply','DB','--local','--config',server.config,'--persist-to',server.persist],{cwd:scratch,env});await start(server)}
+ for(const server of servers){await stop(server);await rename(server.pendingMigration,server.profileMigration);await rename(server.pendingRecovery,server.recoveryMigration);await execute(process.execPath,[wrangler,'d1','migrations','apply','DB','--local','--config',server.config,'--persist-to',server.persist],{cwd:scratch,env});await start(server)}
  read=await value(await post(primary,'/v1/query',query));assert.deepEqual(read.records,beforeUpgrade,'populated analytical profile migration preserves original rows and sequence coverage')
  const archived=await value(await post(primary,'/v1/query',{...query,archive:true}));assert.equal(archived.records[0].archived_at,now+7);assert.ok(!('indexed_at'in archived.records[0]),'archive receipts are not replaced by indexing receipts')
  const conflict=structuredClone(first);conflict.records[0].payload.record.body.stringValue='synthetic-porthole-1030'

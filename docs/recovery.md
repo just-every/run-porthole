@@ -161,3 +161,102 @@ mailbox delivery nor telemetry recovery. SendGrid uncertainty remains held for
 owner investigation, and no replacement message is authorized by this door.
 The registry and future PORT-020, PORT-050, PORT-051, PORT-053 and PORT-066
 adapters retain their complete lifecycle obligations. PORT-055 remains partial.
+
+## Local control-plane outage drill
+
+This procedure qualifies local emitted Workers only. It supplies no authority to
+stop a deployed installation or to provision a deployed restore destination.
+The deployed PORT-094 drill still requires the owner's installation, destination
+and recovery access. Do not infer deployed recovery from Wrangler.
+
+Run the authenticated heartbeat collector on the owner-supervised host outside
+the control-plane Worker. Supply its installation HTTPS origin, scoped ingest
+secret and heartbeat scope through a private configuration file on stdin:
+
+```sh
+node collectors/heartbeat/process.mjs < /private/heartbeat.json
+```
+
+The configuration has `origin`, `secret`, `intervalSeconds` and `heartbeat`.
+The heartbeat contains `collectorId`, `service`, `environment`, `team` and
+`signal`; host identity comes from the running operating system. Keep the file
+mode 0600 and retain status output under the supervisor's private custody.
+The process uses only the existing authenticated heartbeat POST. It does not
+run an external synthetic probe, send a Porthole message or establish telemetry
+health. External checks remain Uptime's responsibility.
+
+Each attempt emits JSON with `status`, `exitStatus`, `lastAccepted` and
+`telemetryHealth: "Unknown"`. `lastAccepted.observedAt` is the server's last
+validated acknowledgement, retained across failures rather than advanced by a
+failed attempt. The supervisor can use `--once` for a single check. Continuous
+mode keeps running after failures; SIGTERM or SIGINT returns its latest status:
+
+| Exit | Status | Meaning |
+| --- | --- | --- |
+| 0 | heartbeat_accepted | Authenticated acknowledgement only |
+| 2 | control_plane_unreachable | Endpoint transport failure or server failure |
+| 3 | credential_refused | HTTP 401 or 403; review the destination grant |
+| 4 | response_invalid | Malformed, oversized or mismatched acknowledgement |
+| 5 | local_network_unavailable | Local socket reports an unreachable network or route |
+| 6 | request_refused | Another non-success response, including quota refusal |
+| 7 | configuration_invalid | Repair the local configuration before supervision |
+
+Transport errors cannot prove which remote machine failed. A timeout, DNS error
+or reset stays endpoint-unreachable; it is not proof that local networking is
+healthy. Only explicit local routing errors receive the local-network status.
+Status output contains no credential, response body or configured URL.
+
+1. In the source checkout, read both teams' retained records, batch identities,
+   archive receipts and audit checkpoints independently. Run `rer export --output
+   exports/installation.rer` immediately before the outage. Keep that backup
+   immutable. Record any acknowledged cohort accepted after export separately;
+   it is outside the backup, even if an analytical worker still holds it.
+2. Stop only the control-plane Worker. Keep analytical workers and collectors
+   running. Inspect the outside heartbeat status and its last accepted receipt.
+   Preserve collector-buffered payloads and their original batch identities and
+   timestamps; they have not been acknowledged by the stopped destination.
+3. Explicitly select a different empty checkout and run `rer import --input
+   /private/installation.rer --yes`. Then run fresh native setup and verify the
+   destination owner through native sign-in. Source sessions, ingest credentials,
+   approvals, active definitions and notice grants are unavailable. Collection
+   stays paused. An occupied destination refuses before product mutation.
+4. Supply newly rotated private connection tokens to the same analytical
+   workers and the destination bindings through owner-managed configuration.
+   Stop the old control plane from using those tokens. Connection secrets are
+   never collector credentials and never belong in the archive. Leave the
+   destination analytical connection paused while reviewing retained custody.
+5. From a native destination owner session with proof in the preceding five
+   minutes, POST `/api/porthole/v1/analytics/recovery` with `mode: "preview"`,
+   `role: "primary"` and the source's `previousIdentity`. Review the returned
+   inventory digest, retained counts and fenced counts. Submit the same fields
+   with `mode: "commit"` and that exact `confirmation` digest. Repeat for standby.
+   A changed review, foreign identity, mismatched content or missing owner proof
+   refuses. Preview and commit are private owner operations; bearer credentials
+   cannot call them. The current bounded door handles at most 1,000 sealed
+   batches and refuses a larger inventory without changing worker custody.
+6. The worker retains every physical row. Only the exact backed-up batch content
+   becomes the destination's active query inventory. Rows accepted after export
+   remain fenced and appear as explicit `fencedBatches` and `fencedRecords` in
+   the review and durable worker receipt. They are an unresolved backup gap,
+   never silently counted as restored, erased or automatically replayed.
+   Preserve that receipt and the source's independently recorded cohort. Lost
+   commit acknowledgements can be retried with the same confirmation. A later
+   destination sequence can coexist with fenced source sequences.
+7. Open Settings → Analytical workers, explicitly connect the destination and
+   reconcile. Mint new scoped destination ingest credentials through native
+   Settings after owner review. Supply those credentials and the destination
+   origin to the existing collectors; keep their buffered payloads unchanged.
+   Unpause and drain bounded batches, retrying identical buffered identities.
+   Compare every backed-up row and original event and receipt timestamp, and
+   reconcile new accepted, queryable, archived and duplicate counts in delivery
+   accounting. Never conceal the post-export gap with a successful new batch.
+8. All restored health components stay Unknown until every restored scope has
+   new destination acceptance and a fresh authenticated heartbeat. Merely
+   reconnecting old analytical data, unpausing or restarting cannot clear it.
+   Definitions and notices still require separate review; fresh telemetry does
+   not activate them. Inspect Unknown, reconnecting and freshly observed states.
+
+After building, `PORTHOLE_CONTROL_RECOVERY_ONLY=1 node tests/runtime.mjs` runs the
+actual local native-command drill, real heartbeat process and separate analytical
+processes. Its receipts and browser images belong outside the product tree.
+It does not send an independent outage notice or release any deployment hold.

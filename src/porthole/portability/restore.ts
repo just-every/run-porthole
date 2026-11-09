@@ -80,6 +80,7 @@ export async function commitRestore(db:D1Database,actor:Authority,job:Job,confir
   throw error
  }
  const statements:D1PreparedStatement[]=[guard(db,actor,`${emptyProduct} AND (${importErasureCompatible}) AND EXISTS(SELECT 1 FROM porthole_archive_jobs WHERE id=? AND state='staging' AND chain_hash=?)`,[job.id,job.id,manifest.rootHash])]
+ statements.push(db.prepare('UPDATE porthole_control_recovery SET active=1,restored_at=? WHERE singleton=1').bind(Date.now()))
  statements.push(db.prepare(`INSERT INTO porthole_migration_erasure_fences(receipt_id,inventory_digest,erased_at)
  SELECT json_extract(payload,'$.row.receipt_id'),json_extract(payload,'$.row.inventory_digest'),json_extract(payload,'$.row.erased_at')
  FROM porthole_archive_rows WHERE job_id=? AND table_name='porthole_migration_erasure_fences' ON CONFLICT(receipt_id) DO NOTHING`).bind(job.id))

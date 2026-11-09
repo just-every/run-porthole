@@ -17,6 +17,7 @@ export default {
  excludeTables:excluded,
  requiredConfiguration:['OWNER_EMAIL','SESSION_SECRET','SETUP_TOKEN','AUTH_ORIGIN','MAIL_PROVIDER','MAIL_FROM'],
  importSafety:{
+  porthole_control_recovery:{active:[1]},
   porthole_custom_events:{state:['quarantined']},porthole_event_filters:{state:['quarantined']},
   porthole_service_versions:{state:['quarantined']},
   porthole_pipeline_versions:{state:['quarantined']},
@@ -28,6 +29,7 @@ export default {
   porthole_monitor_state:{status:['Unknown']},
  },
  importRow(table,row) {
+  if(table==='porthole_control_recovery')return {...row,active:1,restored_at:Date.now()}
   if(['porthole_custom_events','porthole_event_filters'].includes(table))return {...row,state:'quarantined'}
   if(table==='porthole_service_versions')return {...row,state:'quarantined'}
   if(table==='porthole_pipeline_versions')return {...row,state:'quarantined'}

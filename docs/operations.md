@@ -159,3 +159,13 @@ replay, ownership, templates, downtime and delivery qualification remain open in
 PORT-067.
 
 Native installation exports use the same inactive host boundary: source registrations, heartbeat observations and pending monitor state are preserved as quarantined archive history. Native restore retains definition versions and recorded evaluations without restoring collector credentials or live host authority.
+
+For a stopped Base control plane, supervise the existing authenticated heartbeat
+collector outside that Worker. Its JSON status preserves the last acknowledgement
+and distinguishes endpoint failure, credential refusal, invalid replies and local
+routing failure; it never asserts telemetry health. See the local control-plane
+drill in [Recovery](./recovery.md) for supervisor exit codes, explicit empty native
+restore, fresh destination owner proof, exact analytical custody review and new
+scoped collector credentials. Post-export analytical rows remain counted and
+fenced; an archive restores no source authority or live coverage. A deployed
+outage drill and external notification authority remain unqualified.
