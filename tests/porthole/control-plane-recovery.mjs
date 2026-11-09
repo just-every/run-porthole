@@ -222,6 +222,7 @@ export async function controlPlaneRecoveryJourney(){
   for(const role of ['primary','standby']){const physical=await estate.inspect(role);assert.equal(physical.length,12,'fresh destination input does not erase fenced physical custody');for(const old of after.porthole_telemetry_records)assert.ok(physical.some(row=>row.id===old.id&&row.event_time_ns===old.event_time_ns))}
   const gap=await destination.read('/api/porthole/v1/analytics/configuration');assert.ok(gap.workers.every(row=>row.recovery.fenced_records===2),'gap remains visible after reconnection and fresh destination sequences')
   await healthBrowser({origin:destination.origin,cookie:destination.cookie,name:'control-recovery-recovered',contains:'Healthy'})
+  await healthBrowser({origin:destination.origin,cookie:destination.cookie,path:'/app/settings/analytics',name:'control-recovery-gap',contains:'post-export gap 2 records'})
   record('heartbeat check cleared after reviewed destination reconnection',{status:'heartbeat_accepted',telemetryHealth:'Unknown'})
   await destination.stop()
   const occupiedBefore=await readFile(file)
