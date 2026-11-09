@@ -1,0 +1,79 @@
+{
+  "proof": "Official OBI startup and privilege probe only; no flow qualification claimed",
+  "attempts": [
+    {
+      "capabilities": [
+        "BPF",
+        "PERFMON"
+      ],
+      "exit": 0,
+      "diagnostic": "time=2026-11-09T02:13:03.958Z level=INFO msg=\"OpenTelemetry eBPF Instrumentation\" Version=v1.0.0 Revision=d23be0d \"OpenTelemetry SDK Version\"=1.47.0\ntime=2026-11-09T02:13:03.958Z level=INFO msg=\"configuration loaded\" version=v1\ntime=2026-11-09T02:13:03.958Z level=ERROR msg=\"can't start OpenTelemetry eBPF Instrumentation\" error=\"kernel does not support BTF (CONFIG_DEBUG_INFO_BTF): no vmlinux BTF found\"\n",
+      "targetNamespace": "porthole-network-1a4ba0da-checkout-kafka",
+      "image": "otel/ebpf-instrument@sha256:a68d70e934260f72540f157ccf4fb4adfa38f11de060d7d905696dad6a3fca02",
+      "state": {
+        "Status": "exited",
+        "Running": false,
+        "Paused": false,
+        "Restarting": false,
+        "OOMKilled": false,
+        "Dead": false,
+        "Pid": 0,
+        "ExitCode": 255,
+        "Error": "",
+        "StartedAt": "2026-11-09T02:13:03.751782187Z",
+        "FinishedAt": "2026-11-09T02:13:03.973454277Z"
+      }
+    },
+    {
+      "capabilities": [
+        "BPF"
+      ],
+      "exit": 0,
+      "diagnostic": "time=2026-11-09T02:13:06.743Z level=INFO msg=\"OpenTelemetry eBPF Instrumentation\" Version=v1.0.0 Revision=d23be0d \"OpenTelemetry SDK Version\"=1.47.0\ntime=2026-11-09T02:13:06.744Z level=INFO msg=\"configuration loaded\" version=v1\ntime=2026-11-09T02:13:06.744Z level=ERROR msg=\"can't start OpenTelemetry eBPF Instrumentation\" error=\"kernel does not support BTF (CONFIG_DEBUG_INFO_BTF): no vmlinux BTF found\"\n",
+      "targetNamespace": "porthole-network-1a4ba0da-checkout-kafka",
+      "image": "otel/ebpf-instrument@sha256:a68d70e934260f72540f157ccf4fb4adfa38f11de060d7d905696dad6a3fca02",
+      "state": {
+        "Status": "exited",
+        "Running": false,
+        "Paused": false,
+        "Restarting": false,
+        "OOMKilled": false,
+        "Dead": false,
+        "Pid": 0,
+        "ExitCode": 255,
+        "Error": "",
+        "StartedAt": "2026-11-09T02:13:06.592908206Z",
+        "FinishedAt": "2026-11-09T02:13:06.760065342Z"
+      }
+    },
+    {
+      "capabilities": [
+        "PERFMON"
+      ],
+      "exit": 0,
+      "diagnostic": "time=2026-11-09T02:13:10.908Z level=INFO msg=\"OpenTelemetry eBPF Instrumentation\" Version=v1.0.0 Revision=d23be0d \"OpenTelemetry SDK Version\"=1.47.0\ntime=2026-11-09T02:13:10.908Z level=INFO msg=\"configuration loaded\" version=v1\ntime=2026-11-09T02:13:10.908Z level=ERROR msg=\"can't start OpenTelemetry eBPF Instrumentation\" error=\"kernel does not support BTF (CONFIG_DEBUG_INFO_BTF): no vmlinux BTF found\"\n",
+      "targetNamespace": "porthole-network-1a4ba0da-checkout-kafka",
+      "image": "otel/ebpf-instrument@sha256:a68d70e934260f72540f157ccf4fb4adfa38f11de060d7d905696dad6a3fca02",
+      "state": {
+        "Status": "exited",
+        "Running": false,
+        "Paused": false,
+        "Restarting": false,
+        "OOMKilled": false,
+        "Dead": false,
+        "Pid": 0,
+        "ExitCode": 255,
+        "Error": "",
+        "StartedAt": "2026-11-09T02:13:10.656124408Z",
+        "FinishedAt": "2026-11-09T02:13:10.920571195Z"
+      }
+    },
+    {
+      "capabilities": [],
+      "exit": 125,
+      "diagnostic": "docker: Error response from daemon: joining network namespace of container: No such container: 98d2fe07f6806fa12406670eaacb374027dbaaf8d8480a3f8c9550c57f834637\n\nRun 'docker run --help' for more information",
+      "targetNamespace": "porthole-network-1a4ba0da-checkout-kafka",
+      "image": "otel/ebpf-instrument@sha256:a68d70e934260f72540f157ccf4fb4adfa38f11de060d7d905696dad6a3fca02"
+    }
+  ]
+}

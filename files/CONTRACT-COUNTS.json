@@ -1,0 +1,16 @@
+{
+  "before": {
+    "missing": 69,
+    "done": 10,
+    "partial": 20
+  },
+  "after": {
+    "missing": 69,
+    "done": 10,
+    "partial": 20
+  },
+  "clause": "PORT-060",
+  "sourceStatus": "missing",
+  "judgmentEdited": false,
+  "statusRows": 99
+}

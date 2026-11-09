@@ -1,0 +1,42 @@
+{
+  "productHead": "a9e9d8ae410e9289ee8bf33744c52e573564be37",
+  "runs": [
+    {
+      "name": "local",
+      "exit": 0,
+      "logSha256": "8a34f99e4af664652a54a3be0455a721e212119a918bbccac1dddd9150cf2039",
+      "observedPassLines": [
+        "HTTP-001 passed against emitted local Worker: health, the installed homepage, HTTP and document 404s",
+        "PASSIVE source reconciliation passed",
+        "PASSIVE-NETWORK-PROOF PASS local",
+        "APP-HOME passed against emitted local Worker: /app behind sign-in and setup, then the trace view with its stylesheets"
+      ],
+      "receiptHead": "38f87d7bcd1076d26396aa76faeee7ce0e0dc686"
+    },
+    {
+      "name": "analytical",
+      "exit": 0,
+      "logSha256": "d41fd2ad6128ed6e46d81633e43f45ea7d757b4ab8dc5c800204da4ba7d31696",
+      "observedPassLines": [
+        "PASSIVE source reconciliation passed",
+        "PASSIVE-NETWORK-PROOF PASS analytical",
+        "ANALYTICAL PASS primary and standby exact, stopped selected storage returns 503"
+      ],
+      "receiptHead": "38f87d7bcd1076d26396aa76faeee7ce0e0dc686"
+    },
+    {
+      "name": "pipelines",
+      "exit": 0,
+      "logSha256": "0d27b7204fa8c39dcc5aace794393a2d0de710909c121a2f2cde28d4cfd80dce",
+      "observedPassLines": [
+        "HTTP-001 passed against emitted local Worker: health, the installed homepage, HTTP and document 404s",
+        "PORTHOLE_PIPELINE_EXCLUSION {\"count\":10,\"excluded\":2,\"retained\":8,\"result\":\"passed\",\"head\":null}",
+        "pipelineProcessors passed: 120 native inputs through preview, activation, intake and paginated query; source comparison remains unqualified",
+        "pipelineJourney passed: native preview, activation, bounded refusal, original-wire identity, sanitized custody, counted metrics, restart rollback and exclusion",
+        "pipelineAnalyticalJourney passed: real log and span custody in primary and standby, native query, restart replay and revoked-source refusal",
+        "APP-HOME passed against emitted local Worker: /app behind sign-in and setup, then the trace view with its stylesheets"
+      ]
+    }
+  ],
+  "distinction": "Both passive reruns passed on preceding head 38f87d7bcd1076d26396aa76faeee7ce0e0dc686. Final correction only rejects masked identities; valid fixture identity behavior is unchanged. No fresh final-head full fault proof is claimed."
+}

@@ -1,0 +1,23 @@
+{
+  "head": "a9e9d8ae410e9289ee8bf33744c52e573564be37",
+  "branch": "cloud/sx-porthole-c-f466",
+  "repository": "just-every/run-porthole",
+  "productPush": "success",
+  "mainParent": "a4b8bed320f94b9bbeb1b0e1d21b232fb6b4c9ed",
+  "uncommittedTrackedDiff": "",
+  "contractChanges": "",
+  "publicationScan": {
+    "commit": "a9e9d8ae410e9289ee8bf33744c52e573564be37",
+    "complete": false,
+    "historyScanned": false,
+    "findings": null,
+    "reason": "Cloud adaptation reserves publication scan and landing to Mac lander"
+  },
+  "verifyRun": 42557874976,
+  "verifyStatus": "in_progress",
+  "verifyConclusion": null,
+  "apiCallsUsed": 10,
+  "pr": null,
+  "workingTreeStatus": "",
+  "checkedUtc": "2026-11-09T03:46:02.043315+00:00"
+}

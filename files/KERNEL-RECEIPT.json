@@ -1,0 +1,16 @@
+{
+  "status": "blocked",
+  "kernel": "6.18.57",
+  "kernelConfiguration": [
+    "CONFIG_BPF_SYSCALL=y",
+    "# CONFIG_BPF_JIT is not set",
+    "# CONFIG_NET_SCH_PRIO is not set",
+    "# CONFIG_NET_SCH_NETEM is not set"
+  ],
+  "modulesDirectoryPresent": false,
+  "command": "docker run --rm --network container:porthole-network-d2844dbd-resolver --cap-add NET_ADMIN ghcr.io/nicolaka/netshoot@sha256:7f08c4aff13ff61a35d30e30c5c1ea8396eac6ab4ce19fd02d5a4b3b5d0d09a2 tc qdisc add dev eth0 root netem delay 80ms",
+  "exit": 2,
+  "observedStderr": "Error: Specified qdisc kind is unknown.",
+  "consequence": "Required resolver delay and pair packet-loss fault windows cannot execute on this kernel. Application sleeps or manufactured telemetry were not substituted.",
+  "notCiFailure": true
+}
