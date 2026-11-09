@@ -517,7 +517,7 @@
       "executable": false
     },
     "docs/standard-signal-apis.md": {
-      "sha256": "ddc66279efe30bcaa78b0e58379d0456279f24de65f31d31c5af96932509c62b",
+      "sha256": "7ac03ac7d2a0a321bbb0bbd2e5edb14072f44817e1c787369decebbd2e835ef6",
       "executable": false
     },
     "edition.json": {
@@ -5697,7 +5697,7 @@
       "executable": false
     },
     "tests/porthole/archive.mjs": {
-      "sha256": "03dbc0a2eef6517c517713ede439edddab264b55c82fcef6b6749c4c5ca11919",
+      "sha256": "b229a084cfe18a427e86896dc8401996ec1343f70beb732334d1c182084cd86b",
       "executable": false
     },
     "tests/porthole/audit.mjs": {
