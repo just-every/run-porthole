@@ -364,7 +364,7 @@ export async function servicesAnalyticalJourney() {
    await configure('standby')
    const standby=await read('/api/porthole/v1/services'+result.query)
    assert.equal(standby.backend.role,'standby');assert.deepEqual(standby.services,primary.services);assert.deepEqual(standby.edges,primary.edges)
-   const standbyNetwork=await read('/api/porthole/v1/network-messaging'+network.query)
+   const standbyNetwork=await read('/api/porthole/v1/network-messaging'+network.query+'&snapshot='+network.view.snapshot)
    assert.deepEqual(standbyNetwork.network,network.view.network);assert.deepEqual(standbyNetwork.messaging,network.view.messaging)
    await estate.stop('standby')
    assert.equal((await call('/api/porthole/v1/services'+result.query,{headers:{cookie}})).status,503,'no fabricated local fallback when selected analytical process is stopped')

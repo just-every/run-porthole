@@ -89,3 +89,9 @@ PORT-060. Real private estates, ECS, Nomad, supported cloud queues, infrastructu
 inventory, external device operations and the full real-network privilege and
 route-access journey remain unqualified. It authorizes no external probing,
 security scanning, alert, outbound delivery, retention or deletion policy.
+
+Validated opaque Docker digests and opaque host IDs are preserved as structural
+resource identities, alongside trace and span IDs. This exception is limited to
+those resource keys and their declared hexadecimal formats. Ordinary resource
+payload values retain mandatory masks. An explicit custom masking rule prevents
+this restoration, leaving correlation unknown when the identity is masked.

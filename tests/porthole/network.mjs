@@ -90,6 +90,9 @@ export async function networkJourney({origin,call=(path,options)=>fetch(origin+p
  const selected=await read(services+dns.query+'&snapshot='+dns.view.snapshot),checkout=selected.services.find(s=>s.service==='checkout-kafka')
  const traceRef=networkFor(dns).dns.evidence[0],trace=await read('/api/porthole/v1/traces/'+traceRef.traceId+'?snapshot='+dns.view.snapshot)
  assert.ok(trace.spans.some(s=>s.spanId===traceRef.spanId&&s.service==='checkout-kafka'))
+ const retained=trace.spans.find(s=>s.spanId===traceRef.spanId).resource.attributes
+ assert.equal(retained.find(a=>a.key==='container.id').value.stringValue,proof.ids['checkout-kafka'])
+ assert.equal(retained.find(a=>a.key==='synthetic.private_value').value.stringValue,'[REDACTED]','ordinary resource payload values retain mandatory privacy masks')
  await servicesBrowser({origin,cookie,path:'/app/services/'+checkout.id+dns.query+'&snapshot='+dns.view.snapshot,contains:'Network and messaging evidence',name:'network-dns-'+(analytical?'analytical':'local'),dispatch:browserDispatch})
  const queueService=backlog.catalog.services.find(s=>s.service==='checkout-rabbitmq')
  await servicesBrowser({origin,cookie,path:'/app/services/'+queueService.id+backlog.query+'&snapshot='+backlog.view.snapshot,contains:'rabbitmq.message.current',name:'network-backlog-'+(analytical?'analytical':'local'),dispatch:browserDispatch})

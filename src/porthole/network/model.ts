@@ -14,7 +14,7 @@ export const reference=(r:EvidenceRecord)=>({recordId:r.id,traceId:r.trace_id??n
 // observations. The surrounding read applies scope before calling this code.
 export function uniqueSpans(rows:EvidenceRecord[]) {
  const groups=new Map<string,Map<string,EvidenceRecord>>()
- for(const row of rows){const key=row.trace_id+':'+row.span_id,group=groups.get(key)??new Map();group.set(canonical({scope:scopeKey(row),payload:row.payload}),row);groups.set(key,group)}
+ for(const row of rows){const key=row.trace_id+':'+row.span_id,group=groups.get(key)??new Map();group.set(canonical({scope:scopeKey(row),record:row.payload.record,resource:row.payload.resource??{},instrumentation:row.payload.scope??{}}),row);groups.set(key,group)}
  return [...groups.values()].filter(g=>g.size===1).map(g=>[...g.values()][0])
 }
 export function spanSummary(rows:EvidenceRecord[]) {
