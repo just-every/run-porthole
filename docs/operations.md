@@ -159,3 +159,18 @@ replay, ownership, templates, downtime and delivery qualification remain open in
 PORT-067.
 
 Native installation exports use the same inactive host boundary: source registrations, heartbeat observations and pending monitor state are preserved as quarantined archive history. Native restore retains definition versions and recorded evaluations without restoring collector credentials or live host authority.
+
+## Removal handover history
+
+A reviewed removal records opaque member references, the inventory digest,
+object revisions and explicit successor decisions in private transactional
+history. Each unassigned object opens named PORT-059 work; existing recovery
+guards, collection configuration and monitor definitions remain unchanged.
+Follow-up assignment changes retain their original evidence and add a handover
+event. An approved repair whose approver is removed becomes inactive and needs
+a new current approver; no approval or execution permission transfers.
+
+Product archives carry these handover receipts as inactive history. Restore
+does not replay removal, revive ownership grants, private shares, public
+addresses, approvals, custodial credentials or pending work. Re-export retains
+the receipt decisions and their inactive state.

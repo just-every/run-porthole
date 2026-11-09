@@ -1,3 +1,4 @@
+import {reviewRemoval} from './fixture.mjs'
 import assert from 'node:assert/strict'
 import {spawn} from 'node:child_process'
 import {createServer} from 'node:http'
@@ -149,7 +150,7 @@ export async function databaseJourney({origin,freshOwner,restartWorker,sql,signI
   const narrowed=await signIn(address(16010));assert.equal((await read(api,narrowed)).captures.length,0,'current narrowed scope hides all prior database evidence')
   assert.equal((await call(api+'?service=database-checkout',{headers:{cookie:narrowed}})).status,403)
   assert.deepEqual(await sql('SELECT * FROM porthole_database_sources ORDER BY id'),before,'denied reviews and membership changes leave collection sources unchanged')
-  await post('/app/settings/members/remove',{operatorId:members[0].operator_id})
+  await post('/app/settings/members/remove',await reviewRemoval(origin,cookie,members[0].operator_id,{call}))
   await post('/api/porthole/v1/actors/erase',{actorRef:members[0].operator_id,confirm:'erase'})
   assert.equal((await call(api,{headers:{cookie:narrowed}})).status,401,'erased actors cannot reuse a native database session')
   const {databaseArchiveJourney}=await import('./archive.mjs')

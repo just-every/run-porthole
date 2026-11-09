@@ -6,7 +6,7 @@ export const eventColumns=['sequence','id','source','source_id','service','envir
 export const filterColumns=['id','owner_ref','name','definition','revision','state','created_at']
 export interface CustomEvent {sourceType:'custom';source:string;sourceId:string;title:string;text:string;service:string;environment:string;team:string;resource:string;tags:string[];severity:'info'|'warning'|'error';occurredAt:string;correlationKey:string}
 export interface EventRow {sequence:number;id:string;source:string;source_id:string;service:string;environment:string;team:string;occurred_ns:string;received_at:number;body:string;digest:string;actor_ref:string;actor_revision:number;state:'active'|'quarantined'}
-export interface FilterRow {id:string;owner_ref:string;name:string;definition:string;revision:number;state:string;created_at:number}
+export interface FilterRow {id:string;owner_ref:string|null;name:string;definition:string;revision:number;state:string;created_at:number}
 export type EventFilter=Partial<Record<'source'|'sourceId'|'service'|'environment'|'team'|'severity'|'resource'|'tag'|'text'|'correlationKey'|'from'|'through',string>>
 const object=(v:unknown):Record<string,unknown>=>v!==null&&typeof v==='object'&&!Array.isArray(v)?v as Record<string,unknown>:fail('invalid_event',400)
 const optional=(v:unknown,max:number)=>v===undefined||v===''?'':label(v,max)

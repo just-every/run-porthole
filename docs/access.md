@@ -89,3 +89,43 @@ reviewed object/running-work handover. PORT-092 remains incomplete for running
 jobs, ignored-instruction reports, prompt/artifact secret exclusion and exact
 approved-plan execution. These read transports do not run an agent or confer
 approval authority; real execution requires PORT-077's authorized estate.
+
+## Reviewed native removal
+
+Members Settings offers **Review removal and handover**. A current owner or
+eligible admin with sign-in proof from the preceding five minutes previews one
+private inventory, then explicitly selects each successor or unassignment.
+The preview binds its digest to the reviewing session, member generations,
+inventory revision and expiry. An object assigned after preview, an edited
+object, a changed successor or expired proof requires another review.
+
+The existing removal door commits the reviewed decisions and membership
+revocation in one transaction. Each successor must already be active and
+eligible for the object's existing role and complete service, environment and
+team scope. No role, data scope or sharing grant is added. Notebook assignment
+retains its existing owner-only management restriction. Ingest custody needs a
+scoped owner or admin; it cannot be silently unassigned and stop collection.
+Other custodial credentials are suspended permanently, never transferred.
+
+Service metadata, notebook ownership, private event filters and follow-up
+assignments can move or become explicitly unassigned. Grants and publications
+the departing member issued end instead of transferring. Pending repair
+approvals become void; the unchanged repair returns to awaiting a current
+approver. Original authorship remains attribution, not authority.
+
+SLO versions, database source reviews, pipeline and span-metric approval
+provenance remain unchanged and enter named unassigned Follow-up. This removal
+door grants no held mutation, monitor ownership, route change, outbound
+delivery, scheduled report, device or running investigation authority.
+
+Active members require review even when the inventory is empty. Both Members
+controls open the preview; only its signed review can complete removal.
+Cancelling an unused invitation with no assignments retains the existing
+cancellation door. Approved signal exports end rather than transfer; existing
+installation archive jobs remain held private custody with named Follow-up,
+without transferring restore or export approval authority.
+
+Existing owner-only domain doors remain owner-only in a removal batch. An admin
+can review ordinary personal and credential revocation, but owned objects need
+a current native owner to review their handover. Membership administration is
+not delegated service, notebook, publication or follow-up administration.
