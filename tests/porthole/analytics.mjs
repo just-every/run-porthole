@@ -223,7 +223,10 @@ export async function analyticalConnectionJourney() {
    for(let index=0;index<24;index++)await ingest(index)
    await send('/api/porthole/v1/ingest/drain',{});await send('/api/porthole/v1/analytics/reconcile',{})
    assert.equal((await read('/api/porthole/v1/ingest/records?signal=logs&service=checkout-api')).records.length,24)
-   const after=await tick();assert.equal(evaluation(after.state).status,'Firing',JSON.stringify(after.state.components.map(({component,status,reason,evidence})=>({component,status,reason,evidence}))));assert.equal(evaluation(after.state).firingEpisode,episode)
+   // Replays preserve old receipt times. Recovery needs an actually new
+   // acceptance after the browser and failback work, not a refreshed retry.
+   await ingest(24);await beat();await send('/api/porthole/v1/ingest/drain',{})
+   const after=await tick();assert.equal(evaluation(after.state).status,'Firing',JSON.stringify(after.state.components.map(({component,status,reason,evidence})=>({component,status,reason,evidence}))));assert.equal(evaluation(after.state).firingEpisode,episode);assert.equal(evaluation(after.state).observedCount,25)
    const ids=messages.filter(message=>message.custom_args.rer_delivery_id.startsWith('porthole-health/')).map(message=>message.custom_args.rer_delivery_id)
    assert.equal(new Set(ids).size,ids.length,'restart, reconciliation and health replay never submit the same notice twice')
    const audit=await read('/api/v1/audit/export');assert.ok(audit.records.some(row=>row.entry.action==='analytics.configure'&&row.entry.phase==='committed'))
@@ -284,7 +287,7 @@ export async function analyticalConnectionJourney() {
      await configure('/api/porthole/v1/analytics/configuration',{revision:inactive.revision,role:'primary',enabled:true,confirm:'connect-analytical-workers'})
      await configure('/api/porthole/v1/analytics/reconcile',{});await configure('/api/porthole/v1/analytics/reconcile',{})
      const result=await (await restored.call('/api/porthole/v1/ingest/records?signal=logs',{headers:{cookie:restored.cookie}})).json()
-     assert.equal(result.records.length,24);assert.equal(result.analytical.role,'primary')
+     assert.equal(result.records.length,25);assert.equal(result.analytical.role,'primary')
      assert.equal((await restored.health()).status,'Unknown','reauthorizing historical storage cannot fabricate fresh collector/data coverage')
      await restored.browser('/app/settings/analytics','analytics-inactive-destination','Connection authorized')
     }})
