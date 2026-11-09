@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "tag": "sx-porthole-c-f466-pc2",
+  "repository": "just-every/run-porthole",
+  "head": "d77a80daa5c1b4a608839d079ccc20ca28ecc7c9",
+  "run": 42578203547,
+  "job": 129030638947,
+  "command": "node scripts/verify-ci.mjs network",
+  "environment": {
+    "CI": "true",
+    "WRANGLER_SEND_METRICS": "false",
+    "PLAYWRIGHT_SKIP_BROWSER_GC": "1",
+    "SHARD": "network",
+    "node": "22.20.0"
+  },
+  "test": "networkJourney",
+  "location": "tests/porthole/network.mjs:125:184",
+  "exit": 1,
+  "failure": "AssertionError [ERR_ASSERTION]: {\"code\":8,\"message\":\"credential_quota_exceeded\"}; 429 !== 200",
+  "source": "Locally read network job entry in the archive downloaded by the single prescribed gh run view invocation."
+}

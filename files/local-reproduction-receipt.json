@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "tag": "sx-porthole-c-f466-pc2",
+  "repository": "just-every/run-porthole",
+  "head": "d77a80daa5c1b4a608839d079ccc20ca28ecc7c9",
+  "job": 129030638947,
+  "command": "node scripts/verify-ci.mjs network",
+  "invocation": "cloud_run perl -e 'alarm 1200; exec @ARGV' -- node scripts/verify-ci.mjs network",
+  "node": "22.20.0",
+  "test": "networkJourney",
+  "exit": 1,
+  "failure": "network_fault_kernel_unavailable: CONFIG_NET_SCH_NETEM and CONFIG_NET_SCH_PRIO required; Error: Specified qdisc kind is unknown.",
+  "location": "tests/porthole/network/estate.mjs:32:272",
+  "kernel": "6.18.57",
+  "uid": 1000,
+  "original_quota_assertion_reproduced": false,
+  "stopped_before": "tests/porthole/network.mjs:125 replay assertion",
+  "completed_windows": [
+    "baseline"
+  ],
+  "attempted_window": "dns-delay",
+  "observed_components": [
+    "pinned Kafka broker",
+    "pinned RabbitMQ broker",
+    "four stock-instrumented application containers",
+    "pinned CoreDNS resolver",
+    "stock Contrib receivers",
+    "stock node exporter"
+  ],
+  "container_cleanup": "networkEstate.stop completed; docker ps shows no remaining running containers",
+  "repair_applied": false,
+  "required_environment": "Runner with usable netem and prio queue disciplines in the owned container namespace, then rerun the exact saved-head network shard."
+}

@@ -1,0 +1,73 @@
+{
+  "head": "d77a80daa5c1b4a608839d079ccc20ca28ecc7c9",
+  "product_changes": 0,
+  "new_product_commits": 0,
+  "typecheck": {
+    "command": "pnpm run typecheck",
+    "exit": 0
+  },
+  "first_party": {
+    "command": "npx -y @runeditrun/rer check --profile first-party",
+    "exit": 0
+  },
+  "contract_views": {
+    "commands": [
+      "node scripts/porthole/contract-docs.mjs write PORT-060",
+      "node scripts/porthole/contract-docs.mjs check PORT-060"
+    ],
+    "exit": 0,
+    "restored_from": "origin/main",
+    "contract_source_unchanged": true
+  },
+  "source_lock": {
+    "commands": [
+      "pnpm run source:lock",
+      "pnpm run source:check"
+    ],
+    "exit": 0,
+    "tracked_diff_after_regeneration": false
+  },
+  "ledger": {
+    "command": null,
+    "reason": "No migration edited"
+  },
+  "candidate_identity": {
+    "commits": 10,
+    "authors": "fleet",
+    "committers": "fleet",
+    "trailers": "absent"
+  },
+  "publication_scan": {
+    "status": "not run",
+    "reason": "Mac lander owns publication scanning"
+  },
+  "verify": {
+    "run": 42578203547,
+    "head": "d77a80daa5c1b4a608839d079ccc20ca28ecc7c9",
+    "conclusion": "failure",
+    "failed_job": 129030638947,
+    "verify_aggregator": 129034375013
+  },
+  "run_site": {
+    "status": "not run",
+    "reason": "No main landing"
+  },
+  "before_counts": {
+    "done": 10,
+    "partial": 20,
+    "missing": 69,
+    "total": 99
+  },
+  "after_counts": {
+    "done": 10,
+    "partial": 20,
+    "missing": 69,
+    "total": 99
+  },
+  "PORT-060_status_table": {
+    "before": "missing",
+    "after": "missing",
+    "claim": "PARTIAL",
+    "complete_acceptance_points": []
+  }
+}

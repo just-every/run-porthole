@@ -1,0 +1,34 @@
+{
+  "files": [
+    {
+      "blob": "592165abba3c12d70f1757ad71ac44b4c9f14db6",
+      "bytes": 8454,
+      "path": "REPORT.md",
+      "sha256": "fec8d1e021e5452f904d46096d55c5cfe219c7e2e2dde43993be73efdaf767bd"
+    },
+    {
+      "blob": "97675a1c8971b75c0d0926906e5122df21f2b3d5",
+      "bytes": 1646,
+      "path": "checks-receipt.json",
+      "sha256": "f6cbc809a87ce45a901492435eebc6df15d67b89d859657df5e127fb62fb1af2"
+    },
+    {
+      "blob": "1b7093e70e701ad1cd09d8d5a79ac7fbb68432ea",
+      "bytes": 1350,
+      "path": "local-reproduction-receipt.json",
+      "sha256": "a10b58a60a6faf23f0b82fe8015895bf982297e9fba14b1938a286642c056a8a"
+    },
+    {
+      "blob": "e2b0442dee38dfcb8b6f48a4c934c5cafca5db65",
+      "bytes": 741,
+      "path": "original-failure-receipt.json",
+      "sha256": "8cf36e483562d5d345747ee5dbe9be2a9a51ac9a8e293d9110340f2860e4b5a7"
+    }
+  ],
+  "product_branch": "cloud/sx-porthole-c-f466-pc2",
+  "product_head": "d77a80daa5c1b4a608839d079ccc20ca28ecc7c9",
+  "ref": "refs/heads/evidence/sx-porthole-c-f466-pc2",
+  "repository": "just-every/run-porthole",
+  "schema": 1,
+  "tag": "sx-porthole-c-f466-pc2"
+}
