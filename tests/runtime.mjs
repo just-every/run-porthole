@@ -81,6 +81,8 @@ const origin = `http://127.0.0.1:${port}`
 // The emitted Worker's owner-claim setup token: a synthetic test value.
 const setupToken = 'synthetic-runtime-setup-token-1234567890123456789'
 let worker
+// Snapshot the same live D1 used by HTTP without launching Wrangler for each read.
+sql.read=async command=>(await (await worker.getD1Database('DB')).prepare(command).all()).results
 let ownerEmail='owner@example.com'
 let allOutput = ''
 async function startWorker() {

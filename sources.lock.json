@@ -5829,7 +5829,7 @@
       "executable": false
     },
     "tests/porthole/handoffs.mjs": {
-      "sha256": "ef0f413164d265839dc8d9cb0623c69d27c81086ace477615c998ab986fe4aba",
+      "sha256": "c8ef3e03192cea0e1f2f0a55838f2c7dd0cfd0320187e7de0d45ad4c1285a918",
       "executable": false
     },
     "tests/porthole/handover.mjs": {
@@ -6017,7 +6017,7 @@
       "executable": false
     },
     "tests/runtime.mjs": {
-      "sha256": "ae3c3edc73cf5ce2cfe2d8cbde658b1ee02f7f856b88e1c61d7f6426a77c47b5",
+      "sha256": "f15fae4929324cd471da9a4eaea60c4e62a1ddd82e02e7eaf2489794616c62e0",
       "executable": false
     },
     "tests/typecheck-checks.mjs": {
