@@ -353,6 +353,160 @@
         }
       }
     },
+    "/api/porthole/v1/network-messaging": {
+      "get": {
+        "summary": "Read scoped native network and messaging evidence, version 1",
+        "security": [
+          {
+            "NativeSession": []
+          }
+        ],
+        "description": "Native session only. Current service, environment and team scope applies before counting. Server and consumer spans supply observed requests; client and producer spans do not add requests. Percentiles are nearest rank on original nanosecond durations. Upstream sampling and loss remain unknown; this is never full-traffic RED. Revoked sessions and erased source records cannot release accumulated results. Unknown or repeated query parameters refuse. Traces and scalar metrics share one completed intake watermark and absolute window. Correlation requires explicitly declared container.id, host.id and identical service, environment and team scope. Broker metrics additionally require the declared broker container identity and topic or queue. Missing, stale, ambiguous and incomplete samples remain unknown. Namespace counters are not per-edge loss rates. No detached aggregate is stored; every source record is fenced again before release. No collection or external probing is started by this read.",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "description": "Inclusive Unix nanoseconds; default is 24 hours before now.",
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9]+$"
+            }
+          },
+          {
+            "name": "through",
+            "in": "query",
+            "description": "Inclusive Unix nanoseconds; default is now.",
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9]+$"
+            }
+          },
+          {
+            "name": "snapshot",
+            "in": "query",
+            "description": "Completed intake sequence watermark.",
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "budget",
+            "in": "query",
+            "description": "Maximum retained spans scanned, in pages of 200. A remaining page makes coverage partial.",
+            "schema": {
+              "type": "integer",
+              "minimum": 200,
+              "maximum": 2000,
+              "multipleOf": 200,
+              "default": 2000
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Version 1 evidence with retained DNS and connection timings, namespace counters, broker samples, trace context links and explicit coverage gaps",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Correct the rejected input; expression errors include field and hint when available.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sign in or supply a valid live credential.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Use an authorized scope and action. Native writes require the configured same-origin Origin header.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Check the identifier and current access; inaccessible objects may be hidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Use the documented method.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Refresh current authority and revision; reuse an idempotency key only for the identical request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Reduce the request size.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Use a supported Content-Type and encoding.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Restore service availability and retry; a failed request is not evidence of acceptance.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/porthole/v1/services": {
       "get": {
         "summary": "Discover scoped runtime services and observed dependencies",

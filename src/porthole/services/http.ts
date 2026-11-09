@@ -8,13 +8,15 @@ import {safeLink} from './model'
 import {serviceRead} from './read'
 import {servicesPage} from './page'
 
+const evidenceRoot='/api/porthole/v1/network-messaging'
 const root='/api/porthole/v1/services',screen='/app/services',settings='/app/settings/services'
 const json=(value:unknown,status=200)=>Response.json(value,{status,headers:privateHeaders})
 export async function servicesResponse(request:Request,env:Bindings):Promise<Response|null> {
- const url=new URL(request.url),path=url.pathname,base=[root,screen,settings].find(r=>path===r||path.startsWith(r+'/'))
+ const url=new URL(request.url),path=url.pathname,base=[root,screen,settings,evidenceRoot].find(r=>path===r||path.startsWith(r+'/'))
  if(!base)return null
- const html=base!==root,config=base===settings,id=path===base?undefined:path.slice(base.length+1)
+ const html=base!==root&&base!==evidenceRoot,config=base===settings,id=path===base?undefined:path.slice(base.length+1)
  try {
+  if(base===evidenceRoot&&(id||request.method!=='GET'))fail('method_not_allowed',405)
   if(id&&!/^[a-f0-9]{32}$/.test(id))fail('invalid_service_id',400)
   if(config&&!id)fail('service_not_found',404)
   if(!['GET','POST'].includes(request.method))fail('method_not_allowed',405)
@@ -30,7 +32,8 @@ export async function servicesResponse(request:Request,env:Bindings):Promise<Res
   if(id&&!service)fail('service_not_found',404)
   if(request.method==='GET'){
    const members=candidates.filter(m=>service&&scopeWithin({services:[service.service],environments:[service.environment],teams:[service.team]},JSON.parse(m.scope)))
-   return html?servicesPage(view,id,config,owner,members):json(id?{...service,coverage:view.coverage,edges:view.edges.filter(e=>e.from===id||e.to===id),names:view.names,snapshot:view.snapshot,from:view.from,through:view.through,budget:view.budget,backend:view.backend}:view)
+   if(base===evidenceRoot)return json(view.evidence)
+   return html?servicesPage(view,id,config,owner,members):json(id?{...service,evidence:{...view.evidence,network:view.evidence.network.filter(n=>n.key===service.key),messaging:view.evidence.messaging.filter(n=>n.scope===service.key)},coverage:view.coverage,edges:view.edges.filter(e=>e.from===id||e.to===id),names:view.names,snapshot:view.snapshot,from:view.from,through:view.through,budget:view.budget,backend:view.backend}:view)
   }
   const data=await input(request)
   if(Object.keys(data).some(k=>!['revision','ownerRef','runbook','repository','criticality','confirm'].includes(k)))fail('invalid_service_metadata',400)
