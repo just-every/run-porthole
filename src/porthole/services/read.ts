@@ -6,6 +6,8 @@ import {canonical,nano,sha256} from '../ingest/model'
 import {authority,fail,scopeWithin,type Authority,type Scope} from '../security/authority'
 import type {TraceRecord} from '../traces/graph'
 import {catalog,type Metadata} from './model'
+import {networkEvidence,type EvidenceRecord} from '../network/model'
+import {messagingEvidence} from '../messaging/model'
 
 export const serviceId=async(row:{service:string;environment:string;team:string})=>(await sha256(new TextEncoder().encode(canonical([row.service,row.environment,row.team])))).slice(0,32)
 export async function serviceRead(request:Request,env:Bindings,actor:Authority,now=Date.now()) {
@@ -29,6 +31,17 @@ export async function serviceRead(request:Request,env:Bindings,actor:Authority,n
   snapshot=data.snapshot;target.searchParams.set('snapshot',String(snapshot));cursor=data.cursor;backend=data.analytical??'local'
   rows.push(...data.records);ids.push(...data.records.map(r=>r.id))
  }while(cursor&&rows.length<budget)
+ const tracePartial=!!cursor,metrics:EvidenceRecord[]=[]
+ target.searchParams.delete('cursor');target.searchParams.set('signal','metrics');cursor=null
+ do {
+  if(cursor)target.searchParams.set('cursor',cursor)
+  const response=await readTelemetry(new Request(target,{headers:request.headers}),env)
+  if(!response.ok){const body=await response.json() as {error:string};fail(body.error,response.status)}
+  const data=await response.json() as {records:EvidenceRecord[];snapshot:number;cursor:string|null}
+  if(data.snapshot!==snapshot)fail('service_evidence_changed',409)
+  cursor=data.cursor;metrics.push(...data.records);ids.push(...data.records.map(r=>r.id))
+ }while(cursor&&metrics.length<budget)
+ const metricsPartial=!!cursor
  const handoffRows=await handoffs(env,actor)
  const latest=await authority(request,env)
  if(latest.session.id!==actor.session.id||latest.member.revision!==actor.member.revision)fail('authority_changed',409)
@@ -49,7 +62,7 @@ export async function serviceRead(request:Request,env:Bindings,actor:Authority,n
  ])
  if(!result[2].results.length)fail('authority_changed',409)
  if(Number((result[0].results[0] as {n:number}|undefined)?.n)!==ids.length)fail('service_evidence_changed',409)
- const view=catalog(rows,from,through,!!cursor,now),metadata=(result[1].results as unknown as Metadata[]).slice(0,2000)
+ const view=catalog(rows,from,through,tracePartial||metricsPartial,now),metadata=(result[1].results as unknown as Metadata[]).slice(0,2000)
  if(result[1].results.length>2000){view.coverage.scanComplete=false;view.coverage.missing.push('metadata revision budget reached')}
  const latestMetadata=new Map<string,Metadata>();for(const row of metadata)if(!latestMetadata.has(row.id))latestMetadata.set(row.id,row)
  const services=await Promise.all(view.services.map(async s=>({...s,id:await serviceId(s)})))
@@ -65,6 +78,10 @@ export async function serviceRead(request:Request,env:Bindings,actor:Authority,n
  if(!release)fail('authority_changed',409)
  if(release.n!==ids.length)fail('service_evidence_changed',409)
  const keyToId=new Map(services.map(s=>[s.key,s.id]))
- return {...view,services:services.map(s=>({...s,handoffs:links(handoffRows,{service:s.service,environment:s.environment,from,through}),metadata:latestMetadata.get(s.id)??null,history:metadata.filter(m=>m.id===s.id),alerts:alerts.filter(row=>scopeWithin({services:[s.service],environments:[s.environment],teams:[s.team]},JSON.parse(row.scope))).map(row=>({monitorId:row.id,name:row.name,revision:row.revision,status:row.status,evaluatedAt:row.evaluated_at,firingEpisode:row.firing_episode,firingEvaluationId:row.firing_evaluation_id,firstFiringAt:row.first_firing_at,metadataAtFirstFiring:metadata.find(m=>m.id===s.id&&m.created_at<=row.first_firing_at)??null,currentMetadata:latestMetadata.get(s.id)??null,delivery:'not-requested'}))})),edges:view.edges.map(e=>({...e,from:keyToId.get(e.from)!,to:e.to?keyToId.get(e.to)??null:null})),names,snapshot,from,through,budget,backend,checkedAt:now}
+ const complete=view.coverage.scanComplete
+ const network=networkEvidence(rows,metrics,through,complete),messaging=messagingEvidence(rows,metrics,from,through,complete)
+ const evidence={version:1,from,through,snapshot,scanComplete:complete,network,messaging,counterScope:'declared container network namespace; never an inferred per-edge loss rate',fullTraffic:false}
+
+ return {...view,evidence,services:services.map(s=>({...s,handoffs:links(handoffRows,{service:s.service,environment:s.environment,from,through}),metadata:latestMetadata.get(s.id)??null,history:metadata.filter(m=>m.id===s.id),alerts:alerts.filter(row=>scopeWithin({services:[s.service],environments:[s.environment],teams:[s.team]},JSON.parse(row.scope))).map(row=>({monitorId:row.id,name:row.name,revision:row.revision,status:row.status,evaluatedAt:row.evaluated_at,firingEpisode:row.firing_episode,firingEvaluationId:row.firing_evaluation_id,firstFiringAt:row.first_firing_at,metadataAtFirstFiring:metadata.find(m=>m.id===s.id&&m.created_at<=row.first_firing_at)??null,currentMetadata:latestMetadata.get(s.id)??null,delivery:'not-requested'}))})),edges:view.edges.map(e=>({...e,from:keyToId.get(e.from)!,to:e.to?keyToId.get(e.to)??null:null})),names,snapshot,from,through,budget,backend,checkedAt:now}
 }
 export type ServiceView=Awaited<ReturnType<typeof serviceRead>>

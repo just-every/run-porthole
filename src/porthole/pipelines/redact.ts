@@ -179,6 +179,22 @@ export function sanitizePayload(input: Record<string, unknown>, rules: Redaction
    }
   }
  }
+ // Docker digests and declared opaque host IDs are structural identities,
+ // like the validated trace IDs above. Preserve them only in resource fields;
+ // text, other attributes and any explicit custom masking policy stay masked.
+ if (!rules.length) {
+  const resource=object(input.resource),cleanResource=object(result.resource)
+  if (Array.isArray(resource?.attributes) && Array.isArray(cleanResource?.attributes)) {
+   for (let index=0;index<resource.attributes.length;index++) {
+    const attr=object(resource.attributes[index]),clean=object(cleanResource.attributes[index]),key=attr?.key
+    if (!clean || clean.key!==key || !['container.id','host.id','porthole.messaging.broker.container.id'].includes(String(key))) continue
+    const value=object(attr?.value)?.stringValue
+    const digest=typeof value==='string' && /^[a-fA-F0-9]{64}$/.test(value) && /[a-fA-F]/.test(value)
+    const host=key==='host.id' && typeof value==='string' && (/^[a-fA-F0-9]{32}$/.test(value) || /^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$/.test(value)) && /[a-fA-F]/.test(value)
+    if (digest || host) clean.value={stringValue:value}
+   }
+  }
+ }
  const delivery = object(input.delivery), cleanDelivery = object(result.delivery)
  if (delivery && cleanDelivery) {
   for (const key of ['receivedTimeUnixNano','arrivalDeltaNs','clockAheadNs']) {

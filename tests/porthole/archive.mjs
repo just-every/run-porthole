@@ -14,7 +14,7 @@ import {otlpProtoBatch} from './ingest.mjs'
 const execute=promisify(execFile),api='/api/porthole/v1/archive',hash=value=>createHash('sha256').update(value).digest('hex')
 const post=(origin,cookie,path,data)=>fetch(origin+path,{method:'POST',redirect:'manual',headers:{origin,cookie,'content-type':'application/json'},body:JSON.stringify(data)})
 const get=(origin,cookie,path)=>fetch(origin+path,{headers:{cookie}})
-async function value(response,status=200){assert.equal(response.status,status,await response.clone().text());assert.equal(response.headers.get('cache-control'),'no-store');return response.json()}
+async function value(response,status=200){assert.equal(response.status,status,response.status===status?undefined:await response.clone().text());assert.equal(response.headers.get('cache-control'),'no-store');return response.json()}
 async function savedExport(origin,cookie,start){
  const job=await value(start,201),chunks=[]
  for(let index=0;index<job.totalChunks;index++)chunks.push(await value(await get(origin,cookie,`${api}/exports/${job.id}/chunks/${index}`)))
@@ -1431,4 +1431,25 @@ export async function standardArchiveJourney({origin,freshOwner,withEmptyDestina
   assert.equal((await call('/api/traces/'+traceId,{headers:{cookie:currentOwner,authorization:'Bearer '+traceKey.secret}})).status,401,'revoked destination trace authority cannot borrow an owner cookie')
  })
  console.log('PROBE PORT-061 restore: inactive owner installation restore -> original samples and exact stock Tempo trace in both representations across restart; new destination authority only, revocation enforced, intake remains paused')
+}
+
+/** Network evidence is reconstructed from ordinary telemetry custody only. */
+export async function networkArchiveJourney({origin,freshOwner,withEmptyDestination,query,expected}) {
+ const cookie=await freshOwner(),source=await savedExport(origin,cookie,await post(origin,cookie,api+'/exports',{}))
+ await withEmptyDestination(async destination=>{
+  let owner=await destination.freshOwner(),job=await value(await post(destination.origin,owner,api+'/restores',{manifest:source.manifest}),201)
+  for(const chunk of source.chunks)await value(await post(destination.origin,owner,`${api}/restores/${job.id}/chunks`,{chunk}))
+  await value(await post(destination.origin,owner,`${api}/restores/${job.id}/commit`,{confirm:source.manifest.rootHash}))
+  const evidence=await value(await get(destination.origin,owner,'/api/porthole/v1/network-messaging'+query))
+  assert.deepEqual(evidence,expected,'inactive restore reconstructs exact stock network and broker evidence without an aggregate table')
+  assert.equal((await destination.sql('SELECT COUNT(*) AS n FROM porthole_credentials'))[0].n,0)
+  assert.equal((await destination.sql('SELECT paused FROM porthole_ingest_control'))[0].paused,1)
+  assert.equal((await get(destination.origin,cookie,'/api/porthole/v1/network-messaging'+query)).status,401)
+  await destination.restartWorker();owner=await destination.freshOwner()
+  assert.deepEqual(await value(await get(destination.origin,owner,'/api/porthole/v1/network-messaging'+query)),expected)
+  const again=await savedExport(destination.origin,owner,await post(destination.origin,owner,api+'/exports',{}))
+  const telemetry=rows=>rows.filter(r=>['porthole_ingest_batches','porthole_telemetry_records','porthole_telemetry_archive'].includes(r.table))
+  assert.deepEqual(telemetry(again.rows),telemetry(source.rows),'inactive re-export preserves original spans, scalar counters and wire custody')
+ })
+ console.log('PROBE PORT-060 archive: real native export, inactive empty restore, restart and re-export -> identical same-window evidence; no source session or collection credential restored')
 }

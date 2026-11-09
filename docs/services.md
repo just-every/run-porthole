@@ -19,3 +19,9 @@ Each service also shows unresolved firing context from existing active count mon
 An empty observation window retains reviewed metadata with explicit missing evidence and unavailable latency. Existing approved homogeneous local erasure removes the spans that supply associations; no detached association survives, and the original wire replay remains fenced after restart. Unrelated service observations remain intact. The existing erasure door continues to refuse configured analytical replicas; this catalog adds no deletion or retention authority.
 
 Datadog full-traffic stats and the identical-window PORT-062 comparison, original SLO comparison, complete infrastructure and database qualification beyond observed semantic identities, imported repository definitions, default detection, investigation notices and outbound alert continuity remain unproved. This catalog enables no outbound action, monitor, SLO change, erasure or expiry policy.
+
+Network and messaging details use the catalog's absolute window and completed
+intake watermark. See [native evidence](./network-messaging.md) for resource
+identity requirements, retained throughput, broker samples, trace pivots and
+explicit missing-collection coverage. Namespace counters are not per-edge loss
+rates; absent collection is never a clean network or zero lag.
