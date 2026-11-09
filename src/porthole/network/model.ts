@@ -21,15 +21,15 @@ export function spanSummary(rows:EvidenceRecord[]) {
  const durations=rows.map(r=>BigInt(String(r.payload.record.endTimeUnixNano))-BigInt(String(r.payload.record.startTimeUnixNano))).sort((a,b)=>a<b?-1:a>b?1:0)
  const errors=rows.filter(r=>(r.payload.record.status as {code?:number}|undefined)?.code===2)
  const timeouts=errors.filter(r=>/timed?\s*out|timeout|ETIMEDOUT/i.test(canonical({attributes:attributes(r.payload.record),status:r.payload.record.status,events:r.payload.record.events})))
- return {observations:rows.length,failures:errors.length,timeouts:timeouts.length,p95Ns:durations.length?durations[Math.ceil(durations.length*.95)-1].toString():null,evidence:rows.map(reference)}
+ return {state:rows.length?'observed':'unknown',observations:rows.length,failures:errors.length,timeouts:timeouts.length,p95Ns:durations.length?durations[Math.ceil(durations.length*.95)-1].toString():null,evidence:rows.map(reference)}
 }
 export interface MetricSeries {name:string;unit:string;kind:string;temporality:number|null;monotonic:boolean;attributes:Record<string,unknown>;resource:ReturnType<typeof resourceIdentity>;points:{at:string;start:string|null;value:number;reference:ReturnType<typeof reference>}[]}
 export function metricSeries(rows:EvidenceRecord[]) {
  const groups=new Map<string,MetricSeries>()
  for(const row of rows){
-  const m=row.payload.metric,p=row.payload.record,a=attributes(p),r=resourceIdentity(row)
+  const m=row.payload.metric,p=row.payload.record,resource=attributes(row.payload.resource),a={...Object.fromEntries(['rabbitmq.queue.name','rabbitmq.vhost.name'].filter(k=>resource[k]!==undefined).map(k=>[k,resource[k]])),...attributes(p)},r=resourceIdentity(row)
   if(!m||!['gauge','sum'].includes(String(row.payload.metricKind))||Number(p.flags??0)&1)continue
-  const value=Number(p.asDouble??p.asInt);if(!Number.isFinite(value))continue
+  const value=Number(p.asDouble??p.asInt);if(!Number.isFinite(value)||(p.asInt!==undefined&&!Number.isSafeInteger(value)))continue
   const sum=m.sum as {aggregationTemporality?:number;isMonotonic?:boolean}|undefined
   const entry:MetricSeries={name:String(m.name),unit:String(m.unit??''),kind:String(row.payload.metricKind),temporality:sum?.aggregationTemporality??null,monotonic:sum?.isMonotonic??false,attributes:a,resource:r,points:[]},key=canonical(entry)
   const series=groups.get(key)??entry
@@ -44,7 +44,9 @@ export function measured(series:MetricSeries,through:string,complete:boolean) {
  const stale=BigInt(through)-BigInt(last.at)>15000000000n
  let delta:number|null=null
  // Never subtract across a reset, a changed start time or an ambiguous sample.
- if(series.kind==='sum'&&series.monotonic&&series.temporality===2&&points.length>=2&&!ambiguous){
+ // node_exporter exposes these documented cumulative kernel counters as untyped
+ // Prometheus values; their declared names carry the counter semantics.
+ if(((series.kind==='sum'&&series.monotonic&&series.temporality===2)||/^node_netstat_(Tcp_RetransSegs|TcpExt_TCPTimeouts)$/.test(series.name))&&points.length>=2&&!ambiguous){
   const first=points[0]
   if(points.every((p,i)=>!i||(p.value>=points[i-1].value&&p.start===first.start)))delta=last.value-first.value
  }
@@ -66,7 +68,7 @@ export function networkEvidence(spans:EvidenceRecord[],metrics:EvidenceRecord[],
   const flows=rows.filter(r=>/ebpf|obi/i.test(String(r.payload.scope?.name??'')))
   const gaps=requirements.flatMap(([source,privilege,nextAction])=>{
    const evidence=source==='tcp'?counters.filter(c=>c.name.startsWith('node_netstat_')):source==='container'?counters.filter(c=>c.name.startsWith('container.network.')):flows
-   const fresh=evidence.length&&evidence.every(e=>!('state'in e)||e.state==='observed')
+   const fresh=source==='tcp'?['node_netstat_Tcp_RetransSegs','node_netstat_TcpExt_TCPTimeouts'].every(name=>counters.some(c=>c.name===name&&c.state==='observed')):source==='container'?['container.network.io.usage.rx_dropped','container.network.io.usage.tx_dropped'].every(name=>counters.some(c=>c.name===name&&c.state==='observed')):evidence.length&&evidence.every(e=>!('state'in e)||e.state==='observed')
    return fresh?[]:[{source,state:evidence.length?'stale':'unknown',missing:privilege,nextAction,reason:identities.length?'No fresh correlated evidence; collection absence does not identify a denial by itself.':'Explicit container.id and host.id are required; name-only correlation is refused.'}]
   })
   return {key,identities:[...new Map(identities.map(r=>[canonical(r),r])).values()],dns:spanSummary(dns),connections:spanSummary(connections),counters,flows:flows.map(reference),gaps,fullTraffic:false}

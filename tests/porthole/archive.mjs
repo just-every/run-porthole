@@ -1336,3 +1336,24 @@ export async function standardArchiveJourney({origin,freshOwner,withEmptyDestina
  })
  console.log('PROBE PORT-061 restore: inactive owner installation restore -> original samples with newly minted destination authority, no imported credentials, intake remains paused')
 }
+
+/** Network evidence is reconstructed from ordinary telemetry custody only. */
+export async function networkArchiveJourney({origin,freshOwner,withEmptyDestination,query,expected}) {
+ const cookie=await freshOwner(),source=await savedExport(origin,cookie,await post(origin,cookie,api+'/exports',{}))
+ await withEmptyDestination(async destination=>{
+  let owner=await destination.freshOwner(),job=await value(await post(destination.origin,owner,api+'/restores',{manifest:source.manifest}),201)
+  for(const chunk of source.chunks)await value(await post(destination.origin,owner,`${api}/restores/${job.id}/chunks`,{chunk}))
+  await value(await post(destination.origin,owner,`${api}/restores/${job.id}/commit`,{confirm:source.manifest.rootHash}))
+  const evidence=await value(await get(destination.origin,owner,'/api/porthole/v1/network-messaging'+query))
+  assert.deepEqual(evidence,expected,'inactive restore reconstructs exact stock network and broker evidence without an aggregate table')
+  assert.equal((await destination.sql('SELECT COUNT(*) AS n FROM porthole_credentials'))[0].n,0)
+  assert.equal((await destination.sql('SELECT paused FROM porthole_ingest_control'))[0].paused,1)
+  assert.equal((await get(destination.origin,cookie,'/api/porthole/v1/network-messaging'+query)).status,401)
+  await destination.restartWorker();owner=await destination.freshOwner()
+  assert.deepEqual(await value(await get(destination.origin,owner,'/api/porthole/v1/network-messaging'+query)),expected)
+  const again=await savedExport(destination.origin,owner,await post(destination.origin,owner,api+'/exports',{}))
+  const telemetry=rows=>rows.filter(r=>['porthole_ingest_batches','porthole_telemetry_records','porthole_telemetry_archive'].includes(r.table))
+  assert.deepEqual(telemetry(again.rows),telemetry(source.rows),'inactive re-export preserves original spans, scalar counters and wire custody')
+ })
+ console.log('PROBE PORT-060 archive: real native export, inactive empty restore, restart and re-export -> identical same-window evidence; no source session or collection credential restored')
+}

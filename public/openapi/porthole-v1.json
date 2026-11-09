@@ -393,7 +393,7 @@
           {
             "name": "budget",
             "in": "query",
-            "description": "Maximum retained spans scanned, in pages of 200. A remaining page makes coverage partial.",
+            "description": "Maximum retained records scanned per signal, in pages of 200. A remaining page makes coverage partial.",
             "schema": {
               "type": "integer",
               "minimum": 200,
@@ -547,7 +547,7 @@
           {
             "name": "budget",
             "in": "query",
-            "description": "Maximum retained spans scanned, in pages of 200. A remaining page makes coverage partial.",
+            "description": "Maximum retained records scanned per signal, in pages of 200. A remaining page makes coverage partial.",
             "schema": {
               "type": "integer",
               "minimum": 200,
@@ -710,7 +710,7 @@
           {
             "name": "budget",
             "in": "query",
-            "description": "Maximum retained spans scanned, in pages of 200. A remaining page makes coverage partial.",
+            "description": "Maximum retained records scanned per signal, in pages of 200. A remaining page makes coverage partial.",
             "schema": {
               "type": "integer",
               "minimum": 200,
