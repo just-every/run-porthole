@@ -1,0 +1,13 @@
+{"conclusion":"success","id":128888019029,"name":"plan","steps":[]}
+{"conclusion":"success","id":128888052116,"name":"shards (migration, true)","steps":[]}
+{"conclusion":"success","id":128888052131,"name":"shards (mail-receipts, true)","steps":[]}
+{"conclusion":"cancelled","id":128888052134,"name":"shards (analytical, true)","steps":[]}
+{"conclusion":"success","id":128888052136,"name":"shards (runtime, true)","steps":[]}
+{"conclusion":"success","id":128888052170,"name":"shards (exports, true)","steps":[]}
+{"conclusion":"success","id":128888052176,"name":"shards (follow-up, true)","steps":[]}
+{"conclusion":"cancelled","id":128888052194,"name":"shards (typecheck, true)","steps":[]}
+{"conclusion":"success","id":128888052202,"name":"shards (traces, true)","steps":[]}
+{"conclusion":"success","id":128888052220,"name":"shards (dashboards, true)","steps":[]}
+{"conclusion":"success","id":128888052234,"name":"shards (source, false)","steps":[]}
+{"conclusion":"success","id":128888052365,"name":"shards (ingest, true)","steps":[]}
+{"conclusion":"failure","id":128891075287,"name":"verify","steps":[{"name":"Require every shard","number":2}]}

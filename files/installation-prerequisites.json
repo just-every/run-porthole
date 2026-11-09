@@ -1,0 +1,15 @@
+{
+  "recorded_at": "2026-11-09T04:14:12.109221+00:00",
+  "kernel": "6.18.57",
+  "kernel_btf_readable": false,
+  "cgroup_controllers": [
+    "cpuset",
+    "cpu",
+    "io",
+    "memory",
+    "hugetlb",
+    "pids"
+  ],
+  "cgroup_mount": "/sys/fs/cgroup rw,nosuid,nodev,noexec,relatime,nsdelegate",
+  "docker_version": "28.4.0"
+}

@@ -1,0 +1,12 @@
+{
+  "recorded_at": "2026-11-09T04:50:35.654851+00:00",
+  "head": "ad7b73d2c119540b7f2ed13107d96c2aadebc8d1",
+  "branch": "cloud/sx-porthole-c-f462-pc1",
+  "remote_head": "ad7b73d2c119540b7f2ed13107d96c2aadebc8d1",
+  "main_head": "85b79464fa8a79597741711f6689f1b21132cd89",
+  "main_equals_candidate": false,
+  "product_push_attempts": 1,
+  "push_result": "success",
+  "published_history_rewritten": false,
+  "evidence_in_product_tree": false
+}

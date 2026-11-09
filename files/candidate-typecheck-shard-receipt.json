@@ -1,0 +1,10 @@
+{
+  "head": "ad7b73d2c119540b7f2ed13107d96c2aadebc8d1",
+  "command": "CI=true WRANGLER_SEND_METRICS=false PLAYWRIGHT_SKIP_BROWSER_GC=1 node scripts/verify-ci.mjs typecheck",
+  "exit": 0,
+  "elapsed_seconds": 267.3,
+  "services_seconds": 156.7,
+  "fleet_seconds": 71.1,
+  "incremental_assertions": 7,
+  "result": "Services on both analytical configurations, native fleet refusals and inactive restoration all passed"
+}

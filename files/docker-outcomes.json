@@ -1,0 +1,27 @@
+{
+  "head": "ad7b73d2c119540b7f2ed13107d96c2aadebc8d1",
+  "exit": 0,
+  "delivery_ms": 2107,
+  "source_nanoseconds_preserved": true,
+  "original_container_identity_preserved": true,
+  "hostmetrics_exported": true,
+  "docker_stats_exported": true,
+  "secret_file_excluded_from_container_environment": true,
+  "mount_gap_cases": [
+    "host-proc",
+    "host-sys",
+    "container-logs",
+    "docker-socket"
+  ],
+  "product_and_collector_restart": true,
+  "uninstall_stops_fresh_data": true,
+  "history_retained_and_stale": true,
+  "revoked_export_http": 401,
+  "observed_dropped_logs": 1,
+  "native_owner_loss_accounting": true,
+  "responder_loss_accounting_refused": true,
+  "inactive_restore_without_credentials": true,
+  "primary_and_standby_agree": true,
+  "selected_outage_refuses": true,
+  "permanent_test_assertions_changed": 0
+}

@@ -1,0 +1,26 @@
+{
+  "starting_head": "cc383ab1a289025f4d85aec0038424f596995c7e",
+  "same_push_command_multiset": true,
+  "same_shards": true,
+  "same_browser_requirements": true,
+  "same_hosted_requirements": true,
+  "commands_removed": 0,
+  "commands_added": 0,
+  "moves": [
+    {
+      "source": "typecheck",
+      "destination": "traces",
+      "command": "node --input-type=module -e 'import {nativeBackupErasureJourney} from \"./tests/porthole/archive.mjs\"; await nativeBackupErasureJourney()'"
+    },
+    {
+      "source": "analytical",
+      "destination": "mail-receipts",
+      "command": "PORTHOLE_HOST_HEARTBEAT_ONLY=1 pnpm run test:runtime"
+    },
+    {
+      "source": "analytical",
+      "destination": "exports",
+      "command": "PORTHOLE_DATABASE_ONLY=1 pnpm run test:runtime"
+    }
+  ]
+}

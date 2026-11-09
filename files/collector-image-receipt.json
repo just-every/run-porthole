@@ -1,0 +1,5 @@
+{
+  "digest": "sha256:89107a3a8f4636a396927edf7025bb9614b8da2d92f4cc3f43109e8d115736e2",
+  "result": "Downloaded newer image for ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib@sha256:89107a3a8f4636a396927edf7025bb9614b8da2d92f4cc3f43109e8d115736e2",
+  "purpose": "Pinned-image preparation before timed Collector-start proof"
+}

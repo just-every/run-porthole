@@ -1,0 +1,5 @@
+{
+  "digest": "sha256:d32cdf619f63fe0471182d08996dd516c6275bb5fd31ae06e55a570bd9e1ad43",
+  "result": "Downloaded newer image for node@sha256:d32cdf619f63fe0471182d08996dd516c6275bb5fd31ae06e55a570bd9e1ad43",
+  "purpose": "Pinned-image preparation before timed Collector-start proof"
+}

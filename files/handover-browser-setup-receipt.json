@@ -1,0 +1,9 @@
+{
+  "head": "ad7b73d2c119540b7f2ed13107d96c2aadebc8d1",
+  "command": "CI=true PORTHOLE_HANDOVER_ONLY=1 timeout 1200 python3 /tmp/rer-reap.py pnpm run test:runtime",
+  "exit": 1,
+  "elapsed_seconds": 100.2,
+  "qualifying": false,
+  "failure": "browserType.launch: Executable does not exist at chromium_headless_shell-1243/chrome-headless-shell-linux64/chrome-headless-shell",
+  "followup": "Local browser mode uses /usr/bin/chromium and passes; see handover-receipt.json"
+}

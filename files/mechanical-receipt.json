@@ -1,0 +1,36 @@
+{
+  "head": "ad7b73d2c119540b7f2ed13107d96c2aadebc8d1",
+  "lock": {
+    "write": "pnpm run source:lock",
+    "write_exit": 0,
+    "check": "pnpm run source:check",
+    "check_exit": 0
+  },
+  "views": {
+    "write": "node scripts/porthole/contract-docs.mjs write PORT-003",
+    "write_exit": 0,
+    "check": "node scripts/porthole/contract-docs.mjs check PORT-003",
+    "check_exit": 0,
+    "restored": [
+      "ACCEPTANCE.md",
+      "docs/CLAIMS.md"
+    ]
+  },
+  "typecheck": {
+    "command": "pnpm run typecheck",
+    "exit": 0
+  },
+  "first_party": {
+    "command": "pnpm exec rer check --profile first-party",
+    "exit": 0
+  },
+  "public_schema": {
+    "command": "node scripts/porthole/public-schema.mjs --check",
+    "exit": 0
+  },
+  "ledger": {
+    "command": null,
+    "reason": "No migration edited by this continuation; upstream migration names and bytes preserved"
+  },
+  "contract_status_rows_changed": 0
+}

@@ -1,0 +1,6 @@
+{
+  "head": "843cefdeab89ace4ed4543f1ffdb55d0e22b3495",
+  "job": "128888052134",
+  "command": "CI=true WRANGLER_SEND_METRICS=false PLAYWRIGHT_SKIP_BROWSER_GC=1 node scripts/verify-ci.mjs analytical",
+  "exit": 0
+}

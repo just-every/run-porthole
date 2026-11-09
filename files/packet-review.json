@@ -1,0 +1,10 @@
+{
+  "head": "ad7b73d2c119540b7f2ed13107d96c2aadebc8d1",
+  "selected_files": 74,
+  "screens": 36,
+  "injected_secret_values_found": 0,
+  "credential_shapes_found": 0,
+  "symlinks_selected": 0,
+  "selection": "Explicit report, receipt and screenshot allowlist; no credential file, setup log, environment dump or held gate material selected",
+  "publication_scan_run": false
+}

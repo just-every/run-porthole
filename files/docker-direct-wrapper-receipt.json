@@ -1,0 +1,8 @@
+{
+  "head": "ad7b73d2c119540b7f2ed13107d96c2aadebc8d1",
+  "command": "PORTHOLE_COLLECTOR_INSTALL_ONLY=1 CI=true timeout 1200 python3 /tmp/rer-reap.py node tests/runtime.mjs",
+  "outer_exit": 1,
+  "all_journey_assertions_completed": true,
+  "qualifying": false,
+  "followup": "Public pnpm test command completed exit 0; see docker-repeat-receipt.json"
+}

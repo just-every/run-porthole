@@ -1,0 +1,15 @@
+
+> @just-every/porthole@0.1.0 test:runtime /workspace/run-porthole
+> rer queue test:runtime -- sh -c "node tests/runtime.mjs"
+
+test:runtime
+Heavy job admitted: Porthole test:runtime:command [94c9ff1ec523]
+▲ [WARNING] Proxy environment variables detected. We'll use your proxy for fetch requests.
+
+
+Installed owner claim rejects missing/wrong setup tokens and request demo flags
+HTTP-001 passed against emitted local Worker: health, the installed homepage, HTTP and document 404s
+Handover: native mixed batch, private audit and transport refusals checked
+Handover: notebook, sharing, ingest custody and browser states checked
+handoverJourney passed: complete native inventory, wrong-scope and stale refusals with no writes, mixed transfer and unassignment, void approvals, identical readable sets, next-request session and personal credential REST CLI MCP refusal, restart and inactive restore
+APP-HOME passed against emitted local Worker: /app behind sign-in and setup, then the trace view with its stylesheets

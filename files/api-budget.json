@@ -1,0 +1,53 @@
+{
+  "limit": 10,
+  "used": 9,
+  "calls": [
+    {
+      "command": "gh api repos/just-every/run-porthole/actions/runs/42532000070/jobs",
+      "purpose": "failed-job discovery"
+    },
+    {
+      "command": "gh run view 42532000070 --repo just-every/run-porthole --job 128888052134 --log-failed",
+      "purpose": "prescribed failed assertion lookup",
+      "bytes": 0,
+      "exit": 0
+    },
+    {
+      "command": "gh run view 42532000070 --repo just-every/run-porthole --job 128888052194 --log-failed",
+      "purpose": "prescribed failed assertion lookup",
+      "bytes": 0,
+      "exit": 0
+    },
+    {
+      "command": "gh run view 42532000070 --repo just-every/run-porthole --job 128888052134 --log",
+      "purpose": "cancelled-job archive lookup",
+      "bytes": 0,
+      "exit": 0
+    },
+    {
+      "command": "gh run view 42532000070 --repo just-every/run-porthole --job 128888052194 --log",
+      "purpose": "cancelled-job archive lookup",
+      "bytes": 0,
+      "exit": 0
+    },
+    {
+      "command": "gh api repos/just-every/run-porthole/actions/runs/42532000070/jobs",
+      "purpose": "job and execution-step timing"
+    },
+    {
+      "command": "gh api repos/just-every/run-porthole/actions/runs?head_sha=ad7b73d2c119540b7f2ed13107d96c2aadebc8d1&per_page=100",
+      "purpose": "exact candidate run discovery",
+      "at": 1794199042.5262878
+    },
+    {
+      "command": "gh api repos/just-every/run-porthole/actions/runs?head_sha=ad7b73d2c119540b7f2ed13107d96c2aadebc8d1&per_page=100",
+      "purpose": "delayed exact candidate discovery",
+      "at": 1794199663.3372228
+    },
+    {
+      "command": "gh api repos/just-every/run-porthole/actions/runs/42562847296",
+      "purpose": "exact candidate final status",
+      "at": 1794199994.5534663
+    }
+  ]
+}

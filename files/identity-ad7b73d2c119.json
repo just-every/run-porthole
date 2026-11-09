@@ -1,0 +1,49 @@
+{
+  "head": "ad7b73d2c119540b7f2ed13107d96c2aadebc8d1",
+  "commits": [
+    {
+      "head": "ad7b73d2c119540b7f2ed13107d96c2aadebc8d1",
+      "author_allowed": true,
+      "committer_allowed": true,
+      "trailers_allowed": true
+    },
+    {
+      "head": "cc383ab1a289025f4d85aec0038424f596995c7e",
+      "author_allowed": true,
+      "committer_allowed": true,
+      "trailers_allowed": true
+    },
+    {
+      "head": "843cefdeab89ace4ed4543f1ffdb55d0e22b3495",
+      "author_allowed": true,
+      "committer_allowed": true,
+      "trailers_allowed": true
+    },
+    {
+      "head": "752ba7820f6299e91116d98ea39bffbf9776009b",
+      "author_allowed": true,
+      "committer_allowed": true,
+      "trailers_allowed": true
+    },
+    {
+      "head": "d52d37a5da10792f5e9abbf52724241e17bef3a4",
+      "author_allowed": true,
+      "committer_allowed": true,
+      "trailers_allowed": true
+    },
+    {
+      "head": "e7dbc4ee41ab16b6c150f565651f40520ddbe5a9",
+      "author_allowed": true,
+      "committer_allowed": true,
+      "trailers_allowed": true
+    },
+    {
+      "head": "bfbaf0fe20b62bdd7d243c6a096dbb22da9395bf",
+      "author_allowed": true,
+      "committer_allowed": true,
+      "trailers_allowed": true
+    }
+  ],
+  "all_candidate_parents_checked": true,
+  "contract_unchanged": true
+}

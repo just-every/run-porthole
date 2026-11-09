@@ -1,0 +1,10 @@
+{
+  "head": "ad7b73d2c119540b7f2ed13107d96c2aadebc8d1",
+  "command": "timeout 1200 python3 /tmp/rer-reap.py pnpm run test:runtime",
+  "flag": "PORTHOLE_COLLECTOR_INSTALL_ONLY",
+  "exit": 0,
+  "elapsed_seconds": 108.6,
+  "log": "candidate-docker-repeat.log",
+  "run_id": "local-sx-porthole-c-f462-pc1-docker-20261109T044347Z",
+  "receipt_recorded_at": "20261109T044347Z"
+}
