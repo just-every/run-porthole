@@ -6005,7 +6005,7 @@
       "executable": false
     },
     "tests/runtime.mjs": {
-      "sha256": "7894549844d148bb09aa3d00350d81942de6e01277f7bbe2e6ad4e51f9cdace4",
+      "sha256": "e6ee790cb376e2a579dcd8a5a00316f40b68ec56e99d1d9ffae44febddd341f9",
       "executable": false
     },
     "tests/typecheck-checks.mjs": {
@@ -6017,7 +6017,7 @@
       "executable": false
     },
     "verification.json": {
-      "sha256": "ac1638ffe33341c005f7e4fbc8c33cea15d7312d2d3bc98e07a1bc8df53eae50",
+      "sha256": "e1f9f1447ba682434e69b78947ccd8b0d584ef989b21e529157d3ba75b1a5839",
       "executable": false
     },
     "VERIFY-WORKFLOW.md": {

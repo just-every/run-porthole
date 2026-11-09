@@ -121,7 +121,7 @@
         "PORTHOLE_FOLLOW_UP_ONLY=1 pnpm run test:runtime",
         "PORTHOLE_SLO_ONLY=1 pnpm run test:runtime",
         "PORTHOLE_NOTEBOOKS_ONLY=1 pnpm run test:runtime",
-        "node --input-type=module -e 'import {servicesAnalyticalJourney} from \"./tests/porthole/analytics.mjs\"; await servicesAnalyticalJourney()'"
+        "PORTHOLE_SERVICES_ANALYTICAL_ONLY=1 pnpm run test:runtime"
       ]
     }
   ],
