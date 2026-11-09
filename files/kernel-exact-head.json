@@ -1,0 +1,5 @@
+{
+  "command": "node -e import(\"./tests/porthole/analytics.mjs\").then(module=>module.analyticalKernelJourney())",
+  "head": "0097a510107f72272b9f91e9f5d50749e54666b5",
+  "exit": 0
+}

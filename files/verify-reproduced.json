@@ -1,0 +1,9 @@
+{
+  "head": "0097a510107f72272b9f91e9f5d50749e54666b5",
+  "job": 128957279075,
+  "run": 42554552544,
+  "command": "CI=true WRANGLER_SEND_METRICS=false PLAYWRIGHT_SKIP_BROWSER_GC=1 SHARD=ingest node scripts/verify-ci.mjs ingest",
+  "exit": 1,
+  "test": "tests/runtime.mjs:140 setupPage.status",
+  "failure": "AssertionError [ERR_ASSERTION]: 503 !== 200"
+}

@@ -1,0 +1,8 @@
+{
+  "head": "f05c40a3c98cf3e60cad32e97daaa1fbcad27b7e",
+  "round": 1,
+  "command": "CI=true WRANGLER_SEND_METRICS=false PLAYWRIGHT_SKIP_BROWSER_GC=1 SHARD=ingest node scripts/verify-ci.mjs ingest",
+  "exit": 1,
+  "classification": "local browser dependency unavailable; same source passed the original CI assertion",
+  "failure": "browserType.launch: Playwright chromium_headless_shell-1243 executable missing"
+}

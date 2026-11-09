@@ -84,8 +84,28 @@ GAP PORT-094: The full authorized deployed backup, outage check and explicit-des
 
 Counts before and after: 10 DONE, 20 PARTIAL, 69 MISSING, all 99 Status rows retained. PORT-094's stored status remains MISSING; the builder claim is PARTIAL for the local subset, points=none for full deployed acceptance. No plan row was edited remotely; this report is the return for the PORT-094 local-outage slice only. No next held target was resumed and no PR is required by this repository's direct cloud-branch workflow.
 
+
+## Verify repair 1
+
+Original candidate 0097a510107f72272b9f91e9f5d50749e54666b5 received completed/failure in push Verify 42554552544. The control-recovery shard 128957279032 passed, as did source, typecheck, runtime, traces, exports, migration, dashboards, follow-up and mail-receipts. Ingest job 128957279075 failed at tests/runtime.mjs:140: setupPage.status was 503 instead of 200. The analytical shard was cancelled; no success is claimed for it.
+
+The archived failed-job log was read once with gh run view 42554552544 --repo just-every/run-porthole --job 128957279075 --log-failed. The exact failed shard command, with CI=true, WRANGLER_SEND_METRICS=false, PLAYWRIGHT_SKIP_BROWSER_GC=1 and SHARD=ingest, reproduced that assertion locally on the failed SHA with exit 1. See verify-reproduced.json and verify-failed-candidate.log. No speculative repair preceded that reproduction.
+
+The cause is the existing prior-installation journey opening setup before the profile-era and later migrations have run. The new recovery query read a table that did not yet exist. The repair checks actual table presence and the real D1 migration ledger. Only a genuinely unapplied recovery migration may omit its table; a table missing after a recorded migration still fails closed. No test, setup assertion, migration boundary or health freshness rule was weakened. This is one repair round.
+
+The same full ingest shard is run on main a4b8bed320f94b9bbeb1b0e1d21b232fb6b4c9ed on this runner. The repaired candidate reruns the exact full ingest shard and the actual native outage/restore drill. Actual outcomes and the final candidate are in the corresponding JSON receipts and RESULTS.json. The ten-call GitHub budget is exhausted after discovery, scheduled polls, job enumeration and the single failed-job archive read, including the earlier acquisition calls. The automatic Verify on the repaired product push is not queried, dispatched or rerun by this task. PUSHED custody does not claim it green.
+
+
+Local browser environment note: both the main comparison and first repaired local shard passed the original setup assertion, populated three-signal upgrade and four-signal protocol proof, then failed because the Playwright 1243 headless executable was absent. Their actual first receipts and logs are retained. The local expected cache executable was linked to the provided /usr/bin/chromium, preserving Playwright's default no-sandbox arguments. No product source, test assertion or browser journey was changed for this environment correction; the same whole commands were rerun. This was not a second product repair or a GitHub workflow rerun.
+
+
+Repaired product custody: f05c40a3c98cf3e60cad32e97daaa1fbcad27b7e was pushed through the cloud guard and the remote branch was independently read back at that same head. product-push.json is the actual receipt. The exact repaired native drill passed, including all eight final browser captures and the retained six, counted two-record gap, four buffered records and four accounted duplicates. Native setup, import and the populated D1 ledger remain real command executions. No second product repair was needed.
+
+
+Final comparison outcomes: the full exact ingest shard returned exit 0 on repaired head f05c40a3c98cf3e60cad32e97daaa1fbcad27b7e and main a4b8bed320f94b9bbeb1b0e1d21b232fb6b4c9ed after the documented local Chromium configuration. Both completed prior-schema setup, retained data-preserving profile upgrade, four-signal protocol and archive proof, browser flow, native pipeline processors and the 1000-span metric-rule journey. The repaired native control-plane recovery drill also returned exit 0 on the repaired head. The original failure is therefore fixed locally; the new branch Verify remains unqueried, not green by assertion. No workflow dispatch or rerun was made.
+
 ## Terminal product provenance
 
-Candidate: 0097a510107f72272b9f91e9f5d50749e54666b5. Branch: cloud/sx-porthole-c-f465. Main at the final fetch: a4b8bed320f94b9bbeb1b0e1d21b232fb6b4c9ed. The native control recovery receipt is passed on this exact candidate. The product working tree is clean. Exact CI response is in CI.json and summarized in RESULTS.json. No PR was created. All candidate authors and committers were checked, including merge side parents; no trailer remains. Publication scan and main-only Run site remain lander gates.
+Candidate: f05c40a3c98cf3e60cad32e97daaa1fbcad27b7e. Branch: cloud/sx-porthole-c-f465. Main at the final fetch: a4b8bed320f94b9bbeb1b0e1d21b232fb6b4c9ed. The native control recovery receipt is passed on this exact candidate. The product working tree is clean. The original exact CI response is in CI.json and summarized separately from the repaired candidate in RESULTS.json; its ingest failure was reproduced and repaired, and the new candidate Verify cannot be queried after exhausting the ten-call budget. No PR was created. All candidate authors and committers were checked, including merge side parents; no trailer remains. Publication scan and main-only Run site remain lander gates.
 
 CLAIM PORT-094 PARTIAL points=none tests=tests/porthole/control-plane-recovery.mjs#controlPlaneRecoveryJourney; tests/porthole/health.mjs#recoveryJourney; tests/porthole/health.mjs#hostHeartbeatJourney; tests/porthole/analytics.mjs#analyticalConnectionJourney; tests/porthole/native-archive.mjs#nativeArchiveJourney

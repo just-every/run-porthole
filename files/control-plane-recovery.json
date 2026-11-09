@@ -1,6 +1,6 @@
 {
   "journey": "controlPlaneRecoveryJourney",
-  "candidate": "0097a510107f72272b9f91e9f5d50749e54666b5",
+  "candidate": "f05c40a3c98cf3e60cad32e97daaa1fbcad27b7e",
   "runtime": "local emitted Workers; no deployment qualification",
   "steps": [
     {
@@ -16,19 +16,19 @@
       "tables": {
         "porthole_ingest_batches": {
           "count": 6,
-          "digest": "2a88ea2616ca5d9680388175b0aec3c76f8eb94bfcc332ce0ffc1a8e7adb3afa"
+          "digest": "41947ad795e844e9070995dbf6791ceaf40d452f8e7abbd35e0c0fffe70ed6c9"
         },
         "porthole_telemetry_records": {
           "count": 6,
-          "digest": "2038b5a74a22bb4a34b799065ce88fb6014973300ab82c7a0e1eb4413652a622"
+          "digest": "7fc498ef7ab8263c5e0d53091cb004b0a6554882004f343ed00bcc9872efca90"
         },
         "porthole_telemetry_archive": {
           "count": 6,
-          "digest": "826b728e53501d949a642351463bd2568a80f8b97903752dceb9191877f277bf"
+          "digest": "26f3f389d78bf260936b02511cbdc9747f750dab59b16f8be57f2e13d99816e5"
         },
         "porthole_audit_entries": {
           "count": 37,
-          "digest": "1e075e34eca11ed9fd9b92c9512634b3e7ed951efb477336d8784d3b6e4750a2"
+          "digest": "52fdaa7c30076075aeb759dd7d5325d21d2cf10e2fb8154a4c0ce016f1d9ee8e"
         },
         "porthole_archive_audit": {
           "count": 0,
@@ -43,13 +43,13 @@
         {
           "collectorId": "synthetic-porthole-8010",
           "hostId": "bbb662c3ffaa",
-          "observedAt": "2026-11-09T03:02:51.214Z",
+          "observedAt": "2026-11-09T03:28:28.768Z",
           "status": "heartbeat_accepted"
         },
         {
           "collectorId": "synthetic-porthole-8011",
           "hostId": "bbb662c3ffaa",
-          "observedAt": "2026-11-09T03:02:51.352Z",
+          "observedAt": "2026-11-09T03:28:28.937Z",
           "status": "heartbeat_accepted"
         }
       ],
@@ -88,20 +88,20 @@
     }
   ],
   "originalEventNanoseconds": [
-    "01794193371379008000",
-    "01794193371405008001",
-    "01794193371420008002",
-    "01794193371435008003",
-    "01794193371446008004",
-    "01794193371457008005"
+    "01794194909045008000",
+    "01794194909068008001",
+    "01794194909084008002",
+    "01794194909101008003",
+    "01794194909114008004",
+    "01794194909128008005"
   ],
   "originalReceiptNanoseconds": [
-    "1794193371386000000",
-    "1794193371410000000",
-    "1794193371424000000",
-    "1794193371439000000",
-    "1794193371449000000",
-    "1794193371460000000"
+    "1794194909052000000",
+    "1794194909072000000",
+    "1794194909092000000",
+    "1794194909105000000",
+    "1794194909118000000",
+    "1794194909131000000"
   ],
   "result": "passed"
 }

@@ -1,0 +1,85 @@
+shards (ingest, true)	Run this shard	﻿2026-11-09T03:07:30.9974874Z ##[group]Run node scripts/verify-ci.mjs "$SHARD"
+shards (ingest, true)	Run this shard	2026-11-09T03:07:30.9975183Z [36;1mnode scripts/verify-ci.mjs "$SHARD"[0m
+shards (ingest, true)	Run this shard	2026-11-09T03:07:30.9989811Z shell: /usr/bin/bash -e {0}
+shards (ingest, true)	Run this shard	2026-11-09T03:07:30.9990019Z env:
+shards (ingest, true)	Run this shard	2026-11-09T03:07:30.9990175Z   CI: true
+shards (ingest, true)	Run this shard	2026-11-09T03:07:30.9990349Z   WRANGLER_SEND_METRICS: false
+shards (ingest, true)	Run this shard	2026-11-09T03:07:30.9990561Z   PLAYWRIGHT_SKIP_BROWSER_GC: 1
+shards (ingest, true)	Run this shard	2026-11-09T03:07:30.9990763Z   SHARD: ingest
+shards (ingest, true)	Run this shard	2026-11-09T03:07:30.9990945Z ##[endgroup]
+shards (ingest, true)	Run this shard	2026-11-09T03:07:31.0248750Z > pnpm run verify:app
+shards (ingest, true)	Run this shard	2026-11-09T03:07:31.2228876Z 
+shards (ingest, true)	Run this shard	2026-11-09T03:07:31.2229416Z > @just-every/porthole@0.1.0 verify:app /home/runner/work/run-porthole/run-porthole
+shards (ingest, true)	Run this shard	2026-11-09T03:07:31.2229841Z > node scripts/verify-app.mjs
+shards (ingest, true)	Run this shard	2026-11-09T03:07:31.2229996Z 
+shards (ingest, true)	Run this shard	2026-11-09T03:07:31.2462628Z > pnpm run build
+shards (ingest, true)	Run this shard	2026-11-09T03:07:31.4476429Z 
+shards (ingest, true)	Run this shard	2026-11-09T03:07:31.4477389Z > @just-every/porthole@0.1.0 build /home/runner/work/run-porthole/run-porthole
+shards (ingest, true)	Run this shard	2026-11-09T03:07:31.4478000Z > rer build
+shards (ingest, true)	Run this shard	2026-11-09T03:07:31.4478156Z 
+shards (ingest, true)	Run this shard	2026-11-09T03:07:31.9108509Z Checking pinned pnpm
+shards (ingest, true)	Run this shard	2026-11-09T03:07:32.0999109Z 10.12.4
+shards (ingest, true)	Run this shard	2026-11-09T03:07:32.1620500Z Building your application
+shards (ingest, true)	Run this shard	2026-11-09T03:07:32.4530781Z build:app
+shards (ingest, true)	Run this shard	2026-11-09T03:07:34.0143121Z vite v8.2.2 building client environment for production...
+shards (ingest, true)	Run this shard	2026-11-09T03:07:34.0284858Z transforming...
+shards (ingest, true)	Run this shard	2026-11-09T03:07:34.0956698Z ✓ 141 modules transformed.
+shards (ingest, true)	Run this shard	2026-11-09T03:07:34.1174652Z rendering chunks...
+shards (ingest, true)	Run this shard	2026-11-09T03:07:34.1611983Z computing gzip size...
+shards (ingest, true)	Run this shard	2026-11-09T03:07:34.1661014Z dist/client/.assetsignore               0.02 kB
+shards (ingest, true)	Run this shard	2026-11-09T03:07:34.1661974Z dist/client/assets/index-CRqGoFgh.js  313.67 kB │ gzip: 101.76 kB
+shards (ingest, true)	Run this shard	2026-11-09T03:07:34.1662333Z 
+shards (ingest, true)	Run this shard	2026-11-09T03:07:34.3346456Z ✓ built in 320ms
+shards (ingest, true)	Run this shard	2026-11-09T03:07:34.3347057Z vite v8.2.2 building ssr environment for production...
+shards (ingest, true)	Run this shard	2026-11-09T03:07:34.3411543Z transforming...
+shards (ingest, true)	Run this shard	2026-11-09T03:07:34.7823466Z ✓ 832 modules transformed.
+shards (ingest, true)	Run this shard	2026-11-09T03:07:34.8414577Z rendering chunks...
+shards (ingest, true)	Run this shard	2026-11-09T03:07:34.9617517Z computing gzip size...
+shards (ingest, true)	Run this shard	2026-11-09T03:07:35.0079579Z dist/server/wrangler.json                                      1.65 kB │ gzip:   0.83 kB
+shards (ingest, true)	Run this shard	2026-11-09T03:07:35.0080409Z dist/server/.vite/manifest.json                                2.35 kB │ gzip:   0.53 kB
+shards (ingest, true)	Run this shard	2026-11-09T03:07:35.0081344Z dist/server/assets/empty-plugin-adapters-D_0twvAa.js           0.28 kB │ gzip:   0.18 kB
+shards (ingest, true)	Run this shard	2026-11-09T03:07:35.0082208Z dist/server/assets/start-BRPP0LUH.js                           0.28 kB │ gzip:   0.20 kB
+shards (ingest, true)	Run this shard	2026-11-09T03:07:35.0083137Z dist/server/assets/_tanstack-start-manifest_v-CiDJhoiU.js      0.37 kB │ gzip:   0.26 kB
+shards (ingest, true)	Run this shard	2026-11-09T03:07:35.0084159Z dist/server/assets/wire-C5pyjjqN.js                            7.77 kB │ gzip:   2.90 kB
+shards (ingest, true)	Run this shard	2026-11-09T03:07:35.0085031Z dist/server/assets/router-B-pF21YZ.js                         37.45 kB │ gzip:  10.06 kB
+shards (ingest, true)	Run this shard	2026-11-09T03:07:35.0085855Z dist/server/assets/Match-vf3DrRnt.js                         169.04 kB │ gzip:  42.60 kB
+shards (ingest, true)	Run this shard	2026-11-09T03:07:35.0086676Z dist/server/index.js                                       3,339.75 kB │ gzip: 815.60 kB
+shards (ingest, true)	Run this shard	2026-11-09T03:07:35.0087060Z 
+shards (ingest, true)	Run this shard	2026-11-09T03:07:35.0366622Z [INEFFECTIVE_DYNAMIC_IMPORT] src/porthole/ingest/otlp-proto.ts is dynamically imported by src/porthole/database/privacy.ts but also statically imported by src/porthole/genai/wire.ts, src/porthole/ingest/http.ts, src/porthole/signals/standard/tempo.ts, dynamic import will not move module into another chunk.
+shards (ingest, true)	Run this shard	2026-11-09T03:07:35.0368146Z 
+shards (ingest, true)	Run this shard	2026-11-09T03:07:35.0369921Z [INEFFECTIVE_DYNAMIC_IMPORT] src/modules/import-kit/src/d1/undo-snapshot.ts is dynamically imported by src/modules/import-kit/src/d1/apply.ts but also statically imported by src/modules/import-kit/src/d1/preserved-preview.ts, src/modules/import-kit/src/d1/preserved-reverse.ts, dynamic import will not move module into another chunk.
+shards (ingest, true)	Run this shard	2026-11-09T03:07:35.0371255Z 
+shards (ingest, true)	Run this shard	2026-11-09T03:07:35.0371635Z ✓ built in 700ms
+shards (ingest, true)	Run this shard	2026-11-09T03:07:35.4577185Z Your application is built
+shards (ingest, true)	Run this shard	2026-11-09T03:07:35.4886263Z build: complete (exit 0)
+shards (ingest, true)	Run this shard	2026-11-09T03:07:35.5056137Z > PORTHOLE_INGEST_ONLY=1 pnpm run test:runtime
+shards (ingest, true)	Run this shard	2026-11-09T03:07:35.7050836Z 
+shards (ingest, true)	Run this shard	2026-11-09T03:07:35.7051692Z > @just-every/porthole@0.1.0 test:runtime /home/runner/work/run-porthole/run-porthole
+shards (ingest, true)	Run this shard	2026-11-09T03:07:35.7052229Z > rer queue test:runtime -- sh -c "node tests/runtime.mjs"
+shards (ingest, true)	Run this shard	2026-11-09T03:07:35.7052429Z 
+shards (ingest, true)	Run this shard	2026-11-09T03:07:35.7792817Z test:runtime
+shards (ingest, true)	Run this shard	2026-11-09T03:07:42.0195240Z Installed owner claim rejects missing/wrong setup tokens and request demo flags
+shards (ingest, true)	Run this shard	2026-11-09T03:07:42.0195973Z HTTP-001 passed against emitted local Worker: health, the installed homepage, HTTP and document 404s
+shards (ingest, true)	Run this shard	2026-11-09T03:07:47.2719296Z 
+shards (ingest, true)	Run this shard	2026-11-09T03:07:47.2878352Z node:internal/modules/run_main:123
+shards (ingest, true)	Run this shard	2026-11-09T03:07:47.2878694Z     triggerUncaughtException(
+shards (ingest, true)	Run this shard	2026-11-09T03:07:47.2878983Z     ^
+shards (ingest, true)	Run this shard	2026-11-09T03:07:47.2879108Z 
+shards (ingest, true)	Run this shard	2026-11-09T03:07:47.2879352Z AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+shards (ingest, true)	Run this shard	2026-11-09T03:07:47.2879599Z 
+shards (ingest, true)	Run this shard	2026-11-09T03:07:47.2879676Z 503 !== 200
+shards (ingest, true)	Run this shard	2026-11-09T03:07:47.2879770Z 
+shards (ingest, true)	Run this shard	2026-11-09T03:07:47.2879940Z     at file://[REDACTED]/tests/runtime.mjs:140:10
+shards (ingest, true)	Run this shard	2026-11-09T03:07:47.2880393Z     at process.processTicksAndRejections (node:internal/process/task_queues:105:5) {
+shards (ingest, true)	Run this shard	2026-11-09T03:07:47.2880760Z   generatedMessage: true,
+shards (ingest, true)	Run this shard	2026-11-09T03:07:47.2880971Z   code: 'ERR_ASSERTION',
+shards (ingest, true)	Run this shard	2026-11-09T03:07:47.2881166Z   actual: 503,
+shards (ingest, true)	Run this shard	2026-11-09T03:07:47.2881338Z   expected: 200,
+shards (ingest, true)	Run this shard	2026-11-09T03:07:47.2881527Z   operator: 'strictEqual',
+shards (ingest, true)	Run this shard	2026-11-09T03:07:47.2881721Z   diff: 'simple'
+shards (ingest, true)	Run this shard	2026-11-09T03:07:47.2882148Z }
+shards (ingest, true)	Run this shard	2026-11-09T03:07:47.2882241Z 
+shards (ingest, true)	Run this shard	2026-11-09T03:07:47.2882322Z Node.js v22.20.0
+shards (ingest, true)	Run this shard	2026-11-09T03:07:47.3789422Z  ELIFECYCLE  Command failed with exit code 1.
+shards (ingest, true)	Run this shard	2026-11-09T03:07:47.4074649Z  ELIFECYCLE  Command failed with exit code 1.
+shards (ingest, true)	Run this shard	2026-11-09T03:07:47.4260126Z ##[error]Process completed with exit code 1.

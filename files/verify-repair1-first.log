@@ -1,0 +1,86 @@
+> pnpm run verify:app
+
+> @just-every/porthole@0.1.0 verify:app /home/agent/rer-consolidation/work/sx-porthole-c-f465/run-porthole
+> node scripts/verify-app.mjs
+
+> pnpm run build
+
+> @just-every/porthole@0.1.0 build /home/agent/rer-consolidation/work/sx-porthole-c-f465/run-porthole
+> rer build
+
+Checking pinned pnpm
+10.12.4
+Building your application
+build:app
+▲ [WARNING] Proxy environment variables detected. We'll use your proxy for fetch requests.
+
+
+vite v8.2.2 building client environment for production...
+transforming...
+✓ 141 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/client/.assetsignore               0.02 kB
+dist/client/assets/index-CRqGoFgh.js  313.67 kB │ gzip: 101.76 kB
+
+✓ built in 760ms
+vite v8.2.2 building ssr environment for production...
+transforming...
+✓ 832 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/server/wrangler.json                                      1.70 kB │ gzip:   0.85 kB
+dist/server/.vite/manifest.json                                2.35 kB │ gzip:   0.53 kB
+dist/server/assets/empty-plugin-adapters-D_0twvAa.js           0.28 kB │ gzip:   0.18 kB
+dist/server/assets/start-BRPP0LUH.js                           0.28 kB │ gzip:   0.20 kB
+dist/server/assets/_tanstack-start-manifest_v-BT2z-_F5.js      0.39 kB │ gzip:   0.28 kB
+dist/server/assets/wire-C5pyjjqN.js                            7.77 kB │ gzip:   2.90 kB
+dist/server/assets/router-B-pF21YZ.js                         37.45 kB │ gzip:  10.06 kB
+dist/server/assets/Match-vf3DrRnt.js                         169.04 kB │ gzip:  42.60 kB
+dist/server/index.js                                       3,339.99 kB │ gzip: 815.67 kB
+
+[INEFFECTIVE_DYNAMIC_IMPORT] src/porthole/ingest/otlp-proto.ts is dynamically imported by src/porthole/database/privacy.ts but also statically imported by src/porthole/genai/wire.ts, src/porthole/ingest/http.ts, src/porthole/signals/standard/tempo.ts, dynamic import will not move module into another chunk.
+
+[INEFFECTIVE_DYNAMIC_IMPORT] src/modules/import-kit/src/d1/undo-snapshot.ts is dynamically imported by src/modules/import-kit/src/d1/apply.ts but also statically imported by src/modules/import-kit/src/d1/preserved-preview.ts, src/modules/import-kit/src/d1/preserved-reverse.ts, dynamic import will not move module into another chunk.
+
+✓ built in 1.29s
+Your application is built
+build: complete (exit 0)
+> PORTHOLE_INGEST_ONLY=1 pnpm run test:runtime
+
+> @just-every/porthole@0.1.0 test:runtime /home/agent/rer-consolidation/work/sx-porthole-c-f465/run-porthole
+> rer queue test:runtime -- sh -c "node tests/runtime.mjs"
+
+test:runtime
+▲ [WARNING] Proxy environment variables detected. We'll use your proxy for fetch requests.
+
+
+Installed owner claim rejects missing/wrong setup tokens and request demo flags
+HTTP-001 passed against emitted local Worker: health, the installed homepage, HTTP and document 404s
+Porthole ingest journey passed: durable protocol intake, scoped auth, exact delivery/archive accounting, retry identity, original ns/reorder, quota/pressure refusals, storage/queue failure and restart recovery
+Populated three-signal D1 upgrade passed: original envelopes, retained/archive rows, sequence watermarks and foreign keys preserved
+profileArchiveJourney passed: byte-exact profile history/dictionaries and protected query replay after independent inactive restore, with no transferred credential or session
+otlpProtocolJourney passed: real HTTP/gRPC four-signal intake, compressed transport, original profile samples/dictionaries/ns/links, per-signal auth/revocation, exact counts/retries, restart, query replay and inactive archive; official-schema edge only, no stock-profile/six-language/load claim
+
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+browserType.launch: Executable doesn't exist at /home/agent/.cache/ms-playwright/chromium_headless_shell-1243/chrome-headless-shell-linux64/chrome-headless-shell
+╔════════════════════════════════════════════════════════════╗
+║ Looks like Playwright was just installed or updated.       ║
+║ Please run the following command to download new browsers: ║
+║                                                            ║
+║     pnpm exec playwright install                           ║
+║                                                            ║
+║ <3 Playwright Team                                         ║
+╚════════════════════════════════════════════════════════════╝
+    at ingestBrowserJourney ([REDACTED]/tests/porthole/ingest.mjs:192:31)
+    at async file://[REDACTED]/tests/runtime.mjs:285:4 {
+  log: [],
+  name: 'Error'
+}
+
+Node.js v22.20.0
+ ELIFECYCLE  Command failed with exit code 1.
+ ELIFECYCLE  Command failed with exit code 1.

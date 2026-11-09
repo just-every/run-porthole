@@ -1,0 +1,7 @@
+{
+  "head": "f05c40a3c98cf3e60cad32e97daaa1fbcad27b7e",
+  "round": 1,
+  "command": "CI=true WRANGLER_SEND_METRICS=false PLAYWRIGHT_SKIP_BROWSER_GC=1 SHARD=ingest node scripts/verify-ci.mjs ingest",
+  "exit": 0,
+  "environment_correction": "Playwright headless cache entry resolves to /usr/bin/chromium; same product and test source"
+}

@@ -1,0 +1,5 @@
+{
+  "head": "f05c40a3c98cf3e60cad32e97daaa1fbcad27b7e",
+  "exit": 0,
+  "command": "PORTHOLE_CONTROL_RECOVERY_ONLY=1 node tests/runtime.mjs"
+}

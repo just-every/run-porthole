@@ -2,9 +2,9 @@
   "tag": "sx-porthole-c-f465",
   "repository": "just-every/run-porthole",
   "branch": "cloud/sx-porthole-c-f465",
-  "head": "0097a510107f72272b9f91e9f5d50749e54666b5",
+  "head": "f05c40a3c98cf3e60cad32e97daaa1fbcad27b7e",
   "main_at_last_fetch": "a4b8bed320f94b9bbeb1b0e1d21b232fb6b4c9ed",
-  "generated_at": "2026-11-09T03:08:51.671720+00:00",
+  "generated_at": "2026-11-09T03:44:27.909143+00:00",
   "claim": {
     "clause": "PORT-094",
     "status": "PARTIAL",
@@ -30,37 +30,44 @@
   },
   "checks": [
     {
+      "command": "node scripts/verify-ci.mjs ingest",
+      "exit": 0,
+      "head": "f05c40a3c98cf3e60cad32e97daaa1fbcad27b7e",
+      "receipt": "verify-repair1.json"
+    },
+    {
       "command": "PORTHOLE_CONTROL_RECOVERY_ONLY=1 node tests/runtime.mjs",
       "exit": 0,
-      "head": "0097a510107f72272b9f91e9f5d50749e54666b5",
+      "head": "f05c40a3c98cf3e60cad32e97daaa1fbcad27b7e",
       "receipt": "control-plane-recovery.json"
     },
     {
       "command": "pnpm typecheck",
       "exit": 0,
-      "head": "0097a510107f72272b9f91e9f5d50749e54666b5"
+      "head": "f05c40a3c98cf3e60cad32e97daaa1fbcad27b7e"
     },
     {
       "command": "pnpm exec rer check --profile first-party",
       "exit": 0,
-      "head": "0097a510107f72272b9f91e9f5d50749e54666b5"
+      "head": "f05c40a3c98cf3e60cad32e97daaa1fbcad27b7e"
     },
     {
       "command": "node scripts/porthole/contract-docs.mjs write PORT-094; node scripts/porthole/contract-docs.mjs check PORT-094; git checkout origin/main -- ACCEPTANCE.md docs/CLAIMS.md",
       "exit": 0,
-      "head": "0097a510107f72272b9f91e9f5d50749e54666b5"
+      "head": "f05c40a3c98cf3e60cad32e97daaa1fbcad27b7e"
     },
     {
       "command": "pnpm run source:lock; pnpm run source:check",
       "exit": 0,
-      "head": "0097a510107f72272b9f91e9f5d50749e54666b5",
+      "head": "f05c40a3c98cf3e60cad32e97daaa1fbcad27b7e",
       "note": "lock regenerated after final source/test edits; check repeated on final committed tree"
     },
     {
       "command": "analyticalKernelJourney()",
       "exit": 0,
-      "head": "9e79af7f6806dcf0e578640dd95e0274b21f2fe6",
-      "note": "same analytical code as final; only final refusal assertions added after kernel probe"
+      "head": "0097a510107f72272b9f91e9f5d50749e54666b5",
+      "receipt": "kernel-exact-head.json",
+      "note": "analytical modules and populated migration code unchanged by the setup compatibility repair"
     },
     {
       "command": "PORTHOLE_ANALYTICAL_ONLY=1 node tests/runtime.mjs",
@@ -84,23 +91,38 @@
       "note": "supporting original native archive regression; final drill reruns actual setup, export and import"
     }
   ],
-  "ci": [
-    {
-      "conclusion": null,
-      "event": "push",
-      "head_sha": "0097a510107f72272b9f91e9f5d50749e54666b5",
-      "html_url": "https://github.com/just-every/run-porthole/actions/runs/42554552544",
-      "id": 42554552544,
-      "name": "Verify",
-      "status": "in_progress"
-    }
-  ],
+  "ci": {
+    "current_head": "f05c40a3c98cf3e60cad32e97daaa1fbcad27b7e",
+    "current_runs": [],
+    "prior_runs": [
+      {
+        "conclusion": "failure",
+        "event": "push",
+        "head_sha": "0097a510107f72272b9f91e9f5d50749e54666b5",
+        "html_url": "https://github.com/just-every/run-porthole/actions/runs/42554552544",
+        "id": 42554552544,
+        "name": "Verify",
+        "status": "completed"
+      }
+    ],
+    "api_calls_used": 10,
+    "current_status": "not queried after repair; ten-call budget exhausted"
+  },
   "scan": {
     "status": "delegated to maintained Mac lander",
     "complete": false,
     "historyScanned": false,
     "findings": null,
     "full_clone_history": true
+  },
+  "product_custody": {
+    "repository": "just-every/run-porthole",
+    "branch": "cloud/sx-porthole-c-f465",
+    "head": "f05c40a3c98cf3e60cad32e97daaa1fbcad27b7e",
+    "remote_head": "f05c40a3c98cf3e60cad32e97daaa1fbcad27b7e",
+    "command": "python3 $HOME/rer-consolidation/.tools/cloud-push.py origin cloud/sx-porthole-c-f465",
+    "exit": 0,
+    "identities_and_trailers_checked": true
   },
   "landing": {
     "main_equals_head": false,
