@@ -174,6 +174,7 @@ export async function controlPlaneRecoveryJourney(){
   // worker custody changes. Native owner proof must be renewed explicitly.
   const proofRows=(await destination.db.prepare('SELECT * FROM oa_step_up_challenges').all()).results
   await destination.db.prepare('UPDATE oa_step_up_challenges SET consumed_at=0').run()
+  const localBeforeRefusal=await destination.db.prepare('SELECT * FROM porthole_analytical_configuration').first()
   const beforeRefusal=await Promise.all(['primary','standby'].map(role=>estate.inspect(role)))
   await destination.post('/api/porthole/v1/analytics/recovery',noProof,403)
   for(const row of proofRows)await destination.db.prepare('UPDATE oa_step_up_challenges SET consumed_at=? WHERE id=?').bind(row.consumed_at,row.id).run()
@@ -181,11 +182,14 @@ export async function controlPlaneRecoveryJourney(){
   assert.equal(sourceBearer.status,403,'a source bearer cannot acquire reconnection authority beside a fresh destination owner cookie')
   assert.equal((await sourceBearer.json()).error,'native_session_required')
   assert.deepEqual(await Promise.all(['primary','standby'].map(role=>estate.inspect(role))),beforeRefusal,'missing fresh owner proof changes no analytical custody')
+  assert.deepEqual(await destination.db.prepare('SELECT * FROM porthole_analytical_configuration').first(),localBeforeRefusal,'authority refusals leave local connection configuration unchanged')
   for(const role of ['primary','standby']){
    const request={mode:'preview',role,previousIdentity:sourceIdentity},physical=await estate.inspect(role)
    const review=await destination.post('/api/porthole/v1/analytics/recovery',request)
    assert.equal(review.retainedBatches,6);assert.equal(review.retainedRecords,6);assert.equal(review.fencedBatches,2);assert.equal(review.fencedRecords,2)
+   const localBeforeReview=await destination.db.prepare('SELECT * FROM porthole_analytical_configuration').first()
    await destination.post('/api/porthole/v1/analytics/recovery',{...request,mode:'commit',confirmation:'0'.repeat(64)},409)
+   assert.deepEqual(await destination.db.prepare('SELECT * FROM porthole_analytical_configuration').first(),localBeforeReview,'a changed review cannot mark local custody or enable a connection')
    assert.deepEqual(await estate.inspect(role),physical,'refused review leaves analytical custody unchanged')
    const committed=await destination.post('/api/porthole/v1/analytics/recovery',{...request,mode:'commit',confirmation:review.confirmation})
    assert.equal(committed.fencedRecords,2)
