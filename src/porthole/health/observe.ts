@@ -79,7 +79,8 @@ export async function observeHealth(env: HealthBindings): Promise<HealthState> {
    OR NOT EXISTS(SELECT 1 FROM porthole_health_collectors h JOIN porthole_credentials c ON c.id=h.credential_id
    WHERE h.team=s.team AND h.service=s.service AND h.environment=s.environment AND h.signal=s.signal AND h.observed_at>=? AND h.observed_at>=? AND c.status='active' AND c.expires_at>?)`).bind(recovery!.restored_at,now,recovery!.restored_at,now-config.freshness_ms,now).first<{n:number}>()
   const newData=await env.DB.prepare("SELECT 1 FROM porthole_ingest_batches b JOIN porthole_credentials c ON c.id=b.source_id WHERE b.accepted_at>=? AND c.status='active' LIMIT 1").bind(recovery!.restored_at).first()
-  if(missing?.n===0&&newData&&!control?.paused){await env.DB.prepare('UPDATE porthole_control_recovery SET active=0 WHERE singleton=1 AND restored_at=?').bind(recovery!.restored_at).run();recovering=false}
+  const freshHeartbeat=await env.DB.prepare("SELECT 1 FROM porthole_health_collectors h JOIN porthole_credentials c ON c.id=h.credential_id JOIN porthole_members m ON m.operator_id=c.custodian_id JOIN oa_operators o ON o.id=m.operator_id WHERE h.observed_at>=? AND h.observed_at>=? AND c.status='active' AND c.expires_at>? AND m.role IN ('owner','admin') AND o.role=m.role AND o.status='active' LIMIT 1").bind(recovery!.restored_at,now-config.freshness_ms,now).first()
+  if(missing?.n===0&&newData&&freshHeartbeat&&!control?.paused){await env.DB.prepare('UPDATE porthole_control_recovery SET active=0 WHERE singleton=1 AND restored_at=?').bind(recovery!.restored_at).run();recovering=false}
  }
  const receipts = await healthReceipts(env.DB), evaluatedAt=Date.now()
  const rows: HealthComponent[] = []
