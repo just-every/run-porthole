@@ -1,9 +1,9 @@
 import {canonical} from '../ingest/model'
 import {attributes} from '../services/model'
-import {metricSeries,measured,reference,scopeKey,spanSummary,uniqueSpans,type EvidenceRecord} from '../network/model'
+import {metricSeries,measured,reference,resourceIdentity,scopeKey,spanSummary,uniqueSpans,type EvidenceRecord} from '../network/model'
 const brokerIdentity=(row:EvidenceRecord)=>{
- const r=attributes(row.payload.resource)
- return typeof r['porthole.messaging.broker.container.id']==='string'&&typeof r['host.id']==='string'?canonical([r['porthole.messaging.broker.container.id'],r['host.id']]):null
+ const r=resourceIdentity(row)
+ return r.brokerContainerId&&r.hostId?canonical([r.brokerContainerId,r.hostId]):null
 }
 const namespace=(row:EvidenceRecord)=>{const value=attributes(row.payload.resource)['porthole.messaging.rabbitmq.vhost'];return typeof value==='string'&&value.length<=240&&!value.includes('[REDACTED]')?value:null}
 export function messagingEvidence(spans:EvidenceRecord[],metrics:EvidenceRecord[],from:string,through:string,complete:boolean) {

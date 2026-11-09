@@ -4917,7 +4917,7 @@
       "executable": false
     },
     "src/porthole/messaging/model.ts": {
-      "sha256": "65e20785877226584af126999a36b83df6fd8258fd7d906fcdc11a47df6f524a",
+      "sha256": "90045dc7c350bfc93fbddafaa9aa9ef9dc35cbd0dbd864b386b965745387be16",
       "executable": false
     },
     "src/porthole/metrics/span-rules/derive.ts": {
@@ -5109,7 +5109,7 @@
       "executable": false
     },
     "src/porthole/network/model.ts": {
-      "sha256": "8c9936f37b28dd133e50242d86e7c64909af6f089f2f2252f3b092785bb70cb6",
+      "sha256": "69272e5fc9e07b02ae22702c088b39ec30b8e6487406445087d9e887952ed47c",
       "executable": false
     },
     "src/porthole/network/page.ts": {

@@ -4,7 +4,7 @@ import type {TraceRecord} from '../traces/graph'
 
 export interface EvidenceRecord extends TraceRecord {event_time_ns?:string;payload:TraceRecord['payload']&{metric?:Record<string,unknown>;metricKind?:string}}
 export const scopeKey=(r:{service:string;environment:string;team:string})=>canonical([r.service,r.environment,r.team])
-const text=(v:unknown)=>typeof v==='string'&&v.length>0&&v.length<=240?v:null
+const text=(v:unknown)=>typeof v==='string'&&v.length>0&&v.length<=240&&!v.includes('[REDACTED]')?v:null
 export function resourceIdentity(row:EvidenceRecord) {
  const r=attributes(row.payload.resource)
  return {containerId:text(r['container.id']),hostId:text(r['host.id']),brokerContainerId:text(r['porthole.messaging.broker.container.id']),scope:scopeKey(row)}
