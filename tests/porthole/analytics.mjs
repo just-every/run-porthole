@@ -18,7 +18,7 @@ const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms))
 async function port(){const server=createServer();await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));const value=server.address().port;await new Promise(resolve=>server.close(resolve));return value}
 async function start(server){
  server.output=''
- server.child=spawn(process.execPath,[wrangler,'dev','--local','--config',server.config,'--persist-to',server.persist,'--port',String(server.port),'--inspector-port','0','--ip','127.0.0.1','--var',`ANALYTICS_TOKEN:${token}`],{cwd:scratch,env,stdio:['ignore','pipe','pipe']})
+ server.child=spawn(process.execPath,[wrangler,'dev','--local','--config',server.config,'--persist-to',server.persist,'--port',String(server.port),'--inspector-port','0','--ip','127.0.0.1','--var',`ANALYTICS_TOKEN:${token}`],{cwd:scratch,env,detached:true,stdio:['ignore','pipe','pipe']})
  const capture=chunk=>{server.output=(server.output+chunk).slice(-10000)}
  server.child.stdout.on('data',capture);server.child.stderr.on('data',capture)
  for(let i=0;i<120;i++){
@@ -28,7 +28,7 @@ async function start(server){
  }
  throw Error('Analytical Worker readiness failed')
 }
-async function stop(server){if(server.child?.exitCode===null){const exited=new Promise(resolve=>server.child.once('exit',resolve));server.child.kill('SIGTERM');await exited}}
+async function stop(server){if(server.child?.exitCode===null){const exited=new Promise(resolve=>server.child.once('exit',resolve));process.kill(-server.child.pid,'SIGTERM');await exited}}
 const post=(server,path,data,auth=true)=>fetch(server.origin+path,{method:'POST',headers:{'content-type':'application/json',...(auth?{authorization:`Bearer ${token}`}:{})},body:JSON.stringify(data)})
 async function value(response){assert.equal(response.status,200,await response.clone().text());return response.json()}
 try {
@@ -102,8 +102,8 @@ export async function analyticalEstate() {
  const wrangler=join(root,'node_modules/wrangler/bin/wrangler.js'),env={...process.env,CI:'1',WRANGLER_SEND_METRICS:'false'}
  const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms))
  async function port(){const server=createServer();await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));const value=server.address().port;await new Promise(resolve=>server.close(resolve));return value}
- async function start(server){server.output='';server.child=spawn(process.execPath,[wrangler,'dev','--local','--config',server.config,'--persist-to',server.persist,'--port',String(server.port),'--inspector-port','0','--ip','127.0.0.1','--var',`ANALYTICS_TOKEN:${server.token}`],{cwd:scratch,env,stdio:['ignore','pipe','pipe']});const record=chunk=>server.output=(server.output+chunk).slice(-5000);server.child.stdout.on('data',record);server.child.stderr.on('data',record);for(let i=0;i<120;i++){if(server.child.exitCode!==null)throw Error('analytical_process_exited');try{if((await fetch(server.origin+'/health')).ok)return}catch{}await pause(250)}throw Error('analytical_process_not_ready')}
- async function stop(server){if(server.child?.exitCode===null){const exited=new Promise(resolve=>server.child.once('exit',resolve));server.child.kill('SIGTERM');await exited}}
+ async function start(server){server.output='';server.child=spawn(process.execPath,[wrangler,'dev','--local','--config',server.config,'--persist-to',server.persist,'--port',String(server.port),'--inspector-port','0','--ip','127.0.0.1','--var',`ANALYTICS_TOKEN:${server.token}`],{cwd:scratch,env,detached:true,stdio:['ignore','pipe','pipe']});const record=chunk=>server.output=(server.output+chunk).slice(-5000);server.child.stdout.on('data',record);server.child.stderr.on('data',record);for(let i=0;i<120;i++){if(server.child.exitCode!==null)throw Error('analytical_process_exited');try{if((await fetch(server.origin+'/health')).ok)return}catch{}await pause(250)}throw Error('analytical_process_not_ready')}
+ async function stop(server){if(server.child?.exitCode===null){const exited=new Promise(resolve=>server.child.once('exit',resolve));process.kill(-server.child.pid,'SIGTERM');await exited}}
  async function dispose(){for(const server of servers)await stop(server);await rm(scratch,{recursive:true,force:true})}
  try{
   await cp(join(root,'workers/analytics'),join(scratch,'workers/analytics'),{recursive:true,filter:path=>!path.includes('/.staged')&&!path.includes('/.state')})
@@ -223,7 +223,7 @@ export async function analyticalConnectionJourney() {
    for(let index=0;index<24;index++)await ingest(index)
    await send('/api/porthole/v1/ingest/drain',{});await send('/api/porthole/v1/analytics/reconcile',{})
    assert.equal((await read('/api/porthole/v1/ingest/records?signal=logs&service=checkout-api')).records.length,24)
-   const after=await tick();assert.equal(evaluation(after.state).status,'Firing');assert.equal(evaluation(after.state).firingEpisode,episode)
+   const after=await tick();assert.equal(evaluation(after.state).status,'Firing',JSON.stringify(after.state.components.map(({component,status,reason,evidence})=>({component,status,reason,evidence}))));assert.equal(evaluation(after.state).firingEpisode,episode)
    const ids=messages.filter(message=>message.custom_args.rer_delivery_id.startsWith('porthole-health/')).map(message=>message.custom_args.rer_delivery_id)
    assert.equal(new Set(ids).size,ids.length,'restart, reconciliation and health replay never submit the same notice twice')
    const audit=await read('/api/v1/audit/export');assert.ok(audit.records.some(row=>row.entry.action==='analytics.configure'&&row.entry.phase==='committed'))

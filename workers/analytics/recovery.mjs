@@ -32,7 +32,8 @@ async function preview(db,input) {
  const result={previousIdentity:input.previousIdentity,destinationIdentity:input.sourceIdentity,inventoryDigest:await digest(canonical(input.batches)),retainedBatches:input.batches.length,retainedRecords,fencedBatches:counts.batches-input.batches.length,fencedRecords:counts.records-retainedRecords,physicalBatches:counts.batches,activeBatches:active.batches,activeHighest:active.highest}
  return {...result,confirmation:await digest(canonical(result))}
 }
-export const recoveryPreview=(db,input)=>preview(db,input)
+const publicReview=result=>Object.fromEntries(['previousIdentity','destinationIdentity','inventoryDigest','retainedBatches','retainedRecords','fencedBatches','fencedRecords','confirmation','recoveredAt'].filter(key=>result[key]!==undefined).map(key=>[key,result[key]]))
+export const recoveryPreview=async(db,input)=>publicReview(await preview(db,input))
 export async function recoveryCommit(db,input) {
  const result=await preview(db,input)
  if(input.confirmation!==result.confirmation)fail('recovery_review_changed',409)
@@ -51,5 +52,5 @@ export async function recoveryCommit(db,input) {
  ])
  const receipt=await db.prepare('SELECT * FROM analytics_recoveries WHERE id=?').bind(id).first()
  if(!receipt)fail('recovery_review_changed',409)
- return {...result,recoveredAt:receipt.recovered_at}
+ return publicReview({...result,recoveredAt:receipt.recovered_at})
 }

@@ -74,6 +74,20 @@ export async function controlPlaneRecoveryJourney(){
  }
  const retained=(snapshot,table)=>snapshot[table].map(row=>canonical(row)).sort()
  try{
+  // Refused and malformed HTTP edges must not become successful supervision.
+  const {createServer:httpServer}=await import('node:http')
+  for(const [status,body,expected]of [[401,'{}',3],[200,'{',4],[200,'{}',4]]){
+   const edge=httpServer((request,response)=>{request.resume();request.on('end',()=>{response.writeHead(status,{'content-type':'application/json'});response.end(body)})})
+   await new Promise(resolve=>edge.listen(0,'127.0.0.1',resolve))
+   try{
+    const child=spawn(process.execPath,[join(root,'tests/porthole/collector-process.mjs')],{stdio:['pipe','pipe','pipe']})
+    let output='';child.stdout.on('data',chunk=>output+=chunk)
+    child.stdin.end(JSON.stringify({origin:'http://127.0.0.1:'+edge.address().port,secret:'synthetic-porthole-8102',heartbeat:{collectorId:'synthetic-porthole-8103',team:'commerce-us',service:'checkout-api',environment:'production',signal:'logs'},supervised:true,once:true}))
+    const [exit]=await once(child,'close');assert.equal(exit,expected)
+    const row=JSON.parse(output);assert.equal(row.exitStatus,expected);assert.equal(row.lastAccepted,null);assert.equal(row.telemetryHealth,'Unknown');statuses.push(row)
+   }finally{await new Promise(resolve=>edge.close(resolve))}
+  }
+  record('supervisor refuses credential and malformed acknowledgements',{credentialExit:3,malformedExit:4})
   estate=await analyticalEstate();closeTransport=runtimeTransport()
   const sourceDirectory=await clone('source'),sourceEmail=mailbox('synthetic-porthole-8002')
   await install(sourceDirectory,sourceEmail)
@@ -95,6 +109,11 @@ export async function controlPlaneRecoveryJourney(){
   await source.post('/api/porthole/v1/ingest/drain',{})
   const monitor=await source.post('/api/porthole/v1/objects',{kind:'monitor',name:'Recovery errors',scope:scopes[0],body:{signal:'logs',operator:'above',threshold:0,windowSeconds:3600}},201)
   await source.post('/api/porthole/v1/objects/activate',{id:monitor.id,revision:monitor.revision,confirm:'activate'})
+  const repair=await source.post('/api/porthole/v1/objects',{kind:'repair',name:'Reviewed recovery rollback',scope:scopes[0],body:{steps:[{kind:'rollback',target:'checkout-api',revision:'synthetic-porthole-8110'}],expiresAt:Date.now()+3600000}},201)
+  await source.post('/api/porthole/v1/approvals',{id:repair.id,revision:repair.revision,confirm:'approve'})
+  const noticeConfig=await source.read('/api/v1/health');await source.post('/api/v1/health/configuration',{revision:noticeConfig.configuration.revision,freshnessSeconds:300,noticesEnabled:true,recipient:sourceEmail,confirm:'enable-independent-notices'})
+  assert.equal((await source.db.prepare('SELECT COUNT(*) AS n FROM porthole_object_approvals').first()).n,1)
+  assert.equal((await source.db.prepare('SELECT COUNT(*) AS n FROM porthole_health_recipients WHERE confirmed_at IS NOT NULL AND removed_at IS NULL').first()).n,1)
   await source.post('/api/v1/health/tick',{})
   const sourceIdentity=(await source.db.prepare('SELECT source_identity FROM porthole_analytical_configuration').first()).source_identity
   bufferedCollector=await recoveryCollector(scratch)
@@ -132,9 +151,12 @@ export async function controlPlaneRecoveryJourney(){
   const destination=await launch(destinationDirectory,mailbox('synthetic-porthole-8003'))
   assert.equal((await destination.db.prepare('SELECT COUNT(*) AS n FROM porthole_credentials').first()).n,0)
   assert.equal((await destination.db.prepare('SELECT COUNT(*) AS n FROM porthole_object_approvals').first()).n,0)
+  assert.equal((await destination.db.prepare('SELECT COUNT(*) AS n FROM porthole_health_recipients').first()).n,0)
+  assert.equal((await destination.db.prepare('SELECT state FROM porthole_objects WHERE id=?').bind(repair.id).first()).state,'quarantined')
   assert.equal((await destination.db.prepare('SELECT state FROM porthole_objects WHERE id=?').bind(monitor.id).first()).state,'quarantined')
   assert.equal((await destination.call('/api/v1/health',{headers:{cookie:source.cookie}})).status,401)
   await submit(destination,credentials[0],0,{expected:401})
+  assert.equal((await destination.db.prepare('SELECT COUNT(*) AS n FROM porthole_ingest_batches').first()).n,6,'source credential refusal changes no retained batches')
   const noProof={mode:'preview',role:'primary',previousIdentity:sourceIdentity}
   // Bootstrap does not grant fresh step-up: a different native sign-in is due.
   // No source session is used to acquire authority; native setup already made
@@ -150,7 +172,9 @@ export async function controlPlaneRecoveryJourney(){
   // worker custody changes. Native owner proof must be renewed explicitly.
   const proofRows=(await destination.db.prepare('SELECT * FROM oa_step_up_challenges').all()).results
   await destination.db.prepare('UPDATE oa_step_up_challenges SET consumed_at=0').run()
+  const beforeRefusal=await Promise.all(['primary','standby'].map(role=>estate.inspect(role)))
   await destination.post('/api/porthole/v1/analytics/recovery',noProof,403)
+  assert.deepEqual(await Promise.all(['primary','standby'].map(role=>estate.inspect(role))),beforeRefusal,'missing fresh owner proof changes no analytical custody')
   for(const row of proofRows)await destination.db.prepare('UPDATE oa_step_up_challenges SET consumed_at=? WHERE id=?').bind(row.consumed_at,row.id).run()
   for(const role of ['primary','standby']){
    const request={mode:'preview',role,previousIdentity:sourceIdentity},physical=await estate.inspect(role)
@@ -205,6 +229,8 @@ export async function controlPlaneRecoveryJourney(){
   record('buffered outage input reconciled once',{backupRecords:6,postExportGap:2,bufferedRecords:4,destinationRecords:10,duplicatesAccounted:4,originalNanoseconds:true})
   assert.equal(heartbeatTransportFailure({code:'ENETUNREACH'}),'local_network_unavailable')
   assert.equal(heartbeatTransportFailure({code:'ECONNREFUSED'}),'control_plane_unreachable')
+  receipt.originalEventNanoseconds=before.porthole_telemetry_records.map(row=>row.event_time_ns)
+  receipt.originalReceiptNanoseconds=before.porthole_telemetry_records.map(row=>JSON.parse(row.payload).delivery.receivedTimeUnixNano)
   receipt.result='passed'
  }catch(error){receipt.result='failed';receipt.failure=String(error.stack??error);throw error}
  finally{

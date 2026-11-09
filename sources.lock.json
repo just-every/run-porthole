@@ -872,7 +872,7 @@
       "sha256": "1f7dcbde9b34448bbd786742fe7b3cc9875838955f7263f1a726d19471a697f2",
       "executable": false
     },
-    "migrations/core/0063_porthole_control_recovery.sql": {
+    "migrations/core/0064_porthole_control_recovery.sql": {
       "sha256": "aa2f3a13143b105f8dc9f2992280d1fa5b3456c589bbb25e64db87bb15ebe1b2",
       "executable": false
     },
@@ -5681,7 +5681,7 @@
       "executable": false
     },
     "tests/porthole/analytics.mjs": {
-      "sha256": "97ff21644b96ffa92db7bf370b8ae225e5c0a404c26c47ad302305ce5f836a03",
+      "sha256": "0edaeedd704e9e3fc9c8659d747ace6551e1ccb88bdd747ba8352574415c695e",
       "executable": false
     },
     "tests/porthole/api.mjs": {
@@ -5705,7 +5705,7 @@
       "executable": false
     },
     "tests/porthole/control-plane-recovery.mjs": {
-      "sha256": "0c02d1da2340dca09fc380ba92b9470b2967425f4f9bd56bab294d0d7518a154",
+      "sha256": "62c60470fe59a96d3132f92b68d6f1c2b0b7480cfdc670a62456dc9d40151a16",
       "executable": false
     },
     "tests/porthole/credentials.mjs": {
@@ -6025,7 +6025,7 @@
       "executable": false
     },
     "workers/analytics/recovery.mjs": {
-      "sha256": "6b3336184ae3844a69267b802cd822b07430efc03e87b983d59b3387645f56fd",
+      "sha256": "2682f5f3e7cb8e901a8f00b98ea0957e08bed219ce49c6bcad627c424dcce692",
       "executable": false
     },
     "workers/analytics/replicate.mjs": {
