@@ -259,6 +259,7 @@
       ]
     }
   },
+  "ci_completed_success": false,
   "ci_discovery": [
     {
       "conclusion": null,
@@ -272,13 +273,13 @@
     }
   ],
   "ci_latest": {
-    "conclusion": null,
-    "github_calls_used": 4,
+    "conclusion": "cancelled",
+    "github_calls_used": 6,
     "head_sha": "0714a69f24edacb85ac194622f121a6251328dbd",
     "html_url": "https://github.com/just-every/run-porthole/actions/runs/42541236693",
-    "observed_at": "2026-11-09T00:43:21.110268+00:00",
+    "observed_at": "2026-11-09T00:53:21.986441+00:00",
     "run_id": 42541236693,
-    "status": "in_progress"
+    "status": "completed"
   },
   "contract_unchanged": true,
   "counts_after": {
@@ -305,6 +306,8 @@
     "verification.json": true
   },
   "generated_views_unchanged": true,
+  "github_calls_used": 6,
+  "handoff_policy": "Cloud cancellation exception permits READY custody handoff; successful exact-SHA Verify remains required before landing",
   "head": "0714a69f24edacb85ac194622f121a6251328dbd",
   "historical_local_failure": {
     "command": "PORTHOLE_STANDARD_ONLY=1 node tests/runtime.mjs",
@@ -346,7 +349,7 @@
     "status": "not_run_cloud"
   },
   "pushed_head": "0714a69f24edacb85ac194622f121a6251328dbd",
-  "recorded_at": "2026-11-09T00:39:02.752449+00:00",
+  "recorded_at": "2026-11-09T00:55:01.287692+00:00",
   "repository": "just-every/run-porthole",
   "tag": "sx-porthole-c-f464",
   "test_registrations_added": 0,
