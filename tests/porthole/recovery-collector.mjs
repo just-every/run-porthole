@@ -1,13 +1,27 @@
 import {spawn} from 'node:child_process'
 import {once} from 'node:events'
-import {mkdir,writeFile} from 'node:fs/promises'
+import {mkdir,writeFile,access,rename,rm} from 'node:fs/promises'
 import {join} from 'node:path'
-import {acquireCollector} from '../../collectors/sampling/release.mjs'
+import {createWriteStream} from 'node:fs'
+import {Readable} from 'node:stream'
+import {pipeline} from 'node:stream/promises'
+import {acquireCollector,version} from '../../collectors/sampling/release.mjs'
 import {freePort,until,privateProcessEnvironment} from '../../collectors/splunk/process.mjs'
 
 /** Stock OTel exporter queue, persisted outside either installation. Only the
  * owner-selected destination and private credential change after the outage. */
 export async function recoveryCollector(directory){
+ // Public release bytes need no GitHub account in push Verify. The shared
+ // acquisition helper verifies their published size and digest before use.
+ const cache=join(process.cwd(),'.cache/otel-collector'),archive=join(cache,'collector.tar.gz')
+ try{await access(archive)}catch(error){
+  if(error.code!=='ENOENT')throw error
+  await mkdir(cache,{recursive:true})
+  const response=await fetch('https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v'+version+'/otelcol-contrib_'+version+'_linux_amd64.tar.gz',{signal:AbortSignal.timeout(240000)})
+  if(!response.ok||!response.body)throw Error('Official recovery collector download unavailable')
+  const temporary=archive+'.'+process.pid+'.partial'
+  try{await pipeline(Readable.fromWeb(response.body),createWriteStream(temporary,{flags:'wx'}));await rename(temporary,archive)}finally{await rm(temporary,{force:true})}
+ }
  const binary=await acquireCollector(),port=await freePort(),healthPort=await freePort(),queue=join(directory,'queue'),config=join(directory,'collector.yaml')
  await mkdir(queue,{recursive:true})
  await writeFile(config,`extensions:

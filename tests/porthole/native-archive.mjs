@@ -8,6 +8,7 @@ import {randomBytes,randomUUID,createHash} from 'node:crypto'
 const execute=promisify(execFile)
 const address=local=>[local,'example.com'].join(String.fromCharCode(64))
 const root=process.cwd(),scratch=await mkdtemp(join(tmpdir(),'porthole-native-archive-'))
+const candidate=(await execute('git',['rev-parse','HEAD'],{cwd:root})).stdout.trim()
 async function command(cwd,args) {
  try {return await execute(process.execPath,[join(root,'node_modules/@runeditrun/rer/global/rer.mjs'),...args,'--cwd',cwd],{cwd,env:{...process.env,WRANGLER_SEND_METRICS:'false'},maxBuffer:16*1024*1024})}
  catch(error){const capture=await readFile(join(cwd,'.seed/installer/install.log'),'utf8').catch(()=> '');const redact=value=>String(value??'').replace(/[A-Za-z0-9_+./=-]{32,}/g,'[redacted]');throw Error(`Native ${args[0]} failed (${error.code})\n${redact(error.stderr).slice(-6000)}\n${redact(error.stdout).slice(-3000)}\n${redact(capture).split('\n').slice(-16).join('\n')}`)}
@@ -15,6 +16,7 @@ async function command(cwd,args) {
 async function clone(name) {
  const directory=join(scratch,name)
  await execute('git',['clone','--quiet','--local','--no-hardlinks',root,directory])
+ await execute('git',['-C',directory,'checkout','--quiet','--detach',candidate])
  await execute('git',['-C',directory,'config','user.name','Run Edit Run fleet'])
  await execute('git',['-C',directory,'config','user.email',['fleet','runeditrun.com'].join(String.fromCharCode(64))])
  await symlink(join(root,'node_modules'),join(directory,'node_modules'),'dir')

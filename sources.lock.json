@@ -5721,7 +5721,7 @@
       "executable": false
     },
     "tests/porthole/control-plane-recovery.mjs": {
-      "sha256": "62c60470fe59a96d3132f92b68d6f1c2b0b7480cfdc670a62456dc9d40151a16",
+      "sha256": "a71222c32b2a46659c0d6cc8e87c8485b28ce4833e6f0e137bb9c2aa984a4a30",
       "executable": false
     },
     "tests/porthole/credentials.mjs": {
@@ -5841,7 +5841,7 @@
       "executable": false
     },
     "tests/porthole/native-archive.mjs": {
-      "sha256": "5305ccd04a49ec121822d2db6633a81c0a7050948553275d2dbb1d73def8a246",
+      "sha256": "66725045bc4b16e9d8a9506fc32b18164da1dc7f60fe545ce3b9ac55b644c6f9",
       "executable": false
     },
     "tests/porthole/notebooks.mjs": {
@@ -5905,7 +5905,7 @@
       "executable": false
     },
     "tests/porthole/recovery-collector.mjs": {
-      "sha256": "878907eb8c32ea2d985e5e76fce637e0c7a548c8f6284003cac91a08e4d43ea1",
+      "sha256": "4eb78f93ae342705584b97798fe2ea9ff9ed3384f26386b950b2369ded800a2c",
       "executable": false
     },
     "tests/porthole/sampling-process.mjs": {
