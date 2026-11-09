@@ -1,0 +1,34 @@
+{
+  "name": "typecheck-final",
+  "head": "bf9eba1ad9206f6267a720c0fce3358ead041a34",
+  "command": [
+    "timeout",
+    "300",
+    "pnpm",
+    "run",
+    "typecheck"
+  ],
+  "exit": 0,
+  "started_at": "2026-11-09T00:37:49.427846+00:00",
+  "ended_at": "2026-11-09T00:37:49.856254+00:00",
+  "log": "typecheck-final.log",
+  "input_sha256": {
+    "tests/porthole/standard-reads.mjs": "d47ee4348536341c46820d4678fe20e000835c88b7fd84748a3b09af2df26371",
+    "tests/runtime.mjs": "1a4b507b8d1ed00c5bec26acf1c6f187b43345a83e7d4a28e0140da020023a23",
+    "src/porthole/ingest/read.ts": "90ce1274a9d437cb77a018fb060446dddcc34f8d8b1d62c91432d69e28194ee8",
+    "verification.json": "86c83377f27a4e17fbd1eaeb942831988f8111c5c90d3a3de16a6901ba9ccbd1",
+    "package.json": "5764715eb1fe725297af6521a48bac709d5fdb19f86a3e848afea45860990216",
+    "src/porthole/signals/standard/tempo.ts": "0ec10004901fda0ee3f9eaecbc018ba6b50314a8deb08cfbb677d970338acc2f",
+    "src/porthole/signals/standard/read.ts": "1a0de81b8733db7db690e77cbaff1fd4d5b6d7ebcee6382a96b8b682571e8f65",
+    "src/porthole/signals/standard/http.ts": "5fcea049a3216167973ef904c123b6b5311fd5297aef20d5aa15f3753cd61982",
+    "src/porthole/signals/standard/protobuf.ts": "6bbd4fba7d91af847d6b317a9d20334005ca9943dba5f1d06ea6b5fa02c33145",
+    "src/porthole/signals/standard/prometheus.ts": "c547f5807d393d5ef4929f7fab34551defd61db7e162f02be5e918b1cafc9c4e",
+    "src/porthole/signals/standard/openapi.ts": "cc6a89f702eb43773631ed5d3d1592bdab8f9bfbdb65c56ffdb067a4963cc7d1"
+  },
+  "inputs_unchanged": true,
+  "working_tree_at_start": [
+    " M docs/signal-exports.md",
+    " M docs/standard-signal-apis.md",
+    " M tests/porthole/standard-reads.mjs"
+  ]
+}

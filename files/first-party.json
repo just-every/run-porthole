@@ -1,0 +1,18 @@
+{
+  "name": "first-party",
+  "head": "bf9eba1ad9206f6267a720c0fce3358ead041a34",
+  "command": [
+    "timeout",
+    "300",
+    "npx",
+    "-y",
+    "@runeditrun/rer",
+    "check",
+    "--profile",
+    "first-party"
+  ],
+  "exit": 0,
+  "started_at": "2026-11-09T00:25:11.371599+00:00",
+  "ended_at": "2026-11-09T00:25:12.597866+00:00",
+  "log": "first-party.log"
+}

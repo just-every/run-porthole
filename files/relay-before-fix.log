@@ -1,0 +1,33 @@
+verify:runtime
+Heavy job admitted: Porthole verify:runtime:suite [b37b9fcbbb98]
+▲ [WARNING] Proxy environment variables detected. We'll use your proxy for fetch requests.
+
+
+Installed owner claim rejects missing/wrong setup tokens and request demo flags
+HTTP-001 passed against emitted local Worker: health, the installed homepage, HTTP and document 404s
+
+node:internal/deps/undici/undici:13842
+            fetchParams.controller.controller.error(new TypeError("terminated", {
+                                                    ^
+
+TypeError: terminated
+    at Fetch.onAborted (node:internal/deps/undici/undici:13842:53)
+    at Fetch.emit (node:events:509:28)
+    at Fetch.emit (node:domain:489:12)
+    at Fetch.terminate (node:internal/deps/undici/undici:12972:14)
+    at Object.onError (node:internal/deps/undici/undici:13976:38)
+    at Gunzip.emit (node:events:521:24)
+    at Gunzip.emit (node:domain:489:12)
+    at emitErrorNT (node:internal/streams/destroy:170:8)
+    at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  [cause]: Error: incorrect header check
+      at genericNodeError (node:internal/errors:985:15)
+      at wrappedFn (node:internal/errors:539:14)
+      at Zlib.zlibOnError [as onerror] (node:zlib:191:17) {
+    errno: -3,
+    code: 'Z_DATA_ERROR'
+  }
+}
+
+Node.js v24.19.0

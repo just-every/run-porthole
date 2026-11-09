@@ -1,0 +1,16 @@
+{
+  "name": "analytical",
+  "head": "bf9eba1ad9206f6267a720c0fce3358ead041a34",
+  "command": [
+    "timeout",
+    "1200",
+    "env",
+    "PORTHOLE_STANDARD_ANALYTICAL_ONLY=1",
+    "node",
+    "tests/runtime.mjs"
+  ],
+  "exit": 0,
+  "started_at": "2026-11-09T00:23:56.062173+00:00",
+  "ended_at": "2026-11-09T00:28:34.025029+00:00",
+  "log": "analytical.log"
+}

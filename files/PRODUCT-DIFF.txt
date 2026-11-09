@@ -1,0 +1,5 @@
+docs/signal-exports.md            |  5 ++-
+ docs/standard-signal-apis.md      | 20 +++++++++
+ sources.lock.json                 |  6 +--
+ tests/porthole/standard-reads.mjs | 94 ++++++++++++++++++++++++++++-----------
+ 4 files changed, 94 insertions(+), 31 deletions(-)
