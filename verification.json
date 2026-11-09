@@ -24,8 +24,7 @@
         "pnpm run build",
         "pnpm run typecheck",
         "pnpm run test:typecheck",
-        "PORTHOLE_SERVICES_ONLY=1 pnpm run test:runtime",
-        "PORTHOLE_HOST_HEARTBEAT_ONLY=1 pnpm run test:runtime"
+        "PORTHOLE_SERVICES_ONLY=1 pnpm run test:runtime"
       ]
     },
     {
@@ -34,7 +33,8 @@
       "hosted": true,
       "commands": [
         "pnpm run build",
-        "PORTHOLE_CORE_ONLY=1 pnpm run test:runtime"
+        "PORTHOLE_CORE_ONLY=1 pnpm run test:runtime",
+        "PORTHOLE_HOST_HEARTBEAT_ONLY=1 pnpm run test:runtime"
       ]
     },
     {
