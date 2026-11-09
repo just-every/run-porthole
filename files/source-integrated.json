@@ -1,0 +1,8 @@
+{
+  "baseHead": "a2a7d7689176de2c1be982c142db02690a7bdea8",
+  "main": "85b79464fa8a79597741711f6689f1b21132cd89",
+  "command": "CI=true WRANGLER_SEND_METRICS=false PLAYWRIGHT_SKIP_BROWSER_GC=1 node scripts/verify-ci.mjs source",
+  "node": "22.20.0",
+  "exit": 0,
+  "diff": "repair.patch"
+}

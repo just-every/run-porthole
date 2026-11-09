@@ -1,0 +1,102 @@
+> pnpm run verify:app
+
+> @just-every/porthole@0.1.0 verify:app /home/agent/rer-consolidation/work/sx-porthole-c-f464-pc1/repo
+> node scripts/verify-app.mjs
+
+> pnpm run check --profile first-party
+
+> @just-every/porthole@0.1.0 check /home/agent/rer-consolidation/work/sx-porthole-c-f464-pc1/repo
+> rer check --profile first-party
+
+> node scripts/porthole/public-schema.mjs --check
+Public API schema is current.
+> node scripts/porthole/contract-docs.mjs check PORT-075
+Contract documents are current for PORT-075
+> pnpm run build
+
+> @just-every/porthole@0.1.0 build /home/agent/rer-consolidation/work/sx-porthole-c-f464-pc1/repo
+> rer build
+
+Checking pinned pnpm
+10.12.4
+Building your application
+build:app
+▲ [WARNING] Proxy environment variables detected. We'll use your proxy for fetch requests.
+
+
+vite v8.2.2 building client environment for production...
+transforming...
+✓ 141 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/client/.assetsignore               0.02 kB
+dist/client/assets/index-CRqGoFgh.js  313.67 kB │ gzip: 101.76 kB
+
+✓ built in 667ms
+vite v8.2.2 building ssr environment for production...
+transforming...
+✓ 828 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/server/wrangler.json                                      1.69 kB │ gzip:   0.85 kB
+dist/server/.vite/manifest.json                                2.35 kB │ gzip:   0.53 kB
+dist/server/assets/empty-plugin-adapters-D_0twvAa.js           0.28 kB │ gzip:   0.18 kB
+dist/server/assets/start-BRPP0LUH.js                           0.28 kB │ gzip:   0.20 kB
+dist/server/assets/_tanstack-start-manifest_v-DxAsr_By.js      0.39 kB │ gzip:   0.28 kB
+dist/server/assets/wire-C5pyjjqN.js                            7.77 kB │ gzip:   2.90 kB
+dist/server/assets/router-B-pF21YZ.js                         37.45 kB │ gzip:  10.06 kB
+dist/server/assets/Match-vf3DrRnt.js                         169.04 kB │ gzip:  42.60 kB
+dist/server/index.js                                       3,311.61 kB │ gzip: 808.85 kB
+
+[INEFFECTIVE_DYNAMIC_IMPORT] src/porthole/ingest/otlp-proto.ts is dynamically imported by src/porthole/database/privacy.ts but also statically imported by src/porthole/genai/wire.ts, src/porthole/ingest/http.ts, src/porthole/signals/standard/tempo.ts, dynamic import will not move module into another chunk.
+
+[INEFFECTIVE_DYNAMIC_IMPORT] src/modules/import-kit/src/d1/undo-snapshot.ts is dynamically imported by src/modules/import-kit/src/d1/apply.ts but also statically imported by src/modules/import-kit/src/d1/preserved-preview.ts, src/modules/import-kit/src/d1/preserved-reverse.ts, dynamic import will not move module into another chunk.
+
+✓ built in 1.20s
+Your application is built
+build: complete (exit 0)
+> python3 -m venv .cache/export-readers && .cache/export-readers/bin/pip install --disable-pip-version-check -r tests/porthole/standard-readers.txt
+Requirement already satisfied: opentelemetry-proto==1.45.1 in ./.cache/export-readers/lib/python3.12/site-packages (from -r tests/porthole/standard-readers.txt (line 1)) (1.45.1)
+Requirement already satisfied: protobuf==6.33.6 in ./.cache/export-readers/lib/python3.12/site-packages (from -r tests/porthole/standard-readers.txt (line 2)) (6.33.6)
+> node scripts/porthole/standard-clients.mjs
+Pinned Prometheus 3.5.0 and Tempo CLI 2.8.2 ready
+> PORTHOLE_STANDARD_ONLY=1 pnpm run test:runtime
+
+> @just-every/porthole@0.1.0 test:runtime /home/agent/rer-consolidation/work/sx-porthole-c-f464-pc1/repo
+> rer queue test:runtime -- sh -c "node tests/runtime.mjs"
+
+test:runtime
+▲ [WARNING] Proxy environment variables detected. We'll use your proxy for fetch requests.
+
+
+Installed owner claim rejects missing/wrong setup tokens and request demo flags
+HTTP-001 passed against emitted local Worker: health, the installed homepage, HTTP and document 404s
+Stock scrape generations {"scrapes":15,"timestamps":[1794197046388,1794197052853,1794197054275,1794197055797,1794197057360],"counter":[{"metric":{"__name__":"synthetic_scrape_requests_total","environment":"production","instance":"127.0.0.1:40073","job":"synthetic-porthole-6100","producer":"synthetic-porthole-6200","service":"synthetic-porthole-6100","team":"commerce"},"values":[[1794197046.388,"1"],[1794197052.853,"2"],[1794197054.275,"3"],[1794197055.797,"4"],[1794197057.36,"5"]]}]}
+PROBE PORT-061 standard metrics: stock Prometheus 3.5.0 remote_read evaluates 19 fixed expressions over real scrape, stock OTLP and official-schema summary input -> exact reference series, labels, timestamps and values
+PROBE PORT-061 restore: inactive owner installation restore -> original samples and exact stock Tempo trace in both representations across restart; new destination authority only, revocation enforced, intake remains paused
+
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: {"error":"step_up_required"}
+
+403 !== 201
+
+    at value (file://[REDACTED]/tests/porthole/standard-reads.mjs:22:49)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async standardMappingProof (file://[REDACTED]/tests/porthole/standard-reads.mjs:536:23)
+    at async standardSchemaProof (file://[REDACTED]/tests/porthole/standard-reads.mjs:418:14)
+    at async standardReadJourney (file://[REDACTED]/tests/porthole/standard-reads.mjs:320:27)
+    at async file://[REDACTED]/tests/runtime.mjs:187:4 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: 403,
+  expected: 201,
+  operator: 'strictEqual',
+  diff: 'simple'
+}
+
+Node.js v22.20.0
+ ELIFECYCLE  Command failed with exit code 1.
+ ELIFECYCLE  Command failed with exit code 1.

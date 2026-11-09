@@ -1,0 +1,8 @@
+{
+  "path": "tests/porthole/standard-reads.mjs",
+  "sha256": "bc7ccda2c29e6a633ebf2389f300f472ed69ddb03425d1aaec4b2b13a4cfcb3b",
+  "change": "Refresh native owner proof after inactive archive restore",
+  "assertionsRemoved": 0,
+  "testRegistrationsAdded": 0,
+  "productAuthorityChanges": false
+}

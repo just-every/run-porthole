@@ -1,0 +1,49 @@
+{
+  "priorCalls": 5,
+  "watcherCalls": [
+    {
+      "at": "2026-11-09T04:42:11.073808+00:00",
+      "command": [
+        "gh",
+        "api",
+        "repos/just-every/run-porthole/actions/runs?head_sha=265c5f4563d84f8cb81dc3646207b632b32314cb&per_page=100",
+        "--jq",
+        "{total_count,runs:[.workflow_runs[]|{id,name,status,conclusion,head_sha,head_branch,event,html_url}]}"
+      ],
+      "exit": 0
+    },
+    {
+      "at": "2026-11-09T04:47:11.103347+00:00",
+      "command": [
+        "gh",
+        "api",
+        "repos/just-every/run-porthole/actions/runs/42562830073",
+        "--jq",
+        "{id,name,status,conclusion,head_sha,head_branch,event,html_url}"
+      ],
+      "exit": 0
+    },
+    {
+      "at": "2026-11-09T04:52:11.026148+00:00",
+      "command": [
+        "gh",
+        "api",
+        "repos/just-every/run-porthole/actions/runs/42562830073",
+        "--jq",
+        "{id,name,status,conclusion,head_sha,head_branch,event,html_url}"
+      ],
+      "exit": 0
+    }
+  ],
+  "totalCalls": 10,
+  "diagnosticCalls": [
+    {
+      "command": "gh api repos/just-every/run-porthole/actions/runs/42562830073/jobs",
+      "exit": 0
+    },
+    {
+      "command": "gh run view 42562830073 --repo just-every/run-porthole --job 128982813461 --log-failed",
+      "exit": 0
+    }
+  ]
+}

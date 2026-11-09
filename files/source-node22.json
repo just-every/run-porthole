@@ -1,0 +1,11 @@
+{
+  "head": "c62aa0a225f5da1b2965b37c20b6bcdfb12fee3f",
+  "job": "128925747630",
+  "command": "CI=true WRANGLER_SEND_METRICS=false PLAYWRIGHT_SKIP_BROWSER_GC=1 node scripts/verify-ci.mjs source",
+  "node": "22.20.0",
+  "exit": 1,
+  "failure": "AssertionError: {\"error\":\"step_up_required\"}; 403 !== 201 at tests/porthole/standard-reads.mjs:536:23",
+  "test": "standardReadJourney -> standardSchemaProof -> standardMappingProof",
+  "reproducedOriginalRateAssertion": false,
+  "reproducedSourceShardFailure": true
+}

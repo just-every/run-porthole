@@ -1,0 +1,64 @@
+{
+  "head": "265c5f4563d84f8cb81dc3646207b632b32314cb",
+  "branch": "cloud/sx-porthole-c-f464-pc1",
+  "run": {
+    "conclusion": "cancelled",
+    "event": "push",
+    "head_branch": "cloud/sx-porthole-c-f464-pc1",
+    "head_sha": "265c5f4563d84f8cb81dc3646207b632b32314cb",
+    "html_url": "https://github.com/just-every/run-porthole/actions/runs/42562830073",
+    "id": 42562830073,
+    "name": "Verify",
+    "status": "completed"
+  },
+  "sourceJob": {
+    "completed_at": "2026-11-09T04:48:52Z",
+    "conclusion": "success",
+    "id": 128982813551,
+    "name": "shards (source, false)",
+    "started_at": "2026-11-09T04:37:22Z",
+    "status": "completed",
+    "steps": []
+  },
+  "successfulProductShards": 10,
+  "cancelledProductShards": [
+    {
+      "completed_at": "2026-11-09T04:49:38Z",
+      "conclusion": "cancelled",
+      "id": 128982813461,
+      "name": "shards (analytical, true)",
+      "started_at": "2026-11-09T04:37:22Z",
+      "status": "completed",
+      "steps": [
+        {
+          "conclusion": "cancelled",
+          "name": "Run this shard",
+          "number": 14,
+          "status": "completed"
+        }
+      ]
+    }
+  ],
+  "overallVerifyGreen": false,
+  "knownCandidateAssertionFailure": false,
+  "githubCalls": 10,
+  "workflowDispatched": false,
+  "workflowRerunRequested": false,
+  "countsBefore": {
+    "done": 10,
+    "partial": 20,
+    "missing": 69
+  },
+  "countsAfter": {
+    "done": 10,
+    "partial": 20,
+    "missing": 69
+  },
+  "clause": "PORT-061",
+  "clauseStatus": "PARTIAL",
+  "planRowsChanged": [],
+  "mainEquality": false,
+  "mainObserved": "85b79464fa8a79597741711f6689f1b21132cd89",
+  "publicationScan": "not run in cloud; guarded lander required",
+  "runSite": "pending guarded landing"
+}

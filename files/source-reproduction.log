@@ -1,0 +1,237 @@
+> pnpm run verify:app
+ WARN  Unsupported engine: wanted: {"node":"22.20.0"} (current: {"node":"v24.19.0","pnpm":"10.12.4"})
+
+> @just-every/porthole@0.1.0 verify:app /home/agent/rer-consolidation/work/sx-porthole-c-f464-pc1/repo
+> node scripts/verify-app.mjs
+
+> pnpm run check --profile first-party
+ WARN  Unsupported engine: wanted: {"node":"22.20.0"} (current: {"node":"v24.19.0","pnpm":"10.12.4"})
+
+> @just-every/porthole@0.1.0 check /home/agent/rer-consolidation/work/sx-porthole-c-f464-pc1/repo
+> rer check --profile first-party
+
+> node scripts/porthole/public-schema.mjs --check
+Public API schema is current.
+> node scripts/porthole/contract-docs.mjs check PORT-075
+Contract documents are current for PORT-075
+> pnpm run build
+ WARN  Unsupported engine: wanted: {"node":"22.20.0"} (current: {"node":"v24.19.0","pnpm":"10.12.4"})
+
+> @just-every/porthole@0.1.0 build /home/agent/rer-consolidation/work/sx-porthole-c-f464-pc1/repo
+> rer build
+
+Using project Node 22.20.0 (current Node 24.19.0).
+Checking pinned pnpm
+10.12.4
+Building your application
+build:app
+▲ [WARNING] Proxy environment variables detected. We'll use your proxy for fetch requests.
+
+
+vite v8.2.2 building client environment for production...
+transforming...
+✓ 141 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/client/.assetsignore               0.02 kB
+dist/client/assets/index-CRqGoFgh.js  313.67 kB │ gzip: 101.76 kB
+
+✓ built in 502ms
+vite v8.2.2 building ssr environment for production...
+transforming...
+✓ 828 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/server/wrangler.json                                      1.69 kB │ gzip:   0.85 kB
+dist/server/.vite/manifest.json                                2.35 kB │ gzip:   0.53 kB
+dist/server/assets/empty-plugin-adapters-D_0twvAa.js           0.28 kB │ gzip:   0.18 kB
+dist/server/assets/start-BRPP0LUH.js                           0.28 kB │ gzip:   0.20 kB
+dist/server/assets/_tanstack-start-manifest_v-DxAsr_By.js      0.39 kB │ gzip:   0.28 kB
+dist/server/assets/wire-C5pyjjqN.js                            7.77 kB │ gzip:   2.90 kB
+dist/server/assets/router-B-pF21YZ.js                         37.45 kB │ gzip:  10.06 kB
+dist/server/assets/Match-vf3DrRnt.js                         169.04 kB │ gzip:  42.60 kB
+dist/server/index.js                                       3,311.61 kB │ gzip: 808.85 kB
+
+[INEFFECTIVE_DYNAMIC_IMPORT] src/porthole/ingest/otlp-proto.ts is dynamically imported by src/porthole/database/privacy.ts but also statically imported by src/porthole/genai/wire.ts, src/porthole/ingest/http.ts, src/porthole/signals/standard/tempo.ts, dynamic import will not move module into another chunk.
+
+[INEFFECTIVE_DYNAMIC_IMPORT] src/modules/import-kit/src/d1/undo-snapshot.ts is dynamically imported by src/modules/import-kit/src/d1/apply.ts but also statically imported by src/modules/import-kit/src/d1/preserved-preview.ts, src/modules/import-kit/src/d1/preserved-reverse.ts, dynamic import will not move module into another chunk.
+
+✓ built in 984ms
+Your application is built
+build: complete (exit 0)
+> python3 -m venv .cache/export-readers && .cache/export-readers/bin/pip install --disable-pip-version-check -r tests/porthole/standard-readers.txt
+Collecting opentelemetry-proto==1.45.1 (from -r tests/porthole/standard-readers.txt (line 1))
+  Downloading opentelemetry_proto-1.45.1-py3-none-any.whl.metadata (2.3 kB)
+Collecting protobuf==6.33.6 (from -r tests/porthole/standard-readers.txt (line 2))
+  Downloading protobuf-6.33.6-cp39-abi3-manylinux2014_x86_64.whl.metadata (593 bytes)
+Downloading opentelemetry_proto-1.45.1-py3-none-any.whl (72 kB)
+Downloading protobuf-6.33.6-cp39-abi3-manylinux2014_x86_64.whl (323 kB)
+Installing collected packages: protobuf, opentelemetry-proto
+Successfully installed opentelemetry-proto-1.45.1 protobuf-6.33.6
+> node scripts/porthole/standard-clients.mjs
+Unable to find image 'prom/prometheus@sha256:63805ebb8d2b3920190daf1cb14a60871b16fd38bed42b857a3182bc621f4996' locally
+docker.io/prom/prometheus@sha256:63805ebb8d2b3920190daf1cb14a60871b16fd38bed42b857a3182bc621f4996: Pulling from prom/prometheus
+9fa9226be034: Pulling fs layer
+1617e25568b2: Pulling fs layer
+097a69c6efe6: Pulling fs layer
+2ee6cb77bebd: Pulling fs layer
+a4e782810d03: Pulling fs layer
+76619c1908eb: Pulling fs layer
+2dfc70ad9941: Pulling fs layer
+fd1d3a5a5f79: Pulling fs layer
+5e4c02bc6754: Pulling fs layer
+a4e782810d03: Waiting
+76619c1908eb: Waiting
+208063e2dcbb: Pulling fs layer
+5e4c02bc6754: Waiting
+2dfc70ad9941: Waiting
+fd1d3a5a5f79: Waiting
+208063e2dcbb: Waiting
+2ee6cb77bebd: Waiting
+1617e25568b2: Download complete
+9fa9226be034: Download complete
+9fa9226be034: Pull complete
+1617e25568b2: Pull complete
+a4e782810d03: Verifying Checksum
+a4e782810d03: Download complete
+76619c1908eb: Verifying Checksum
+76619c1908eb: Download complete
+2dfc70ad9941: Verifying Checksum
+2dfc70ad9941: Download complete
+fd1d3a5a5f79: Verifying Checksum
+fd1d3a5a5f79: Download complete
+5e4c02bc6754: Download complete
+208063e2dcbb: Download complete
+097a69c6efe6: Verifying Checksum
+097a69c6efe6: Download complete
+097a69c6efe6: Pull complete
+2ee6cb77bebd: Verifying Checksum
+2ee6cb77bebd: Download complete
+2ee6cb77bebd: Pull complete
+a4e782810d03: Pull complete
+76619c1908eb: Pull complete
+2dfc70ad9941: Pull complete
+fd1d3a5a5f79: Pull complete
+5e4c02bc6754: Pull complete
+208063e2dcbb: Pull complete
+Digest: sha256:63805ebb8d2b3920190daf1cb14a60871b16fd38bed42b857a3182bc621f4996
+Status: Downloaded newer image for prom/prometheus@sha256:63805ebb8d2b3920190daf1cb14a60871b16fd38bed42b857a3182bc621f4996
+Unable to find image 'grafana/tempo-cli@sha256:846aaaca43d2e9e0a08ef7e9bbc355cd1b11d445daee18078930b740ad9902b4' locally
+docker.io/grafana/tempo-cli@sha256:846aaaca43d2e9e0a08ef7e9bbc355cd1b11d445daee18078930b740ad9902b4: Pulling from grafana/tempo-cli
+400fe5c6b87b: Pulling fs layer
+2e4cf50eeb92: Pulling fs layer
+4e9f20d26c87: Pulling fs layer
+e1089d61b200: Pulling fs layer
+0f8b424aa0b9: Pulling fs layer
+d557676654e5: Pulling fs layer
+d82bc7a76a83: Pulling fs layer
+d858cbc252ad: Pulling fs layer
+1069fc2daed1: Pulling fs layer
+b40161cd83fc: Pulling fs layer
+3f4e2c586348: Pulling fs layer
+eb8f5749650b: Pulling fs layer
+5391af8231d5: Pulling fs layer
+a05affa08896: Pulling fs layer
+e64ec4d8a044: Pulling fs layer
+b40161cd83fc: Waiting
+e1089d61b200: Waiting
+3f4e2c586348: Waiting
+eb8f5749650b: Waiting
+0f8b424aa0b9: Waiting
+5391af8231d5: Waiting
+a05affa08896: Waiting
+d557676654e5: Waiting
+e64ec4d8a044: Waiting
+d82bc7a76a83: Waiting
+1069fc2daed1: Waiting
+d858cbc252ad: Waiting
+400fe5c6b87b: Verifying Checksum
+400fe5c6b87b: Download complete
+2e4cf50eeb92: Verifying Checksum
+2e4cf50eeb92: Download complete
+400fe5c6b87b: Pull complete
+2e4cf50eeb92: Pull complete
+4e9f20d26c87: Verifying Checksum
+4e9f20d26c87: Download complete
+e1089d61b200: Verifying Checksum
+e1089d61b200: Download complete
+0f8b424aa0b9: Verifying Checksum
+0f8b424aa0b9: Download complete
+4e9f20d26c87: Pull complete
+d82bc7a76a83: Verifying Checksum
+d82bc7a76a83: Download complete
+e1089d61b200: Pull complete
+d557676654e5: Verifying Checksum
+d557676654e5: Download complete
+0f8b424aa0b9: Pull complete
+d557676654e5: Pull complete
+d82bc7a76a83: Pull complete
+1069fc2daed1: Verifying Checksum
+1069fc2daed1: Download complete
+d858cbc252ad: Verifying Checksum
+d858cbc252ad: Download complete
+d858cbc252ad: Pull complete
+1069fc2daed1: Pull complete
+b40161cd83fc: Verifying Checksum
+b40161cd83fc: Pull complete
+3f4e2c586348: Verifying Checksum
+3f4e2c586348: Download complete
+3f4e2c586348: Pull complete
+eb8f5749650b: Verifying Checksum
+eb8f5749650b: Download complete
+eb8f5749650b: Pull complete
+5391af8231d5: Verifying Checksum
+5391af8231d5: Download complete
+5391af8231d5: Pull complete
+e64ec4d8a044: Verifying Checksum
+e64ec4d8a044: Download complete
+a05affa08896: Verifying Checksum
+a05affa08896: Download complete
+a05affa08896: Pull complete
+e64ec4d8a044: Pull complete
+Digest: sha256:846aaaca43d2e9e0a08ef7e9bbc355cd1b11d445daee18078930b740ad9902b4
+Status: Downloaded newer image for grafana/tempo-cli@sha256:846aaaca43d2e9e0a08ef7e9bbc355cd1b11d445daee18078930b740ad9902b4
+Pinned Prometheus 3.5.0 and Tempo CLI 2.8.2 ready
+> PORTHOLE_STANDARD_ONLY=1 pnpm run test:runtime
+ WARN  Unsupported engine: wanted: {"node":"22.20.0"} (current: {"node":"v24.19.0","pnpm":"10.12.4"})
+
+> @just-every/porthole@0.1.0 test:runtime /home/agent/rer-consolidation/work/sx-porthole-c-f464-pc1/repo
+> rer queue test:runtime -- sh -c "node tests/runtime.mjs"
+
+test:runtime
+▲ [WARNING] Proxy environment variables detected. We'll use your proxy for fetch requests.
+
+
+Installed owner claim rejects missing/wrong setup tokens and request demo flags
+HTTP-001 passed against emitted local Worker: health, the installed homepage, HTTP and document 404s
+Stock scrape generations {"scrapes":15,"timestamps":[1794196231847,1794196238305,1794196239726,1794196241245,1794196242778],"counter":[{"metric":{"__name__":"synthetic_scrape_requests_total","environment":"production","instance":"127.0.0.1:37683","job":"synthetic-porthole-6100","producer":"synthetic-porthole-6200","service":"synthetic-porthole-6100","team":"commerce"},"values":[[1794196231.847,"1"],[1794196238.305,"2"],[1794196239.726,"3"],[1794196241.245,"4"],[1794196242.778,"5"]]}]}
+PROBE PORT-061 standard metrics: stock Prometheus 3.5.0 remote_read evaluates 19 fixed expressions over real scrape, stock OTLP and official-schema summary input -> exact reference series, labels, timestamps and values
+(node:1526) TimeoutNegativeWarning: -1794196513760 is a negative number.
+Timeout duration was set to 1.
+(Use `node --trace-warnings ...` to show where the warning was created)
+PROBE PORT-061 restore: inactive owner installation restore -> original samples and exact stock Tempo trace in both representations across restart; new destination authority only, revocation enforced, intake remains paused
+PROBE PORT-061 schema and erasure: cumulative gauges, sums, buckets and summaries map exactly; raw float bits survive; delta and exponential inputs refuse; native erased subject and replay remain absent after restart
+STANDARD_READ_RESULT {"metricSeries":223,"metricSamples":1117,"traceIds":3,"selectedTraceSpans":8,"prometheus":"3.5.0","tempoClient":"2.8.2","result":"passed"}
+PROBE PORT-061 standard traces: captured stock HTTP and Kafka spans -> official OTLP binary reader exact spans and stock Tempo CLI; restricted span set and explicit partial evidence; restart and inactive restore
+APP-HOME passed against emitted local Worker: /app behind sign-in and setup, then the trace view with its stylesheets
+> PORTHOLE_STANDARD_ANALYTICAL_ONLY=1 pnpm run test:runtime
+ WARN  Unsupported engine: wanted: {"node":"22.20.0"} (current: {"node":"v24.19.0","pnpm":"10.12.4"})
+
+> @just-every/porthole@0.1.0 test:runtime /home/agent/rer-consolidation/work/sx-porthole-c-f464-pc1/repo
+> rer queue test:runtime -- sh -c "node tests/runtime.mjs"
+
+test:runtime
+Recipient fixture: parsing migrations
+Recipient fixture: migrations parsed
+Recipient fixture: starting emitted Worker
+Recipient fixture: D1 ready
+Recipient fixture: native bootstrap
+Stock scrape generations {"scrapes":15,"timestamps":[1794196671037,1794196677530,1794196678952,1794196680471,1794196681891],"counter":[{"metric":{"__name__":"synthetic_scrape_requests_total","environment":"production","instance":"127.0.0.1:38107","job":"synthetic-porthole-6100","producer":"synthetic-porthole-6200","service":"synthetic-porthole-6100","team":"commerce"},"values":[[1794196671.037,"1"],[1794196677.53,"2"],[1794196678.952,"3"],[1794196680.471,"4"],[1794196681.891,"5"]]}]}
+PROBE PORT-061 standard metrics: stock Prometheus 3.5.0 remote_read evaluates 19 fixed expressions over real scrape, stock OTLP and official-schema summary input -> exact reference series, labels, timestamps and values on both analytical configurations
+(node:5251) TimeoutNegativeWarning: -1794196903374 is a negative number.
+Timeout duration was set to 1.
+(Use `node --trace-warnings ...` to show where the warning was created)
+STANDARD_READ_RESULT {"metricSeries":223,"metricSamples":1117,"traceIds":3,"selectedTraceSpans":8,"prometheus":"3.5.0","tempoClient":"2.8.2","result":"passed"}
+PROBE PORT-061 standard traces: captured stock HTTP and Kafka spans -> official OTLP binary reader exact spans and stock Tempo CLI; restricted span set and explicit partial evidence; restart and inactive restore
+PROBE PORT-061 analytical schema: exact mappings and legacy quotas; analytical erasure refuses unchanged; prior-journal fixture fences both stores and replay; complete row and byte budget refusals
+PROBE PORT-061 authority: both real analytical backends -> same stock samples; mid-read revoke and expiry -> 401; narrowing and custody change -> 409; quota -> 429; excluded records absent; unavailable backend -> 503

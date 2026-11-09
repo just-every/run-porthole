@@ -1,0 +1,66 @@
+{
+  "head": "265c5f4563d84f8cb81dc3646207b632b32314cb",
+  "main": "85b79464fa8a79597741711f6689f1b21132cd89",
+  "testedFixtureSha256": "bc7ccda2c29e6a633ebf2389f300f472ed69ddb03425d1aaec4b2b13a4cfcb3b",
+  "sourceCommandExit": 0,
+  "results": [
+    {
+      "metricSeries": 223,
+      "metricSamples": 1117,
+      "traceIds": 3,
+      "selectedTraceSpans": 8,
+      "prometheus": "3.5.0",
+      "tempoClient": "2.8.2",
+      "result": "passed"
+    },
+    {
+      "metricSeries": 223,
+      "metricSamples": 1117,
+      "traceIds": 3,
+      "selectedTraceSpans": 8,
+      "prometheus": "3.5.0",
+      "tempoClient": "2.8.2",
+      "result": "passed"
+    }
+  ],
+  "probes": [
+    "PROBE PORT-061 standard metrics: stock Prometheus 3.5.0 remote_read evaluates 19 fixed expressions over real scrape, stock OTLP and official-schema summary input -> exact reference series, labels, timestamps and values",
+    "PROBE PORT-061 restore: inactive owner installation restore -> original samples and exact stock Tempo trace in both representations across restart; new destination authority only, revocation enforced, intake remains paused",
+    "PROBE PORT-061 schema and erasure: cumulative gauges, sums, buckets and summaries map exactly; raw float bits survive; delta and exponential inputs refuse; native erased subject and replay remain absent after restart",
+    "PROBE PORT-061 standard traces: captured stock HTTP and Kafka spans -> official OTLP binary reader exact spans and stock Tempo CLI; restricted span set and explicit partial evidence; restart and inactive restore",
+    "PROBE PORT-061 standard metrics: stock Prometheus 3.5.0 remote_read evaluates 19 fixed expressions over real scrape, stock OTLP and official-schema summary input -> exact reference series, labels, timestamps and values on both analytical configurations",
+    "PROBE PORT-061 standard traces: captured stock HTTP and Kafka spans -> official OTLP binary reader exact spans and stock Tempo CLI; restricted span set and explicit partial evidence; restart and inactive restore",
+    "PROBE PORT-061 analytical schema: exact mappings and legacy quotas; analytical erasure refuses unchanged; prior-journal fixture fences both stores and replay; complete row and byte budget refusals",
+    "PROBE PORT-061 authority: both real analytical backends -> same stock samples; mid-read revoke and expiry -> 401; narrowing and custody change -> 409; quota -> 429; excluded records absent; unavailable backend -> 503"
+  ],
+  "mechanical": {
+    "baseHead": "a2a7d7689176de2c1be982c142db02690a7bdea8",
+    "main": "85b79464fa8a79597741711f6689f1b21132cd89",
+    "lock": {
+      "command": "pnpm run source:lock && pnpm run source:check",
+      "exit": 0
+    },
+    "views": {
+      "command": "node scripts/porthole/contract-docs.mjs write PORT-061 && node scripts/porthole/contract-docs.mjs check PORT-061",
+      "exit": 0,
+      "restored": [
+        "ACCEPTANCE.md",
+        "docs/CLAIMS.md"
+      ]
+    },
+    "ledger": {
+      "command": "none (candidate adds no migration relative to main)",
+      "exit": 0
+    },
+    "typecheck": {
+      "command": "pnpm run typecheck",
+      "exit": 0
+    },
+    "contractStatusDiff": false,
+    "fixtureHashMatchesTestedBytes": true,
+    "candidateChangedPaths": [
+      "sources.lock.json",
+      "tests/porthole/standard-reads.mjs"
+    ]
+  }
+}

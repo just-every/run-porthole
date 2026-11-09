@@ -1,0 +1,109 @@
+> pnpm run build
+2026-11-09T04:38:04.4212200Z 
+2026-11-09T04:38:04.4213033Z > @just-every/porthole@0.1.0 build /home/runner/work/run-porthole/run-porthole
+2026-11-09T04:38:04.4213615Z > rer build
+2026-11-09T04:38:04.4213986Z 
+2026-11-09T04:38:05.0422604Z Checking pinned pnpm
+2026-11-09T04:38:05.2926422Z 10.12.4
+2026-11-09T04:38:05.3684547Z Building your application
+2026-11-09T04:38:05.7703475Z build:app
+2026-11-09T04:38:07.8258612Z vite v8.2.2 building client environment for production...
+2026-11-09T04:38:07.8397081Z transforming...
+2026-11-09T04:38:07.9646026Z ✓ 141 modules transformed.
+2026-11-09T04:38:07.9977362Z rendering chunks...
+2026-11-09T04:38:08.0597796Z computing gzip size...
+2026-11-09T04:38:08.0675565Z dist/client/.assetsignore               0.02 kB
+2026-11-09T04:38:08.0677067Z dist/client/assets/index-CRqGoFgh.js  313.67 kB │ gzip: 101.76 kB
+2026-11-09T04:38:08.0677584Z 
+2026-11-09T04:38:08.2928549Z ✓ built in 470ms
+2026-11-09T04:38:08.2934279Z vite v8.2.2 building ssr environment for production...
+2026-11-09T04:38:08.3029977Z transforming...
+2026-11-09T04:38:09.0924370Z ✓ 831 modules transformed.
+2026-11-09T04:38:09.1747619Z rendering chunks...
+2026-11-09T04:38:09.3557764Z computing gzip size...
+2026-11-09T04:38:09.4112140Z dist/server/wrangler.json                                      1.65 kB │ gzip:   0.83 kB
+2026-11-09T04:38:09.4112953Z dist/server/.vite/manifest.json                                2.35 kB │ gzip:   0.53 kB
+2026-11-09T04:38:09.4113696Z dist/server/assets/empty-plugin-adapters-D_0twvAa.js           0.28 kB │ gzip:   0.18 kB
+2026-11-09T04:38:09.4114516Z dist/server/assets/start-BRPP0LUH.js                           0.28 kB │ gzip:   0.20 kB
+2026-11-09T04:38:09.4115849Z dist/server/assets/_tanstack-start-manifest_v-CiDJhoiU.js      0.37 kB │ gzip:   0.26 kB
+2026-11-09T04:38:09.4117366Z dist/server/assets/wire-C5pyjjqN.js                            7.77 kB │ gzip:   2.90 kB
+2026-11-09T04:38:09.4118645Z dist/server/assets/router-B-pF21YZ.js                         37.45 kB │ gzip:  10.06 kB
+2026-11-09T04:38:09.4119963Z dist/server/assets/Match-vf3DrRnt.js                         169.04 kB │ gzip:  42.60 kB
+2026-11-09T04:38:09.4121195Z dist/server/index.js                                       3,331.68 kB │ gzip: 813.92 kB
+2026-11-09T04:38:09.4121717Z 
+2026-11-09T04:38:09.4510201Z [INEFFECTIVE_DYNAMIC_IMPORT] src/porthole/ingest/otlp-proto.ts is dynamically imported by src/porthole/database/privacy.ts but also statically imported by src/porthole/genai/wire.ts, src/porthole/ingest/http.ts, src/porthole/signals/standard/tempo.ts, dynamic import will not move module into another chunk.
+2026-11-09T04:38:09.4512411Z 
+2026-11-09T04:38:09.4515191Z [INEFFECTIVE_DYNAMIC_IMPORT] src/modules/import-kit/src/d1/undo-snapshot.ts is dynamically imported by src/modules/import-kit/src/d1/apply.ts but also statically imported by src/modules/import-kit/src/d1/preserved-preview.ts, src/modules/import-kit/src/d1/preserved-reverse.ts, dynamic import will not move module into another chunk.
+2026-11-09T04:38:09.4517878Z 
+2026-11-09T04:38:09.4518343Z ✓ built in 1.15s
+2026-11-09T04:38:10.0001537Z Your application is built
+2026-11-09T04:38:10.0397418Z build: complete (exit 0)
+2026-11-09T04:38:10.0628643Z > PORTHOLE_ANALYTICAL_ONLY=1 pnpm run test:runtime
+2026-11-09T04:38:10.3306064Z 
+2026-11-09T04:38:10.3307304Z > @just-every/porthole@0.1.0 test:runtime /home/runner/work/run-porthole/run-porthole
+2026-11-09T04:38:10.3308472Z > rer queue test:runtime -- sh -c "node tests/runtime.mjs"
+2026-11-09T04:38:10.3308983Z 
+2026-11-09T04:38:10.4299619Z test:runtime
+2026-11-09T04:38:25.2736933Z analyticalKernelJourney passed: separate Worker/D1 processes, private auth, exact replication/replay, stale standby refusal, actual process stop and original snapshot recovery; kernel-only probe; product integration is checked separately
+2026-11-09T04:38:32.7947919Z Recipient fixture: parsing migrations
+2026-11-09T04:38:33.9377923Z Recipient fixture: migrations parsed
+2026-11-09T04:38:33.9476230Z Recipient fixture: starting emitted Worker
+2026-11-09T04:38:34.4880712Z Recipient fixture: D1 ready
+2026-11-09T04:38:36.4940580Z Recipient fixture: native bootstrap
+2026-11-09T04:39:08.4688352Z Recipient fixture: parsing migrations
+2026-11-09T04:39:09.6642907Z Recipient fixture: migrations parsed
+2026-11-09T04:39:09.6741679Z Recipient fixture: starting emitted Worker
+2026-11-09T04:39:10.1860874Z Recipient fixture: D1 ready
+2026-11-09T04:39:12.1183590Z Recipient fixture: native bootstrap
+2026-11-09T04:39:15.0451439Z Recipient fixture: parsing migrations
+2026-11-09T04:39:16.2229110Z Recipient fixture: migrations parsed
+2026-11-09T04:39:16.2323268Z Recipient fixture: starting emitted Worker
+2026-11-09T04:39:16.7221363Z Recipient fixture: D1 ready
+2026-11-09T04:39:18.6704106Z Recipient fixture: native bootstrap
+2026-11-09T04:39:21.9769581Z metricUnitsJourney passed (local): stock OTLP producers, grouped 400 ms and 3 s turnover refusal, same-unit [400,3000] ms, 205 contributors, incompatible and unsupported no-effect refusals, immutable replay and revocation
+2026-11-09T04:39:27.7115864Z metricUnitsJourney passed (analytical): stock OTLP producers, grouped 400 ms and 3 s turnover refusal, same-unit [400,3000] ms, 205 contributors, incompatible and unsupported no-effect refusals, immutable replay and revocation
+2026-11-09T04:39:31.7844168Z nativeLogSearchJourney passed (analytical): typed ingested corpus, exact IDs and pages, scopes, snapshot replay, refusals and revoked credential
+2026-11-09T04:39:56.6972279Z PROBE PORT-011 clustering: stock OTel logger -> actual intake -> analytical primary pattern API: 236 source identities, counts 225 and 11, all original pivots reconciled, complete and partial states, scoped and revoked refusals
+2026-11-09T04:40:12.1733385Z PROBE PORT-011 analytical: primary and standby -> all 236 memberships and singleton pivots agree; real mid-read revoke -> 401; retained custody loss -> 409 with no accumulated results; stopped selected store -> 503
+2026-11-09T04:40:12.1819003Z PORTHOLE_ANALYTICAL_RUN {"runId":"sx-porthole-c7-recovery-20261022","head":"265c5f4563d84f8cb81dc3646207b632b32314cb","result":"passed"}
+2026-11-09T04:40:12.1823513Z analyticalConnectionJourney passed: real independent primary/standby processes, product query/health/monitor, collector outage and direct provider-edge notice, behind refusal, explicit failover/failback, bounded 20/3 backlog, original ns and no duplicate records/notices
+2026-11-09T04:40:12.3912965Z > PORTHOLE_HOST_HEARTBEAT_ONLY=1 pnpm run test:runtime
+2026-11-09T04:40:12.6690703Z 
+2026-11-09T04:40:12.6694098Z > @just-every/porthole@0.1.0 test:runtime /home/runner/work/run-porthole/run-porthole
+2026-11-09T04:40:12.6694936Z > rer queue test:runtime -- sh -c "node tests/runtime.mjs"
+2026-11-09T04:40:12.6695214Z 
+2026-11-09T04:40:12.7674459Z test:runtime
+2026-11-09T04:40:20.5740463Z Installed owner claim rejects missing/wrong setup tokens and request demo flags
+2026-11-09T04:40:20.5759344Z HTTP-001 passed against emitted local Worker: health, the installed homepage, HTTP and document 404s
+2026-11-09T04:41:02.9052672Z Host heartbeat: authenticated process and timing boundaries
+2026-11-09T04:41:05.1268042Z Host heartbeat: native Settings and evaluation screens
+2026-11-09T04:41:28.6791586Z Host heartbeat: dense accepted observations 2001
+2026-11-09T04:41:37.8832678Z Host heartbeat: dense accepted observations 4001
+2026-11-09T04:41:46.6691602Z Host heartbeat: dense accepted observations 6001
+2026-11-09T04:41:55.0432027Z Host heartbeat: dense accepted observations 8001
+2026-11-09T04:42:03.7020012Z Host heartbeat: dense accepted observations 10001
+2026-11-09T04:42:05.2250327Z Host heartbeat: inactive archive transfer
+2026-11-09T04:44:27.0021115Z Host heartbeat journey passed: real process loss and return, exact per-host windows, pending restart, current authority, storage failure, native configuration and inactive archive
+2026-11-09T04:44:27.0028032Z APP-HOME passed against emitted local Worker: /app behind sign-in and setup, then the trace view with its stylesheets
+2026-11-09T04:44:27.1651914Z > PORTHOLE_DATABASE_ONLY=1 pnpm run test:runtime
+2026-11-09T04:44:27.4345657Z 
+2026-11-09T04:44:27.4349296Z > @just-every/porthole@0.1.0 test:runtime /home/runner/work/run-porthole/run-porthole
+2026-11-09T04:44:27.4350347Z > rer queue test:runtime -- sh -c "node tests/runtime.mjs"
+2026-11-09T04:44:27.4350820Z 
+2026-11-09T04:44:27.5322318Z test:runtime
+2026-11-09T04:44:35.0676236Z Installed owner claim rejects missing/wrong setup tokens and request demo flags
+2026-11-09T04:44:35.0692303Z HTTP-001 passed against emitted local Worker: health, the installed homepage, HTTP and document 404s
+2026-11-09T04:45:51.1215147Z PROBE PORT-016 literal redaction: stock PostgreSQL backslash separator followed by a planted literal -> no literal in pending wire or native trace; ambiguous sample withheld
+2026-11-09T04:45:51.1223223Z PROBE PORT-016 normalized plans: real customer=$1 and customer=? workloads -> reviewed structural plans and matching caller links
+2026-11-09T04:45:51.1225567Z PROBE PORT-016 caller identity: the same service runs identical SQL against PostgreSQL and MySQL -> each capture links only its engine callers
+2026-11-09T04:46:00.5938274Z Recipient fixture: parsing migrations
+2026-11-09T04:46:01.7048065Z Recipient fixture: migrations parsed
+2026-11-09T04:46:01.7161033Z Recipient fixture: starting emitted Worker
+2026-11-09T04:46:02.2286833Z Recipient fixture: D1 ready
+2026-11-09T04:46:04.2161421Z Recipient fixture: native bootstrap
+2026-11-09T04:46:08.8240002Z PROBE PORT-016 analytical copies: identical real engine captures and stock caller spans -> exact statistics, plans and blocking identities through primary and standby, pagination and restart; stopped backend -> 503
+2026-11-09T04:46:57.5629680Z databaseArchiveJourney passed: actual PostgreSQL and MySQL diagnostics, sanitized pending and retained wire, inactive independent restore and exact re-export; no collection grant or credential transfer
+2026-11-09T04:46:57.5631832Z PROBE PORT-016 safe export: admitted password predicate -> unchanged [REDACTED] in product archive, inactive restored records and re-export
+2026-11-09T04:49:25.6119977Z PROBE PORT-016 native installation archive: real engine captures and stock spans -> decoded export, inactive independent native import and re-export preserve diagnostics with no credentials, collection authority or planted literal
+2026-11-09T04:49:35.2423564Z ##[error]The operation was canceled.
+2026-11-09T04:49:35.2562065Z 

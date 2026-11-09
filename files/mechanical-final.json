@@ -1,0 +1,30 @@
+{
+  "baseHead": "a2a7d7689176de2c1be982c142db02690a7bdea8",
+  "main": "85b79464fa8a79597741711f6689f1b21132cd89",
+  "lock": {
+    "command": "pnpm run source:lock && pnpm run source:check",
+    "exit": 0
+  },
+  "views": {
+    "command": "node scripts/porthole/contract-docs.mjs write PORT-061 && node scripts/porthole/contract-docs.mjs check PORT-061",
+    "exit": 0,
+    "restored": [
+      "ACCEPTANCE.md",
+      "docs/CLAIMS.md"
+    ]
+  },
+  "ledger": {
+    "command": "none (candidate adds no migration relative to main)",
+    "exit": 0
+  },
+  "typecheck": {
+    "command": "pnpm run typecheck",
+    "exit": 0
+  },
+  "contractStatusDiff": false,
+  "fixtureHashMatchesTestedBytes": true,
+  "candidateChangedPaths": [
+    "sources.lock.json",
+    "tests/porthole/standard-reads.mjs"
+  ]
+}

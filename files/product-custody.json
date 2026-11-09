@@ -1,0 +1,18 @@
+{
+  "repository": "just-every/run-porthole",
+  "branch": "cloud/sx-porthole-c-f464-pc1",
+  "head": "265c5f4563d84f8cb81dc3646207b632b32314cb",
+  "main": "85b79464fa8a79597741711f6689f1b21132cd89",
+  "pushedAt": "2026-11-09T04:37:09.957265+00:00",
+  "status": "",
+  "shallow": "false",
+  "preservesStartingHead": true,
+  "testedFile": {
+    "path": "tests/porthole/standard-reads.mjs",
+    "sha256": "bc7ccda2c29e6a633ebf2389f300f472ed69ddb03425d1aaec4b2b13a4cfcb3b",
+    "change": "Refresh native owner proof after inactive archive restore",
+    "assertionsRemoved": 0,
+    "testRegistrationsAdded": 0,
+    "productAuthorityChanges": false
+  }
+}

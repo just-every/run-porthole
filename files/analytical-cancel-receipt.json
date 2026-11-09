@@ -1,0 +1,31 @@
+{
+  "run": 42562830073,
+  "job": 128982813461,
+  "command": "gh run view 42562830073 --repo just-every/run-porthole --job 128982813461 --log-failed",
+  "exit": 0,
+  "cachedEntries": [
+    {
+      "archiveEntry": "6_shards (analytical, true).txt",
+      "bytes": 10619,
+      "assertionErrors": 0,
+      "lastLines": [
+        "2026-11-09T04:44:35.0692303Z HTTP-001 passed against emitted local Worker: health, the installed homepage, HTTP and document 404s",
+        "2026-11-09T04:45:51.1215147Z PROBE PORT-016 literal redaction: stock PostgreSQL backslash separator followed by a planted literal -> no literal in pending wire or native trace; ambiguous sample withheld",
+        "2026-11-09T04:45:51.1223223Z PROBE PORT-016 normalized plans: real customer=$1 and customer=? workloads -> reviewed structural plans and matching caller links",
+        "2026-11-09T04:45:51.1225567Z PROBE PORT-016 caller identity: the same service runs identical SQL against PostgreSQL and MySQL -> each capture links only its engine callers",
+        "2026-11-09T04:46:00.5938274Z Recipient fixture: parsing migrations",
+        "2026-11-09T04:46:01.7048065Z Recipient fixture: migrations parsed",
+        "2026-11-09T04:46:01.7161033Z Recipient fixture: starting emitted Worker",
+        "2026-11-09T04:46:02.2286833Z Recipient fixture: D1 ready",
+        "2026-11-09T04:46:04.2161421Z Recipient fixture: native bootstrap",
+        "2026-11-09T04:46:08.8240002Z PROBE PORT-016 analytical copies: identical real engine captures and stock caller spans -> exact statistics, plans and blocking identities through primary and standby, pagination and restart; stopped backend -> 503",
+        "2026-11-09T04:46:57.5629680Z databaseArchiveJourney passed: actual PostgreSQL and MySQL diagnostics, sanitized pending and retained wire, inactive independent restore and exact re-export; no collection grant or credential transfer",
+        "2026-11-09T04:46:57.5631832Z PROBE PORT-016 safe export: admitted password predicate -> unchanged [REDACTED] in product archive, inactive restored records and re-export",
+        "2026-11-09T04:49:25.6119977Z PROBE PORT-016 native installation archive: real engine captures and stock spans -> decoded export, inactive independent native import and re-export preserve diagnostics with no credentials, collection authority or planted literal",
+        "2026-11-09T04:49:35.2423564Z ##[error]The operation was canceled.",
+        "2026-11-09T04:49:35.2562065Z "
+      ]
+    }
+  ],
+  "githubCallTotal": 10
+}
