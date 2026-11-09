@@ -1,0 +1,34 @@
+{
+  "head": "aae559bd25c456dd069dadc511a8654fa65eb7bb",
+  "runtime": "emitted Worker and native sessions; synthetic fixtures",
+  "screens": [
+    {
+      "file": "owner-settings-1440.png",
+      "path": "/app/settings/integrations/handoffs",
+      "width": 1440,
+      "status": 200,
+      "assertionWidth": 1440
+    },
+    {
+      "file": "owner-settings-390.png",
+      "path": "/app/settings/integrations/handoffs",
+      "width": 390,
+      "status": 200,
+      "assertionWidth": 1440
+    },
+    {
+      "file": "contractor-help-1440.png",
+      "path": "/app/help",
+      "width": 1440,
+      "status": 200,
+      "assertionWidth": 1440
+    },
+    {
+      "file": "contractor-help-390.png",
+      "path": "/app/help",
+      "width": 390,
+      "status": 200,
+      "assertionWidth": 1440
+    }
+  ]
+}

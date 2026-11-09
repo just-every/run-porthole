@@ -1,0 +1,20 @@
+{
+  "repository": "just-every/run-porthole",
+  "branch": "cloud/sx-porthole-f461fix1",
+  "head": "aae559bd25c456dd069dadc511a8654fa65eb7bb",
+  "merged_main": "a4b8bed320f94b9bbeb1b0e1d21b232fb6b4c9ed",
+  "start": "e2cfaedd2f158ea90c0f0176b9ea43fcee0fdffa",
+  "product_status": "",
+  "generated_view_diff": "",
+  "commits": [
+    "aae559bd25c456dd069dadc511a8654fa65eb7bb Refuse credential-bearing handoff URLs and fence legacy reads",
+    "61ddb72549674a7529546fcf7ca3f17932f395fd Merge main and retain service handoffs above current migrations [skip ci]",
+    "e2cfaedd2f158ea90c0f0176b9ea43fcee0fdffa Verify service handoffs and scoped evidence across native doors",
+    "877815638e666850d29c996dae8366e093caa7c5 Fence packet release and preserve inactive portable handoff history [skip ci]",
+    "60c6317b256836b675f5bc54ef577e2c2a501a35 Exercise scoped handoffs and service packet custody through native journeys [skip ci]",
+    "b5c157d1840c3daede98c071cf1098ad1415b2b6 Add native service handoffs and reviewed evidence selection [skip ci]"
+  ],
+  "push": "PUSH_OK branch=cloud/sx-porthole-f461fix1",
+  "product_pushed_head": "aae559bd25c456dd069dadc511a8654fa65eb7bb",
+  "unpublished_work": false
+}

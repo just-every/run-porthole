@@ -1,0 +1,3 @@
+CLAIM PORT-054 PARTIAL points=1,3 tests=tests/porthole/handoffs.mjs#handoffJourney; tests/porthole/handoffs.mjs#routeInventory; tests/porthole/archive.mjs#servicesArchiveJourney; tests/porthole/public-docs.mjs#publicDocsJourney
+
+GAP PORT-054: The telemetry-cost half of the packet awaits PORT-023 and the PORT-038 rate-card hold. Deployment and queue record handoffs await PORT-022 and PORT-060. Authorized estate and provider comparison, Evidence-side requests, adapter lifecycle, Base discovery, custody and retention holds remain unchanged. No DONE claim.

@@ -1,0 +1,65 @@
+{
+  "setup": {
+    "command": "cloud_run npx -y @runeditrun/rer setup --owner-email fleet@runeditrun.com --non-interactive",
+    "result": "RER_SETUP_READY; hook reinstalled afterward"
+  },
+  "typecheck": {
+    "command": "pnpm run typecheck",
+    "exit": 0,
+    "head": "aae559bd25c456dd069dadc511a8654fa65eb7bb"
+  },
+  "public_schema": {
+    "command": "node scripts/porthole/public-schema.mjs --check",
+    "exit": 0
+  },
+  "contract_generation": {
+    "write": "node scripts/porthole/contract-docs.mjs write PORT-054",
+    "check": "node scripts/porthole/contract-docs.mjs check PORT-054",
+    "exit": 0,
+    "views": "restored whole from origin/main; no CONTRACT.md cell changes"
+  },
+  "source_lock": {
+    "write": "pnpm run source:lock",
+    "check": "pnpm run source:check",
+    "exit": 0
+  },
+  "test_change": {
+    "assertions_added": 1,
+    "registrations_added": 0,
+    "existing_assertions_removed_or_weakened": 0,
+    "file": "tests/porthole/handoffs.mjs",
+    "helper": "handoffCredentialRefusal"
+  },
+  "contract_counts": {
+    "before": {
+      "done": 10,
+      "partial": 20,
+      "missing": 69,
+      "total": 99
+    },
+    "after": {
+      "done": 10,
+      "partial": 20,
+      "missing": 69,
+      "total": 99
+    }
+  },
+  "aborted_broad_journey": {
+    "command": "cloud_run env PORTHOLE_SERVICES_ONLY=1 PORTHOLE_CHROMIUM_PATH=/usr/bin/chromium node tests/runtime.mjs",
+    "exit": 130,
+    "reason": "Existing service estate invoked Docker; terminated upon discovery because the brief prohibits Docker. Its launched processes stopped. Not passing evidence. Replaced with focused real Worker/D1 proof."
+  },
+  "full_local_verify": "not run, as instructed",
+  "publication_scan": "not run, as instructed",
+  "build": {
+    "command": "cloud_run npx -y @runeditrun/rer build",
+    "exit": 0,
+    "result": "build: complete (exit 0)"
+  },
+  "native_archive_policy": {
+    "cases": 24,
+    "refused": 24,
+    "safe_empty_template_preserved": true,
+    "scope": "direct configured policy hook smoke"
+  }
+}

@@ -1,0 +1,151 @@
+{
+  "door": "configured native archive exportRow policy hook; direct invocation, not a complete CLI export",
+  "head": "aae559bd25c456dd069dadc511a8654fa65eb7bb",
+  "safePreserved": true,
+  "cases": [
+    {
+      "key": "sig",
+      "field": "destination",
+      "refused": true,
+      "echo": false
+    },
+    {
+      "key": "sig",
+      "field": "template",
+      "refused": true,
+      "echo": false
+    },
+    {
+      "key": "%73ig",
+      "field": "destination",
+      "refused": true,
+      "echo": false
+    },
+    {
+      "key": "%73ig",
+      "field": "template",
+      "refused": true,
+      "echo": false
+    },
+    {
+      "key": "SIG",
+      "field": "destination",
+      "refused": true,
+      "echo": false
+    },
+    {
+      "key": "SIG",
+      "field": "template",
+      "refused": true,
+      "echo": false
+    },
+    {
+      "key": "%2573ig",
+      "field": "destination",
+      "refused": true,
+      "echo": false
+    },
+    {
+      "key": "%2573ig",
+      "field": "template",
+      "refused": true,
+      "echo": false
+    },
+    {
+      "key": "token",
+      "field": "destination",
+      "refused": true,
+      "echo": false
+    },
+    {
+      "key": "token",
+      "field": "template",
+      "refused": true,
+      "echo": false
+    },
+    {
+      "key": "%54OKEN",
+      "field": "destination",
+      "refused": true,
+      "echo": false
+    },
+    {
+      "key": "%54OKEN",
+      "field": "template",
+      "refused": true,
+      "echo": false
+    },
+    {
+      "key": "key",
+      "field": "destination",
+      "refused": true,
+      "echo": false
+    },
+    {
+      "key": "key",
+      "field": "template",
+      "refused": true,
+      "echo": false
+    },
+    {
+      "key": "%4bEY",
+      "field": "destination",
+      "refused": true,
+      "echo": false
+    },
+    {
+      "key": "%4bEY",
+      "field": "template",
+      "refused": true,
+      "echo": false
+    },
+    {
+      "key": "secret",
+      "field": "destination",
+      "refused": true,
+      "echo": false
+    },
+    {
+      "key": "secret",
+      "field": "template",
+      "refused": true,
+      "echo": false
+    },
+    {
+      "key": "%73ecret",
+      "field": "destination",
+      "refused": true,
+      "echo": false
+    },
+    {
+      "key": "%73ecret",
+      "field": "template",
+      "refused": true,
+      "echo": false
+    },
+    {
+      "key": "signature",
+      "field": "destination",
+      "refused": true,
+      "echo": false
+    },
+    {
+      "key": "signature",
+      "field": "template",
+      "refused": true,
+      "echo": false
+    },
+    {
+      "key": "SIGNATURE",
+      "field": "destination",
+      "refused": true,
+      "echo": false
+    },
+    {
+      "key": "SIGNATURE",
+      "field": "template",
+      "refused": true,
+      "echo": false
+    }
+  ]
+}
