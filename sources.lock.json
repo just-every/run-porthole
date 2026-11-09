@@ -6000,8 +6000,12 @@
       "sha256": "fd52bcb0cbb18a516eb7de15ba912e1119fe0bd9f5b55cdd4437d7fab8ee0aa5",
       "executable": false
     },
+    "tests/porthole/network/batching.mjs": {
+      "sha256": "1d59b6851390b4034a0dc7e030847d46090b5e91c87d34e0c6d468d3d02b2942",
+      "executable": false
+    },
     "tests/porthole/network/estate.mjs": {
-      "sha256": "3d3e29418c55b26387b0890162c2be2e54e7a8cb6e7a15192344497bc971d7bc",
+      "sha256": "b0a49d4b529503b1f40c9776e7cfba3aa7787af977b748a80f95dfee98b869f8",
       "executable": false
     },
     "tests/porthole/network/foreign.cjs": {
@@ -6009,7 +6013,7 @@
       "executable": false
     },
     "tests/porthole/network/producer.cjs": {
-      "sha256": "7197831c39c776f0ab7b3892be7c44c6b1884bb43e90fc440a8a5db7f6b2b1c5",
+      "sha256": "09a523ca6c1d2ed1471ce1dd876f916d74cc2ba42fab2bd919af42cb1a7cec3e",
       "executable": false
     },
     "tests/porthole/notebooks.mjs": {

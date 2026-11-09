@@ -5,7 +5,7 @@
 export function batchFixtureMetrics(config) {
  for(const [name,pipeline] of Object.entries(config.service.pipelines)) {
   const batch='batch/'+name.replaceAll('/','-')
-  config.processors[batch]={timeout:'60s',send_batch_size:8192,send_batch_max_size:8192}
+  config.processors[batch]={timeout:'60s',send_batch_size:512,send_batch_max_size:512}
   pipeline.processors.push(batch)
  }
  return config
