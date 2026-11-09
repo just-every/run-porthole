@@ -18,7 +18,17 @@ export async function verificationPlan() {
 
 export function run(command, env = process.env) {
  console.log(`> ${command}`);
+ const started = performance.now();
+ // Only the build is shared. Every declared check and journey still executes.
+ if (command === 'pnpm run build' && env.SEED_VERIFY_PREBUILT === '1') {
+  const checked = spawnSync(process.execPath, ['scripts/ci-build.mjs', 'check'], { stdio: 'inherit', env });
+  if (checked.error) throw checked.error;
+  if (checked.status !== 0) process.exit(checked.status ?? 1);
+  console.log('Using the verified production build from this CI run.');
+  return;
+ }
  const result = spawnSync('/bin/bash', ['-euo', 'pipefail', '-c', command], { stdio: 'inherit', env });
+ console.log(`VERIFY_TIMING ${JSON.stringify({ shard: env.SEED_VERIFY_SHARD ?? null, command, seconds: Number(((performance.now() - started) / 1000).toFixed(3)), exit: result.status })}`);
  if (result.error) throw result.error;
  if (result.status !== 0) process.exit(result.status ?? 1);
 }
