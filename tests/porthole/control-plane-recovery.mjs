@@ -212,6 +212,9 @@ export async function controlPlaneRecoveryJourney(){
   await bufferedCollector.stop();await bufferedCollector.start(destination.origin,bufferedCredential.secret)
   for(let attempt=0;attempt<100;attempt++){const count=await destination.db.prepare('SELECT COUNT(*) AS n FROM porthole_ingest_batches').first();const duplicates=await destination.db.prepare("SELECT COALESCE(SUM(record_count),0) AS n FROM porthole_ingest_events WHERE source_id=? AND kind='duplicate'").bind(bufferedCredential.credential.id).first();if(count.n===10&&duplicates.n===4)break;await pause(100)}
   await destination.post('/api/porthole/v1/ingest/drain',{})
+  let replication=await destination.post('/api/porthole/v1/analytics/reconcile',{})
+  for(let pass=0;pass<3&&!replication.complete;pass++)replication=await destination.post('/api/porthole/v1/analytics/reconcile',{})
+  assert.equal(replication.complete,true,JSON.stringify(replication))
   await unknown() // Data alone cannot satisfy fresh authenticated heartbeats.
   for(const beat of beats){await beat.stop();assert.equal(beat.child.exitCode,2,'supervisor receives the last outage status when replacing its configuration')}
   for(const [index,credential]of destinationCredentials.entries()){
@@ -228,7 +231,7 @@ export async function controlPlaneRecoveryJourney(){
   const delivered=accounting.sources.filter(row=>row.sourceId===bufferedCredential.credential.id)
   assert.equal(delivered.reduce((n,row)=>n+row.accepted,0),4);assert.equal(delivered.reduce((n,row)=>n+row.queryable,0),4);assert.equal(delivered.reduce((n,row)=>n+row.archived,0),4);assert.equal(delivered.reduce((n,row)=>n+row.duplicates,0),4);assert.equal(delivered.reduce((n,row)=>n+row.lost,0),0)
   for(const role of ['primary','standby']){const physical=await estate.inspect(role);assert.equal(physical.length,12,'fresh destination input does not erase fenced physical custody');for(const old of after.porthole_telemetry_records)assert.ok(physical.some(row=>row.id===old.id&&row.event_time_ns===old.event_time_ns))}
-  const gap=await destination.read('/api/porthole/v1/analytics/configuration');assert.ok(gap.workers.every(row=>row.recovery.fenced_records===2),'gap remains visible after reconnection and fresh destination sequences')
+  const gap=await destination.read('/api/porthole/v1/analytics/configuration');assert.ok(gap.workers.every(row=>row.recovery?.fenced_records===2),JSON.stringify(gap))
   await healthBrowser({origin:destination.origin,cookie:destination.cookie,name:'control-recovery-recovered',contains:'Healthy'})
   await healthBrowser({origin:destination.origin,cookie:destination.cookie,path:'/app/settings/analytics',name:'control-recovery-gap',contains:'post-export gap 2 records'})
   record('heartbeat check cleared after reviewed destination reconnection',{status:'heartbeat_accepted',telemetryHealth:'Unknown'})
