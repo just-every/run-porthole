@@ -5721,7 +5721,7 @@
       "executable": false
     },
     "tests/porthole/analytics.mjs": {
-      "sha256": "e1d0f92499ba3276ee9e39c69f077f1579b7a1b379cf818fb9684b415d1addc9",
+      "sha256": "05dee7198456e0db26bbeea106c287f8b7e3b5f46b5813c808e73a5110bfd783",
       "executable": false
     },
     "tests/porthole/api.mjs": {
@@ -6005,7 +6005,7 @@
       "executable": false
     },
     "tests/runtime.mjs": {
-      "sha256": "fd30de15eab1e193592fe31e9bf13579673f8a7ae7a6de75caaa808a98184bd6",
+      "sha256": "7894549844d148bb09aa3d00350d81942de6e01277f7bbe2e6ad4e51f9cdace4",
       "executable": false
     },
     "tests/typecheck-checks.mjs": {
@@ -6017,7 +6017,7 @@
       "executable": false
     },
     "verification.json": {
-      "sha256": "86c83377f27a4e17fbd1eaeb942831988f8111c5c90d3a3de16a6901ba9ccbd1",
+      "sha256": "ac1638ffe33341c005f7e4fbc8c33cea15d7312d2d3bc98e07a1bc8df53eae50",
       "executable": false
     },
     "VERIFY-WORKFLOW.md": {

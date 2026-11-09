@@ -350,10 +350,8 @@ export async function servicesAnalyticalJourney() {
    const configure=async role=>{const c=await read('/api/porthole/v1/analytics/configuration');await post('/api/porthole/v1/analytics/configuration',{revision:c.revision,role,enabled:true,confirm:'connect-analytical-workers'})}
    await configure('primary')
    await post('/api/porthole/v1/analytics/reconcile',{})
-   const {networkJourney}=await import('./network.mjs')
    const {servicesJourney,servicesBrowser}=await import('./services.mjs')
    const result=await servicesJourney({origin,call,sql,restartWorker,...helpers,analytical:true,browserDispatch:(url,options)=>call(new URL(url).pathname+new URL(url).search,options)})
-   const network=await networkJourney({origin,call,sql,restartWorker,...helpers,analytical:true,browserDispatch:(url,options)=>call(new URL(url).pathname+new URL(url).search,options)})
    cookie=await helpers.freshOwner()
    const primary=await read('/api/porthole/v1/services'+result.query)
    assert.equal(primary.backend.role,'primary')
@@ -364,8 +362,6 @@ export async function servicesAnalyticalJourney() {
    await configure('standby')
    const standby=await read('/api/porthole/v1/services'+result.query)
    assert.equal(standby.backend.role,'standby');assert.deepEqual(standby.services,primary.services);assert.deepEqual(standby.edges,primary.edges)
-   const standbyNetwork=await read('/api/porthole/v1/network-messaging'+network.query+'&snapshot='+network.view.snapshot)
-   assert.deepEqual(standbyNetwork.network,network.view.network);assert.deepEqual(standbyNetwork.messaging,network.view.messaging)
    await estate.stop('standby')
    assert.equal((await call('/api/porthole/v1/services'+result.query,{headers:{cookie}})).status,503,'no fabricated local fallback when selected analytical process is stopped')
    await servicesBrowser({origin,cookie,path:'/app/services'+result.query,contains:'analytics',status:503,name:'services-storage-unavailable',dispatch:(url,options)=>call(new URL(url).pathname+new URL(url).search,options)})
@@ -374,6 +370,38 @@ export async function servicesAnalyticalJourney() {
    console.log('PROBE PORT-008 backends: selected real primary and standby -> identical source-checked catalog; stopped selected process -> 503; restart -> exact history and counters')
   }})
  }finally{await estate.dispose()}
+}
+
+/** Run the same retained network capture through both actual query backends.
+ * Kept with the native network journey so its captured stock packets are reused. */
+export async function networkAnalyticalJourney() {
+ const estate=await analyticalEstate()
+ try {
+  const {recipientMailJourney}=await import('./health.mjs'),{fixture}=await import('./fixture.mjs')
+  await recipientMailJourney({bindings:estate.bindings,services:estate.services,run:async context=>{
+   const {origin,call,post,getDb,restart,sessionSecret,ownerEmail}=context
+   const sql=async statement=>(await getDb().prepare(statement).all()).results
+   const restartWorker=async change=>{await change?.();await restart()}
+   const helpers=fixture({origin,sql,restartWorker,sessionSecret,ownerEmail,call})
+   let cookie=await helpers.freshOwner()
+   const read=async path=>{const response=await call(path,{headers:{cookie}});assert.equal(response.status,200,await response.clone().text());return response.json()}
+   const configure=async role=>{const c=await read('/api/porthole/v1/analytics/configuration');await post('/api/porthole/v1/analytics/configuration',{revision:c.revision,role,enabled:true,confirm:'connect-analytical-workers'})}
+   await configure('primary')
+   await post('/api/porthole/v1/analytics/reconcile',{})
+   const {networkJourney}=await import('./network.mjs')
+   const network=await networkJourney({origin,call,sql,restartWorker,...helpers,analytical:true,browserDispatch:(url,options)=>call(new URL(url).pathname+new URL(url).search,options)})
+   cookie=await helpers.freshOwner()
+   await configure('standby')
+   const path='/api/porthole/v1/network-messaging'+network.query+'&snapshot='+network.view.snapshot
+   const standbyNetwork=await read(path)
+   assert.deepEqual(standbyNetwork.network,network.view.network);assert.deepEqual(standbyNetwork.messaging,network.view.messaging)
+   await estate.stop('standby')
+   assert.equal((await call(path,{headers:{cookie}})).status,503,'no fabricated local network evidence when the selected analytical process is stopped')
+   await estate.start('standby')
+   assert.deepEqual(await read(path),standbyNetwork,'restored analytical collection keeps the original completed network window')
+   console.log('PROBE PORT-060 backends: selected real primary and standby -> identical source-checked network and messaging evidence; stopped selected process -> 503; restart -> exact completed window')
+  }})
+ } finally {await estate.dispose()}
 }
 
 export async function metricRangeAnalyticalProof({origin,cookie,call,getDb,reference,at=Date.now()-60000}) {

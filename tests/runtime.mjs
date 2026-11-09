@@ -185,6 +185,8 @@ try {
   if(process.env.PORTHOLE_NETWORK_ONLY==='1') {
    const {networkJourney}=await import('./porthole/network.mjs')
    await networkJourney({origin,restartWorker,withEmptyDestination,...helpers})
+   const {networkAnalyticalJourney}=await import('./porthole/analytics.mjs')
+   await networkAnalyticalJourney()
   } else if(process.env.PORTHOLE_HANDOVER_ONLY==='1') {
    const {handoverJourney}=await import('./porthole/handover.mjs')
    await handoverJourney({origin,restartWorker,withEmptyDestination,...helpers,sessionSecret:'runtime-session-secret-1234567890123456'})
@@ -203,10 +205,6 @@ try {
   } else if(process.env.PORTHOLE_SERVICES_ONLY==='1') {
    const {servicesJourney}=await import('./porthole/services.mjs')
    await servicesJourney({origin,restartWorker,withEmptyDestination,withPinnedClock,...helpers})
-   const {networkJourney}=await import('./porthole/network.mjs')
-   await networkJourney({origin,restartWorker,withEmptyDestination,...helpers})
-   const {servicesAnalyticalJourney}=await import('./porthole/analytics.mjs')
-   await servicesAnalyticalJourney()
   } else if(process.env.PORTHOLE_PIPELINES_ONLY==='1') {
    const {pipelineJourney,pipelineReadJourney}=await import('./porthole/pipelines.mjs')
    await pipelineJourney({origin,cookie,restartWorker,withEmptyDestination,withPinnedClock,...helpers})
