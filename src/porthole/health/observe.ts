@@ -65,7 +65,12 @@ export async function observeHealth(env: HealthBindings): Promise<HealthState> {
    return {status:fresh(queryable)?'Healthy':'Unknown',reason:fresh(queryable)?'Real indexed telemetry query answered with fresh records.':'No fresh queryable telemetry; last-known data does not establish current health.',lastQueryableAt:queryable,evidence:{lastKnown:rows.map(row => ({signal:row.signal,team:row.team,service:row.service,environment:row.environment,eventTimeNs:row.event_time_ns,indexedAt:iso(row.indexed_at)}))}}
   }),
  ])
- const recovery=await env.DB.prepare('SELECT active,restored_at FROM porthole_control_recovery WHERE singleton=1').first<{active:number;restored_at:number}>()
+ // A real prior installation opens setup before the product upgrade finishes.
+ // Only that unapplied migration may omit the new marker. If its ledger says
+ // it ran, a missing table remains a storage failure rather than Healthy.
+ const recoveryTable=await env.DB.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='porthole_control_recovery'").first()
+ const recoveryRequired=recoveryTable||await env.DB.prepare('SELECT 1 FROM d1_migrations WHERE name=?').bind('0064_porthole_control_recovery.sql').first()
+ const recovery=recoveryRequired?await env.DB.prepare('SELECT active,restored_at FROM porthole_control_recovery WHERE singleton=1').first<{active:number;restored_at:number}>():null
  if(recovery?.active&&recovery.restored_at===0){await env.DB.prepare('UPDATE porthole_control_recovery SET restored_at=? WHERE singleton=1 AND active=1 AND restored_at=0').bind(now).run();recovery.restored_at=now}
  let recovering=!!recovery?.active
  if(recovering){

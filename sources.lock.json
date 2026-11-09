@@ -4797,7 +4797,7 @@
       "executable": false
     },
     "src/porthole/health/observe.ts": {
-      "sha256": "d732f77b0fda94464e1c7eba407fb07d8ad761d348a1be9aba69782e8b79a212",
+      "sha256": "321f0920e24c2e76d5fd217a86d5ccd71955140a59d5d366b4c156e4322c3b62",
       "executable": false
     },
     "src/porthole/health/page.ts": {
