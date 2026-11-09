@@ -1,0 +1,24 @@
+{
+  "repository": "just-every/run-porthole",
+  "branch": "cloud/sx-porthole-f461fix1",
+  "head": "07a6af131788ac851a58d9d824ff8f128276e426",
+  "product_push": "success; remote ref verified",
+  "local_checks": "pass",
+  "ci": "awaiting final-head discovery",
+  "claim": "PORT-054 PARTIAL points=1,3, retained verbatim",
+  "contract_status_changes": 0,
+  "before": {
+    "write_attempts": 28,
+    "accepted": 12,
+    "refused": 16,
+    "legacy_reads": 66,
+    "exposed_reads": 42
+  },
+  "after": {
+    "write_attempts": 28,
+    "accepted": 0,
+    "refused": 28,
+    "legacy_reads": 66,
+    "exposed_reads": 0
+  }
+}

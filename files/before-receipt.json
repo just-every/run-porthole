@@ -1,5 +1,4 @@
 {
-  "product_build_head": "61ddb72549674a7529546fcf7ca3f17932f395fd",
   "command": "cloud_run $HOME/.rer/node/node-v22.20.0-linux-x64/bin/node $HOME/rer-consolidation/work/sx-porthole-f461fix1/packet/probe.mjs",
   "exit": 1,
   "expected": "regression fails on pre-fix emitted Worker",
@@ -658,5 +657,8 @@
       "unchanged": true,
       "reads": []
     }
-  ]
+  ],
+  "pre_fix_source_tree_committed_as": "61ddb72549674a7529546fcf7ca3f17932f395fd",
+  "head_at_probe_start": "61ddb72549674a7529546fcf7ca3f17932f395fd",
+  "build_provenance": "Emitted by successful rer setup while main was merged but the merge commit was not yet created; this is before/after behavioral evidence, not an exact-SHA baseline build receipt."
 }

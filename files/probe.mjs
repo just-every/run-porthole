@@ -18,7 +18,7 @@ const origin='http://127.0.0.1:'+port,persist=await mkdtemp(join(tmpdir(),'porth
 const env={...process.env,CI:'1',WRANGLER_SEND_METRICS:'false'}
 const wrangler=(...args)=>execute(process.execPath,['node_modules/wrangler/bin/wrangler.js',...args],{env,maxBuffer:128*1024*1024})
 const sql=async command=>JSON.parse((await wrangler('d1','execute','foundation','--local','--persist-to',persist,'--config','dist/server/wrangler.json','--json','--command',command)).stdout).flatMap(r=>r.results??[])
-let worker;const close=runtimeTransport()
+let worker;sql.read=async command=>(await (await worker.getD1Database('DB')).prepare(command).all()).results;const close=runtimeTransport()
 const start=async()=>{worker=await emittedWorker({config:'dist/server/wrangler.json',persist,port,bindings:{AUTH_ORIGIN:origin,AUTH_LOCAL:'true',OWNER_EMAIL:'owner@example.com',MAIL_FROM:'synthetic-porthole-4@example.com',SESSION_SECRET:'runtime-session-secret-1234567890123456',SETUP_TOKEN:setupToken}});await worker.ready}
 const restartWorker=async change=>{await worker.dispose();await change?.();await start()}
 const call=(path,options)=>fetch(origin+path,options)
@@ -44,6 +44,6 @@ try{
  const service=services.find(s=>s.service==='checkout'),other=services.find(s=>s.service==='fulfillment');assert.ok(service&&other)
  const change={revision:1,destination:'https://handoff.example/vane',template:'https://handoff.example/vane/service/{service}?environment={environment}&from={from}&through={through}',confirm:'save-handoff'}
  await send('/api/porthole/v1/handoffs/vane',cookie,{...change,revision:0},201)
- const storage=()=>sql('SELECT * FROM porthole_handoff_versions ORDER BY product,revision')
+ const storage=()=>sql.read('SELECT * FROM porthole_handoff_versions ORDER BY product,revision')
  try{await handoffCredentialRefusal({origin,cookie,call,sql,service,responders:[{cookie:restricted,serviceId:other.id}],query,change,storage});console.log('CREDENTIAL_REGRESSION_PASS')}catch(error){console.log('CREDENTIAL_REGRESSION_FAIL '+error.message);process.exitCode=1}
 }finally{await worker?.dispose();await close();await rm(persist,{recursive:true,force:true})}

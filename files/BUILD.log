@@ -15,7 +15,7 @@ computing gzip size...
 dist/client/.assetsignore               0.02 kB
 dist/client/assets/index-CRqGoFgh.js  313.67 kB │ gzip: 101.76 kB
 
-✓ built in 685ms
+✓ built in 654ms
 vite v8.2.2 building ssr environment for production...
 transforming...
 ✓ 840 modules transformed.
@@ -35,6 +35,6 @@ dist/server/index.js                                       3,367.37 kB │ gzip:
 
 [INEFFECTIVE_DYNAMIC_IMPORT] src/modules/import-kit/src/d1/undo-snapshot.ts is dynamically imported by src/modules/import-kit/src/d1/apply.ts but also statically imported by src/modules/import-kit/src/d1/preserved-preview.ts, src/modules/import-kit/src/d1/preserved-reverse.ts, dynamic import will not move module into another chunk.
 
-✓ built in 1.13s
+✓ built in 1.03s
 Your application is built
 build: complete (exit 0)

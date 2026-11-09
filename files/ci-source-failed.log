@@ -1,0 +1,243 @@
+shards (source, false)	Run this shard	﻿2026-11-09T03:58:13.2349448Z ##[group]Run node scripts/verify-ci.mjs "$SHARD"
+shards (source, false)	Run this shard	2026-11-09T03:58:13.2349825Z [36;1mnode scripts/verify-ci.mjs "$SHARD"[0m
+shards (source, false)	Run this shard	2026-11-09T03:58:13.2362463Z shell: /usr/bin/bash -e {0}
+shards (source, false)	Run this shard	2026-11-09T03:58:13.2362731Z env:
+shards (source, false)	Run this shard	2026-11-09T03:58:13.2362921Z   CI: true
+shards (source, false)	Run this shard	2026-11-09T03:58:13.2363116Z   WRANGLER_SEND_METRICS: false
+shards (source, false)	Run this shard	2026-11-09T03:58:13.2363398Z   PLAYWRIGHT_SKIP_BROWSER_GC: 1
+shards (source, false)	Run this shard	2026-11-09T03:58:13.2363662Z   SHARD: source
+shards (source, false)	Run this shard	2026-11-09T03:58:13.2363861Z ##[endgroup]
+shards (source, false)	Run this shard	2026-11-09T03:58:13.2845940Z > pnpm run verify:app
+shards (source, false)	Run this shard	2026-11-09T03:58:13.5855663Z 
+shards (source, false)	Run this shard	2026-11-09T03:58:13.5856561Z > @just-every/porthole@0.1.0 verify:app /home/runner/work/run-porthole/run-porthole
+shards (source, false)	Run this shard	2026-11-09T03:58:13.5857061Z > node scripts/verify-app.mjs
+shards (source, false)	Run this shard	2026-11-09T03:58:13.5857434Z 
+shards (source, false)	Run this shard	2026-11-09T03:58:13.6137071Z > pnpm run check --profile first-party
+shards (source, false)	Run this shard	2026-11-09T03:58:13.8755282Z 
+shards (source, false)	Run this shard	2026-11-09T03:58:13.8756229Z > @just-every/porthole@0.1.0 check /home/runner/work/run-porthole/run-porthole
+shards (source, false)	Run this shard	2026-11-09T03:58:13.8756803Z > rer check --profile first-party
+shards (source, false)	Run this shard	2026-11-09T03:58:13.8757084Z 
+shards (source, false)	Run this shard	2026-11-09T03:58:14.2513764Z > node scripts/porthole/public-schema.mjs --check
+shards (source, false)	Run this shard	2026-11-09T03:58:15.2004846Z Public API schema is current.
+shards (source, false)	Run this shard	2026-11-09T03:58:15.2525212Z > node scripts/porthole/contract-docs.mjs check PORT-075
+shards (source, false)	Run this shard	2026-11-09T03:58:15.3080371Z Contract documents are current for PORT-075
+shards (source, false)	Run this shard	2026-11-09T03:58:15.3113734Z > pnpm run build
+shards (source, false)	Run this shard	2026-11-09T03:58:15.5655721Z 
+shards (source, false)	Run this shard	2026-11-09T03:58:15.5656856Z > @just-every/porthole@0.1.0 build /home/runner/work/run-porthole/run-porthole
+shards (source, false)	Run this shard	2026-11-09T03:58:15.5657864Z > rer build
+shards (source, false)	Run this shard	2026-11-09T03:58:15.5658097Z 
+shards (source, false)	Run this shard	2026-11-09T03:58:16.1512505Z Checking pinned pnpm
+shards (source, false)	Run this shard	2026-11-09T03:58:16.3943341Z 10.12.4
+shards (source, false)	Run this shard	2026-11-09T03:58:16.4643507Z Building your application
+shards (source, false)	Run this shard	2026-11-09T03:58:16.8375587Z build:app
+shards (source, false)	Run this shard	2026-11-09T03:58:18.8753006Z vite v8.2.2 building client environment for production...
+shards (source, false)	Run this shard	2026-11-09T03:58:18.8915612Z transforming...
+shards (source, false)	Run this shard	2026-11-09T03:58:18.9801131Z ✓ 141 modules transformed.
+shards (source, false)	Run this shard	2026-11-09T03:58:19.0076074Z rendering chunks...
+shards (source, false)	Run this shard	2026-11-09T03:58:19.0757417Z computing gzip size...
+shards (source, false)	Run this shard	2026-11-09T03:58:19.0815585Z dist/client/.assetsignore               0.02 kB
+shards (source, false)	Run this shard	2026-11-09T03:58:19.0816387Z dist/client/assets/index-CRqGoFgh.js  313.67 kB │ gzip: 101.76 kB
+shards (source, false)	Run this shard	2026-11-09T03:58:19.3127342Z 
+shards (source, false)	Run this shard	2026-11-09T03:58:19.3128256Z ✓ built in 439ms
+shards (source, false)	Run this shard	2026-11-09T03:58:19.3133102Z vite v8.2.2 building ssr environment for production...
+shards (source, false)	Run this shard	2026-11-09T03:58:19.3233297Z transforming...
+shards (source, false)	Run this shard	2026-11-09T03:58:19.9446556Z ✓ 840 modules transformed.
+shards (source, false)	Run this shard	2026-11-09T03:58:20.0386162Z rendering chunks...
+shards (source, false)	Run this shard	2026-11-09T03:58:20.2218509Z computing gzip size...
+shards (source, false)	Run this shard	2026-11-09T03:58:20.2687439Z dist/server/wrangler.json                                      1.65 kB │ gzip:   0.83 kB
+shards (source, false)	Run this shard	2026-11-09T03:58:20.2688254Z dist/server/.vite/manifest.json                                2.35 kB │ gzip:   0.53 kB
+shards (source, false)	Run this shard	2026-11-09T03:58:20.2688960Z dist/server/assets/empty-plugin-adapters-D_0twvAa.js           0.28 kB │ gzip:   0.18 kB
+shards (source, false)	Run this shard	2026-11-09T03:58:20.2689664Z dist/server/assets/start-BRPP0LUH.js                           0.28 kB │ gzip:   0.20 kB
+shards (source, false)	Run this shard	2026-11-09T03:58:20.2690509Z dist/server/assets/_tanstack-start-manifest_v-CiDJhoiU.js      0.37 kB │ gzip:   0.26 kB
+shards (source, false)	Run this shard	2026-11-09T03:58:20.2691200Z dist/server/assets/wire-C5pyjjqN.js                            7.77 kB │ gzip:   2.90 kB
+shards (source, false)	Run this shard	2026-11-09T03:58:20.2691979Z dist/server/assets/router-B-pF21YZ.js                         37.45 kB │ gzip:  10.06 kB
+shards (source, false)	Run this shard	2026-11-09T03:58:20.2692942Z dist/server/assets/Match-vf3DrRnt.js                         169.04 kB │ gzip:  42.60 kB
+shards (source, false)	Run this shard	2026-11-09T03:58:20.2693868Z dist/server/index.js                                       3,367.37 kB │ gzip: 822.97 kB
+shards (source, false)	Run this shard	2026-11-09T03:58:20.2694223Z 
+shards (source, false)	Run this shard	2026-11-09T03:58:20.2950138Z [INEFFECTIVE_DYNAMIC_IMPORT] src/porthole/ingest/otlp-proto.ts is dynamically imported by src/porthole/database/privacy.ts but also statically imported by src/porthole/genai/wire.ts, src/porthole/ingest/http.ts, src/porthole/signals/standard/tempo.ts, dynamic import will not move module into another chunk.
+shards (source, false)	Run this shard	2026-11-09T03:58:20.2952429Z 
+shards (source, false)	Run this shard	2026-11-09T03:58:20.2959730Z [INEFFECTIVE_DYNAMIC_IMPORT] src/modules/import-kit/src/d1/undo-snapshot.ts is dynamically imported by src/modules/import-kit/src/d1/apply.ts but also statically imported by src/modules/import-kit/src/d1/preserved-preview.ts, src/modules/import-kit/src/d1/preserved-reverse.ts, dynamic import will not move module into another chunk.
+shards (source, false)	Run this shard	2026-11-09T03:58:20.2961318Z 
+shards (source, false)	Run this shard	2026-11-09T03:58:20.2961652Z ✓ built in 980ms
+shards (source, false)	Run this shard	2026-11-09T03:58:20.7564517Z Your application is built
+shards (source, false)	Run this shard	2026-11-09T03:58:20.7897021Z build: complete (exit 0)
+shards (source, false)	Run this shard	2026-11-09T03:58:20.8053730Z > python3 -m venv .cache/export-readers && .cache/export-readers/bin/pip install --disable-pip-version-check -r tests/porthole/standard-readers.txt
+shards (source, false)	Run this shard	2026-11-09T03:58:24.3402640Z Collecting opentelemetry-proto==1.45.1 (from -r tests/porthole/standard-readers.txt (line 1))
+shards (source, false)	Run this shard	2026-11-09T03:58:24.4166670Z   Downloading opentelemetry_proto-1.45.1-py3-none-any.whl.metadata (2.3 kB)
+shards (source, false)	Run this shard	2026-11-09T03:58:24.6675200Z Collecting protobuf==6.33.6 (from -r tests/porthole/standard-readers.txt (line 2))
+shards (source, false)	Run this shard	2026-11-09T03:58:24.6859896Z   Downloading protobuf-6.33.6-cp39-abi3-manylinux2014_x86_64.whl.metadata (593 bytes)
+shards (source, false)	Run this shard	2026-11-09T03:58:24.7338325Z Downloading opentelemetry_proto-1.45.1-py3-none-any.whl (72 kB)
+shards (source, false)	Run this shard	2026-11-09T03:58:24.7604144Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 72.5/72.5 kB 2.9 MB/s eta 0:00:00
+shards (source, false)	Run this shard	2026-11-09T03:58:24.7822553Z Downloading protobuf-6.33.6-cp39-abi3-manylinux2014_x86_64.whl (323 kB)
+shards (source, false)	Run this shard	2026-11-09T03:58:24.8104730Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 323.4/323.4 kB 11.9 MB/s eta 0:00:00
+shards (source, false)	Run this shard	2026-11-09T03:58:24.8189955Z Installing collected packages: protobuf, opentelemetry-proto
+shards (source, false)	Run this shard	2026-11-09T03:58:24.9528317Z Successfully installed opentelemetry-proto-1.45.1 protobuf-6.33.6
+shards (source, false)	Run this shard	2026-11-09T03:58:25.0563078Z > node scripts/porthole/standard-clients.mjs
+shards (source, false)	Run this shard	2026-11-09T03:58:27.8801918Z Unable to find image 'prom/prometheus@sha256:63805ebb8d2b3920190daf1cb14a60871b16fd38bed42b857a3182bc621f4996' locally
+shards (source, false)	Run this shard	2026-11-09T03:58:27.8802995Z docker.io/prom/prometheus@sha256:63805ebb8d2b3920190daf1cb14a60871b16fd38bed42b857a3182bc621f4996: Pulling from prom/prometheus
+shards (source, false)	Run this shard	2026-11-09T03:58:27.8803650Z 9fa9226be034: Pulling fs layer
+shards (source, false)	Run this shard	2026-11-09T03:58:27.8803947Z 1617e25568b2: Pulling fs layer
+shards (source, false)	Run this shard	2026-11-09T03:58:27.8804229Z 097a69c6efe6: Pulling fs layer
+shards (source, false)	Run this shard	2026-11-09T03:58:27.8804500Z 2ee6cb77bebd: Pulling fs layer
+shards (source, false)	Run this shard	2026-11-09T03:58:27.8804777Z a4e782810d03: Pulling fs layer
+shards (source, false)	Run this shard	2026-11-09T03:58:27.8805060Z 76619c1908eb: Pulling fs layer
+shards (source, false)	Run this shard	2026-11-09T03:58:27.8805332Z 2dfc70ad9941: Pulling fs layer
+shards (source, false)	Run this shard	2026-11-09T03:58:27.8805612Z fd1d3a5a5f79: Pulling fs layer
+shards (source, false)	Run this shard	2026-11-09T03:58:27.8805875Z 5e4c02bc6754: Pulling fs layer
+shards (source, false)	Run this shard	2026-11-09T03:58:27.8806134Z 208063e2dcbb: Pulling fs layer
+shards (source, false)	Run this shard	2026-11-09T03:58:27.8806384Z 2ee6cb77bebd: Waiting
+shards (source, false)	Run this shard	2026-11-09T03:58:27.8806608Z 2dfc70ad9941: Waiting
+shards (source, false)	Run this shard	2026-11-09T03:58:27.8806826Z a4e782810d03: Waiting
+shards (source, false)	Run this shard	2026-11-09T03:58:27.8807044Z 5e4c02bc6754: Waiting
+shards (source, false)	Run this shard	2026-11-09T03:58:27.8807487Z 76619c1908eb: Waiting
+shards (source, false)	Run this shard	2026-11-09T03:58:27.8807736Z 208063e2dcbb: Waiting
+shards (source, false)	Run this shard	2026-11-09T03:58:27.8807954Z fd1d3a5a5f79: Waiting
+shards (source, false)	Run this shard	2026-11-09T03:58:27.8808223Z 1617e25568b2: Verifying Checksum
+shards (source, false)	Run this shard	2026-11-09T03:58:27.8808515Z 1617e25568b2: Download complete
+shards (source, false)	Run this shard	2026-11-09T03:58:27.8808802Z 9fa9226be034: Verifying Checksum
+shards (source, false)	Run this shard	2026-11-09T03:58:27.8809066Z 9fa9226be034: Pull complete
+shards (source, false)	Run this shard	2026-11-09T03:58:27.8809347Z a4e782810d03: Verifying Checksum
+shards (source, false)	Run this shard	2026-11-09T03:58:27.8809620Z a4e782810d03: Download complete
+shards (source, false)	Run this shard	2026-11-09T03:58:27.8810257Z 097a69c6efe6: Verifying Checksum
+shards (source, false)	Run this shard	2026-11-09T03:58:27.8810546Z 097a69c6efe6: Download complete
+shards (source, false)	Run this shard	2026-11-09T03:58:27.8810828Z 76619c1908eb: Verifying Checksum
+shards (source, false)	Run this shard	2026-11-09T03:58:27.8811111Z 76619c1908eb: Download complete
+shards (source, false)	Run this shard	2026-11-09T03:58:27.8811404Z 2dfc70ad9941: Verifying Checksum
+shards (source, false)	Run this shard	2026-11-09T03:58:27.8811688Z 2dfc70ad9941: Download complete
+shards (source, false)	Run this shard	2026-11-09T03:58:27.8811962Z 2ee6cb77bebd: Verifying Checksum
+shards (source, false)	Run this shard	2026-11-09T03:58:27.8812236Z 2ee6cb77bebd: Download complete
+shards (source, false)	Run this shard	2026-11-09T03:58:27.8812525Z fd1d3a5a5f79: Verifying Checksum
+shards (source, false)	Run this shard	2026-11-09T03:58:27.8812800Z 5e4c02bc6754: Verifying Checksum
+shards (source, false)	Run this shard	2026-11-09T03:58:27.8813072Z 5e4c02bc6754: Download complete
+shards (source, false)	Run this shard	2026-11-09T03:58:27.8813526Z 208063e2dcbb: Verifying Checksum
+shards (source, false)	Run this shard	2026-11-09T03:58:27.8813808Z 208063e2dcbb: Download complete
+shards (source, false)	Run this shard	2026-11-09T03:58:27.8814115Z 1617e25568b2: Pull complete
+shards (source, false)	Run this shard	2026-11-09T03:58:27.8814471Z 097a69c6efe6: Pull complete
+shards (source, false)	Run this shard	2026-11-09T03:58:27.8814815Z 2ee6cb77bebd: Pull complete
+shards (source, false)	Run this shard	2026-11-09T03:58:27.8815076Z a4e782810d03: Pull complete
+shards (source, false)	Run this shard	2026-11-09T03:58:27.8815321Z 76619c1908eb: Pull complete
+shards (source, false)	Run this shard	2026-11-09T03:58:27.8815573Z 2dfc70ad9941: Pull complete
+shards (source, false)	Run this shard	2026-11-09T03:58:27.8815811Z fd1d3a5a5f79: Pull complete
+shards (source, false)	Run this shard	2026-11-09T03:58:27.8816052Z 5e4c02bc6754: Pull complete
+shards (source, false)	Run this shard	2026-11-09T03:58:27.8816296Z 208063e2dcbb: Pull complete
+shards (source, false)	Run this shard	2026-11-09T03:58:27.8816740Z Digest: sha256:63805ebb8d2b3920190daf1cb14a60871b16fd38bed42b857a3182bc621f4996
+shards (source, false)	Run this shard	2026-11-09T03:58:27.8817945Z Status: Downloaded newer image for prom/prometheus@sha256:63805ebb8d2b3920190daf1cb14a60871b16fd38bed42b857a3182bc621f4996
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7440903Z Unable to find image 'grafana/tempo-cli@sha256:846aaaca43d2e9e0a08ef7e9bbc355cd1b11d445daee18078930b740ad9902b4' locally
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7442602Z docker.io/grafana/tempo-cli@sha256:846aaaca43d2e9e0a08ef7e9bbc355cd1b11d445daee18078930b740ad9902b4: Pulling from grafana/tempo-cli
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7443623Z 400fe5c6b87b: Pulling fs layer
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7444083Z 2e4cf50eeb92: Pulling fs layer
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7444493Z 4e9f20d26c87: Pulling fs layer
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7444929Z e1089d61b200: Pulling fs layer
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7445398Z 0f8b424aa0b9: Pulling fs layer
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7445886Z d557676654e5: Pulling fs layer
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7446368Z d82bc7a76a83: Pulling fs layer
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7446859Z d858cbc252ad: Pulling fs layer
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7447458Z 1069fc2daed1: Pulling fs layer
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7447955Z b40161cd83fc: Pulling fs layer
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7448400Z 3f4e2c586348: Pulling fs layer
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7448683Z eb8f5749650b: Pulling fs layer
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7448951Z 5391af8231d5: Pulling fs layer
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7449217Z a05affa08896: Pulling fs layer
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7449503Z e64ec4d8a044: Pulling fs layer
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7449830Z 1069fc2daed1: Waiting
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7450133Z b40161cd83fc: Waiting
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7450419Z 3f4e2c586348: Waiting
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7450644Z eb8f5749650b: Waiting
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7450865Z 5391af8231d5: Waiting
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7451101Z a05affa08896: Waiting
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7451321Z e64ec4d8a044: Waiting
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7451540Z 0f8b424aa0b9: Waiting
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7451764Z d557676654e5: Waiting
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7451986Z d82bc7a76a83: Waiting
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7452204Z d858cbc252ad: Waiting
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7452430Z e1089d61b200: Waiting
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7452681Z 2e4cf50eeb92: Verifying Checksum
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7452978Z 2e4cf50eeb92: Download complete
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7453259Z 400fe5c6b87b: Verifying Checksum
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7453542Z 400fe5c6b87b: Download complete
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7453833Z 4e9f20d26c87: Verifying Checksum
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7454111Z 4e9f20d26c87: Download complete
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7454371Z 400fe5c6b87b: Pull complete
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7454627Z 2e4cf50eeb92: Pull complete
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7454922Z e1089d61b200: Verifying Checksum
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7455195Z e1089d61b200: Download complete
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7455512Z 0f8b424aa0b9: Download complete
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7456158Z d557676654e5: Verifying Checksum
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7456432Z d557676654e5: Download complete
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7456704Z d82bc7a76a83: Verifying Checksum
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7456997Z d82bc7a76a83: Download complete
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7457577Z d858cbc252ad: Verifying Checksum
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7457860Z d858cbc252ad: Download complete
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7458149Z 1069fc2daed1: Verifying Checksum
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7458428Z 1069fc2daed1: Download complete
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7458698Z 3f4e2c586348: Verifying Checksum
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7458985Z 3f4e2c586348: Download complete
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7459257Z b40161cd83fc: Verifying Checksum
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7459672Z b40161cd83fc: Download complete
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7459948Z eb8f5749650b: Verifying Checksum
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7460231Z eb8f5749650b: Download complete
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7460507Z 5391af8231d5: Verifying Checksum
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7460780Z 5391af8231d5: Download complete
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7461055Z 4e9f20d26c87: Pull complete
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7461317Z e1089d61b200: Pull complete
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7461566Z 0f8b424aa0b9: Pull complete
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7461817Z d557676654e5: Pull complete
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7462058Z d82bc7a76a83: Pull complete
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7462295Z d858cbc252ad: Pull complete
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7462534Z 1069fc2daed1: Pull complete
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7462784Z b40161cd83fc: Pull complete
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7463024Z 3f4e2c586348: Pull complete
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7463267Z eb8f5749650b: Pull complete
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7463516Z 5391af8231d5: Pull complete
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7463778Z e64ec4d8a044: Verifying Checksum
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7464051Z e64ec4d8a044: Download complete
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7464334Z a05affa08896: Verifying Checksum
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7464611Z a05affa08896: Download complete
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7464867Z a05affa08896: Pull complete
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7465109Z e64ec4d8a044: Pull complete
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7465566Z Digest: sha256:846aaaca43d2e9e0a08ef7e9bbc355cd1b11d445daee18078930b740ad9902b4
+shards (source, false)	Run this shard	2026-11-09T03:58:29.7466357Z Status: Downloaded newer image for grafana/tempo-cli@sha256:846aaaca43d2e9e0a08ef7e9bbc355cd1b11d445daee18078930b740ad9902b4
+shards (source, false)	Run this shard	2026-11-09T03:58:29.9101730Z Pinned Prometheus 3.5.0 and Tempo CLI 2.8.2 ready
+shards (source, false)	Run this shard	2026-11-09T03:58:29.9131951Z > PORTHOLE_STANDARD_ONLY=1 pnpm run test:runtime
+shards (source, false)	Run this shard	2026-11-09T03:58:30.1739380Z 
+shards (source, false)	Run this shard	2026-11-09T03:58:30.1740852Z > @just-every/porthole@0.1.0 test:runtime /home/runner/work/run-porthole/run-porthole
+shards (source, false)	Run this shard	2026-11-09T03:58:30.1742082Z > rer queue test:runtime -- sh -c "node tests/runtime.mjs"
+shards (source, false)	Run this shard	2026-11-09T03:58:30.1742594Z 
+shards (source, false)	Run this shard	2026-11-09T03:58:30.2710135Z test:runtime
+shards (source, false)	Run this shard	2026-11-09T03:58:37.9208113Z Installed owner claim rejects missing/wrong setup tokens and request demo flags
+shards (source, false)	Run this shard	2026-11-09T03:58:37.9227088Z HTTP-001 passed against emitted local Worker: health, the installed homepage, HTTP and document 404s
+shards (source, false)	Run this shard	2026-11-09T03:59:37.8414067Z Stock scrape generations {"scrapes":15,"timestamps":[1794196761274,1794196767633,1794196769079,1794196770598,1794196772116],"counter":[{"metric":{"__name__":"synthetic_scrape_requests_total","environment":"production","instance":"127.0.0.1:40287","job":"synthetic-porthole-6100","producer":"synthetic-porthole-6200","service":"synthetic-porthole-6100","team":"commerce"},"values":[[1794196761.274,"1"],[1794196767.633,"2"],[1794196769.079,"3"],[1794196770.598,"4"],[1794196772.116,"5"]]}]}
+shards (source, false)	Run this shard	2026-11-09T04:00:32.2078321Z PROBE PORT-061 standard metrics: stock Prometheus 3.5.0 remote_read evaluates twelve fixed expressions over real scrape and stock OTLP input -> exact reference series, labels, timestamps and values
+shards (source, false)	Run this shard	2026-11-09T04:00:53.4052711Z 
+shards (source, false)	Run this shard	2026-11-09T04:00:53.4329822Z node:internal/errors:983
+shards (source, false)	Run this shard	2026-11-09T04:00:53.4330268Z   const err = new Error(message);
+shards (source, false)	Run this shard	2026-11-09T04:00:53.4330550Z               ^
+shards (source, false)	Run this shard	2026-11-09T04:00:53.4330674Z 
+shards (source, false)	Run this shard	2026-11-09T04:00:53.4331327Z Error: Command failed: [REDACTED]/.cache/export-readers/bin/python tests/porthole/export-otlp-reader.py --trace /tmp/porthole-standard-eWCRu3/capture-1.pb
+shards (source, false)	Run this shard	2026-11-09T04:00:53.4332029Z Traceback (most recent call last):
+shards (source, false)	Run this shard	2026-11-09T04:00:53.4332839Z   File "[REDACTED]/tests/porthole/export-otlp-reader.py", line 35, in <module>
+shards (source, false)	Run this shard	2026-11-09T04:00:53.4333327Z     message.ParseFromString(Path(sys.argv[2]).read_bytes())
+shards (source, false)	Run this shard	2026-11-09T04:00:53.4334150Z google.protobuf.message.DecodeError: Error parsing message with type 'opentelemetry.proto.collector.trace.v1.ExportTraceServiceRequest'
+shards (source, false)	Run this shard	2026-11-09T04:00:53.4334689Z 
+shards (source, false)	Run this shard	2026-11-09T04:00:53.4334862Z     at genericNodeError (node:internal/errors:983:15)
+shards (source, false)	Run this shard	2026-11-09T04:00:53.4335221Z     at wrappedFn (node:internal/errors:537:14)
+shards (source, false)	Run this shard	2026-11-09T04:00:53.4335605Z     at ChildProcess.exithandler (node:child_process:417:12)
+shards (source, false)	Run this shard	2026-11-09T04:00:53.4336103Z     at ChildProcess.emit (node:events:519:28)
+shards (source, false)	Run this shard	2026-11-09T04:00:53.4336458Z     at ChildProcess.emit (node:domain:489:12)
+shards (source, false)	Run this shard	2026-11-09T04:00:53.4336820Z     at maybeClose (node:internal/child_process:1101:16)
+shards (source, false)	Run this shard	2026-11-09T04:00:53.4337463Z     at ChildProcess._handle.onexit (node:internal/child_process:304:5) {
+shards (source, false)	Run this shard	2026-11-09T04:00:53.4337837Z   code: 1,
+shards (source, false)	Run this shard	2026-11-09T04:00:53.4338041Z   killed: false,
+shards (source, false)	Run this shard	2026-11-09T04:00:53.4338262Z   signal: null,
+shards (source, false)	Run this shard	2026-11-09T04:00:53.4338870Z   cmd: '[REDACTED]/.cache/export-readers/bin/python tests/porthole/export-otlp-reader.py --trace /tmp/porthole-standard-eWCRu3/capture-1.pb',
+shards (source, false)	Run this shard	2026-11-09T04:00:53.4339451Z   stdout: '',
+shards (source, false)	Run this shard	2026-11-09T04:00:53.4339723Z   stderr: 'Traceback (most recent call last):\n' +
+shards (source, false)	Run this shard	2026-11-09T04:00:53.4340197Z     '  File "[REDACTED]/tests/porthole/export-otlp-reader.py", line 35, in <module>\n' +
+shards (source, false)	Run this shard	2026-11-09T04:00:53.4340718Z     '    message.ParseFromString(Path(sys.argv[2]).read_bytes())\n' +
+shards (source, false)	Run this shard	2026-11-09T04:00:53.4341498Z     "google.protobuf.message.DecodeError: Error parsing message with type 'opentelemetry.proto.collector.trace.v1.ExportTraceServiceRequest'\n"
+shards (source, false)	Run this shard	2026-11-09T04:00:53.4342119Z }
+shards (source, false)	Run this shard	2026-11-09T04:00:53.4342226Z 
+shards (source, false)	Run this shard	2026-11-09T04:00:53.4342308Z Node.js v22.20.0
+shards (source, false)	Run this shard	2026-11-09T04:00:53.5290675Z  ELIFECYCLE  Command failed with exit code 1.
+shards (source, false)	Run this shard	2026-11-09T04:00:53.5584297Z  ELIFECYCLE  Command failed with exit code 1.
+shards (source, false)	Run this shard	2026-11-09T04:00:53.5753213Z ##[error]Process completed with exit code 1.

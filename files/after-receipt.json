@@ -1,7 +1,8 @@
 {
-  "head": "aae559bd25c456dd069dadc511a8654fa65eb7bb",
+  "head": "07a6af131788ac851a58d9d824ff8f128276e426",
   "command": "cloud_run $HOME/.rer/node/node-v22.20.0-linux-x64/bin/node $HOME/rer-consolidation/work/sx-porthole-f461fix1/packet/probe.mjs",
   "exit": 0,
+  "storage": "same live Worker D1 binding; actual snapshots after every case",
   "proof": [
     {
       "case": 0,
@@ -30,13 +31,13 @@
           "exposed": false
         },
         {
-          "path": "/api/porthole/v1/services?from=1794196462213999999&through=1794196462215000001",
+          "path": "/api/porthole/v1/services?from=1794198219224999999&through=1794198219226000001",
           "role": "owner",
           "status": 200,
           "exposed": false
         },
         {
-          "path": "/app/services/a747171d62fcbd75bd327c94cdb793f7?from=1794196462213999999&through=1794196462215000001",
+          "path": "/app/services/a747171d62fcbd75bd327c94cdb793f7?from=1794198219224999999&through=1794198219226000001",
           "role": "owner",
           "status": 200,
           "exposed": false
@@ -66,13 +67,13 @@
           "exposed": false
         },
         {
-          "path": "/api/porthole/v1/services?from=1794196462213999999&through=1794196462215000001",
+          "path": "/api/porthole/v1/services?from=1794198219224999999&through=1794198219226000001",
           "role": "restricted contractor",
           "status": 200,
           "exposed": false
         },
         {
-          "path": "/app/services/586368472f3c389cac84c7e5f2dd0dda?from=1794196462213999999&through=1794196462215000001",
+          "path": "/app/services/586368472f3c389cac84c7e5f2dd0dda?from=1794198219224999999&through=1794198219226000001",
           "role": "restricted contractor",
           "status": 200,
           "exposed": false
@@ -106,13 +107,13 @@
           "exposed": false
         },
         {
-          "path": "/api/porthole/v1/services?from=1794196462213999999&through=1794196462215000001",
+          "path": "/api/porthole/v1/services?from=1794198219224999999&through=1794198219226000001",
           "role": "owner",
           "status": 200,
           "exposed": false
         },
         {
-          "path": "/app/services/a747171d62fcbd75bd327c94cdb793f7?from=1794196462213999999&through=1794196462215000001",
+          "path": "/app/services/a747171d62fcbd75bd327c94cdb793f7?from=1794198219224999999&through=1794198219226000001",
           "role": "owner",
           "status": 200,
           "exposed": false
@@ -142,13 +143,13 @@
           "exposed": false
         },
         {
-          "path": "/api/porthole/v1/services?from=1794196462213999999&through=1794196462215000001",
+          "path": "/api/porthole/v1/services?from=1794198219224999999&through=1794198219226000001",
           "role": "restricted contractor",
           "status": 200,
           "exposed": false
         },
         {
-          "path": "/app/services/586368472f3c389cac84c7e5f2dd0dda?from=1794196462213999999&through=1794196462215000001",
+          "path": "/app/services/586368472f3c389cac84c7e5f2dd0dda?from=1794198219224999999&through=1794198219226000001",
           "role": "restricted contractor",
           "status": 200,
           "exposed": false
@@ -182,13 +183,13 @@
           "exposed": false
         },
         {
-          "path": "/api/porthole/v1/services?from=1794196462213999999&through=1794196462215000001",
+          "path": "/api/porthole/v1/services?from=1794198219224999999&through=1794198219226000001",
           "role": "owner",
           "status": 200,
           "exposed": false
         },
         {
-          "path": "/app/services/a747171d62fcbd75bd327c94cdb793f7?from=1794196462213999999&through=1794196462215000001",
+          "path": "/app/services/a747171d62fcbd75bd327c94cdb793f7?from=1794198219224999999&through=1794198219226000001",
           "role": "owner",
           "status": 200,
           "exposed": false
@@ -218,13 +219,13 @@
           "exposed": false
         },
         {
-          "path": "/api/porthole/v1/services?from=1794196462213999999&through=1794196462215000001",
+          "path": "/api/porthole/v1/services?from=1794198219224999999&through=1794198219226000001",
           "role": "restricted contractor",
           "status": 200,
           "exposed": false
         },
         {
-          "path": "/app/services/586368472f3c389cac84c7e5f2dd0dda?from=1794196462213999999&through=1794196462215000001",
+          "path": "/app/services/586368472f3c389cac84c7e5f2dd0dda?from=1794198219224999999&through=1794198219226000001",
           "role": "restricted contractor",
           "status": 200,
           "exposed": false
@@ -258,13 +259,13 @@
           "exposed": false
         },
         {
-          "path": "/api/porthole/v1/services?from=1794196462213999999&through=1794196462215000001",
+          "path": "/api/porthole/v1/services?from=1794198219224999999&through=1794198219226000001",
           "role": "owner",
           "status": 200,
           "exposed": false
         },
         {
-          "path": "/app/services/a747171d62fcbd75bd327c94cdb793f7?from=1794196462213999999&through=1794196462215000001",
+          "path": "/app/services/a747171d62fcbd75bd327c94cdb793f7?from=1794198219224999999&through=1794198219226000001",
           "role": "owner",
           "status": 200,
           "exposed": false
@@ -294,13 +295,13 @@
           "exposed": false
         },
         {
-          "path": "/api/porthole/v1/services?from=1794196462213999999&through=1794196462215000001",
+          "path": "/api/porthole/v1/services?from=1794198219224999999&through=1794198219226000001",
           "role": "restricted contractor",
           "status": 200,
           "exposed": false
         },
         {
-          "path": "/app/services/586368472f3c389cac84c7e5f2dd0dda?from=1794196462213999999&through=1794196462215000001",
+          "path": "/app/services/586368472f3c389cac84c7e5f2dd0dda?from=1794198219224999999&through=1794198219226000001",
           "role": "restricted contractor",
           "status": 200,
           "exposed": false
@@ -334,13 +335,13 @@
           "exposed": false
         },
         {
-          "path": "/api/porthole/v1/services?from=1794196462213999999&through=1794196462215000001",
+          "path": "/api/porthole/v1/services?from=1794198219224999999&through=1794198219226000001",
           "role": "owner",
           "status": 200,
           "exposed": false
         },
         {
-          "path": "/app/services/a747171d62fcbd75bd327c94cdb793f7?from=1794196462213999999&through=1794196462215000001",
+          "path": "/app/services/a747171d62fcbd75bd327c94cdb793f7?from=1794198219224999999&through=1794198219226000001",
           "role": "owner",
           "status": 200,
           "exposed": false
@@ -370,13 +371,13 @@
           "exposed": false
         },
         {
-          "path": "/api/porthole/v1/services?from=1794196462213999999&through=1794196462215000001",
+          "path": "/api/porthole/v1/services?from=1794198219224999999&through=1794198219226000001",
           "role": "restricted contractor",
           "status": 200,
           "exposed": false
         },
         {
-          "path": "/app/services/586368472f3c389cac84c7e5f2dd0dda?from=1794196462213999999&through=1794196462215000001",
+          "path": "/app/services/586368472f3c389cac84c7e5f2dd0dda?from=1794198219224999999&through=1794198219226000001",
           "role": "restricted contractor",
           "status": 200,
           "exposed": false
@@ -410,13 +411,13 @@
           "exposed": false
         },
         {
-          "path": "/api/porthole/v1/services?from=1794196462213999999&through=1794196462215000001",
+          "path": "/api/porthole/v1/services?from=1794198219224999999&through=1794198219226000001",
           "role": "owner",
           "status": 200,
           "exposed": false
         },
         {
-          "path": "/app/services/a747171d62fcbd75bd327c94cdb793f7?from=1794196462213999999&through=1794196462215000001",
+          "path": "/app/services/a747171d62fcbd75bd327c94cdb793f7?from=1794198219224999999&through=1794198219226000001",
           "role": "owner",
           "status": 200,
           "exposed": false
@@ -446,13 +447,13 @@
           "exposed": false
         },
         {
-          "path": "/api/porthole/v1/services?from=1794196462213999999&through=1794196462215000001",
+          "path": "/api/porthole/v1/services?from=1794198219224999999&through=1794198219226000001",
           "role": "restricted contractor",
           "status": 200,
           "exposed": false
         },
         {
-          "path": "/app/services/586368472f3c389cac84c7e5f2dd0dda?from=1794196462213999999&through=1794196462215000001",
+          "path": "/app/services/586368472f3c389cac84c7e5f2dd0dda?from=1794198219224999999&through=1794198219226000001",
           "role": "restricted contractor",
           "status": 200,
           "exposed": false

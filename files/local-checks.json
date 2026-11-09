@@ -6,7 +6,7 @@
   "typecheck": {
     "command": "pnpm run typecheck",
     "exit": 0,
-    "head": "aae559bd25c456dd069dadc511a8654fa65eb7bb"
+    "head": "07a6af131788ac851a58d9d824ff8f128276e426"
   },
   "public_schema": {
     "command": "node scripts/porthole/public-schema.mjs --check",
@@ -61,5 +61,22 @@
     "refused": 24,
     "safe_empty_template_preserved": true,
     "scope": "direct configured policy hook smoke"
-  }
+  },
+  "fixture_integration": {
+    "problem": "new handoff logs reached main trace-only protobuf assertions",
+    "fix": "default fixture to trace-only; handoff journey explicitly enables log export",
+    "assertions_removed_or_weakened": 0
+  },
+  "regression_runtime": {
+    "cases": 28,
+    "reads": 66,
+    "checks": "retain each storage comparison and every URL/read case; reuse initial storage snapshot and delete only an unexpectedly accepted write"
+  },
+  "live_snapshot": {
+    "database": "actual emitted Worker D1 DB binding",
+    "same_sql": true,
+    "cases_removed": 0,
+    "assertions_removed_or_weakened": 0
+  },
+  "final_head": "07a6af131788ac851a58d9d824ff8f128276e426"
 }

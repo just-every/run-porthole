@@ -2,9 +2,9 @@
 
 Repository: just-every/run-porthole
 Branch: cloud/sx-porthole-f461fix1
-Product candidate: aae559bd25c456dd069dadc511a8654fa65eb7bb
+Product candidate: 07a6af131788ac851a58d9d824ff8f128276e426
 Starting candidate: e2cfaedd2f158ea90c0f0176b9ea43fcee0fdffa
-Merged main: a4b8bed320f94b9bbeb1b0e1d21b232fb6b4c9ed
+Merged main: 85b79464fa8a79597741711f6689f1b21132cd89
 Save commit: 61ddb72549674a7529546fcf7ca3f17932f395fd
 PR: none; this repository has a branch-push Verify entrypoint and no PR-only landing requirement.
 
@@ -32,7 +32,7 @@ An initial PORTHOLE_SERVICES_ONLY run was stopped with exit 130 when its existin
 
 ## Before proof
 
-before-receipt.json records all 28 write attempts and 66 actual legacy reads against the pre-fix emitted build from 61ddb72549674a7529546fcf7ca3f17932f395fd. The regression failed as expected. Twelve writes were accepted (HTTP 201), sixteen were refused, and 42 of 66 reads exposed the synthetic credential marker. Each of sig, %73ig and SIG was accepted in both destination and template; each exposed the marker on seven owner/restricted read surfaces. Those reads returned HTTP 200.
+before-receipt.json records all 28 write attempts and 66 actual legacy reads against the pre-fix merged source tree committed as 61ddb72549674a7529546fcf7ca3f17932f395fd. The baseline build was emitted by setup before that merge commit was created; it is behavioral before-proof, not an exact-SHA baseline build receipt. The after build and browser proof are on the exact final candidate. The regression failed as expected. Twelve writes were accepted (HTTP 201), sixteen were refused, and 42 of 66 reads exposed the synthetic credential marker. Each of sig, %73ig and SIG was accepted in both destination and template; each exposed the marker on seven owner/restricted read surfaces. Those reads returned HTTP 200.
 
 ## Validation and counts
 
@@ -48,8 +48,20 @@ Product publication and report publication are separate. The packet contains no 
 
 ## After proof
 
-after-receipt.json records the same probe on aae559bd25c456dd069dadc511a8654fa65eb7bb: exit 0. All 28 writes refuse with HTTP 400 handoff_credentials_forbidden, no response echoes the marker, and all refused writes preserve registry storage. All 66 owner/restricted reads return HTTP 200 without exposing the legacy credential marker. The six named SAS destination/template cases change from HTTP 201 to HTTP 400. Exposing reads change from 42/66 to 0/66. No acceptance status changes.
+after-receipt.json records the same probe on 07a6af131788ac851a58d9d824ff8f128276e426: exit 0. All 28 writes refuse with HTTP 400 handoff_credentials_forbidden, no response echoes the marker, and all refused writes preserve registry storage. All 66 owner/restricted reads return HTTP 200 without exposing the legacy credential marker. The six named SAS destination/template cases change from HTTP 201 to HTTP 400. Exposing reads change from 42/66 to 0/66. No acceptance status changes.
 
-## Exact-SHA CI
+## Initial CI failure and required merge repair
 
-Verify run 42559157780: https://github.com/just-every/run-porthole/actions/runs/42559157780. The watcher has used two REST calls: immediate discovery returned no run, and the next permitted discovery found this run in progress on aae559bd25c456dd069dadc511a8654fa65eb7bb. No green claim is made while it is running. The watcher uses one call per 300 seconds and re-reads the injected GH_TOKEN only into the gh subprocess environment.
+Verify 42559157780 on aae559bd25c456dd069dadc511a8654fa65eb7bb failed. Source job 128971553803 failed while the official trace protobuf reader decoded capture-1.pb from the shared stock service fixture: the candidate's new log exporter had added log packets to main's trace-only capture loop. This is a merge interaction. The source contract generator check had passed; this is not the generated-view exception. The typecheck job 128971553763 was cancelled at 04:10:00 after its credential matrix had passed at 04:07:58. All other shard jobs succeeded. The aggregate verify job then failed.
+
+The fixture now defaults to its original trace-only stream; the handoff/services journey explicitly opts into logs. No trace, log or other assertion was removed or weakened. The credential regression reuses its initial clean storage snapshot but still compares actual storage after every case, and cleans up only unexpectedly accepted baseline writes. It retains all 28 cases, 66 read checks and one aggregate assertion while avoiding redundant Wrangler subprocesses.
+
+The repair is e4d2f871df5494c69221c2d50be81a0c94b107b3. Build, typecheck, syntax checks, source-lock check, the unchanged credential matrix and the 1440/390 browser proof pass again. after-initial-receipt.json and ci-initial-receipt.json retain the first candidate's actual results; after-receipt.json and browser-receipt.json name the final head.
+
+GitHub calls used before the final watched candidate: 7 (four run discovery/status calls, one jobs listing, one failed-source-job archive log, and one cancelled-typecheck-job archive log). The final watcher reserves its remaining three calls for discovery/status at five-minute intervals, starting five minutes after push. No workflow rerun or dispatch was requested for a SHA that already had a run.
+
+## Final integration
+
+The cancelled shard's run window also justified removing CLI startup from handoff storage snapshots. Commit 0e83e14c9d58e2e82cf82c4b8d5715fdf8b89c57 supplies an optional snapshot read using the emitted Worker's actual D1 binding. The identical SQL and every per-case mutation/read assertion remain; synthetic mutation setup keeps the existing Wrangler path. The focused probe exercises the live-binding snapshot path successfully. No mock database or skipped case is introduced.
+
+Main then advanced with newer standard-read and inactive-restore qualification. The final merge retains all of those assertions and documentation, main's contract and generated views whole, and regenerates the lock last. No additional migration renumbering is needed: main's highest remains 0063 and the candidate's migrations remain 0064–0066. The final merge head is 07a6af131788ac851a58d9d824ff8f128276e426. Its build, typecheck, schema/source checks, 28-case/66-read proof and 1440/390 screenshots pass. The interim e4d2f8 watcher was stopped before its first API call; the global API budget remains seven calls used before the final watcher.

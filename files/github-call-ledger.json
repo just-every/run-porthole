@@ -1,0 +1,70 @@
+{
+  "limit": 10,
+  "used_before_final_watch": 7,
+  "calls": [
+    {
+      "number": 1,
+      "call": 1,
+      "at": 1794196658,
+      "result": {
+        "total_count": 0,
+        "workflow_runs": []
+      }
+    },
+    {
+      "number": 2,
+      "call": 2,
+      "at": 1794196959,
+      "result": {
+        "conclusion": null,
+        "head_sha": "aae559bd25c456dd069dadc511a8654fa65eb7bb",
+        "html_url": "https://github.com/just-every/run-porthole/actions/runs/42559157780",
+        "id": 42559157780,
+        "name": "Verify",
+        "status": "in_progress"
+      }
+    },
+    {
+      "number": 3,
+      "call": 3,
+      "at": 1794197261,
+      "result": {
+        "conclusion": null,
+        "head_sha": "aae559bd25c456dd069dadc511a8654fa65eb7bb",
+        "html_url": "https://github.com/just-every/run-porthole/actions/runs/42559157780",
+        "id": 42559157780,
+        "name": "Verify",
+        "status": "in_progress"
+      }
+    },
+    {
+      "number": 4,
+      "call": 4,
+      "at": 1794197562,
+      "result": {
+        "conclusion": "failure",
+        "head_sha": "aae559bd25c456dd069dadc511a8654fa65eb7bb",
+        "html_url": "https://github.com/just-every/run-porthole/actions/runs/42559157780",
+        "id": 42559157780,
+        "name": "Verify",
+        "status": "completed"
+      }
+    }
+  ],
+  "additional": [
+    {
+      "number": 5,
+      "command": "gh api repos/just-every/run-porthole/actions/runs/42559157780/jobs?per_page=100"
+    },
+    {
+      "number": 6,
+      "command": "gh run view 42559157780 --repo just-every/run-porthole --job 128971553803 --log-failed",
+      "exit": 0
+    },
+    {
+      "number": 7,
+      "command": "gh run view 42559157780 --repo just-every/run-porthole --job 128971553763 --log",
+      "exit": 0
+    }
+  ]
+}

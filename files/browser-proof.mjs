@@ -62,6 +62,6 @@ try{
    await context.close()
   }
  }finally{await browser.close()}
- await writeFile(join(packet,'browser-receipt.json'),JSON.stringify({head:'aae559bd25c456dd069dadc511a8654fa65eb7bb',runtime:'emitted Worker and native sessions; synthetic fixtures',screens},null,2)+'\n')
+ await writeFile(join(packet,'browser-receipt.json'),JSON.stringify({head:'07a6af131788ac851a58d9d824ff8f128276e426',runtime:'emitted Worker and native sessions; synthetic fixtures',screens},null,2)+'\n')
  console.log('BROWSER_PROOF_PASS')
 }finally{await worker?.dispose();await close();await rm(persist,{recursive:true,force:true})}
