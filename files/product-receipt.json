@@ -1,0 +1,24 @@
+{
+  "repository": "just-every/run-porthole",
+  "branch": "cloud/sx-porthole-shard-time-2",
+  "head": "2564d7a4afad755896962b96d21f2385e1c866e0",
+  "main_at_preparation": "f51e701475918613fee00845d1bef56fe49517b7",
+  "push_guard": "PUSH_OK",
+  "push_attempts": 1,
+  "working_tree_clean": true,
+  "pr": null,
+  "changed_paths": [
+    "sources.lock.json",
+    "verification.json"
+  ],
+  "remote_ref_verified": true,
+  "full_history": true,
+  "exact_verify_run": 42643013003,
+  "wrapper_exit_after_success": 1,
+  "terminal": "BLOCKED",
+  "blockers": [
+    "Exact-SHA Verify 42643013003 cancelled: source 12m16s and network 12m08s exceeded the existing job limit",
+    "Network archive diagnostic failed with EOF; HTTP status not supplied; GitHub ten-call budget exhausted"
+  ],
+  "typecheck_seconds": 355
+}

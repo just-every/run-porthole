@@ -1,0 +1,19 @@
+{
+  "before_shards": 11,
+  "after_shards": 11,
+  "before_commands": 48,
+  "after_commands": 48,
+  "command_multiset_preserved": true,
+  "tests_edited": [],
+  "timeout_changed": false,
+  "changed_paths": [
+    "sources.lock.json",
+    "verification.json"
+  ],
+  "source_lock_check": "passed",
+  "workflow_permission_check": "passed",
+  "manifest_parser": "passed",
+  "diff_check": "passed",
+  "test_sources_identical": true,
+  "workflow_sources_identical": true
+}

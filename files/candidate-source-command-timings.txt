@@ -1,0 +1,11 @@
+shards (source, true)	Run this shard	2026-11-09T15:18:05.6174774Z VERIFY_TIMING {"shard":"source","command":"pnpm run check --profile first-party","seconds":0.653,"exit":0}
+shards (source, true)	Run this shard	2026-11-09T15:18:06.5838933Z VERIFY_TIMING {"shard":"source","command":"node scripts/porthole/public-schema.mjs --check","seconds":0.966,"exit":0}
+shards (source, true)	Run this shard	2026-11-09T15:18:06.6411564Z VERIFY_TIMING {"shard":"source","command":"node scripts/porthole/contract-docs.mjs check PORT-075","seconds":0.057,"exit":0}
+shards (source, true)	Run this shard	2026-11-09T15:18:10.4811918Z VERIFY_TIMING {"shard":"source","command":"python3 -m venv .cache/export-readers && .cache/export-readers/bin/pip install --disable-pip-version-check -r tests/porthole/standard-readers.txt","seconds":3.778,"exit":0}
+shards (source, true)	Run this shard	2026-11-09T15:18:18.5438988Z VERIFY_TIMING {"shard":"source","command":"node scripts/porthole/standard-clients.mjs","seconds":8.063,"exit":0}
+shards (source, true)	Run this shard	2026-11-09T15:18:18.5439718Z > PORTHOLE_STANDARD_ONLY=1 pnpm run test:runtime
+shards (source, true)	Run this shard	2026-11-09T15:23:21.7836739Z VERIFY_TIMING {"shard":"source","command":"PORTHOLE_STANDARD_ONLY=1 pnpm run test:runtime","seconds":303.24,"exit":0}
+shards (source, true)	Run this shard	2026-11-09T15:23:21.7837579Z > PORTHOLE_STANDARD_ANALYTICAL_ONLY=1 pnpm run test:runtime
+shards (source, true)	Run this shard	2026-11-09T15:28:27.9850192Z VERIFY_TIMING {"shard":"source","command":"PORTHOLE_STANDARD_ANALYTICAL_ONLY=1 pnpm run test:runtime","seconds":306.201,"exit":0}
+shards (source, true)	Run this shard	2026-11-09T15:28:27.9851836Z > PORTHOLE_PIPELINES_ONLY=1 pnpm run test:runtime
+shards (source, true)	Run this shard	2026-11-09T15:29:40.8217640Z ##[error]The operation was canceled.

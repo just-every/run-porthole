@@ -1,0 +1,1320 @@
+[
+  {
+    "attempt": 1,
+    "cases": [
+      {
+        "case": 0,
+        "field": "destination",
+        "status": 400,
+        "error": "handoff_credentials_forbidden",
+        "echo": false,
+        "unchanged": true,
+        "reads": [
+          {
+            "path": "/api/porthole/v1/handoffs",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/help",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/integrations",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/api/porthole/v1/services?from=1794236544507999999&through=1794236545862233491",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/services/a747171d62fcbd75bd327c94cdb793f7?from=1794236544507999999&through=1794236545862233491",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/settings/integrations/handoffs",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/api/porthole/v1/handoffs",
+            "role": "restricted contractor",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/help",
+            "role": "restricted contractor",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/integrations",
+            "role": "restricted contractor",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/api/porthole/v1/services?from=1794236544507999999&through=1794236545862233491",
+            "role": "restricted contractor",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/services/586368472f3c389cac84c7e5f2dd0dda?from=1794236544507999999&through=1794236545862233491",
+            "role": "restricted contractor",
+            "status": 200,
+            "exposed": false
+          }
+        ]
+      },
+      {
+        "case": 0,
+        "field": "template",
+        "status": 400,
+        "error": "handoff_credentials_forbidden",
+        "echo": false,
+        "unchanged": true,
+        "reads": [
+          {
+            "path": "/api/porthole/v1/handoffs",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/help",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/integrations",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/api/porthole/v1/services?from=1794236544507999999&through=1794236545862233491",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/services/a747171d62fcbd75bd327c94cdb793f7?from=1794236544507999999&through=1794236545862233491",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/settings/integrations/handoffs",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/api/porthole/v1/handoffs",
+            "role": "restricted contractor",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/help",
+            "role": "restricted contractor",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/integrations",
+            "role": "restricted contractor",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/api/porthole/v1/services?from=1794236544507999999&through=1794236545862233491",
+            "role": "restricted contractor",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/services/586368472f3c389cac84c7e5f2dd0dda?from=1794236544507999999&through=1794236545862233491",
+            "role": "restricted contractor",
+            "status": 200,
+            "exposed": false
+          }
+        ]
+      },
+      {
+        "case": 1,
+        "field": "destination",
+        "status": 400,
+        "error": "handoff_credentials_forbidden",
+        "echo": false,
+        "unchanged": true,
+        "reads": [
+          {
+            "path": "/api/porthole/v1/handoffs",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/help",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/integrations",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/api/porthole/v1/services?from=1794236544507999999&through=1794236545862233491",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/services/a747171d62fcbd75bd327c94cdb793f7?from=1794236544507999999&through=1794236545862233491",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/settings/integrations/handoffs",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/api/porthole/v1/handoffs",
+            "role": "restricted contractor",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/help",
+            "role": "restricted contractor",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/integrations",
+            "role": "restricted contractor",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/api/porthole/v1/services?from=1794236544507999999&through=1794236545862233491",
+            "role": "restricted contractor",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/services/586368472f3c389cac84c7e5f2dd0dda?from=1794236544507999999&through=1794236545862233491",
+            "role": "restricted contractor",
+            "status": 200,
+            "exposed": false
+          }
+        ]
+      },
+      {
+        "case": 1,
+        "field": "template",
+        "status": 400,
+        "error": "handoff_credentials_forbidden",
+        "echo": false,
+        "unchanged": true,
+        "reads": [
+          {
+            "path": "/api/porthole/v1/handoffs",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/help",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/integrations",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/api/porthole/v1/services?from=1794236544507999999&through=1794236545862233491",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/services/a747171d62fcbd75bd327c94cdb793f7?from=1794236544507999999&through=1794236545862233491",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/settings/integrations/handoffs",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/api/porthole/v1/handoffs",
+            "role": "restricted contractor",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/help",
+            "role": "restricted contractor",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/integrations",
+            "role": "restricted contractor",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/api/porthole/v1/services?from=1794236544507999999&through=1794236545862233491",
+            "role": "restricted contractor",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/services/586368472f3c389cac84c7e5f2dd0dda?from=1794236544507999999&through=1794236545862233491",
+            "role": "restricted contractor",
+            "status": 200,
+            "exposed": false
+          }
+        ]
+      },
+      {
+        "case": 2,
+        "field": "destination",
+        "status": 403,
+        "error": "step_up_required",
+        "echo": false,
+        "unchanged": true,
+        "reads": [
+          {
+            "path": "/api/porthole/v1/handoffs",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/help",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/integrations",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/api/porthole/v1/services?from=1794236544507999999&through=1794236545862233491",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/services/a747171d62fcbd75bd327c94cdb793f7?from=1794236544507999999&through=1794236545862233491",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/settings/integrations/handoffs",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/api/porthole/v1/handoffs",
+            "role": "restricted contractor",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/help",
+            "role": "restricted contractor",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/integrations",
+            "role": "restricted contractor",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/api/porthole/v1/services?from=1794236544507999999&through=1794236545862233491",
+            "role": "restricted contractor",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/services/586368472f3c389cac84c7e5f2dd0dda?from=1794236544507999999&through=1794236545862233491",
+            "role": "restricted contractor",
+            "status": 200,
+            "exposed": false
+          }
+        ]
+      },
+      {
+        "case": 2,
+        "field": "template",
+        "status": 403,
+        "error": "step_up_required",
+        "echo": false,
+        "unchanged": true,
+        "reads": [
+          {
+            "path": "/api/porthole/v1/handoffs",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/help",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/integrations",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/api/porthole/v1/services?from=1794236544507999999&through=1794236545862233491",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/services/a747171d62fcbd75bd327c94cdb793f7?from=1794236544507999999&through=1794236545862233491",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/settings/integrations/handoffs",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/api/porthole/v1/handoffs",
+            "role": "restricted contractor",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/help",
+            "role": "restricted contractor",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/integrations",
+            "role": "restricted contractor",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/api/porthole/v1/services?from=1794236544507999999&through=1794236545862233491",
+            "role": "restricted contractor",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/services/586368472f3c389cac84c7e5f2dd0dda?from=1794236544507999999&through=1794236545862233491",
+            "role": "restricted contractor",
+            "status": 200,
+            "exposed": false
+          }
+        ]
+      },
+      {
+        "case": 3,
+        "field": "destination",
+        "status": 403,
+        "error": "step_up_required",
+        "echo": false,
+        "unchanged": true,
+        "reads": []
+      },
+      {
+        "case": 3,
+        "field": "template",
+        "status": 403,
+        "error": "step_up_required",
+        "echo": false,
+        "unchanged": true,
+        "reads": []
+      },
+      {
+        "case": 4,
+        "field": "destination",
+        "status": 403,
+        "error": "step_up_required",
+        "echo": false,
+        "unchanged": true,
+        "reads": []
+      },
+      {
+        "case": 4,
+        "field": "template",
+        "status": 403,
+        "error": "step_up_required",
+        "echo": false,
+        "unchanged": true,
+        "reads": []
+      },
+      {
+        "case": 5,
+        "field": "destination",
+        "status": 403,
+        "error": "step_up_required",
+        "echo": false,
+        "unchanged": true,
+        "reads": []
+      },
+      {
+        "case": 5,
+        "field": "template",
+        "status": 403,
+        "error": "step_up_required",
+        "echo": false,
+        "unchanged": true,
+        "reads": []
+      },
+      {
+        "case": 6,
+        "field": "destination",
+        "status": 403,
+        "error": "step_up_required",
+        "echo": false,
+        "unchanged": true,
+        "reads": []
+      },
+      {
+        "case": 6,
+        "field": "template",
+        "status": 403,
+        "error": "step_up_required",
+        "echo": false,
+        "unchanged": true,
+        "reads": []
+      },
+      {
+        "case": 7,
+        "field": "destination",
+        "status": 403,
+        "error": "step_up_required",
+        "echo": false,
+        "unchanged": true,
+        "reads": []
+      },
+      {
+        "case": 7,
+        "field": "template",
+        "status": 403,
+        "error": "step_up_required",
+        "echo": false,
+        "unchanged": true,
+        "reads": []
+      },
+      {
+        "case": 8,
+        "field": "destination",
+        "status": 403,
+        "error": "step_up_required",
+        "echo": false,
+        "unchanged": true,
+        "reads": []
+      },
+      {
+        "case": 8,
+        "field": "template",
+        "status": 403,
+        "error": "step_up_required",
+        "echo": false,
+        "unchanged": true,
+        "reads": []
+      },
+      {
+        "case": 9,
+        "field": "destination",
+        "status": 403,
+        "error": "step_up_required",
+        "echo": false,
+        "unchanged": true,
+        "reads": []
+      },
+      {
+        "case": 9,
+        "field": "template",
+        "status": 403,
+        "error": "step_up_required",
+        "echo": false,
+        "unchanged": true,
+        "reads": []
+      },
+      {
+        "case": 10,
+        "field": "destination",
+        "status": 403,
+        "error": "step_up_required",
+        "echo": false,
+        "unchanged": true,
+        "reads": []
+      },
+      {
+        "case": 10,
+        "field": "template",
+        "status": 403,
+        "error": "step_up_required",
+        "echo": false,
+        "unchanged": true,
+        "reads": []
+      },
+      {
+        "case": 11,
+        "field": "destination",
+        "status": 403,
+        "error": "step_up_required",
+        "echo": false,
+        "unchanged": true,
+        "reads": []
+      },
+      {
+        "case": 11,
+        "field": "template",
+        "status": 403,
+        "error": "step_up_required",
+        "echo": false,
+        "unchanged": true,
+        "reads": []
+      },
+      {
+        "case": 12,
+        "field": "destination",
+        "status": 403,
+        "error": "step_up_required",
+        "echo": false,
+        "unchanged": true,
+        "reads": []
+      },
+      {
+        "case": 12,
+        "field": "template",
+        "status": 403,
+        "error": "step_up_required",
+        "echo": false,
+        "unchanged": true,
+        "reads": []
+      },
+      {
+        "case": 13,
+        "field": "destination",
+        "status": 403,
+        "error": "step_up_required",
+        "echo": false,
+        "unchanged": true,
+        "reads": []
+      },
+      {
+        "case": 13,
+        "field": "template",
+        "status": 403,
+        "error": "step_up_required",
+        "echo": false,
+        "unchanged": true,
+        "reads": []
+      }
+    ]
+  },
+  {
+    "attempt": 2,
+    "cases": [
+      {
+        "case": 0,
+        "field": "destination",
+        "status": 400,
+        "error": "handoff_credentials_forbidden",
+        "echo": false,
+        "unchanged": true,
+        "reads": [
+          {
+            "path": "/api/porthole/v1/handoffs",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/help",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/integrations",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/api/porthole/v1/services?from=1794237550928999999&through=1794237552246605054",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/services/a747171d62fcbd75bd327c94cdb793f7?from=1794237550928999999&through=1794237552246605054",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/settings/integrations/handoffs",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/api/porthole/v1/handoffs",
+            "role": "restricted contractor",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/help",
+            "role": "restricted contractor",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/integrations",
+            "role": "restricted contractor",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/api/porthole/v1/services?from=1794237550928999999&through=1794237552246605054",
+            "role": "restricted contractor",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/services/586368472f3c389cac84c7e5f2dd0dda?from=1794237550928999999&through=1794237552246605054",
+            "role": "restricted contractor",
+            "status": 200,
+            "exposed": false
+          }
+        ]
+      },
+      {
+        "case": 0,
+        "field": "template",
+        "status": 400,
+        "error": "handoff_credentials_forbidden",
+        "echo": false,
+        "unchanged": true,
+        "reads": [
+          {
+            "path": "/api/porthole/v1/handoffs",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/help",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/integrations",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/api/porthole/v1/services?from=1794237550928999999&through=1794237552246605054",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/services/a747171d62fcbd75bd327c94cdb793f7?from=1794237550928999999&through=1794237552246605054",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/settings/integrations/handoffs",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/api/porthole/v1/handoffs",
+            "role": "restricted contractor",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/help",
+            "role": "restricted contractor",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/integrations",
+            "role": "restricted contractor",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/api/porthole/v1/services?from=1794237550928999999&through=1794237552246605054",
+            "role": "restricted contractor",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/services/586368472f3c389cac84c7e5f2dd0dda?from=1794237550928999999&through=1794237552246605054",
+            "role": "restricted contractor",
+            "status": 200,
+            "exposed": false
+          }
+        ]
+      },
+      {
+        "case": 1,
+        "field": "destination",
+        "status": 400,
+        "error": "handoff_credentials_forbidden",
+        "echo": false,
+        "unchanged": true,
+        "reads": [
+          {
+            "path": "/api/porthole/v1/handoffs",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/help",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/integrations",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/api/porthole/v1/services?from=1794237550928999999&through=1794237552246605054",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/services/a747171d62fcbd75bd327c94cdb793f7?from=1794237550928999999&through=1794237552246605054",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/settings/integrations/handoffs",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/api/porthole/v1/handoffs",
+            "role": "restricted contractor",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/help",
+            "role": "restricted contractor",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/integrations",
+            "role": "restricted contractor",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/api/porthole/v1/services?from=1794237550928999999&through=1794237552246605054",
+            "role": "restricted contractor",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/services/586368472f3c389cac84c7e5f2dd0dda?from=1794237550928999999&through=1794237552246605054",
+            "role": "restricted contractor",
+            "status": 200,
+            "exposed": false
+          }
+        ]
+      },
+      {
+        "case": 1,
+        "field": "template",
+        "status": 400,
+        "error": "handoff_credentials_forbidden",
+        "echo": false,
+        "unchanged": true,
+        "reads": [
+          {
+            "path": "/api/porthole/v1/handoffs",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/help",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/integrations",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/api/porthole/v1/services?from=1794237550928999999&through=1794237552246605054",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/services/a747171d62fcbd75bd327c94cdb793f7?from=1794237550928999999&through=1794237552246605054",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/settings/integrations/handoffs",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/api/porthole/v1/handoffs",
+            "role": "restricted contractor",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/help",
+            "role": "restricted contractor",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/integrations",
+            "role": "restricted contractor",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/api/porthole/v1/services?from=1794237550928999999&through=1794237552246605054",
+            "role": "restricted contractor",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/services/586368472f3c389cac84c7e5f2dd0dda?from=1794237550928999999&through=1794237552246605054",
+            "role": "restricted contractor",
+            "status": 200,
+            "exposed": false
+          }
+        ]
+      },
+      {
+        "case": 2,
+        "field": "destination",
+        "status": 400,
+        "error": "handoff_credentials_forbidden",
+        "echo": false,
+        "unchanged": true,
+        "reads": [
+          {
+            "path": "/api/porthole/v1/handoffs",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/help",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/integrations",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/api/porthole/v1/services?from=1794237550928999999&through=1794237552246605054",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/services/a747171d62fcbd75bd327c94cdb793f7?from=1794237550928999999&through=1794237552246605054",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/settings/integrations/handoffs",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/api/porthole/v1/handoffs",
+            "role": "restricted contractor",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/help",
+            "role": "restricted contractor",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/integrations",
+            "role": "restricted contractor",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/api/porthole/v1/services?from=1794237550928999999&through=1794237552246605054",
+            "role": "restricted contractor",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/services/586368472f3c389cac84c7e5f2dd0dda?from=1794237550928999999&through=1794237552246605054",
+            "role": "restricted contractor",
+            "status": 200,
+            "exposed": false
+          }
+        ]
+      },
+      {
+        "case": 2,
+        "field": "template",
+        "status": 400,
+        "error": "handoff_credentials_forbidden",
+        "echo": false,
+        "unchanged": true,
+        "reads": [
+          {
+            "path": "/api/porthole/v1/handoffs",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/help",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/integrations",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/api/porthole/v1/services?from=1794237550928999999&through=1794237552246605054",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/services/a747171d62fcbd75bd327c94cdb793f7?from=1794237550928999999&through=1794237552246605054",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/settings/integrations/handoffs",
+            "role": "owner",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/api/porthole/v1/handoffs",
+            "role": "restricted contractor",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/help",
+            "role": "restricted contractor",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/integrations",
+            "role": "restricted contractor",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/api/porthole/v1/services?from=1794237550928999999&through=1794237552246605054",
+            "role": "restricted contractor",
+            "status": 200,
+            "exposed": false
+          },
+          {
+            "path": "/app/services/586368472f3c389cac84c7e5f2dd0dda?from=1794237550928999999&through=1794237552246605054",
+            "role": "restricted contractor",
+            "status": 200,
+            "exposed": false
+          }
+        ]
+      },
+      {
+        "case": 3,
+        "field": "destination",
+        "status": 400,
+        "error": "handoff_credentials_forbidden",
+        "echo": false,
+        "unchanged": true,
+        "reads": []
+      },
+      {
+        "case": 3,
+        "field": "template",
+        "status": 400,
+        "error": "handoff_credentials_forbidden",
+        "echo": false,
+        "unchanged": true,
+        "reads": []
+      },
+      {
+        "case": 4,
+        "field": "destination",
+        "status": 400,
+        "error": "handoff_credentials_forbidden",
+        "echo": false,
+        "unchanged": true,
+        "reads": []
+      },
+      {
+        "case": 4,
+        "field": "template",
+        "status": 400,
+        "error": "handoff_credentials_forbidden",
+        "echo": false,
+        "unchanged": true,
+        "reads": []
+      },
+      {
+        "case": 5,
+        "field": "destination",
+        "status": 400,
+        "error": "handoff_credentials_forbidden",
+        "echo": false,
+        "unchanged": true,
+        "reads": []
+      },
+      {
+        "case": 5,
+        "field": "template",
+        "status": 400,
+        "error": "handoff_credentials_forbidden",
+        "echo": false,
+        "unchanged": true,
+        "reads": []
+      },
+      {
+        "case": 6,
+        "field": "destination",
+        "status": 400,
+        "error": "handoff_credentials_forbidden",
+        "echo": false,
+        "unchanged": true,
+        "reads": []
+      },
+      {
+        "case": 6,
+        "field": "template",
+        "status": 400,
+        "error": "handoff_credentials_forbidden",
+        "echo": false,
+        "unchanged": true,
+        "reads": []
+      },
+      {
+        "case": 7,
+        "field": "destination",
+        "status": 400,
+        "error": "handoff_credentials_forbidden",
+        "echo": false,
+        "unchanged": true,
+        "reads": []
+      },
+      {
+        "case": 7,
+        "field": "template",
+        "status": 400,
+        "error": "handoff_credentials_forbidden",
+        "echo": false,
+        "unchanged": true,
+        "reads": []
+      },
+      {
+        "case": 8,
+        "field": "destination",
+        "status": 400,
+        "error": "handoff_credentials_forbidden",
+        "echo": false,
+        "unchanged": true,
+        "reads": []
+      },
+      {
+        "case": 8,
+        "field": "template",
+        "status": 400,
+        "error": "handoff_credentials_forbidden",
+        "echo": false,
+        "unchanged": true,
+        "reads": []
+      },
+      {
+        "case": 9,
+        "field": "destination",
+        "status": 400,
+        "error": "handoff_credentials_forbidden",
+        "echo": false,
+        "unchanged": true,
+        "reads": []
+      },
+      {
+        "case": 9,
+        "field": "template",
+        "status": 400,
+        "error": "handoff_credentials_forbidden",
+        "echo": false,
+        "unchanged": true,
+        "reads": []
+      },
+      {
+        "case": 10,
+        "field": "destination",
+        "status": 400,
+        "error": "handoff_credentials_forbidden",
+        "echo": false,
+        "unchanged": true,
+        "reads": []
+      },
+      {
+        "case": 10,
+        "field": "template",
+        "status": 400,
+        "error": "handoff_credentials_forbidden",
+        "echo": false,
+        "unchanged": true,
+        "reads": []
+      },
+      {
+        "case": 11,
+        "field": "destination",
+        "status": 400,
+        "error": "handoff_credentials_forbidden",
+        "echo": false,
+        "unchanged": true,
+        "reads": []
+      },
+      {
+        "case": 11,
+        "field": "template",
+        "status": 400,
+        "error": "handoff_credentials_forbidden",
+        "echo": false,
+        "unchanged": true,
+        "reads": []
+      },
+      {
+        "case": 12,
+        "field": "destination",
+        "status": 400,
+        "error": "handoff_credentials_forbidden",
+        "echo": false,
+        "unchanged": true,
+        "reads": []
+      },
+      {
+        "case": 12,
+        "field": "template",
+        "status": 400,
+        "error": "handoff_credentials_forbidden",
+        "echo": false,
+        "unchanged": true,
+        "reads": []
+      },
+      {
+        "case": 13,
+        "field": "destination",
+        "status": 400,
+        "error": "handoff_credentials_forbidden",
+        "echo": false,
+        "unchanged": true,
+        "reads": []
+      },
+      {
+        "case": 13,
+        "field": "template",
+        "status": 400,
+        "error": "handoff_credentials_forbidden",
+        "echo": false,
+        "unchanged": true,
+        "reads": []
+      }
+    ]
+  }
+]

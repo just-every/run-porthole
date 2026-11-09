@@ -1,0 +1,2 @@
+Network archive transfer incomplete: EOF; HTTP status not supplied.
+Partial non-secret log bytes retained locally: 155998; no shard runtime/timing lines were delivered.

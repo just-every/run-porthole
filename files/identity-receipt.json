@@ -1,0 +1,133 @@
+{
+  "candidate_commits": [
+    {
+      "head": "2564d7a4afad755896962b96d21f2385e1c866e0",
+      "author_name": "Run Edit Run fleet",
+      "author_email": "fleet@runeditrun.com",
+      "committer_name": "Run Edit Run fleet",
+      "committer_email": "fleet@runeditrun.com",
+      "trailers": ""
+    },
+    {
+      "head": "bb8d1e70d3a4c5ced856773fa2d6ab25939fdbb2",
+      "author_name": "Run Edit Run fleet",
+      "author_email": "fleet@runeditrun.com",
+      "committer_name": "Run Edit Run fleet",
+      "committer_email": "fleet@runeditrun.com",
+      "trailers": ""
+    },
+    {
+      "head": "f4294d59a12a45667efc788c6a7f63f80bfd46f7",
+      "author_name": "Run Edit Run fleet",
+      "author_email": "fleet@runeditrun.com",
+      "committer_name": "Run Edit Run fleet",
+      "committer_email": "fleet@runeditrun.com",
+      "trailers": ""
+    },
+    {
+      "head": "0753f87d72f2377f16ea3c4ba1256b002b7c51b5",
+      "author_name": "James Peter",
+      "author_email": "github@zemaj.com",
+      "committer_name": "James Peter",
+      "committer_email": "github@zemaj.com",
+      "trailers": ""
+    },
+    {
+      "head": "687718a548b12c317478f72cfe8efaf1581fb91c",
+      "author_name": "James Peter",
+      "author_email": "github@zemaj.com",
+      "committer_name": "James Peter",
+      "committer_email": "github@zemaj.com",
+      "trailers": ""
+    },
+    {
+      "head": "9eff8deeb6a3ad54781dff817213b08c3e12d033",
+      "author_name": "Run Edit Run fleet",
+      "author_email": "fleet@runeditrun.com",
+      "committer_name": "Run Edit Run fleet",
+      "committer_email": "fleet@runeditrun.com",
+      "trailers": ""
+    },
+    {
+      "head": "d77a80daa5c1b4a608839d079ccc20ca28ecc7c9",
+      "author_name": "Run Edit Run fleet",
+      "author_email": "fleet@runeditrun.com",
+      "committer_name": "Run Edit Run fleet",
+      "committer_email": "fleet@runeditrun.com",
+      "trailers": ""
+    },
+    {
+      "head": "d9e6b48a489b5e0fb3f963617db44dcb761561f7",
+      "author_name": "Run Edit Run fleet",
+      "author_email": "fleet@runeditrun.com",
+      "committer_name": "Run Edit Run fleet",
+      "committer_email": "fleet@runeditrun.com",
+      "trailers": ""
+    },
+    {
+      "head": "70d868998dccdcc7d29be8b3998f8461d5187876",
+      "author_name": "Run Edit Run fleet",
+      "author_email": "fleet@runeditrun.com",
+      "committer_name": "Run Edit Run fleet",
+      "committer_email": "fleet@runeditrun.com",
+      "trailers": ""
+    },
+    {
+      "head": "da2b4a29edfcb8cc82b1c7091dff70988e9f4b92",
+      "author_name": "Run Edit Run fleet",
+      "author_email": "fleet@runeditrun.com",
+      "committer_name": "Run Edit Run fleet",
+      "committer_email": "fleet@runeditrun.com",
+      "trailers": ""
+    },
+    {
+      "head": "a9e9d8ae410e9289ee8bf33744c52e573564be37",
+      "author_name": "Run Edit Run fleet",
+      "author_email": "fleet@runeditrun.com",
+      "committer_name": "Run Edit Run fleet",
+      "committer_email": "fleet@runeditrun.com",
+      "trailers": ""
+    },
+    {
+      "head": "38f87d7bcd1076d26396aa76faeee7ce0e0dc686",
+      "author_name": "Run Edit Run fleet",
+      "author_email": "fleet@runeditrun.com",
+      "committer_name": "Run Edit Run fleet",
+      "committer_email": "fleet@runeditrun.com",
+      "trailers": ""
+    },
+    {
+      "head": "871e3209d34e6451b54ecb6482ec486ee8ec1a99",
+      "author_name": "Run Edit Run fleet",
+      "author_email": "fleet@runeditrun.com",
+      "committer_name": "Run Edit Run fleet",
+      "committer_email": "fleet@runeditrun.com",
+      "trailers": ""
+    },
+    {
+      "head": "8495899988628e85503e10f83072a307374208a4",
+      "author_name": "Run Edit Run fleet",
+      "author_email": "fleet@runeditrun.com",
+      "committer_name": "Run Edit Run fleet",
+      "committer_email": "fleet@runeditrun.com",
+      "trailers": ""
+    },
+    {
+      "head": "256d6bbfc8b2ea4d619539e12a9d0a8944dba850",
+      "author_name": "Run Edit Run fleet",
+      "author_email": "fleet@runeditrun.com",
+      "committer_name": "Run Edit Run fleet",
+      "committer_email": "fleet@runeditrun.com",
+      "trailers": ""
+    },
+    {
+      "head": "1651cd655ad504adddbf52ccdd9972598fa57072",
+      "author_name": "Run Edit Run fleet",
+      "author_email": "fleet@runeditrun.com",
+      "committer_name": "Run Edit Run fleet",
+      "committer_email": "fleet@runeditrun.com",
+      "trailers": ""
+    }
+  ],
+  "passed": true
+}

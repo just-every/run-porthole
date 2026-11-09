@@ -1,0 +1,16 @@
+shards (typecheck, true)	Run this shard	2026-11-09T14:23:14.9606853Z VERIFY_TIMING {"shard":"typecheck","command":"pnpm run typecheck","seconds":6.354,"exit":0}
+shards (typecheck, true)	Run this shard	2026-11-09T14:24:09.5551195Z VERIFY_TIMING {"shard":"typecheck","command":"pnpm run test:typecheck","seconds":54.594,"exit":0}
+shards (typecheck, true)	Run this shard	2026-11-09T14:25:21.7699179Z Services: stock export drained; checking source counters and catalog
+shards (typecheck, true)	Run this shard	2026-11-09T14:25:37.2208911Z Services: scoped metadata refusal checks passed; checking native Settings
+shards (typecheck, true)	Run this shard	2026-11-09T14:29:25.4001804Z Services: stock export drained; checking source counters and catalog
+shards (typecheck, true)	Run this shard	2026-11-09T14:29:34.7742677Z Services: scoped metadata refusal checks passed; checking native Settings
+shards (typecheck, true)	Run this shard	2026-11-09T14:31:03.8496142Z VERIFY_TIMING {"shard":"typecheck","command":"PORTHOLE_SERVICES_ONLY=1 pnpm run test:runtime","seconds":414.294,"exit":0}
+shards (typecheck, true)	Run this shard	2026-11-09T14:31:47.5594591Z Host heartbeat: authenticated process and timing boundaries
+shards (typecheck, true)	Run this shard	2026-11-09T14:31:48.5972846Z Host heartbeat: native Settings and evaluation screens
+shards (typecheck, true)	Run this shard	2026-11-09T14:32:07.4847141Z Host heartbeat: dense accepted observations 2001
+shards (typecheck, true)	Run this shard	2026-11-09T14:32:16.0131606Z Host heartbeat: dense accepted observations 4001
+shards (typecheck, true)	Run this shard	2026-11-09T14:32:25.7762226Z Host heartbeat: dense accepted observations 6001
+shards (typecheck, true)	Run this shard	2026-11-09T14:32:33.4282247Z Host heartbeat: dense accepted observations 8001
+shards (typecheck, true)	Run this shard	2026-11-09T14:32:45.5407225Z Host heartbeat: dense accepted observations 10001
+shards (typecheck, true)	Run this shard	2026-11-09T14:32:45.8902264Z Host heartbeat: inactive archive transfer
+shards (typecheck, true)	Run this shard	2026-11-09T14:34:48.7663590Z ##[error]The operation was canceled.

@@ -1,0 +1,161 @@
+{
+  "repository": "just-every/run-porthole",
+  "run_id": 42643013003,
+  "head_sha": "2564d7a4afad755896962b96d21f2385e1c866e0",
+  "html_url": "https://github.com/just-every/run-porthole/actions/runs/42643013003",
+  "status": "completed",
+  "conclusion": "cancelled",
+  "jobs": [
+    {
+      "id": 129248752875,
+      "name": "plan",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-09T15:16:38Z",
+      "completed_at": "2026-11-09T15:16:42Z",
+      "seconds": 4.0,
+      "head_sha": "2564d7a4afad755896962b96d21f2385e1c866e0"
+    },
+    {
+      "id": 129248823589,
+      "name": "prewarm",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-09T15:16:44Z",
+      "completed_at": "2026-11-09T15:17:25Z",
+      "seconds": 41.0,
+      "head_sha": "2564d7a4afad755896962b96d21f2385e1c866e0"
+    },
+    {
+      "id": 129249249213,
+      "name": "shards (analytical, true)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-09T15:17:27Z",
+      "completed_at": "2026-11-09T15:24:54Z",
+      "seconds": 447.0,
+      "head_sha": "2564d7a4afad755896962b96d21f2385e1c866e0"
+    },
+    {
+      "id": 129249249231,
+      "name": "shards (follow-up, true)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-09T15:17:27Z",
+      "completed_at": "2026-11-09T15:27:36Z",
+      "seconds": 609.0,
+      "head_sha": "2564d7a4afad755896962b96d21f2385e1c866e0"
+    },
+    {
+      "id": 129249249297,
+      "name": "shards (ingest, true)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-09T15:17:27Z",
+      "completed_at": "2026-11-09T15:22:38Z",
+      "seconds": 311.0,
+      "head_sha": "2564d7a4afad755896962b96d21f2385e1c866e0"
+    },
+    {
+      "id": 129249249344,
+      "name": "shards (migration, true)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-09T15:17:27Z",
+      "completed_at": "2026-11-09T15:24:37Z",
+      "seconds": 430.0,
+      "head_sha": "2564d7a4afad755896962b96d21f2385e1c866e0"
+    },
+    {
+      "id": 129249249345,
+      "name": "shards (runtime, true)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-09T15:17:27Z",
+      "completed_at": "2026-11-09T15:28:06Z",
+      "seconds": 639.0,
+      "head_sha": "2564d7a4afad755896962b96d21f2385e1c866e0"
+    },
+    {
+      "id": 129249249405,
+      "name": "shards (network, true)",
+      "status": "completed",
+      "conclusion": "cancelled",
+      "started_at": "2026-11-09T15:17:27Z",
+      "completed_at": "2026-11-09T15:29:35Z",
+      "seconds": 728.0,
+      "head_sha": "2564d7a4afad755896962b96d21f2385e1c866e0"
+    },
+    {
+      "id": 129249249444,
+      "name": "shards (traces, true)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-09T15:17:28Z",
+      "completed_at": "2026-11-09T15:25:12Z",
+      "seconds": 464.0,
+      "head_sha": "2564d7a4afad755896962b96d21f2385e1c866e0"
+    },
+    {
+      "id": 129249249451,
+      "name": "shards (dashboards, true)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-09T15:17:28Z",
+      "completed_at": "2026-11-09T15:26:14Z",
+      "seconds": 526.0,
+      "head_sha": "2564d7a4afad755896962b96d21f2385e1c866e0"
+    },
+    {
+      "id": 129249249475,
+      "name": "shards (source, true)",
+      "status": "completed",
+      "conclusion": "cancelled",
+      "started_at": "2026-11-09T15:17:28Z",
+      "completed_at": "2026-11-09T15:29:44Z",
+      "seconds": 736.0,
+      "head_sha": "2564d7a4afad755896962b96d21f2385e1c866e0"
+    },
+    {
+      "id": 129249249477,
+      "name": "shards (exports, true)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-09T15:17:28Z",
+      "completed_at": "2026-11-09T15:26:18Z",
+      "seconds": 530.0,
+      "head_sha": "2564d7a4afad755896962b96d21f2385e1c866e0"
+    },
+    {
+      "id": 129249249555,
+      "name": "shards (typecheck, true)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-09T15:17:27Z",
+      "completed_at": "2026-11-09T15:23:22Z",
+      "seconds": 355.0,
+      "head_sha": "2564d7a4afad755896962b96d21f2385e1c866e0"
+    },
+    {
+      "id": 129256566945,
+      "name": "verify",
+      "status": "completed",
+      "conclusion": "failure",
+      "started_at": "2026-11-09T15:29:46Z",
+      "completed_at": "2026-11-09T15:29:49Z",
+      "seconds": 3.0,
+      "head_sha": "2564d7a4afad755896962b96d21f2385e1c866e0"
+    }
+  ],
+  "typecheck_seconds": 355.0,
+  "longest_shard_name": "shards (source, true)",
+  "longest_shard_seconds": 736.0,
+  "acceptance_criteria": {
+    "exact_sha": true,
+    "verify_success": false,
+    "every_shard_success": false,
+    "typecheck_under_ten_minutes": true,
+    "every_shard_under_twelve_minutes": false
+  },
+  "acceptance_met": false
+}

@@ -1,0 +1,114 @@
+[
+  {
+    "number": 1,
+    "at": 1794235873.0282218,
+    "args": [
+      "api",
+      "repos/just-every/run-porthole/actions/runs/42633896731/jobs?per_page=100"
+    ]
+  },
+  {
+    "number": 2,
+    "at": 1794235878.3148098,
+    "args": [
+      "api",
+      "repos/just-every/run-porthole/actions/runs/42631085363/jobs?per_page=100"
+    ]
+  },
+  {
+    "number": 3,
+    "at": 1794235901.6658356,
+    "args": [
+      "run",
+      "view",
+      "42633896731",
+      "--repo",
+      "just-every/run-porthole",
+      "--job",
+      "129217418562",
+      "--log-failed"
+    ]
+  },
+  {
+    "number": 4,
+    "at": 1794235929.262399,
+    "args": [
+      "run",
+      "view",
+      "42631085363",
+      "--repo",
+      "just-every/run-porthole",
+      "--job",
+      "129207694456",
+      "--log"
+    ]
+  },
+  {
+    "number": 5,
+    "at": 1794236169.49414,
+    "args": [
+      "run",
+      "view",
+      "42633896731",
+      "--repo",
+      "just-every/run-porthole",
+      "--job",
+      "129217418562",
+      "--log"
+    ]
+  },
+  {
+    "number": 6,
+    "at": 1794237419.2231216,
+    "args": [
+      "api",
+      "repos/just-every/run-porthole/actions/runs?head_sha=2564d7a4afad755896962b96d21f2385e1c866e0&per_page=100"
+    ]
+  },
+  {
+    "number": 7,
+    "at": 1794238199.6325448,
+    "args": [
+      "api",
+      "repos/just-every/run-porthole/actions/runs/42643013003",
+      "--jq",
+      "{status,conclusion,head_sha,html_url}"
+    ]
+  },
+  {
+    "number": 8,
+    "at": 1794238216.966426,
+    "args": [
+      "api",
+      "repos/just-every/run-porthole/actions/runs/42643013003/jobs?per_page=100"
+    ]
+  },
+  {
+    "number": 9,
+    "at": 1794238241.7446785,
+    "args": [
+      "run",
+      "view",
+      "42643013003",
+      "--repo",
+      "just-every/run-porthole",
+      "--job",
+      "129249249405",
+      "--log"
+    ]
+  },
+  {
+    "number": 10,
+    "at": 1794238241.784977,
+    "args": [
+      "run",
+      "view",
+      "42643013003",
+      "--repo",
+      "just-every/run-porthole",
+      "--job",
+      "129249249475",
+      "--log"
+    ]
+  }
+]

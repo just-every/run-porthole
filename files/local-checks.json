@@ -1,0 +1,44 @@
+{
+  "node": "22.20.0",
+  "build": "passed",
+  "ordinary_typecheck": "passed",
+  "incremental_typecheck": {
+    "tests": 7,
+    "passed": 7,
+    "failed": 0,
+    "skipped": 0
+  },
+  "services_attempts": [
+    {
+      "result": "failed",
+      "assertion": "credential URLs refuse without echo or mutation; legacy destinations and templates never reach owner or restricted reads",
+      "expected_status": 400,
+      "expected_error": "handoff_credentials_forbidden",
+      "actual_status": 403,
+      "actual_error": "step_up_required",
+      "source_unchanged": true,
+      "cold_container_pulls": true
+    },
+    {
+      "result": "failed",
+      "location": "tests/porthole/handoffs.mjs:142 (handoffBrowser)",
+      "expected_status": 400,
+      "actual_status": 403,
+      "credential_refusal_cases_passed": 28,
+      "source_unchanged": true,
+      "container_images_cached": true
+    }
+  ],
+  "heartbeat": "passed",
+  "heartbeat_assertions": [
+    "real process loss and return",
+    "exact per-host windows",
+    "pending restart",
+    "current authority",
+    "storage failure",
+    "native configuration",
+    "10001 real accepted observations",
+    "independent inactive archive restore"
+  ],
+  "services_retry": "failed: handoffBrowser expected HTTP 400, observed HTTP 403 after the credential-refusal table passed all 28 cases"
+}

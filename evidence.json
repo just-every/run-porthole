@@ -1,0 +1,118 @@
+{
+  "files": [
+    {
+      "blob": "6447477d7e4d2272dee5a88a79626a7c17bb0c0c",
+      "bytes": 1540,
+      "path": "PLAN.md",
+      "sha256": "2f68d1029517b15c8be88ead9fc4dd48554f7fadb085157d5d937337709d7dda"
+    },
+    {
+      "blob": "b48cac6932e65378e6d8cf9d050936b3e086727e",
+      "bytes": 9122,
+      "path": "REPORT.md",
+      "sha256": "b22a01a3e08eedbb0bca8ea543c4c7f9df351b9d2f515a2f1424a5b912cbfb75"
+    },
+    {
+      "blob": "7df5a0a382766e74cf00581683a178bfb23f6814",
+      "bytes": 2142,
+      "path": "cancelled-command-timings.txt",
+      "sha256": "56aba62a050e1d210d9ce8c35952fbaafdee3c9c47ee2a16082fc5d61a45f954"
+    },
+    {
+      "blob": "04fdc2f009c3da855794339e99ef4dba47dc0f11",
+      "bytes": 169,
+      "path": "candidate-network-log-excerpt.txt",
+      "sha256": "1605d44d2bba08aea2c1b2cec9531439209c9d42f014128c914877fb73c7a730"
+    },
+    {
+      "blob": "5a1ab21eef2f7f38949f7d42f8eceeca2c190c4f",
+      "bytes": 1849,
+      "path": "candidate-source-command-timings.txt",
+      "sha256": "7ba1bd1c44d95a9fbd430dabca3899403e80ab7b66ba11880b2908fa9588121b"
+    },
+    {
+      "blob": "5d2a1ed16c78b0596ff805bd327127af2e38b759",
+      "bytes": 4984,
+      "path": "ci-receipt.json",
+      "sha256": "a6116bcfe35180acf201f3dcdb8d185b8eef15ef1c69604d879602406deb7ae0"
+    },
+    {
+      "blob": "f1bbf0d41d6f3753f676cf629d64f7aff3be5b38",
+      "bytes": 10365,
+      "path": "failed-job-steps.json",
+      "sha256": "41dbecd6335153dbaf0701da0fbc36a466aecead0408d2a35da702949194913b"
+    },
+    {
+      "blob": "41cba2919cda35ec19459cf1518945135f677dd4",
+      "bytes": 2052,
+      "path": "github-calls-receipt.json",
+      "sha256": "960d2e00b9467e7bc0ae7f9228ffedebf25731f4cd70109993698923d9be2939"
+    },
+    {
+      "blob": "65ce6a13129ee7931247db0c94e1de290352d872",
+      "bytes": 6979,
+      "path": "historical-ci-receipt.json",
+      "sha256": "ef3e248f3af742cc483cdbde867a135bddefa1e30b5f1f9dc357c1b42b5aee4f"
+    },
+    {
+      "blob": "f14ec9c2921869d83d5561524a59bcf33bd6b7b9",
+      "bytes": 878,
+      "path": "historical-command-timings.txt",
+      "sha256": "ce09f4820bdefed997678ec626615d6ebf6bb0abd8d67515c85b5752f6d9ba0b"
+    },
+    {
+      "blob": "7289b23d232514633100cd069d8cad7c19e28144",
+      "bytes": 2261,
+      "path": "historical-diff.txt",
+      "sha256": "a9a13810095440472608a599baa426a41f9608ffcbdaf19a2896509163232c17"
+    },
+    {
+      "blob": "ffaaf96a758dbb34f7012ce257bf900807bab261",
+      "bytes": 4422,
+      "path": "identity-receipt.json",
+      "sha256": "3a27ac52ebed87ef57021e7f218de345ab3ead875a4ea260eeb5457c04808f88"
+    },
+    {
+      "blob": "a6aa3b165babf540493b1a2fa7cf4d88c6000c77",
+      "bytes": 1341,
+      "path": "local-checks.json",
+      "sha256": "d0d8ea44c32fbd44d070962c3589d94a214a32c24be1bfb31b25e9eebe09c501"
+    },
+    {
+      "blob": "cc7b58d7010552d62c3adbaae817521dcf7dd72c",
+      "bytes": 207,
+      "path": "network-log-transfer-receipt.json",
+      "sha256": "496618b1038038f6d6d912606bc9828da2f11d414809bf6abf8c89351c37cd8b"
+    },
+    {
+      "blob": "27e934f3797a97ad712ddd29146fecf8f925457a",
+      "bytes": 803,
+      "path": "product-receipt.json",
+      "sha256": "e87eb25c360e56db534aae63708000bb54a26c8f1580721954cac95fb61ea40a"
+    },
+    {
+      "blob": "fc8f2de1450a33cddd37a6936b763ba7476aad6a",
+      "bytes": 1180,
+      "path": "product.patch",
+      "sha256": "4622ab0d0d2f6a78fda0fd1e4b173dafcf0a774c113be7ce9938ac10cb2c07cb"
+    },
+    {
+      "blob": "d50ebe064d76551a2a053d7dd0c61795498ef98f",
+      "bytes": 463,
+      "path": "scheduling-receipt.json",
+      "sha256": "e94505a14535105253173dd38e8ef5a3fea4da48200ec03eb49848a22984b0d1"
+    },
+    {
+      "blob": "a9ae349eda3c6ad2862f0d022ed4d1a63cf418a3",
+      "bytes": 36169,
+      "path": "services-refusal-receipts.json",
+      "sha256": "c8d6df18568b1a76ad629fcfae481f6e19c2a18c264fdce3390f04483b8a0067"
+    }
+  ],
+  "product_branch": "cloud/sx-porthole-shard-time-2",
+  "product_head": "2564d7a4afad755896962b96d21f2385e1c866e0",
+  "ref": "refs/heads/evidence/sx-porthole-shard-time-2",
+  "repository": "just-every/run-porthole",
+  "schema": 1,
+  "tag": "sx-porthole-shard-time-2"
+}

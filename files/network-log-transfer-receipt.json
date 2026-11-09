@@ -1,0 +1,7 @@
+{
+  "command": "gh run view 42643013003 --repo just-every/run-porthole --job 129249249405 --log",
+  "error": "EOF",
+  "http_status": "unknown (not supplied)",
+  "partial_bytes": 155998,
+  "retried": false
+}

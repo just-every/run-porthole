@@ -1,0 +1,52 @@
+commit bb8d1e70d3a4c5ced856773fa2d6ab25939fdbb2
+Author:     Run Edit Run fleet <fleet@runeditrun.com>
+AuthorDate: Mon Nov 9 14:21:31 2026 +0000
+Commit:     Run Edit Run fleet <fleet@runeditrun.com>
+CommitDate: Mon Nov 9 14:21:31 2026 +0000
+
+    Balance archive and handover journeys using hosted shard timings
+
+diff --git a/verification.json b/verification.json
+index a8e93c2..95a3221 100644
+--- a/verification.json
++++ b/verification.json
+@@ -13,7 +13,7 @@
+         "node scripts/porthole/standard-clients.mjs",
+         "PORTHOLE_STANDARD_ONLY=1 pnpm run test:runtime",
+         "PORTHOLE_STANDARD_ANALYTICAL_ONLY=1 pnpm run test:runtime",
+-        "PORTHOLE_HANDOVER_ONLY=1 pnpm run test:runtime"
++        "PORTHOLE_PIPELINES_ONLY=1 pnpm run test:runtime"
+       ]
+     },
+     {
+@@ -46,8 +46,7 @@
+         "python3 -m venv .cache/export-readers && .cache/export-readers/bin/pip install --disable-pip-version-check -r tests/porthole/export-readers.txt",
+         "PORTHOLE_ERASURE_ONLY=1 pnpm run test:runtime",
+         "PORTHOLE_EXPORT_ONLY=1 pnpm run test:runtime",
+-        "PORTHOLE_MAIL_ONLY=1 PORTHOLE_MAIL_PROVIDER=resend node tests/runtime.mjs",
+-        "node --input-type=module -e 'import {nativeBackupErasureJourney} from \"./tests/porthole/archive.mjs\"; await nativeBackupErasureJourney()'"
++        "PORTHOLE_MAIL_ONLY=1 PORTHOLE_MAIL_PROVIDER=resend node tests/runtime.mjs"
+       ]
+     },
+     {
+@@ -57,8 +56,8 @@
+       "commands": [
+         "pnpm run build",
+         "PORTHOLE_INGEST_ONLY=1 pnpm run test:runtime",
+-        "PORTHOLE_PIPELINES_ONLY=1 pnpm run test:runtime",
+-        "PORTHOLE_METRIC_RULES_ONLY=1 pnpm run test:runtime"
++        "PORTHOLE_METRIC_RULES_ONLY=1 pnpm run test:runtime",
++        "PORTHOLE_HANDOVER_ONLY=1 pnpm run test:runtime"
+       ]
+     },
+     {
+@@ -122,7 +121,8 @@
+         "pnpm run build",
+         "PORTHOLE_FOLLOW_UP_ONLY=1 pnpm run test:runtime",
+         "PORTHOLE_SLO_ONLY=1 pnpm run test:runtime",
+-        "PORTHOLE_NOTEBOOKS_ONLY=1 pnpm run test:runtime"
++        "PORTHOLE_NOTEBOOKS_ONLY=1 pnpm run test:runtime",
++        "node --input-type=module -e 'import {nativeBackupErasureJourney} from \"./tests/porthole/archive.mjs\"; await nativeBackupErasureJourney()'"
+       ]
+     }
+   ],

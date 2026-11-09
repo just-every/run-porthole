@@ -1,0 +1,5 @@
+shards (typecheck, true)	Run this shard	2026-11-09T14:05:43.0995296Z VERIFY_TIMING {"shard":"typecheck","command":"pnpm run typecheck","seconds":5.156,"exit":0}
+shards (typecheck, true)	Run this shard	2026-11-09T14:06:27.4301640Z VERIFY_TIMING {"shard":"typecheck","command":"pnpm run test:typecheck","seconds":44.33,"exit":0}
+shards (typecheck, true)	Run this shard	2026-11-09T14:10:48.9782600Z VERIFY_TIMING {"shard":"typecheck","command":"PORTHOLE_SERVICES_ONLY=1 pnpm run test:runtime","seconds":261.548,"exit":0}
+shards (typecheck, true)	Run this shard	2026-11-09T14:13:20.7879769Z VERIFY_TIMING {"shard":"typecheck","command":"PORTHOLE_HOST_HEARTBEAT_ONLY=1 pnpm run test:runtime","seconds":151.809,"exit":0}
+shards (typecheck, true)	Run this shard	2026-11-09T14:13:20.7986026Z VERIFY_TIMING {"shard":"typecheck","command":"pnpm run verify:app","seconds":463.08,"exit":0}
