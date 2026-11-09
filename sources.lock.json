@@ -6141,7 +6141,7 @@
       "executable": false
     },
     "tests/runtime.mjs": {
-      "sha256": "597c1dfaeb2cb780ef660073ef06e1f5221c4ae7372d84cb5238fc017a431843",
+      "sha256": "f6b722241579d19c9ac5dcfc159b68c561568136e0229e806f4be3851de716d7",
       "executable": false
     },
     "tests/typecheck-checks.mjs": {
@@ -6153,7 +6153,7 @@
       "executable": false
     },
     "verification.json": {
-      "sha256": "693b37d7e6bf91c1e15ecafec813bf209cf0bb2913608c740e67b2fa6b616d1d",
+      "sha256": "4534bf69e6ebf41aefaa83501670313cd5a3c09126d79df33c482888a28024fc",
       "executable": false
     },
     "VERIFY-WORKFLOW.md": {
