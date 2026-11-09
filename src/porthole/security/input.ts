@@ -1,11 +1,12 @@
 import { fail } from './authority'
-export async function input(request: Request, repeated: string[] = []): Promise<Record<string, unknown>> {
+export async function input(request: Request, options: string[] | number = []): Promise<Record<string, unknown>> {
+ const repeated=Array.isArray(options)?options:[],maxBytes=typeof options==='number'?options:8192
  const type = request.headers.get('content-type')?.split(';')[0]
  if (!['application/json','application/x-www-form-urlencoded'].includes(type ?? '')) fail('unsupported_media_type', 415)
  const reader = request.body?.getReader()
  if (!reader) fail('invalid_input', 400)
  const chunks: Uint8Array[] = []; let size = 0
- while (true) { const {value,done} = await reader.read(); if (done) break; size += value.length; if (size > 8192) { await reader.cancel(); fail('input_too_large',413) }; chunks.push(value) }
+ while (true) { const {value,done} = await reader.read(); if (done) break; size += value.length; if (size > maxBytes) { await reader.cancel(); fail('input_too_large',413) }; chunks.push(value) }
  const bytes = new Uint8Array(size); let offset=0
  for (const chunk of chunks) { bytes.set(chunk,offset); offset+=chunk.length }
  try {

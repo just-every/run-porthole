@@ -85,3 +85,32 @@ export function decode(input: Uint8Array, type: string, depth = 0): Record<strin
  }
  return result
 }
+
+/** Encode supported OTLP messages with the same pinned descriptors used at
+ * intake. Trace retrieval emits TracesData (wire-equivalent to ExportRequest). */
+export function encode(data:Record<string,unknown>,type:string):Uint8Array {
+ const parts:Uint8Array[]=[]
+ const variable=(value:bigint)=>{let n=BigInt.asUintN(64,value);const b=[];do{b.push(Number(n&127n)|(n>127n?128:0));n>>=7n}while(n);return new Uint8Array(b)}
+ const append=(number:number,kind:string,value:unknown)=>{
+  const wire=numericWire[kind]??2;parts.push(variable(BigInt(number*8+wire)))
+  if(wire===0){parts.push(variable(kind==='bool'?value?1n:0n:BigInt(String(value))));return}
+  let payload:Uint8Array
+  if(wire===1||wire===5){
+   payload=new Uint8Array(wire===1?8:4);const view=new DataView(payload.buffer)
+   if(kind==='double')view.setFloat64(0,Number(value),true)
+   else if(wire===5)view.setUint32(0,Number(value),true)
+   else view.setBigUint64(0,BigInt.asUintN(64,BigInt(String(value))),true)
+  }else if(common[kind])payload=encode(value as Record<string,unknown>,kind)
+  else if(kind==='hex')payload=new Uint8Array(String(value).match(/../g)?.map(n=>parseInt(n,16))??[])
+  else if(kind==='bytes')payload=Uint8Array.from(atob(String(value)),c=>c.charCodeAt(0))
+  else payload=new TextEncoder().encode(String(value))
+  if(wire===2)parts.push(variable(BigInt(payload.length)))
+  parts.push(payload)
+ }
+ for(const [number,[name,kind,repeated]]of Object.entries(common[type])){
+  const value=data[name];if(value===undefined||value===null)continue
+  for(const item of repeated?value as unknown[]:[value])append(Number(number),kind,item)
+ }
+ const result=new Uint8Array(parts.reduce((n,p)=>n+p.length,0));let offset=0
+ for(const part of parts){result.set(part,offset);offset+=part.length}return result
+}

@@ -45,3 +45,18 @@ export function fixture({origin,sql,restartWorker,sessionSecret,ownerEmail='owne
  }
  return {sql:read,mutate,freshOwner,link,signIn}
 }
+
+/** Explicit native review for journeys removing real members. No automatic
+ * product handover: the fixture chooses unassignment, except ingest custody
+ * which remains with an already eligible active administrator. */
+export async function reviewRemoval(origin,cookie,operatorId,{call=(path,options)=>fetch(origin+path,options),choose}={}) {
+ const response=await call('/app/settings/members/preview',form(origin,cookie,{operatorId}))
+ assert.equal(response.status,200,'member removal preview: '+(response.status===200?'':await response.clone().text()))
+ const review=await response.json()
+ const session=await call('/auth/session',{headers:{cookie}})
+ assert.equal(session.status,200)
+ const actor=(await session.json()).operator.id
+ const choices=review.items.map(item=>({key:item.key,successor:choose?choose(item):item.mode==='custody'?(item.successors.find(m=>m.id===actor)??item.successors[0])?.id:null}))
+ assert.ok(choices.every(choice=>choice.successor!==undefined),'ingest needs an eligible successor chosen in the review')
+ return {operatorId,token:review.token,choices}
+}
