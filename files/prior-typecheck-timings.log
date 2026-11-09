@@ -1,0 +1,20 @@
+shards (typecheck, true)	Run this shard	2026-11-09T13:27:26.6291112Z > pnpm run verify:app
+shards (typecheck, true)	Run this shard	2026-11-09T13:27:26.8436429Z > node scripts/verify-app.mjs
+shards (typecheck, true)	Run this shard	2026-11-09T13:27:26.8723097Z > pnpm run build
+shards (typecheck, true)	Run this shard	2026-11-09T13:27:26.9268953Z > pnpm run typecheck
+shards (typecheck, true)	Run this shard	2026-11-09T13:27:33.7478822Z VERIFY_TIMING {"shard":"typecheck","command":"pnpm run typecheck","seconds":6.821,"exit":0}
+shards (typecheck, true)	Run this shard	2026-11-09T13:27:33.7479326Z > pnpm run test:typecheck
+shards (typecheck, true)	Run this shard	2026-11-09T13:28:31.4284514Z VERIFY_TIMING {"shard":"typecheck","command":"pnpm run test:typecheck","seconds":57.68,"exit":0}
+shards (typecheck, true)	Run this shard	2026-11-09T13:28:31.4285369Z > PORTHOLE_SERVICES_ONLY=1 pnpm run test:runtime
+shards (typecheck, true)	Run this shard	2026-11-09T13:28:39.8493502Z HTTP-001 passed against emitted local Worker: health, the installed homepage, HTTP and document 404s
+shards (typecheck, true)	Run this shard	2026-11-09T13:29:39.7071136Z Services: stock export drained; checking source counters and catalog
+shards (typecheck, true)	Run this shard	2026-11-09T13:30:11.9061852Z Services: scoped metadata refusal checks passed; checking native Settings
+shards (typecheck, true)	Run this shard	2026-11-09T13:35:46.3301905Z servicesJourney passed local: source counters and stock spans, multi-page bounds, ownership and native browser states
+shards (typecheck, true)	Run this shard	2026-11-09T13:36:09.9423099Z Services: stock export drained; checking source counters and catalog
+shards (typecheck, true)	Run this shard	2026-11-09T13:36:19.0768135Z Services: scoped metadata refusal checks passed; checking native Settings
+shards (typecheck, true)	Run this shard	2026-11-09T13:37:33.1155213Z servicesJourney passed analytical: source counters and stock spans, multi-page bounds, ownership and native browser states
+shards (typecheck, true)	Run this shard	2026-11-09T13:37:35.7297509Z APP-HOME passed against emitted local Worker: /app behind sign-in and setup, then the trace view with its stylesheets
+shards (typecheck, true)	Run this shard	2026-11-09T13:37:35.8806740Z VERIFY_TIMING {"shard":"typecheck","command":"PORTHOLE_SERVICES_ONLY=1 pnpm run test:runtime","seconds":544.452,"exit":0}
+shards (typecheck, true)	Run this shard	2026-11-09T13:37:35.8807334Z > PORTHOLE_FLEET_ONLY=1 pnpm run test:runtime
+shards (typecheck, true)	Run this shard	2026-11-09T13:37:42.3315864Z HTTP-001 passed against emitted local Worker: health, the installed homepage, HTTP and document 404s
+shards (typecheck, true)	Run this shard	2026-11-09T13:39:09.2107429Z ##[error]The operation was canceled.

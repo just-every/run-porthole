@@ -1,0 +1,14 @@
+{
+  "repository": "just-every/run-porthole",
+  "branch": "cloud/sx-porthole-shard-time-1",
+  "head_sha": "bb8d1e70d3a4c5ced856773fa2d6ab25939fdbb2",
+  "status": "not_observed",
+  "conclusion": null,
+  "run_id": null,
+  "task_github_calls_used": 10,
+  "reason": "Budget exhausted after measuring the successful first candidate. Final push preserves identical test commands and changes scheduling only; fleet must require exact-SHA Verify before landing.",
+  "qualified_prior_head": "f4294d59a12a45667efc788c6a7f63f80bfd46f7",
+  "qualified_prior_run": 42631085363,
+  "qualified_prior_conclusion": "success",
+  "observed_at": "2026-11-09T14:22:54.100054+00:00"
+}

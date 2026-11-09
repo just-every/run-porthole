@@ -1,0 +1,47 @@
+{
+  "observed_at": "2026-11-09T14:04:38.612675+00:00",
+  "checks": [
+    {
+      "command": "node --check tests/runtime.mjs",
+      "exit_code": 0
+    },
+    {
+      "command": "node scripts/verify-ci.mjs --check-workflows",
+      "exit_code": 0
+    },
+    {
+      "command": "node scripts/verify-ci.mjs --matrix push",
+      "exit_code": 0
+    },
+    {
+      "command": "pnpm run typecheck (after setup generated routes)",
+      "exit_code": 0
+    },
+    {
+      "command": "pnpm run source:lock",
+      "exit_code": 0
+    },
+    {
+      "command": "pnpm run source:check",
+      "exit_code": 0
+    },
+    {
+      "command": "PORTHOLE_HANDOVER_ONLY=1 node tests/runtime.mjs (cloud_run, system Chromium)",
+      "exit_code": 0,
+      "log": "handover.log"
+    },
+    {
+      "command": "PORTHOLE_ERASURE_ONLY=1 node tests/runtime.mjs (initial default browser lookup)",
+      "exit_code": 1,
+      "reason": "Playwright downloaded executable unavailable locally; environment adapter installed for retry",
+      "log": "erasure.log"
+    },
+    {
+      "command": "PORTHOLE_CHROMIUM_PATH=/usr/bin/chromium PORTHOLE_ERASURE_ONLY=1 node tests/runtime.mjs (cloud_run; system Chromium adapter)",
+      "exit_code": 0,
+      "log": "erasure-system-chromium.log"
+    }
+  ],
+  "tested_tree_matches_product_head": "f4294d59a12a45667efc788c6a7f63f80bfd46f7",
+  "note": "Handover and erasure ran with the final source tree; commit metadata was created during the final erasure run. Browser adaptation is outside the product repository. Local Node was 24.19.0, setup used the pinned rer runtime; hosted Verify uses Node 22.20.0."
+}

@@ -1,0 +1,21 @@
+{
+  "repository": "just-every/run-porthole",
+  "branch": "cloud/sx-porthole-shard-time-1",
+  "head": "bb8d1e70d3a4c5ced856773fa2d6ab25939fdbb2",
+  "product_pushes": 2,
+  "new_product_commits": 2,
+  "candidate_commits_audited": 15,
+  "push_attempts": [
+    1,
+    1
+  ],
+  "push_guard_exit": 0,
+  "git_status_clean": true,
+  "all_candidate_identities_and_trailers_checked": true,
+  "contract_status_changes": [],
+  "pr": null,
+  "publication_scan": "not run in cloud; fleet/Mac owns this gate",
+  "qualified_prior_head": "f4294d59a12a45667efc788c6a7f63f80bfd46f7",
+  "qualified_prior_verify": 42631085363,
+  "final_ci": "not observed: ten-call GitHub API budget exhausted"
+}

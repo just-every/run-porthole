@@ -1,0 +1,14 @@
+{
+  "verification_commands_before": 48,
+  "verification_commands_after": 48,
+  "shards_before": 11,
+  "shards_after": 11,
+  "assertion_call_sites_before": 4205,
+  "assertion_call_sites_after": 4205,
+  "tests_added": 0,
+  "tests_removed": 0,
+  "assertions_removed": 0,
+  "timeout_changed": false,
+  "contract_changed": false,
+  "note": "The inherited plan already has 11 shards. This scoped repair adds none. Assertion sites are not a logical test count; no registration or journey is added or deleted."
+}

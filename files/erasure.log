@@ -1,0 +1,31 @@
+verify:runtime
+Heavy job admitted: Porthole verify:runtime:suite [07e83f7654e2]
+▲ [WARNING] Proxy environment variables detected. We'll use your proxy for fetch requests.
+
+
+Installed owner claim rejects missing/wrong setup tokens and request demo flags
+HTTP-001 passed against emitted local Worker: health, the installed homepage, HTTP and document 404s
+
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+browserType.launch: Executable doesn't exist at /home/agent/.cache/ms-playwright/chromium_headless_shell-1243/chrome-headless-shell-linux64/chrome-headless-shell
+╔════════════════════════════════════════════════════════════╗
+║ Looks like Playwright was just installed or updated.       ║
+║ Please run the following command to download new browsers: ║
+║                                                            ║
+║     npx playwright install                                 ║
+║                                                            ║
+║ <3 Playwright Team                                         ║
+╚════════════════════════════════════════════════════════════╝
+    at browserProof ([REDACTED]/tests/porthole/audit.mjs:192:33)
+    at async file://[REDACTED]/tests/porthole/archive.mjs:720:3
+    at async withEmptyDestination ([REDACTED]/tests/runtime.mjs:191:12)
+    at async subjectErasureJourney ([REDACTED]/tests/porthole/archive.mjs:694:2)
+    at async file://[REDACTED]/tests/runtime.mjs:270:4 {
+  log: [],
+  name: 'Error'
+}
+
+Node.js v24.19.0

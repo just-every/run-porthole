@@ -1,0 +1,22 @@
+{
+  "head": "bb8d1e70d3a4c5ced856773fa2d6ab25939fdbb2",
+  "tree": "4c559b3c7a7d68055c546b36299af324df984d5e",
+  "paths": [
+    {
+      "path": "tests/runtime.mjs",
+      "bytes": 29402,
+      "sha256": "f6b722241579d19c9ac5dcfc159b68c561568136e0229e806f4be3851de716d7"
+    },
+    {
+      "path": "verification.json",
+      "bytes": 3947,
+      "sha256": "1fbcc301dbc08fc065821f222f5051adf0be15a968033ba886d750ad62d48e0f"
+    },
+    {
+      "path": "sources.lock.json",
+      "bytes": 255747,
+      "sha256": "7f49b8fa65819cf44cbcd234c5454d98ae73d2dca6bb1045ba357ef7aca1f798"
+    }
+  ],
+  "diff_stat": " sources.lock.json |  4 ++--\n tests/runtime.mjs |  9 ++++++++-\n verification.json | 22 +++++++++++-----------\n 3 files changed, 21 insertions(+), 14 deletions(-)\n"
+}

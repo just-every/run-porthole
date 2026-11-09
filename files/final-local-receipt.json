@@ -1,0 +1,40 @@
+{
+  "head": "bb8d1e70d3a4c5ced856773fa2d6ab25939fdbb2",
+  "checks": [
+    {
+      "command": "Compare complete push command multisets with original candidate",
+      "exit_code": 0,
+      "count": 48
+    },
+    {
+      "command": "Verify original assertions, workflows, contract and generated views unchanged",
+      "exit_code": 0
+    },
+    {
+      "command": "node scripts/verify-ci.mjs --matrix push",
+      "exit_code": 0
+    },
+    {
+      "command": "node scripts/verify-ci.mjs --check-workflows",
+      "exit_code": 0
+    },
+    {
+      "command": "pnpm run source:lock (last source edit, after staging)",
+      "exit_code": 0
+    },
+    {
+      "command": "pnpm run source:check",
+      "exit_code": 0
+    },
+    {
+      "command": "git diff --cached --check",
+      "exit_code": 0
+    },
+    {
+      "command": "Audit all candidate identities, committers and trailers including side parents",
+      "exit_code": 0
+    }
+  ],
+  "runtime_test_source_identical_to_successful_verify_head": "f4294d59a12a45667efc788c6a7f63f80bfd46f7",
+  "no_full_local_verify": true
+}

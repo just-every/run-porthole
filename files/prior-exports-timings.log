@@ -1,0 +1,30 @@
+shards (exports, true)	Run this shard	2026-11-09T13:27:31.1538352Z > pnpm run verify:app
+shards (exports, true)	Run this shard	2026-11-09T13:27:31.4151473Z > node scripts/verify-app.mjs
+shards (exports, true)	Run this shard	2026-11-09T13:27:31.4433984Z > pnpm run build
+shards (exports, true)	Run this shard	2026-11-09T13:27:37.9813649Z VERIFY_TIMING {"shard":"exports","command":"python3 -m venv .cache/export-readers && .cache/export-readers/bin/pip install --disable-pip-version-check -r tests/porthole/export-readers.txt","seconds":6.477,"exit":0}
+shards (exports, true)	Run this shard	2026-11-09T13:27:37.9814653Z > PORTHOLE_ERASURE_ONLY=1 pnpm run test:runtime
+shards (exports, true)	Run this shard	2026-11-09T13:27:46.3050616Z HTTP-001 passed against emitted local Worker: health, the installed homepage, HTTP and document 404s
+shards (exports, true)	Run this shard	2026-11-09T13:29:43.0081679Z subjectErasureJourney passed: exact four-signal mapping, no-effect preview, stale approval refusal, fresh native owner authorization, pending and retained envelope deletion, retry refusal, private journal, restart and old-archive re-export fence
+shards (exports, true)	Run this shard	2026-11-09T13:29:43.0086981Z APP-HOME passed against emitted local Worker: /app behind sign-in and setup, then the trace view with its stylesheets
+shards (exports, true)	Run this shard	2026-11-09T13:29:43.1309427Z VERIFY_TIMING {"shard":"exports","command":"PORTHOLE_ERASURE_ONLY=1 pnpm run test:runtime","seconds":125.15,"exit":0}
+shards (exports, true)	Run this shard	2026-11-09T13:29:43.1310106Z > PORTHOLE_EXPORT_ONLY=1 pnpm run test:runtime
+shards (exports, true)	Run this shard	2026-11-09T13:29:50.9858123Z HTTP-001 passed against emitted local Worker: health, the installed homepage, HTTP and document 404s
+shards (exports, true)	Run this shard	2026-11-09T13:31:22.4494113Z signalExportJourney passed: owner preview and approval, bounded four-signal pages, multi-team exact counts and context, CLI interruption and restart, snapshot and credential fencing, OTLP roundtrip and cancellation; independent DuckDB Parquet reads; official OTLP readers for all four signals including standard profiles; portable exclusions fence already approved jobs and old archives; full subject erasure remains PORT-035
+shards (exports, true)	Run this shard	2026-11-09T13:31:24.4692179Z APP-HOME passed against emitted local Worker: /app behind sign-in and setup, then the trace view with its stylesheets
+shards (exports, true)	Run this shard	2026-11-09T13:31:24.5910147Z VERIFY_TIMING {"shard":"exports","command":"PORTHOLE_EXPORT_ONLY=1 pnpm run test:runtime","seconds":101.46,"exit":0}
+shards (exports, true)	Run this shard	2026-11-09T13:31:24.5911456Z > PORTHOLE_HOST_HEARTBEAT_ONLY=1 pnpm run test:runtime
+shards (exports, true)	Run this shard	2026-11-09T13:31:32.8252103Z HTTP-001 passed against emitted local Worker: health, the installed homepage, HTTP and document 404s
+shards (exports, true)	Run this shard	2026-11-09T13:32:17.9002045Z Host heartbeat: authenticated process and timing boundaries
+shards (exports, true)	Run this shard	2026-11-09T13:32:20.1710542Z Host heartbeat: native Settings and evaluation screens
+shards (exports, true)	Run this shard	2026-11-09T13:32:47.0553064Z Host heartbeat: dense accepted observations 2001
+shards (exports, true)	Run this shard	2026-11-09T13:32:58.5727254Z Host heartbeat: dense accepted observations 4001
+shards (exports, true)	Run this shard	2026-11-09T13:33:09.3511857Z Host heartbeat: dense accepted observations 6001
+shards (exports, true)	Run this shard	2026-11-09T13:33:20.3708229Z Host heartbeat: dense accepted observations 8001
+shards (exports, true)	Run this shard	2026-11-09T13:33:31.8875416Z Host heartbeat: dense accepted observations 10001
+shards (exports, true)	Run this shard	2026-11-09T13:33:33.3538680Z Host heartbeat: inactive archive transfer
+shards (exports, true)	Run this shard	2026-11-09T13:35:59.7801160Z Host heartbeat journey passed: real process loss and return, exact per-host windows, pending restart, current authority, storage failure, native configuration and inactive archive
+shards (exports, true)	Run this shard	2026-11-09T13:35:59.7803835Z APP-HOME passed against emitted local Worker: /app behind sign-in and setup, then the trace view with its stylesheets
+shards (exports, true)	Run this shard	2026-11-09T13:35:59.9202217Z VERIFY_TIMING {"shard":"exports","command":"PORTHOLE_HOST_HEARTBEAT_ONLY=1 pnpm run test:runtime","seconds":275.329,"exit":0}
+shards (exports, true)	Run this shard	2026-11-09T13:35:59.9203897Z > PORTHOLE_MAIL_ONLY=1 PORTHOLE_MAIL_PROVIDER=resend node tests/runtime.mjs
+shards (exports, true)	Run this shard	2026-11-09T13:36:14.6132036Z noticeRateLimitJourney passed: resend public configuration/tick, 429 Retry-After, frozen durable retry, restart, one accepted effect and 1440/390 states
+shards (exports, true)	Run this shard	2026-11-09T13:39:09.5080398Z ##[error]The operation was canceled.

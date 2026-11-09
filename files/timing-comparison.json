@@ -1,0 +1,94 @@
+{
+  "qualified_head": "f4294d59a12a45667efc788c6a7f63f80bfd46f7",
+  "run_id": 42631085363,
+  "rows": [
+    {
+      "shard": "source",
+      "prior_seconds": 411,
+      "prior_conclusion": "success",
+      "first_repair_seconds": 695,
+      "first_repair_conclusion": "success",
+      "first_repair_job_id": 129207694120
+    },
+    {
+      "shard": "migration",
+      "prior_seconds": 635,
+      "prior_conclusion": "success",
+      "first_repair_seconds": 507,
+      "first_repair_conclusion": "success",
+      "first_repair_job_id": 129207694127
+    },
+    {
+      "shard": "traces",
+      "prior_seconds": 377,
+      "prior_conclusion": "success",
+      "first_repair_seconds": 424,
+      "first_repair_conclusion": "success",
+      "first_repair_job_id": 129207694129
+    },
+    {
+      "shard": "analytical",
+      "prior_seconds": 507,
+      "prior_conclusion": "success",
+      "first_repair_seconds": 446,
+      "first_repair_conclusion": "success",
+      "first_repair_job_id": 129207694133
+    },
+    {
+      "shard": "follow-up",
+      "prior_seconds": 416,
+      "prior_conclusion": "success",
+      "first_repair_seconds": 258,
+      "first_repair_conclusion": "success",
+      "first_repair_job_id": 129207694183
+    },
+    {
+      "shard": "runtime",
+      "prior_seconds": 482,
+      "prior_conclusion": "success",
+      "first_repair_seconds": 361,
+      "first_repair_conclusion": "success",
+      "first_repair_job_id": 129207694221
+    },
+    {
+      "shard": "exports",
+      "prior_seconds": 736,
+      "prior_conclusion": "cancelled",
+      "first_repair_seconds": 672,
+      "first_repair_conclusion": "success",
+      "first_repair_job_id": 129207694302
+    },
+    {
+      "shard": "dashboards",
+      "prior_seconds": 576,
+      "prior_conclusion": "success",
+      "first_repair_seconds": 400,
+      "first_repair_conclusion": "success",
+      "first_repair_job_id": 129207694353
+    },
+    {
+      "shard": "network",
+      "prior_seconds": 705,
+      "prior_conclusion": "success",
+      "first_repair_seconds": 612,
+      "first_repair_conclusion": "success",
+      "first_repair_job_id": 129207694447
+    },
+    {
+      "shard": "typecheck",
+      "prior_seconds": 736,
+      "prior_conclusion": "cancelled",
+      "first_repair_seconds": 492,
+      "first_repair_conclusion": "success",
+      "first_repair_job_id": 129207694456
+    },
+    {
+      "shard": "ingest",
+      "prior_seconds": 459,
+      "prior_conclusion": "success",
+      "first_repair_seconds": 361,
+      "first_repair_conclusion": "success",
+      "first_repair_job_id": 129207694489
+    }
+  ]
+}

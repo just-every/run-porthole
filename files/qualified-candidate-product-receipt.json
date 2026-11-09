@@ -1,0 +1,17 @@
+{
+  "repository": "just-every/run-porthole",
+  "branch": "cloud/sx-porthole-shard-time-1",
+  "head": "f4294d59a12a45667efc788c6a7f63f80bfd46f7",
+  "product_pushes": 1,
+  "push_attempt": 1,
+  "push_guard_exit": 0,
+  "git_status_clean": true,
+  "all_candidate_identities_and_trailers_checked": true,
+  "contract_status_changes": [],
+  "pr": null,
+  "publication_scan": "not run in cloud; fleet/Mac owns this gate",
+  "candidate_commits_audited": 14,
+  "new_product_commits": 1,
+  "source_lock_check": "passed after final source edits and staging",
+  "local_focused_checks": "handover and erasure passed; initial missing-browser prerequisite resolved outside product tree"
+}
