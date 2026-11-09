@@ -43,7 +43,8 @@
         "pnpm run build",
         "python3 -m venv .cache/export-readers && .cache/export-readers/bin/pip install --disable-pip-version-check -r tests/porthole/export-readers.txt",
         "PORTHOLE_ERASURE_ONLY=1 pnpm run test:runtime",
-        "PORTHOLE_EXPORT_ONLY=1 pnpm run test:runtime"
+        "PORTHOLE_EXPORT_ONLY=1 pnpm run test:runtime",
+        "PORTHOLE_HOST_HEARTBEAT_ONLY=1 pnpm run test:runtime"
       ]
     },
     {
@@ -76,7 +77,6 @@
       "commands": [
         "pnpm run build",
         "PORTHOLE_ANALYTICAL_ONLY=1 pnpm run test:runtime",
-        "PORTHOLE_HOST_HEARTBEAT_ONLY=1 pnpm run test:runtime",
         "PORTHOLE_DATABASE_ONLY=1 pnpm run test:runtime"
       ]
     },
