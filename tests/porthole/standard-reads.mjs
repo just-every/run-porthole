@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import {literal} from './fixture.mjs'
 import {createServer} from 'node:http'
 import {createServer as socketServer} from 'node:net'
 import {spawn,execFile} from 'node:child_process'
@@ -32,9 +33,9 @@ const packed=b=>{const n=b.length-1;return cat(vint(b.length),n<60?Buffer.from([
 function unpack(b){let at=0;const uint=()=>{let n=0,shift=0,v;do{v=b[at++];n+=(v&127)*2**shift;shift+=7}while(v&128);return n};const size=uint(),out=Buffer.alloc(size);let pos=0;while(at<b.length){const tag=b[at++],kind=tag&3;let count,distance;if(!kind){count=tag>>2;if(count<60)count++;else{const bytes=count-59;count=1;for(let i=0;i<bytes;i++)count+=b[at++]*2**(i*8)}b.copy(out,pos,at,at+count);at+=count;pos+=count}else{if(kind===1){count=4+((tag>>2)&7);distance=((tag&224)<<3)+b[at++]}else{count=1+(tag>>2);distance=0;for(let i=0;i<(kind===2?2:4);i++)distance+=b[at++]*2**(i*8)}for(let i=0;i<count;i++)out[pos]=out[pos++-distance]}}assert.equal(pos,size);return out}
 function fields(b){let at=0;const uint=()=>{let n=0n,shift=0n,v;do{v=b[at++];n|=BigInt(v&127)<<shift;shift+=7n}while(v&128);return n};const result=[];while(at<b.length){const tag=Number(uint()),wire=tag&7;let v;if(wire===0)v=uint();else if(wire===2){const size=Number(uint());v=b.subarray(at,at+=size)}else{assert.ok(wire===1||wire===5);v=b.subarray(at,at+=wire===1?8:4)}result.push([tag>>3,v])}return result}
 const get=(parts,n)=>parts.find(([k])=>k===n)?.[1]
-export function remoteBody({from=0n,through=18446744073709n,matchers=[['__name__','.*',2]],types=[0]}={}){
- const query=cat(integer(1,from),integer(2,through),...matchers.map(([name,v,type=0])=>msg(3,cat(integer(1,type),text(2,name),text(3,v)))))
- return packed(cat(msg(1,query),...types.map(type=>integer(2,type))))
+export function remoteBody({from=0n,through=18446744073709n,matchers=[['__name__','.*',2]],types=[0],queries}={}){
+ const query=({from:start=from,through:end=through,matchers:selectors=matchers})=>cat(integer(1,start),integer(2,end),...selectors.map(([name,v,type=0])=>msg(3,cat(integer(1,type),text(2,name),text(3,v)))))
+ return packed(cat(...(queries??[{from,through,matchers}]).map(item=>msg(1,query(item))),...types.map(type=>integer(2,type))))
 }
 export async function remoteRead(call,secret,options={},extra={}){
  return call('/api/v1/read',{method:'POST',headers:{...auth(secret),'content-type':'application/x-protobuf','content-encoding':'snappy','x-prometheus-remote-read-version':'0.1.0',...extra},body:remoteBody(options)})
@@ -83,16 +84,17 @@ export async function assertTempoRead({origin,call=(path,options)=>fetch(origin+
  assert.equal((await call('/api/traces/'+traceId,{headers:{cookie,...auth(read.secret)}})).status,401)
 }
 
-async function stockMetrics({origin,cookie,call,reader,source,scratch}){
+async function stockMetrics({origin,cookie,call,reader,source,scratch,compareBackend}){
  const clients=resolve('.cache/standard-clients'),binary=process.env.PORTHOLE_PROMETHEUS_BIN??join(clients,'prometheus')
  const prom=await import('prom-client'),registry=new prom.Registry(),labels=['service','environment','team','producer']
  const gauge=new prom.Gauge({name:'synthetic_scrape_gauge',help:'Actual producer state',labelNames:labels,registers:[registry]})
  const counter=new prom.Counter({name:'synthetic_scrape_requests_total',help:'Actual requests',labelNames:labels,registers:[registry]})
  const histogram=new prom.Histogram({name:'synthetic_scrape_latency_seconds',help:'Observed work',labelNames:labels,buckets:[0.1,0.5,1],registers:[registry]})
+ const summary=new prom.Summary({name:'synthetic_scrape_work_summary',help:'Observed work distribution',labelNames:labels,percentiles:[0.5,0.9],registers:[registry]})
  let generation=0,scrapeAt=0,capturing=true;const sourceSamples=[],otlpPackets=[],children=[]
  const producer=createServer(async(req,res)=>{
   if(req.url==='/work'){
-   generation++;for(let i=0;i<24;i++){const l=[scope.services[0],'production','commerce','synthetic-porthole-'+(6200+i)];gauge.labels(...l).set(generation+i);counter.labels(...l).inc(i+1);histogram.labels(...l).observe((i%3+1)/10)}
+   generation++;for(let i=0;i<24;i++){const l=[scope.services[0],'production','commerce','synthetic-porthole-'+(6200+i)];gauge.labels(...l).set(generation+i);counter.labels(...l).inc(i+1);histogram.labels(...l).observe((i%3+1)/10);if(i===0)summary.labels(...l).observe(generation)}
    scrapeAt=Date.now();res.end(String(generation));return
   }
   if(req.url==='/metrics'){
@@ -108,7 +110,7 @@ async function stockMetrics({origin,cookie,call,reader,source,scratch}){
   try{
    const chunks=[];for await(const b of req)chunks.push(b);const body=Buffer.concat(chunks)
    const read=req.url.startsWith('/api/v1/read'),otlp=req.url==='/v1/metrics'
-   const headers={'content-type':req.headers['content-type']??'application/x-protobuf',authorization:req.headers.authorization??'',...(req.headers['content-encoding']?{'content-encoding':req.headers['content-encoding']}:{}),...(read?{'x-prometheus-remote-read-version':'0.1.0'}:{'x-prometheus-remote-write-version':'0.1.0'})}
+   const headers={'accept-encoding':'identity','content-type':req.headers['content-type']??'application/x-protobuf',authorization:req.headers.authorization??'',...(req.headers['content-encoding']?{'content-encoding':req.headers['content-encoding']}:{}),...(read?{'x-prometheus-remote-read-version':'0.1.0'}:{'x-prometheus-remote-write-version':'0.1.0'})}
    assert.ok(headers.authorization==='Bearer '+(read?reader.secret:source.secret),'stock client sends its configured credential')
    const response=await call(req.url,{method:'POST',headers,body})
    if(otlp){otlpPackets.push(body);const reference=await fetch(referenceOrigin+'/api/v1/otlp/v1/metrics',{method:'POST',headers:{'content-type':headers['content-type']},body});assert.equal(reference.status,200,await reference.text())}
@@ -134,16 +136,31 @@ async function stockMetrics({origin,cookie,call,reader,source,scratch}){
   const keyPath=join(scratch,'read-credential');await writeFile(keyPath,reader.secret,{mode:0o600})
   const remoteOrigin=await start('reader',`global:\n  scrape_interval: 1s\nremote_read:\n  - url: ${relayOrigin}/api/v1/read\n    read_recent: true\n    authorization:\n      credentials_file: ${keyPath}\n`)
   const exporter=new OTLPMetricExporter({url:relayOrigin+'/v1/metrics',headers:auth(source.secret)})
-  provider=new MeterProvider({resource:resourceFromAttributes({'service.name':scope.services[0],'service.instance.id':'synthetic-porthole-6101','deployment.environment.name':'production','team.name':'commerce'}),readers:[new PeriodicExportingMetricReader({exporter,exportIntervalMillis:3600000})],views:[{instrumentName:'synthetic.otel.histogram',aggregation:{type:AggregationType.EXPLICIT_BUCKET_HISTOGRAM,boundaries:[0.1,0.5,1]}}]})
-  const meter=provider.getMeter('synthetic-porthole-6102','1.0'),otelGauge=meter.createGauge('synthetic.otel.gauge',{unit:'ms'}),otelCounter=meter.createCounter('synthetic.otel.requests',{unit:'{request}'}),otelHistogram=meter.createHistogram('synthetic.otel.histogram',{unit:'s'}),velocity=meter.createGauge('synthetic.otel.velocity',{unit:['m','s'].join('/')}),ratio=meter.createGauge('synthetic.otel.ratio',{unit:'1'})
+  provider=new MeterProvider({resource:resourceFromAttributes({'service.name':scope.services[0],'service.instance.id':'synthetic-porthole-6101','deployment.environment.name':'production','team.name':'commerce'}),readers:[new PeriodicExportingMetricReader({exporter,exportIntervalMillis:3600000})],views:[{instrumentName:'synthetic.otel.histogram',aggregation:{type:AggregationType.EXPLICIT_BUCKET_HISTOGRAM,boundaries:[0.0000001,0.5,1]}}]})
+  const meter=provider.getMeter('synthetic-porthole-6102','1.0'),otelGauge=meter.createGauge('synthetic.otel.gauge',{unit:'ms'}),otelCounter=meter.createCounter('synthetic.otel.total.requests',{unit:'{request}'}),otelHistogram=meter.createHistogram('synthetic.otel.histogram',{unit:'s'}),velocity=meter.createGauge('synthetic.otel.meters.velocity',{unit:['m','s'].join('/')}),ratio=meter.createGauge('synthetic.otel.ratio',{unit:'1'})
   for(let i=0;i<5;i++){
-   await fetch(producerOrigin+'/work');const emittedAt=scrapeAt;await until(async()=>sourceSamples.some(s=>s.time===emittedAt),'reference scrapes each source generation');otelGauge.record(20+i,{region:'synthetic-porthole-6103',ready:true,shard:7,emptyZones:[],zones:['synthetic-porthole-6104','synthetic-porthole-6105'],weights:[1,2,3]});otelCounter.add(2,{region:'synthetic-porthole-6103'});otelHistogram.record(0.2,{region:'synthetic-porthole-6103'});velocity.record(i+1);ratio.record((i+1)/10)
+   await fetch(producerOrigin+'/work');const emittedAt=scrapeAt;await until(async()=>sourceSamples.some(s=>s.time===emittedAt),'reference scrapes each source generation');otelGauge.record(20+i,{region:'synthetic-porthole-6103',ready:true,shard:7,'9shard':'synthetic-porthole-6106',_edge:'synthetic-porthole-6107',__edge:'synthetic-porthole-6108','two..dots':'synthetic-porthole-6109',two__dots:'synthetic-porthole-6118',emptyZones:[],zones:['synthetic-porthole-6104','synthetic-porthole-6105'],weights:[1,2,3]});otelCounter.add(2,{region:'synthetic-porthole-6103'});otelHistogram.record(0.2,{region:'synthetic-porthole-6103'});velocity.record(i+1);ratio.record((i+1)/10)
    await provider.forceFlush();await delay(1100)
   }
   // End the real producer capture before the comparison workload. Stock
   // scraping otherwise keeps delivering the same final generation while the
   // reference queries run, legitimately exhausting a bounded live read.
-  const instant=Date.now()/1000;capturing=false
+  capturing=false
+  // The stock reader's shutdown emits one last real collection. Finish that
+  // collection before freezing the reference evaluation instant.
+  await provider.shutdown();provider=undefined
+  assert.equal(otlpPackets.length,6,'five explicit stock collections and the final shutdown collection')
+  // The current stock SDK has no summary instrument. Its supported OTLP wire
+  // form and cumulative non-monotonic sums also go to the actual reference
+  // receiver, rather than using Porthole's mapper to compute expectations.
+  const at=String(BigInt(Date.now())*1000000n),schemaAttributes=[{key:'structured',value:{kvlistValue:{values:[{key:'sequence',value:{intValue:'9007199254740993'}},{key:'nested',value:{arrayValue:{values:[{boolValue:false},{bytesValue:'AQID'},{}]}}}]}}}]
+  const schema={resourceMetrics:[{resource:{attributes:[['service.name',scope.services[0]],['service.namespace','synthetic-porthole-6126'],['service.instance.id','synthetic-porthole-6127'],['deployment.environment.name','production'],['team.name','commerce']].map(([key,stringValue])=>({key,value:{stringValue}}))},scopeMetrics:[{metrics:[
+   {name:'synthetic.schema.nonmonotonic',unit:'ms',sum:{aggregationTemporality:2,isMonotonic:false,dataPoints:[{timeUnixNano:at,asInt:'-3',attributes:schemaAttributes}]}},
+   {name:'synthetic.schema.summary',summary:{dataPoints:[{timeUnixNano:at,count:'8',sum:4,quantileValues:[{quantile:0.0000001,value:0.2},{quantile:0.9,value:0.8}],attributes:schemaAttributes}]}},
+  ]}]}]}
+  const schemaResponse=await fetch(relayOrigin+'/v1/metrics',{method:'POST',headers:{...auth(source.secret),'content-type':'application/json'},body:JSON.stringify(schema)})
+  assert.equal(schemaResponse.status,200,await schemaResponse.text())
+  const instant=Date.now()/1000
   await value(await call(api+'/ingest/drain',{method:'POST',headers:{origin,cookie,'content-type':'application/json'},body:'{}'}))
   const query=async(base,expression,instant)=>{
    const response=await fetch(base+'/api/v1/query?'+new URLSearchParams({query:expression,time:String(instant)}));assert.equal(response.status,200,await response.clone().text());const data=await response.json();assert.equal(data.status,'success');return data.data
@@ -155,23 +172,34 @@ async function stockMetrics({origin,cookie,call,reader,source,scratch}){
   },'stock remote-write becomes queryable through stock remote-read',90000)
   console.log('Stock scrape generations '+JSON.stringify({scrapes:sourceSamples.length,timestamps:[...new Set(sourceSamples.map(s=>s.time))],counter:(await query(referenceOrigin,'synthetic_scrape_requests_total[2m]',instant)).result.slice(0,1)}))
   await until(async()=>{const data=await query(referenceOrigin,'min(count_over_time(synthetic_scrape_requests_total[2m]))',instant);return Number(data.result[0]?.value[1])>=3},'reference retains multiple real counter scrapes')
-  const expressions=['synthetic_scrape_gauge','sum by (producer) (synthetic_scrape_requests_total)','rate(synthetic_scrape_requests_total[2m])','increase(synthetic_scrape_requests_total[2m])','synthetic_scrape_latency_seconds_bucket','synthetic_otel_gauge_milliseconds','synthetic_otel_requests_total','synthetic_otel_histogram_seconds_bucket','synthetic_otel_histogram_seconds_sum','synthetic_otel_histogram_seconds_count','synthetic_otel_velocity_meters_per_second','synthetic_otel_ratio']
-  for(const expression of expressions){
-   const reference=await query(referenceOrigin,expression,instant),actual=await query(remoteOrigin,expression,instant)
-   const sort=data=>({...data,result:data.result.slice().sort((a,b)=>JSON.stringify(a.metric).localeCompare(JSON.stringify(b.metric)))})
-   assert.ok(reference.result.length>0,'reference has actual source data for '+expression+' '+JSON.stringify(await query(referenceOrigin,'synthetic_scrape_requests_total[2m]',instant)))
-   assert.deepEqual(sort(actual),sort(reference),'stock evaluation parity: '+expression)
-  }
-  const range='synthetic_scrape_gauge[2m]',reference=await query(referenceOrigin,range,instant),actual=await query(remoteOrigin,range,instant)
+  const expressions=['synthetic_scrape_gauge','sum by (producer) (synthetic_scrape_requests_total)','rate(synthetic_scrape_requests_total[2m])','increase(synthetic_scrape_requests_total[2m])','synthetic_scrape_latency_seconds_bucket','synthetic_otel_gauge_milliseconds','synthetic_otel_requests_total','synthetic_otel_histogram_seconds_bucket','synthetic_otel_histogram_seconds_sum','synthetic_otel_histogram_seconds_count','synthetic_otel_meters_velocity_per_second','synthetic_otel_ratio','synthetic_scrape_work_summary','synthetic_scrape_work_summary_sum','synthetic_scrape_work_summary_count','synthetic_schema_nonmonotonic_milliseconds','synthetic_schema_summary','synthetic_schema_summary_sum','synthetic_schema_summary_count']
   const normalize=data=>data.result.map(series=>({metric:Object.fromEntries(Object.entries(series.metric).sort()),values:series.values})).sort((a,b)=>JSON.stringify(a.metric).localeCompare(JSON.stringify(b.metric)))
-  assert.deepEqual(normalize(actual),normalize(reference),'every original label, timestamp and value survives stock remote-read')
-  assert.ok(actual.result.reduce((n,s)=>n+s.values.length,0)>100,'multiple real scrapes and pages are reconciled')
-  assert.ok(sourceSamples.length>=5);assert.equal(otlpPackets.length,5)
-  console.log('PROBE PORT-061 standard metrics: stock Prometheus 3.5.0 remote_read evaluates twelve fixed expressions over real scrape and stock OTLP input -> exact reference series, labels, timestamps and values')
+  const range='{__name__=~"synthetic_.*"}[2m]',reference=await query(referenceOrigin,range,instant),targets=await query(referenceOrigin,'target_info[2m]',instant)
+  const expectations=new Map()
+  for(const expression of expressions){
+   const expected=await query(referenceOrigin,expression,instant)
+   assert.ok(expected.result.length>0,'reference has actual source data for '+expression)
+   expectations.set(expression,expected)
+  }
+  const verify=async()=>{
+   for(const expression of expressions){
+    const actual=await query(remoteOrigin,expression,instant)
+    const sort=data=>({...data,result:data.result.slice().sort((a,b)=>JSON.stringify(a.metric).localeCompare(JSON.stringify(b.metric)))})
+    assert.deepEqual(sort(actual),sort(expectations.get(expression)),'stock evaluation parity: '+expression)
+   }
+   const actual=await query(remoteOrigin,range,instant)
+   assert.deepEqual(normalize(actual),normalize(reference),'every original label, timestamp and value survives stock remote-read')
+   assert.ok(actual.result.reduce((n,s)=>n+s.values.length,0)>1000,'every actual scrape and OTLP series crosses multiple pages')
+   assert.deepEqual(normalize(await query(remoteOrigin,'target_info[2m]',instant)),normalize(targets),'resource target series also preserve every original label, timestamp and value')
+  }
+  await verify()
+  if(compareBackend)await compareBackend(verify)
+  assert.ok(sourceSamples.length>=5);assert.equal(otlpPackets.length,7,'six stock SDK collections and one explicit official-schema edge packet')
+  console.log('PROBE PORT-061 standard metrics: stock Prometheus 3.5.0 remote_read evaluates '+expressions.length+' fixed expressions over real scrape, stock OTLP and official-schema summary input -> exact reference series, labels, timestamps and values'+(compareBackend?' on both analytical configurations':''))
   const generations=[...new Set(sourceSamples.map(sample=>sample.time))]
   assert.equal(generations.length,5,'all five actual producer generations were scraped')
   const split=BigInt(generations[3]),windows=[{from:0n,through:split-1n},{from:split,through:18446744073709n}]
-  return {otlpPackets,instant,sourceSamples,windows,referenceOrigin,readerOrigin:remoteOrigin}
+  return {otlpPackets,instant,sourceSamples,windows,referenceSamples:normalize(reference).map(series=>({...series,values:series.values.map(([time,value])=>[time,Number(value)])})),referenceOrigin,readerOrigin:remoteOrigin}
  }finally{
   if(provider)await provider.shutdown()
   for(const child of children)if(child.exitCode===null){const stopped=new Promise(r=>child.once('exit',r));child.kill('SIGTERM');await stopped}
@@ -179,7 +207,7 @@ async function stockMetrics({origin,cookie,call,reader,source,scratch}){
  }
 }
 
-export async function standardReadJourney({origin,cookie,call=(path,options)=>fetch(origin+path,options),freshOwner,restartWorker,sql,withEmptyDestination,withPinnedClock}){
+export async function standardReadJourney({origin,cookie,call=(path,options)=>fetch(origin+path,options),freshOwner,restartWorker,sql,withEmptyDestination,withPinnedClock,compareBackend}){
  cookie=await freshOwner()
  const post=(path,data,headers={cookie})=>call(path,{method:'POST',headers:{origin,'content-type':'application/json',...headers},body:JSON.stringify(data)})
  const mint=async(kind,extra={})=>value(await post(credential+'/mint',{name:'Standard signal reader',class:kind,scope:{...scope,actions:kind==='ingest'?['telemetry.write']:['telemetry.read']},...extra}),201)
@@ -190,12 +218,13 @@ export async function standardReadJourney({origin,cookie,call=(path,options)=>fe
   for(const path of ['/api/v1/query','/api/v1/query_range','/api/v1/series','/api/v1/labels','/api/v1/label/team/values','/api/v1/metadata','/api/v1/targets/metadata','/api/metrics/query_range','/api/v2/search/tags','/api/search','/api/search/tags','/api/v2/traces/0123456789abcdef0123456789abcdef'])assert.equal((await call(path,{headers:auth(reader.secret)})).status,501,'explicit unsupported standard route '+path)
   await value(await remoteRead(call,reader.secret,{types:[1]}),415)
   await value(await remoteRead(call,reader.secret,{matchers:[['__name__','(?=a)',2]]}),400)
-  const metrics=await stockMetrics({origin,cookie,call,reader,source,scratch})
+  const metrics=await stockMetrics({origin,cookie,call,reader,source,scratch,compareBackend})
   let settled
   for(let pass=0;pass<20;pass++){settled=await value(await post(api+'/ingest/drain',{}));if(!settled.pendingBatches&&settled.analytical.complete)break}
   assert.equal(settled.pendingBatches,0);assert.equal(settled.analytical.complete,true,'the stock exporter shutdown flush is retained before snapshot comparison')
   const all=await remoteWindows(call,reader.secret,metrics.windows)
   assert.ok(all.length>24)
+  assert.deepEqual(all,metrics.referenceSamples,'disjoint native windows reconcile the complete stock reference capture')
   const refusal=await remoteRead(call,quota.secret);assert.equal(refusal.status,429);assert.ok(Number(refusal.headers.get('retry-after'))>0)
   const foreign=await mint('read',{scope:{...scope,teams:['synthetic-porthole-6199']}})
   assert.deepEqual(await remoteSeries(await remoteRead(call,foreign.secret)),[],'restricted series never appear')
@@ -255,20 +284,39 @@ export async function standardReadJourney({origin,cookie,call=(path,options)=>fe
   const endpoint=await listen(proxy)
   try{
    const cli=process.env.PORTHOLE_TEMPO_CLI_BIN??resolve('.cache/standard-clients/tempo-cli')
-   const output=await execute(cli,['query','api','trace-id',endpoint,selected,'--v1'],{timeout:30000})
-   const clientPath=join(scratch,'tempo-client.json');await writeFile(clientPath,output.stdout)
-   const clientTrace=JSON.parse((await execute(python,['tests/porthole/export-otlp-reader.py','--trace-json',clientPath])).stdout)
-   assert.deepEqual(grouped(clientTrace).map(canonical).sort(),grouped(original).map(canonical).sort(),'the pinned stock Tempo client decodes every permitted span field, resource and scope')
+   const verify=async()=>{
+    const output=await execute(cli,['query','api','trace-id',endpoint,selected,'--v1'],{timeout:30000})
+    const clientPath=join(scratch,'tempo-client.json');await writeFile(clientPath,output.stdout)
+    const clientTrace=JSON.parse((await execute(python,['tests/porthole/export-otlp-reader.py','--trace-json',clientPath])).stdout)
+    assert.deepEqual(grouped(clientTrace).map(canonical).sort(),grouped(original).map(canonical).sort(),'the pinned stock Tempo client decodes every permitted span field, resource and scope')
+   }
+   await verify()
+   if(compareBackend)await compareBackend(verify)
   }finally{await close(proxy)}
   const restricted=await mint('read',{scope:{...scope,services:['fulfillment'],teams:['fulfillment']}})
   const limited=await value(await call('/api/traces/'+selected,{headers:auth(restricted.secret)}))
   const decodedIds=limited.batches.flatMap(r=>r.scopeSpans.flatMap(s=>s.spans)).map(s=>Buffer.from(s.spanId,'base64').toString('hex'))
   assert.ok(decodedIds.length>0&&decodedIds.length<expected.length)
   assert.deepEqual(decodedIds.sort(),expected.filter(s=>s.resource?.['team.name']==='fulfillment').map(s=>s.spanId).sort())
+  const traceQuota=await mint('read',{scope:{...scope,services:['checkout','fulfillment'],teams:['commerce','fulfillment']},scannedBytesPerDay:1})
+  const traceBudget=await call('/api/traces/'+selected,{headers:auth(traceQuota.secret)})
+  assert.equal(traceBudget.status,429);assert.ok(Number(traceBudget.headers.get('retry-after'))>0)
+  assert.deepEqual(await traceBudget.json(),{error:'credential_quota_exceeded'},'trace quota exhaustion releases no spans')
+  const narrowedTrace=await mint('read',{scope:{...scope,services:['checkout','fulfillment'],teams:['commerce','fulfillment']}})
+  await value(await post(credential+'/rescope',{id:narrowedTrace.credential.id,scope:{...scope,services:['fulfillment'],teams:['fulfillment']}}))
+  const narrowedBody=await value(await call('/api/traces/'+selected,{headers:auth(narrowedTrace.secret)}))
+  assert.deepEqual(narrowedBody.batches.flatMap(r=>r.scopeSpans.flatMap(s=>s.spans)).map(s=>Buffer.from(s.spanId,'base64').toString('hex')).sort(),decodedIds,'next-request narrowing releases only the newly permitted spans')
+  await value(await post(credential+'/revoke',{id:narrowedTrace.credential.id}))
+  assert.equal((await call('/api/traces/'+selected,{headers:{cookie,...auth(narrowedTrace.secret)}})).status,401)
+  if(withPinnedClock){
+   const expiringTrace=await mint('read',{scope:{...scope,services:['checkout','fulfillment'],teams:['commerce','fulfillment']},expiresAt:Date.now()+60000})
+   await withPinnedClock(Date.now()+120000,async()=>assert.equal((await call('/api/traces/'+selected,{headers:auth(expiringTrace.secret)})).status,401))
+  }
+
   const before=all
   await restartWorker();cookie=await freshOwner()
   assert.deepEqual(await remoteWindows(call,reader.secret,metrics.windows),before,'restart preserves exact standard samples')
-  if(withEmptyDestination){const {standardArchiveJourney}=await import('./archive.mjs');await standardArchiveJourney({origin,freshOwner,withEmptyDestination,reader,scope,windows:metrics.windows,expected:before,traceId:selected})}
+  if(withEmptyDestination){const {standardArchiveJourney}=await import('./archive.mjs');await standardArchiveJourney({origin,freshOwner,withEmptyDestination,reader,traceReader,scope,windows:metrics.windows,expected:before,traceId:selected})}
   if(withEmptyDestination)await standardSchemaProof({origin,cookie,call,source,reader,post,restartWorker,sql})
   cookie=await freshOwner()
   const auditResponse=await call('/api/v1/audit/export',{headers:{cookie}})
@@ -295,7 +343,8 @@ export async function standardAnalyticalJourney(){
   const post=(path,data,headers={cookie})=>call(path,{method:'POST',headers:{origin,'content-type':'application/json',...headers},body:JSON.stringify(data)})
   const connect=async role=>{const config=await value(await call(api+'/analytics/configuration',{headers:{cookie}}));await value(await post(api+'/analytics/configuration',{revision:config.revision,role,enabled:true,confirm:'connect-analytical-workers'}))}
   await connect('primary')
-  const result=await standardReadJourney({origin,call,cookie,restartWorker,...helpers})
+  const compareBackend=async probe=>{await connect('standby');try{await probe()}finally{await connect('primary')}}
+  const result=await standardReadJourney({origin,call,cookie,restartWorker,...helpers,compareBackend})
   cookie=await helpers.freshOwner()
   const original=await remoteWindows(call,result.reader.secret,result.metrics.windows)
   const window=result.metrics.windows[1]
@@ -313,6 +362,16 @@ export async function standardAnalyticalJourney(){
   estate.afterQuery(async()=>{await value(await post(credential+'/revoke',{id:midTrace.credential.id}))})
   const revokedTrace=await call('/api/traces/'+traceId,{headers:auth(midTrace.secret)})
   assert.equal(revokedTrace.status,401);assert.deepEqual(await revokedTrace.json(),{error:'invalid_credential'},'a revoked trace read releases no accumulated spans')
+  for(const change of ['narrow','expire']){
+   const key=await value(await post(credential+'/mint',{name:'Changing trace authority',class:'read',scope:{...scope,services:['checkout','fulfillment'],teams:['commerce','fulfillment']}}),201)
+   estate.afterQuery(async()=>{
+    if(change==='narrow')await value(await post(credential+'/rescope',{id:key.credential.id,scope:{...scope,services:['fulfillment'],teams:['fulfillment']}}))
+    else await getDb().prepare('UPDATE porthole_credentials SET expires_at=created_at+1 WHERE id=?').bind(key.credential.id).run()
+   })
+   const response=await call('/api/traces/'+traceId,{headers:auth(key.secret)})
+   assert.equal(response.status,change==='narrow'?409:401)
+   assert.deepEqual(await response.json(),{error:change==='narrow'?'authority_changed':'invalid_credential'},'a changed trace credential releases no accumulated spans')
+  }
   const root=await getDb().prepare("SELECT id,span_id FROM porthole_telemetry_records WHERE trace_id=? AND json_extract(payload,'$.record.parentSpanId') IS NULL LIMIT 1").bind(traceId).first()
   assert.ok(root)
   await value(await post(api+'/export-exclusions',{confirm:'apply-exclusions',journal:{format:'porthole.export-exclusions.v1',records:[{recordId:root.id,excludedAt:Date.now()}]}}))
@@ -344,13 +403,67 @@ export async function standardAnalyticalJourney(){
   await estate.stop('standby')
   try{assert.equal((await remoteRead(call,result.reader.secret,window)).status,503)}finally{await estate.start('standby')}
   await connect('primary')
+  await standardAnalyticalSchemaProof({origin,cookie,call,source:result.source,reader:result.reader,post,restartWorker,sql,seedErasureJournal:async batches=>{
+   for(const batch of batches)await getDb().prepare('INSERT INTO porthole_erased_batches(id,content_digest,erased_at) SELECT id,digest,? FROM porthole_ingest_batches WHERE id=?').bind(Date.now(),batch.id).run()
+  },compareBackend:async probe=>{
+   await connect('standby');try{await probe()}finally{await connect('primary')}
+  }})
   console.log('PROBE PORT-061 authority: both real analytical backends -> same stock samples; mid-read revoke and expiry -> 401; narrowing and custody change -> 409; quota -> 429; excluded records absent; unavailable backend -> 503')
  }})}finally{await estate.dispose()}
 }
 
 /** Official-schema edges complement the stock producers, including wire forms
  * those producers cannot emit (summary and stale float bit patterns). */
-export async function standardSchemaProof({origin,cookie,call,source,reader,post,restartWorker,sql}) {
+export async function standardSchemaProof(context) {
+ const proof=await standardMappingProof(context)
+ const {post,call,source,reader,restartWorker}=context,{query,wire,traceId,traceWire}=proof
+ const preview=await value(await post(api+'/subject-erasure',{identifier:'synthetic-porthole-6110'}))
+ assert.equal(preview.canApply,true)
+ await value(await post(api+'/subject-erasure/apply',{identifier:'synthetic-porthole-6110',digest:preview.digest,confirm:'erase-exact-batches'}))
+ assert.deepEqual(await remoteSeries(await remoteRead(call,reader.secret,query)),[],'erased original metric batch never appears in standard reads')
+ assert.equal((await call('/api/traces/'+traceId,{headers:auth(reader.secret)})).status,404,'erased spans never appear through trace-by-ID')
+ await restartWorker()
+ assert.equal((await call('/v1/traces',{method:'POST',headers:{...auth(source.secret),'content-type':'application/json'},body:traceWire})).status,409,'erased trace capture cannot resurrect')
+ assert.equal((await call('/v1/metrics',{method:'POST',headers:{...auth(source.secret),'content-type':'application/json'},body:wire})).status,409,'replayed erased wire cannot resurrect a standard sample')
+ await standardBudgetProof({...context,...proof})
+ console.log('PROBE PORT-061 schema and erasure: cumulative gauges, sums, buckets and summaries map exactly; raw float bits survive; delta and exponential inputs refuse; native erased subject and replay remain absent after restart')
+}
+
+/** Analytical deletion remains held by PORT-035. A pre-existing journal fixture
+ * proves only the read fence against stale copies, never physical deletion. */
+async function standardAnalyticalSchemaProof(context) {
+ const proof=await standardMappingProof(context)
+ const {post,call,source,reader,restartWorker,seedErasureJournal,compareBackend}=context,{query,rows,wire,traceId,traceWire}=proof
+ const preview=await value(await post(api+'/subject-erasure',{identifier:'synthetic-porthole-6110'}))
+ assert.equal(preview.canApply,true)
+ const applied=await post(api+'/subject-erasure/apply',{identifier:'synthetic-porthole-6110',digest:preview.digest,confirm:'erase-exact-batches'})
+ assert.equal(applied.status,409);assert.deepEqual(await applied.json(),{error:'analytical_erasure_not_supported'})
+ assert.deepEqual(await remoteSeries(await remoteRead(call,reader.secret,query)),rows,'unsupported erasure changes no metric custody')
+ assert.equal((await call('/api/traces/'+traceId,{headers:auth(reader.secret)})).status,200,'unsupported erasure changes no trace custody')
+ await seedErasureJournal(preview.batches)
+ const journalFence=async()=>{
+  for(const refusal of [await remoteRead(call,reader.secret,query),await call('/api/traces/'+traceId,{headers:auth(reader.secret)})]){
+   assert.equal(refusal.status,409);assert.deepEqual(await refusal.json(),{error:'standard_read_custody_changed'},'journaled stale copies release no telemetry')
+  }
+ }
+ await journalFence();await compareBackend(journalFence)
+ await restartWorker();await journalFence()
+ assert.equal((await call('/v1/traces',{method:'POST',headers:{...auth(source.secret),'content-type':'application/json'},body:traceWire})).status,409,'journaled trace replay refuses')
+ assert.equal((await call('/v1/metrics',{method:'POST',headers:{...auth(source.secret),'content-type':'application/json'},body:wire})).status,409,'journaled metric replay refuses')
+ await standardBudgetProof({...context,...proof})
+ console.log('PROBE PORT-061 analytical schema: exact mappings and legacy quotas; analytical erasure refuses unchanged; prior-journal fixture fences both stores and replay; complete row and byte budget refusals')
+}
+
+async function standardMappingProof({origin,cookie,call,source,reader,post,restartWorker,sql,compareBackend}) {
+ const drain=async()=>{
+  let result
+  for(let pass=0;pass<20;pass++){
+   result=await value(await post(api+'/ingest/drain',{}))
+   if(!result.pendingBatches&&result.analytical.complete)break
+  }
+  assert.equal(result.pendingBatches,0);assert.equal(result.analytical.complete,true)
+ }
+
  const attributes=[['service.name',scope.services[0]],['deployment.environment.name','production'],['team.name','commerce']].map(([key,stringValue])=>({key,value:{stringValue}}))
  const at=1000000000123456n,through=at+1000000n
  const point={timeUnixNano:String(at),attributes:[{key:'privacy.subject',value:{stringValue:'synthetic-porthole-6110'}},{key:'structured',value:{kvlistValue:{values:[{key:'sequence',value:{intValue:'9007199254740993'}},{key:'nested',value:{arrayValue:{values:[{boolValue:false},{bytesValue:'AQID'},{arrayValue:{}},{}]}}},{key:'text',value:{stringValue:'<>&'}}]}}}]}
@@ -358,41 +471,72 @@ export async function standardSchemaProof({origin,cookie,call,source,reader,post
   {name:'synthetic.edge.gauge',unit:'ms',gauge:{dataPoints:[{...point,asDouble:24.5}]}},
   {name:'synthetic.edge.counter',sum:{aggregationTemporality:2,isMonotonic:true,dataPoints:[{...point,asInt:'17'}]}},
   {name:'synthetic.edge.nonmonotonic',sum:{aggregationTemporality:2,isMonotonic:false,dataPoints:[{...point,asInt:'-3'}]}},
-  {name:'synthetic.edge.histogram',unit:'s',histogram:{aggregationTemporality:2,dataPoints:[{...point,count:'6',sum:2,explicitBounds:[0.1,0.5],bucketCounts:['1','2','3']}]}},
-  {name:'synthetic.edge.summary',summary:{dataPoints:[{...point,count:'8',sum:4,quantileValues:[{quantile:0.5,value:0.2},{quantile:0.9,value:0.8}]}]}},
+  {name:'synthetic.edge.histogram',unit:'s',histogram:{aggregationTemporality:2,dataPoints:[{...point,count:'6',sum:2,explicitBounds:[0.0000001,0.5],bucketCounts:['1','2','3']}]}},
+  {name:'synthetic.edge.summary',summary:{dataPoints:[{...point,count:'8',sum:4,quantileValues:[{quantile:0.0000001,value:0.2},{quantile:0.9,value:0.8}]}]}},
  ]
  const wire=JSON.stringify({resourceMetrics:[{resource:{attributes},scopeMetrics:[{scope:{name:'synthetic-porthole-6111'},metrics}]}]})
  await value(await call('/v1/metrics',{method:'POST',headers:{...auth(source.secret),'content-type':'application/json'},body:wire}))
- await value(await post(api+'/ingest/drain',{}))
+ await drain()
  const query={from:at/1000000n,through:through/1000000n,matchers:[['__name__','synthetic_edge_.*',2]]}
  const rows=await remoteSeries(await remoteRead(call,reader.secret,query)),byName=name=>rows.filter(s=>s.metric.__name__===name)
  assert.deepEqual(byName('synthetic_edge_gauge_milliseconds')[0].values,[[1000000,24.5]])
  assert.equal(byName('synthetic_edge_gauge_milliseconds')[0].metric.structured,String.raw`{"nested":[false,"AQID",[],null],"sequence":9007199254740993,"text":"\u003c\u003e\u0026"}`,'logical nested attributes retain byte values and exact int64 JSON labels')
  assert.deepEqual(byName('synthetic_edge_counter_total')[0].values,[[1000000,17]])
  assert.deepEqual(byName('synthetic_edge_nonmonotonic')[0].values,[[1000000,-3]])
- assert.deepEqual(byName('synthetic_edge_histogram_seconds_bucket').map(s=>[s.metric.le,s.values[0][1]]).sort(),[['+Inf',6],['0.1',1],['0.5',3]].sort())
- assert.deepEqual(byName('synthetic_edge_summary').map(s=>[s.metric.quantile,s.values[0][1]]).sort(),[['0.5',0.2],['0.9',0.8]])
+ assert.deepEqual(byName('synthetic_edge_histogram_seconds_bucket').map(s=>[s.metric.le,s.values[0][1]]).sort(),[['+Inf',6],['0.0000001',1],['0.5',3]].sort())
+ assert.deepEqual(byName('synthetic_edge_summary').map(s=>[s.metric.quantile,s.values[0][1]]).sort(),[['0.0000001',0.2],['0.9',0.8]])
+ if(compareBackend)await compareBackend(async()=>assert.deepEqual(await remoteSeries(await remoteRead(call,reader.secret,query)),rows,'both analytical configurations preserve the entire supported OTLP mapping'))
+ const atMillis=at/1000000n
+ const orderedQueries=async()=>{
+  const response=await remoteRead(call,reader.secret,{types:[1,0],queries:[
+   {from:atMillis,through:atMillis,matchers:[['__name__','synthetic_edge_.*',2],['__name__','synthetic_edge_(counter_total|nonmonotonic|histogram_seconds_.*|summary.*)',3]]},
+   {from:atMillis+1n,through:atMillis+1n,matchers:[['__name__','synthetic_edge_gauge_milliseconds']]},
+   {from:atMillis,through:atMillis,matchers:[['__name__','synthetic_edge_summary'],['privacy_subject','synthetic-porthole-[0-9]+',2]]},
+  ]})
+  assert.equal(response.status,200,await response.clone().text())
+  const results=fields(unpack(Buffer.from(await response.arrayBuffer()))).map(([,result])=>fields(result))
+  assert.deepEqual(results.map(result=>result.length),[1,0,2],'batched queries retain order and empty results, inclusive millisecond bounds and positive and negative regex matchers')
+  const names=result=>result.map(([,series])=>fields(series).filter(([number])=>number===1).map(([,label])=>fields(label)).find(label=>get(label,1).toString()==='__name__')).map(label=>get(label,2).toString())
+  assert.deepEqual(names(results[0]),['synthetic_edge_gauge_milliseconds'])
+  assert.deepEqual(names(results[2]),['synthetic_edge_summary','synthetic_edge_summary'])
+ }
+ await orderedQueries()
+ if(compareBackend)await compareBackend(orderedQueries)
  for(const label of ['absent','constructor']){
   const missing=await remoteSeries(await remoteRead(call,reader.secret,{...query,matchers:[['__name__','synthetic_edge_gauge_milliseconds'],[label,'',0]]}))
   assert.equal(missing.length,1,'absent label equals empty string, including inherited object names')
  }
  assert.deepEqual(await remoteSeries(await remoteRead(call,reader.secret,{...query,matchers:[['__name__','synthetic_edge_gauge_milliseconds'],['privacy_subject','synthetic-porthole-6110',1]]})),[])
- const staleAt=2000000n,bits=['0000000000000080','020000000000f07f','000000000000f07f'],series=bits.map((hex,index)=>{
+ const staleAt=2000000n,bits=['0000000000000080','020000000000f07f','000000000000f07f'],floatWire=timestamp=>packed(cat(...bits.map((hex,index)=>{
   const labels={__name__:'synthetic_edge_float',service:scope.services[0],environment:'production',team:'commerce',edge:'synthetic-porthole-'+(6112+index)}
-  return msg(1,cat(...Object.entries(labels).map(([k,v])=>msg(1,cat(text(1,k),text(2,v)))),msg(2,cat(vint(9),Buffer.from(hex,'hex'),integer(2,staleAt)))))
- })
- const write=packed(cat(...series))
+  return msg(1,cat(...Object.entries(labels).map(([k,v])=>msg(1,cat(text(1,k),text(2,v)))),msg(2,cat(vint(9),Buffer.from(hex,'hex'),integer(2,timestamp)))))
+ })))
+ const write=floatWire(staleAt)
  assert.equal((await call('/api/v1/write',{method:'POST',headers:{...auth(source.secret),'content-type':'application/x-protobuf','content-encoding':'snappy','x-prometheus-remote-write-version':'0.1.0'},body:write})).status,204)
- await value(await post(api+'/ingest/drain',{}))
+ await drain()
  const read=await remoteRead(call,reader.secret,{from:staleAt,through:staleAt,matchers:[['__name__','synthetic_edge_float']]})
  assert.equal(read.status,200)
  const response=unpack(Buffer.from(await read.arrayBuffer())),actual=fields(get(fields(response),1)).map(([,s])=>get(fields(get(fields(s),2)),1).toString('hex')).sort()
  assert.deepEqual(actual,bits.slice().sort(),'negative zero, stale NaN and infinity round-trip bit-exact')
- // Model a pre-upgrade retained record; its unchanged stock wire remains in
- // the original custody envelope. This is fixture setup, not an edit API.
+ // Model the older decoder before indexing: the original wire retains exact
+ // bits, while its normalized envelope has no valueBits field. Real indexing
+ // and replication must carry that same legacy payload into every copy.
  if(sql){
-  await sql("UPDATE porthole_telemetry_records SET payload=json_remove(payload,'$.record.valueBits') WHERE json_extract(payload,'$.metric.name')='synthetic_edge_float'")
-  const legacy=await remoteRead(call,reader.secret,{from:staleAt,through:staleAt,matchers:[['__name__','synthetic_edge_float']]})
+  const legacyAt=staleAt+1n,legacyWire=floatWire(legacyAt)
+  const legacyIntake=await call('/api/v1/write',{method:'POST',headers:{...auth(source.secret),'content-type':'application/x-protobuf','content-encoding':'snappy','x-prometheus-remote-write-version':'0.1.0'},body:legacyWire})
+  assert.equal(legacyIntake.status,204)
+  const batch=legacyIntake.headers.get('x-porthole-batch');assert.match(batch,/^[a-f0-9-]{36}$/)
+  await sql("UPDATE porthole_ingest_batches SET records=(SELECT json_group_array(json_remove(value,'$.payload.record.valueBits')) FROM json_each(porthole_ingest_batches.records)) WHERE state='pending' AND id="+literal(batch))
+  const pending=await sql('SELECT state,records FROM porthole_ingest_batches WHERE id='+literal(batch))
+  assert.equal(pending[0].state,'pending');assert.ok(JSON.parse(pending[0].records).every(row=>!Object.hasOwn(row.payload.record,'valueBits')))
+  await drain()
+  const retained=await value(await call(api+'/ingest/records?'+new URLSearchParams({signal:'metrics',metric:'synthetic_edge_float',from:String(legacyAt*1000000n),through:String(legacyAt*1000000n)}),{headers:auth(reader.secret)}))
+  const payloadBytes=retained.records.reduce((sum,row)=>sum+Buffer.byteLength(JSON.stringify(row.payload)),0)
+  assert.equal(retained.records.length,3)
+  const recoveryQuota=await value(await post(credential+'/mint',{name:'Legacy wire scan budget',class:'read',scope,scannedBytesPerDay:payloadBytes+Math.floor(legacyWire.length/2)}),201)
+  const refusedRecovery=await remoteRead(call,recoveryQuota.secret,{from:legacyAt,through:legacyAt,matchers:[['__name__','synthetic_edge_float']]})
+  assert.equal(refusedRecovery.status,429);assert.deepEqual(await refusedRecovery.json(),{error:'credential_quota_exceeded'},'legacy envelope recovery is metered in addition to retained payload scans')
+  const legacy=await remoteRead(call,reader.secret,{from:legacyAt,through:legacyAt,matchers:[['__name__','synthetic_edge_float']]})
   assert.equal(legacy.status,200)
   const decoded=unpack(Buffer.from(await legacy.arrayBuffer()))
   assert.deepEqual(fields(get(fields(decoded),1)).map(([,s])=>get(fields(get(fields(s),2)),1).toString('hex')).sort(),bits.slice().sort(),'legacy samples recover exact float bits from original wire')
@@ -405,13 +549,13 @@ export async function standardSchemaProof({origin,cookie,call,source,reader,post
  ]){
   const payload={resourceMetrics:[{resource:{attributes},scopeMetrics:[{metrics:[{name:'synthetic.edge.unsupported',[kind]:container}]}]}]}
   await value(await call('/v1/metrics',{method:'POST',headers:{...auth(source.secret),'content-type':'application/json'},body:JSON.stringify(payload)}))
-  await value(await post(api+'/ingest/drain',{}))
+  await drain()
   const response=await remoteRead(call,reader.secret,{from:3000000n+BigInt(index),through:3000000n+BigInt(index)})
   assert.equal(response.status,422);assert.ok((await response.json()).error.startsWith('unmappable_metric_'))
  }
  const traceId='61000000000000000000000000000001',traceWire=JSON.stringify({resourceSpans:[{resource:{attributes},scopeSpans:[{spans:[{traceId,spanId:'6100000000000001',name:'synthetic-porthole-6119',startTimeUnixNano:String(at),endTimeUnixNano:String(at+100n),attributes:point.attributes}]}]}]})
  await value(await call('/v1/traces',{method:'POST',headers:{...auth(source.secret),'content-type':'application/json'},body:traceWire}))
- await value(await post(api+'/ingest/drain',{}))
+ await drain()
  const maskedTrace=await value(await call('/api/traces/'+traceId,{headers:auth(reader.secret)}))
  const maskedSpan=maskedTrace.batches[0].scopeSpans[0].spans[0]
  assert.deepEqual(maskedSpan.attributes.find(item=>item.key==='structured').value.kvlistValue.values.find(item=>item.key==='sequence').value,{stringValue:'[REDACTED]'},'mandatory scalar masks remain valid OTLP values')
@@ -425,20 +569,15 @@ export async function standardSchemaProof({origin,cookie,call,source,reader,post
   const decoded=JSON.parse((await execute(python,['tests/porthole/export-otlp-reader.py','--trace',file])).stdout)
   assert.deepEqual(decoded.resourceSpans[0].scopeSpans[0].spans[0].attributes,maskedSpan.attributes,'official generated OTLP reader decodes every retained mask and compound attribute')
  }finally{await rm(maskedDirectory,{recursive:true,force:true})}
- const preview=await value(await post(api+'/subject-erasure',{identifier:'synthetic-porthole-6110'}))
- assert.equal(preview.canApply,true)
- await value(await post(api+'/subject-erasure/apply',{identifier:'synthetic-porthole-6110',digest:preview.digest,confirm:'erase-exact-batches'}))
- assert.deepEqual(await remoteSeries(await remoteRead(call,reader.secret,query)),[],'erased original metric batch never appears in standard reads')
- assert.equal((await call('/api/traces/'+traceId,{headers:auth(reader.secret)})).status,404,'erased spans never appear through trace-by-ID')
- await restartWorker()
- assert.equal((await call('/v1/traces',{method:'POST',headers:{...auth(source.secret),'content-type':'application/json'},body:traceWire})).status,409,'erased trace capture cannot resurrect')
- assert.equal((await call('/v1/metrics',{method:'POST',headers:{...auth(source.secret),'content-type':'application/json'},body:wire})).status,409,'replayed erased wire cannot resurrect a standard sample')
+ return {attributes,query,rows,wire,traceId,traceWire,drain}
+}
+
+async function standardBudgetProof({attributes,call,source,reader,post,drain,compareBackend}) {
  for(let offset=0;offset<2001;offset+=100){
   const budgetWire=JSON.stringify({resourceMetrics:[{resource:{attributes},scopeMetrics:[{metrics:[{name:'synthetic.edge.budget',gauge:{dataPoints:Array.from({length:Math.min(100,2001-offset)},(_,index)=>({timeUnixNano:String(4000000000000n+BigInt(offset+index)*1000000n),asInt:String(offset+index)}))}}]}]}]})
   await value(await call('/v1/metrics',{method:'POST',headers:{...auth(source.secret),'content-type':'application/json'},body:budgetWire}))
  }
- let pending=1;for(let pass=0;pass<20&&pending;pass++)pending=(await value(await post(api+'/ingest/drain',{}))).pendingBatches
- assert.equal(pending,0)
+ await drain()
  const exhausted=await remoteRead(call,reader.secret,{from:4000000n,through:4002000n})
  assert.equal(exhausted.status,422);assert.deepEqual(await exhausted.json(),{error:'standard_read_budget_exceeded'})
  const largeAt=5000000000000n
@@ -446,8 +585,7 @@ export async function standardSchemaProof({origin,cookie,call,source,reader,post
   const payload={resourceMetrics:[{resource:{attributes},scopeMetrics:[{metrics:[{name:'synthetic.edge.bytes',gauge:{dataPoints:Array.from({length:10},(_,index)=>({timeUnixNano:String(largeAt+BigInt(batch*10+index)*1000000n),asInt:String(index),attributes:[{key:'synthetic.payload',value:{stringValue:'x'.repeat(20000)}}]}))}}]}]}]}
   await value(await call('/v1/metrics',{method:'POST',headers:{...auth(source.secret),'content-type':'application/json'},body:JSON.stringify(payload)}))
  }
- let bytesPending=1;for(let pass=0;pass<20&&bytesPending;pass++)bytesPending=(await value(await post(api+'/ingest/drain',{}))).pendingBatches
- assert.equal(bytesPending,0)
+ await drain()
  const nativeBytes=await value(await call(api+'/ingest/records?'+new URLSearchParams({signal:'metrics',metric:'synthetic.edge.bytes',limit:'200'}),{headers:auth(reader.secret)}))
  assert.equal(nativeBytes.records.length,60);assert.equal(nativeBytes.cursor,null)
  assert.ok(nativeBytes.records.reduce((n,row)=>n+Buffer.byteLength(JSON.stringify(row.payload)),0)>1024*1024,'the byte refusal is exercised below the row cap')
@@ -455,5 +593,25 @@ export async function standardSchemaProof({origin,cookie,call,source,reader,post
  assert.equal(byteRefusal.status,422);assert.deepEqual(await byteRefusal.json(),{error:'standard_read_budget_exceeded'})
  const unchanged=await value(await call(api+'/ingest/records?'+new URLSearchParams({signal:'metrics',metric:'synthetic.edge.bytes',limit:'200'}),{headers:auth(reader.secret)}))
  assert.deepEqual(unchanged.records,nativeBytes.records,'a budget refusal changes no retained sample')
- console.log('PROBE PORT-061 schema and erasure: cumulative gauges, sums, buckets and summaries map exactly; raw float bits survive; delta and exponential inputs refuse; erased subject and replay remain absent after restart')
+ const traceBudgetId='61000000000000000000000000000002'
+ for(let offset=0;offset<2001;offset+=100){
+  const spans=Array.from({length:Math.min(100,2001-offset)},(_,index)=>({traceId:traceBudgetId,spanId:(offset+index+1).toString(16).padStart(16,'0'),name:'synthetic-porthole-6120',startTimeUnixNano:String(largeAt),endTimeUnixNano:String(largeAt+100n)}))
+  await value(await call('/v1/traces',{method:'POST',headers:{...auth(source.secret),'content-type':'application/json'},body:JSON.stringify({resourceSpans:[{resource:{attributes},scopeSpans:[{spans}]}]})}))
+ }
+ await drain()
+ const traceExhausted=await call('/api/traces/'+traceBudgetId,{headers:auth(reader.secret)})
+ assert.equal(traceExhausted.status,422);assert.deepEqual(await traceExhausted.json(),{error:'standard_read_budget_exceeded'},'oversized traces refuse instead of silently returning the first page')
+ const byteTraceId='61000000000000000000000000000003'
+ for(let batch=0;batch<6;batch++){
+  const spans=Array.from({length:10},(_,index)=>({traceId:byteTraceId,spanId:(batch*10+index+1).toString(16).padStart(16,'0'),name:'synthetic-porthole-6121',startTimeUnixNano:String(largeAt),endTimeUnixNano:String(largeAt+100n),attributes:[{key:'synthetic.payload',value:{stringValue:'x'.repeat(20000)}}]}))
+  await value(await call('/v1/traces',{method:'POST',headers:{...auth(source.secret),'content-type':'application/json'},body:JSON.stringify({resourceSpans:[{resource:{attributes},scopeSpans:[{spans}]}]})}))
+ }
+ await drain()
+ const traceByteExhausted=await call('/api/traces/'+byteTraceId,{headers:auth(reader.secret)})
+ assert.equal(traceByteExhausted.status,422);assert.deepEqual(await traceByteExhausted.json(),{error:'standard_read_budget_exceeded'},'trace bytes below the row cap still refuse the entire response')
+ if(compareBackend)await compareBackend(async()=>{
+  assert.equal((await call('/api/traces/'+traceBudgetId,{headers:auth(reader.secret)})).status,422)
+  assert.equal((await call('/api/traces/'+byteTraceId,{headers:auth(reader.secret)})).status,422)
+  assert.equal((await remoteRead(call,reader.secret,{from:4000000n,through:4002000n})).status,422)
+ })
 }

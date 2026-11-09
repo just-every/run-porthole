@@ -29,7 +29,8 @@ the client also accepts SAMPLES. Porthole performs no expression evaluation.
 
 Remote-write samples preserve original labels, milliseconds and float bits,
 including signed zero and stale NaN. Legacy samples recover their bits from retained original wire, within an
-additional eight MiB recovery budget; unavailable wire refuses explicitly. OTLP mapping pins OpenTelemetry specification v1.45.0,
+additional eight MiB recovery budget; those original envelope bytes also consume
+the credential scan quota. Unavailable wire refuses explicitly. OTLP mapping pins OpenTelemetry specification v1.45.0,
 Prometheus compatibility, with the Prometheus 3.5.0 OTLP receiver profile:
 normalized names and labels, logical JSON values for compound attributes
 (including exact integer labels), unit words before type suffixes, cumulative
@@ -42,6 +43,12 @@ attributes form `target_info`. Scope-info metrics and scope labels are disabled
 in this fixed receiver profile, matching the reference receiver. Compound labels also follow the
 [upstream Value.AsString implementation](https://github.com/open-telemetry/opentelemetry-collector/blob/pdata%2Fv1.34.0/pdata/pcommon/value.go)
 in pdata v1.34.0, the dependency embedded in that pinned Prometheus binary.
+
+Label normalization preserves repeated underscores, prefixes digit-leading names
+with `key_`, and prefixes a single leading underscore with `key`. Normalized
+collisions join attribute values in original key order. Metric names tokenize
+separators, avoid repeated unit tokens and put `total` last for counters. Bucket
+and quantile label values use fixed decimal notation, including small bounds.
 
 Delta temporality, exponential histograms, unsupported metric protocols,
 invalid distributions, negative histogram or summary sums, and conflicting
@@ -84,3 +91,29 @@ Prometheus query, range-query, series, labels, metadata and exemplar routes,
 and Tempo search, tags and v2 retrieval explicitly refuse. Standard log and
 profile reads, TraceQL and Jaeger interfaces remain outside this implementation.
 Broader erasure and retention qualification remains with PORT-035 and PORT-096.
+
+Inactive installation restore preserves retained samples and trace content,
+including both Tempo representations, but transfers no source read credentials.
+The destination owner must mint a current read credential. Its live scope still
+filters every returned span, its revocation takes effect on the next request,
+and standard reads leave restored intake paused across restart.
+
+## Interoperability qualification
+
+The focused standard-read journeys use unmodified Prometheus 3.5.0 with only
+remote-read and a credential file on the reading side. A separate Prometheus
+scrapes the same real producer and receives the identical stock OTLP SDK
+packets. The comparison covers gauges, cumulative counters, classic histogram
+buckets and summaries from actual scrape traffic, and gauges, cumulative sums
+and explicit histograms from the stock OTLP exporter. Official-schema summary
+and non-monotonic cumulative-sum packets supplement the SDK, which has no
+summary instrument. The reference receiver also determines their compound
+attribute labels, namespace and instance identity, quantiles, counts and sums.
+
+Nineteen fixed expressions, the complete sample range and resource information
+are compared for exact series, labels, timestamps and values. The analytical
+journey repeats the stock Prometheus evaluation on both primary and standby,
+and runs the pinned Tempo client against both stores. Official generated OTLP
+readers compare the returned stock trace fields with captured exporter packets
+after mandatory intake privacy. These checks do not establish the omitted log,
+profile, query-evaluation or broader erasure capabilities.

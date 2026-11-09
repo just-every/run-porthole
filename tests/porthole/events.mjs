@@ -1,3 +1,4 @@
+import {reviewRemoval} from './fixture.mjs'
 import assert from 'node:assert/strict'
 import {execFile} from 'node:child_process'
 import {promisify} from 'node:util'
@@ -220,7 +221,7 @@ export async function eventJourney({origin,freshOwner,signIn,restartWorker,withE
  await value(await post('/api/porthole/v1/dashboards',{id:ref.id,revision:ref.revision,name:ref.name,scope:ref.scope,body:{...ref.body,eventOverlays:[authored.event.id]}}),201)
  await value(await post('/app/settings/members/change',{operatorId:author.id,role:'responder',scope}))
  assert.equal((await post(api,{...input,sourceId:randomUUID()},authorCookie)).status,401)
- await value(await post('/app/settings/members/remove',{operatorId:author.id}))
+ await value(await post('/app/settings/members/remove',await reviewRemoval(origin,cookie,author.id)))
  await value(await post('/api/porthole/v1/actors/erase',{actorRef:author.id,confirm:'erase'}))
  assert.equal((await get(api+'/'+authored.event.id)).status,404)
  assert.deepEqual((await download(await get(api+'/export?sourceId='+encodeURIComponent(authored.event.sourceId)))).events,[])
