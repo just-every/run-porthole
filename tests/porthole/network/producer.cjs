@@ -2,6 +2,7 @@
 const fs=require('node:fs')
 const ids=JSON.parse(fs.readFileSync('/run/identities.json','utf8'))
 process.env.OTEL_RESOURCE_ATTRIBUTES+=',synthetic.private_value='+['123','45','6789'].join('-')+',container.id='+ids[process.env.ROLE]+',host.id='+ids.host+',porthole.messaging.broker.container.id='+ids[process.env.SYSTEM]
+if(process.env.SYSTEM==='rabbitmq')process.env.OTEL_RESOURCE_ATTRIBUTES+=',porthole.messaging.rabbitmq.vhost=/'
 const {NodeSDK}=require('@opentelemetry/sdk-node'),{OTLPTraceExporter}=require('@opentelemetry/exporter-trace-otlp-proto')
 const {createRequire}=require('node:module'),reqSdk=createRequire(require.resolve('@opentelemetry/sdk-node')),{BatchSpanProcessor}=reqSdk('@opentelemetry/sdk-trace')
 const spans=[],processor={onStart(){},onEnd(s){spans.push({traceId:s.spanContext().traceId,spanId:s.spanContext().spanId,parentSpanId:s.parentSpanContext?.spanId??null,name:s.name,kind:s.kind+1,attributes:s.attributes,status:s.status,scope:s.instrumentationScope,resource:s.resource.attributes,startNs:(BigInt(s.startTime[0])*1000000000n+BigInt(s.startTime[1])).toString(),durationNs:(BigInt(s.duration[0])*1000000000n+BigInt(s.duration[1])).toString()})},forceFlush:async()=>{},shutdown:async()=>{}}

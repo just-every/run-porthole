@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import {mkdir,writeFile} from 'node:fs/promises'
 import {join} from 'node:path'
-import {form,literal} from './fixture.mjs'
+import {form,literal,reviewRemoval} from './fixture.mjs'
 import {networkEstate} from './network/estate.mjs'
 import {servicesBrowser} from './services.mjs'
 const root='/api/porthole/v1/network-messaging',services='/api/porthole/v1/services'
@@ -33,7 +33,8 @@ export async function networkJourney({origin,call=(path,options)=>fetch(origin+p
  for(const w of proof.windows){
   const query='?'+new URLSearchParams({from:w.from,through:w.through}),view=await read(root+query),catalog=await read(services+query+'&snapshot='+view.snapshot)
   assert.equal(view.version,1);assert.equal(view.scanComplete,true,w.name)
-  assert.equal(view.snapshot,catalog.snapshot);assert.deepEqual(view,catalog.evidence)
+  assert.equal(view.snapshot,catalog.snapshot);
+  assert.ok(!JSON.stringify(view).includes('synthetic-porthole-foreign'),'the other virtual host is excluded before scope assignment');assert.deepEqual(view,catalog.evidence)
   for(const row of view.network){
    const name=JSON.parse(row.key)[0],spans=allSpans.filter(s=>s.resource['service.name']===name&&within(s,w))
    for(const [type,scope]of [['dns','@opentelemetry/instrumentation-dns'],['connections','@opentelemetry/instrumentation-net']]){
@@ -42,6 +43,7 @@ export async function networkJourney({origin,call=(path,options)=>fetch(origin+p
    assert.ok(row.identities.every(i=>i.containerId===proof.ids[name]&&i.hostId===proof.ids.host),'only declared actual container and host identities correlate')
    for(const counter of row.counters){
     assert.equal(counter.resource.containerId,proof.ids[name]);assert.equal(counter.resource.hostId,proof.ids.host)
+    if(counter.name.includes('_dropped')){const side=counter.name.includes('rx_')?'rx':'tx';assert.ok(counter.value>=w.before.containerDrops[side]&&counter.value<=w.after.containerDrops[side],'container drop sample bounded by independent interface counters')}
     if(counter.name==='node_netstat_Tcp_RetransSegs'){
      const first=snmp(w.before.snmp,'Tcp','RetransSegs'),last=snmp(w.after.snmp,'Tcp','RetransSegs')
      assert.ok(counter.value>=first&&counter.value<=last,'passive sample bounded by independent namespace snapshots')
@@ -51,6 +53,7 @@ export async function networkJourney({origin,call=(path,options)=>fetch(origin+p
   for(const q of view.messaging){
    const role=JSON.parse(q.scope)[0],sent=allSpans.filter(s=>s.resource['service.name']===role&&within(s,w)&&s.kind===4&&s.attributes['messaging.system']===q.system)
    assert.equal(q.producers.observations,sent.length)
+   assert.ok(q.system!=='rabbitmq'||q.namespace==='/');assert.ok(q.metrics.every(m=>q.system!=='rabbitmq'||m.attributes['rabbitmq.vhost.name']===q.namespace));
    assert.ok(q.metrics.every(m=>m.resource.hostId===proof.ids.host&&m.resource.containerId===proof.ids[q.system]))
    for(const link of q.links){assert.ok(allSpans.some(s=>s.spanId===link.producer.spanId&&s.traceId===link.producer.traceId&&s.kind===4));assert.ok(allSpans.some(s=>s.spanId===link.consumer.spanId&&s.traceId===link.consumer.traceId&&s.kind===5))}
   }
@@ -58,10 +61,12 @@ export async function networkJourney({origin,call=(path,options)=>fetch(origin+p
  }
  const baseline=results.find(w=>w.name==='baseline'),dns=results.find(w=>w.name==='dns-delay'),loss=results.find(w=>w.name==='packet-loss'),backlog=results.find(w=>w.name==='backlog')
  const networkFor=r=>r.view.network.find(n=>JSON.parse(n.key)[0]==='checkout-kafka')
+ assert.ok(networkFor(dns).dependencies.some(d=>d.to&&JSON.parse(d.to)[0]==='fulfillment-kafka'&&d.dns.observations>=8),'trace-parent identities attach DNS to the actual peer');
  assert.ok(networkFor(dns).dns.observations>=8,'real resolver-path lookups are retained')
  assert.ok(Number(networkFor(dns).dns.p95Ns)>=80000000,'80 ms resolver fault is visible in passively captured DNS timings')
  assert.ok(Number(networkFor(dns).dns.p95Ns)>Number(networkFor(baseline).dns.p95Ns))
  const retrans=snmp(proof.windows.find(w=>w.name==='packet-loss').after.snmp,'Tcp','RetransSegs')-snmp(proof.windows.find(w=>w.name==='packet-loss').before.snmp,'Tcp','RetransSegs')
+ const retransSeries=networkFor(loss).counters.find(c=>c.name==='node_netstat_Tcp_RetransSegs');assert.ok(Math.abs(retransSeries.delta-retrans)<=2,'sample delta reconciles with namespace boundaries within two counter increments');
  assert.ok(retrans>0,'pair-restricted real packet loss causes namespace retransmissions')
  assert.ok(networkFor(loss).counters.some(c=>c.name==='node_netstat_Tcp_RetransSegs'&&c.delta!==null),'stock namespace exporter supplies cumulative counter deltas')
  for(const system of ['kafka','rabbitmq']){
@@ -69,6 +74,9 @@ export async function networkJourney({origin,call=(path,options)=>fetch(origin+p
   assert.ok(q,'counted broker producer association')
   const lag=q.metrics.find(m=>system==='kafka'?m.name==='kafka.consumer_group.lag':m.name==='rabbitmq.message.current'&&m.attributes.state==='ready')
   assert.ok(lag,'stock broker lag or queue-depth evidence is present');assert.equal(lag.value,24,'paused real consumer backlog equals independent application send count')
+  const sourceWindow=proof.windows.find(w=>w.name==='backlog')
+  if(system==='kafka'){const row=sourceWindow.after.kafka.split('\n').map(l=>l.trim().split(/\s+/)).find(p=>p[0]==='synthetic-porthole-network-group'&&p[2]==='0');assert.ok(row);for(const [name,index]of [['kafka.consumer_group.offset',3],['kafka.partition.current_offset',4],['kafka.consumer_group.lag',5]])assert.equal(q.metrics.find(m=>m.name===name).value,Number(row[index]),'independent broker offset and lag reconciliation')}
+  else{const row=sourceWindow.after.rabbit.split('\n').map(l=>l.trim().split(/\s+/)).find(p=>p[0]===q.destination);assert.ok(row);assert.equal(lag.value,Number(row[1]),'independent broker-reported queue depth')}
   assert.equal(q.producers.observations,24)
   const restoredWindow=proof.windows.find(w=>w.name==='restored-consumers')
   const combined=await read(root+'?'+new URLSearchParams({from:proof.windows.find(w=>w.name==='backlog').from,through:restoredWindow.through}))
@@ -93,9 +101,9 @@ export async function networkJourney({origin,call=(path,options)=>fetch(origin+p
  const retained=trace.spans.find(s=>s.spanId===traceRef.spanId).resource.attributes
  assert.equal(retained.find(a=>a.key==='container.id').value.stringValue,proof.ids['checkout-kafka'])
  assert.equal(retained.find(a=>a.key==='synthetic.private_value').value.stringValue,'[REDACTED]','ordinary resource payload values retain mandatory privacy masks')
- await servicesBrowser({origin,cookie,path:'/app/services/'+checkout.id+dns.query+'&snapshot='+dns.view.snapshot,contains:'Network and messaging evidence',name:'network-dns-'+(analytical?'analytical':'local'),dispatch:browserDispatch})
+ await servicesBrowser({origin,cookie,path:'/app/services/'+checkout.id+dns.query+'&snapshot='+dns.view.snapshot,contains:'Network and messaging evidence',name:'network-dns-'+(analytical?'analytical':'local'),dispatch:browserDispatch,networkExpected:{network:networkFor(dns)}})
  const queueService=backlog.catalog.services.find(s=>s.service==='checkout-rabbitmq')
- await servicesBrowser({origin,cookie,path:'/app/services/'+queueService.id+backlog.query+'&snapshot='+backlog.view.snapshot,contains:'rabbitmq.message.current',name:'network-backlog-'+(analytical?'analytical':'local'),dispatch:browserDispatch})
+ await servicesBrowser({origin,cookie,path:'/app/services/'+queueService.id+backlog.query+'&snapshot='+backlog.view.snapshot,contains:'rabbitmq.message.current',name:'network-backlog-'+(analytical?'analytical':'local'),dispatch:browserDispatch,networkExpected:{queue:backlog.view.messaging.find(q=>q.system==='rabbitmq'&&JSON.parse(q.scope)[0]==='checkout-rabbitmq')}})
  const gapWindow=results.find(w=>w.name==='denied-docker-socket'),gapService=gapWindow.catalog.services.find(s=>s.service==='checkout-kafka')
  await servicesBrowser({origin,cookie,path:'/app/services/'+gapService.id+gapWindow.query+'&snapshot='+gapWindow.view.snapshot,contains:'Docker socket read access',name:'network-gap-'+(analytical?'analytical':'local'),dispatch:browserDispatch})
  const email=['synthetic-porthole-9321','example.invalid'].join(String.fromCharCode(64))
@@ -104,7 +112,12 @@ export async function networkJourney({origin,call=(path,options)=>fetch(origin+p
  const hidden=await read(root+backlog.query,restricted)
  assert.ok(hidden.network.every(n=>JSON.parse(n.key)[0]==='checkout-kafka'));assert.ok(hidden.messaging.every(q=>JSON.parse(q.scope)[0]==='checkout-kafka'))
  assert.ok(!JSON.stringify(hidden).includes('checkout-rabbitmq'),'foreign queue and counter identities do not leak')
- cookie=await freshOwner();await post('/app/settings/members/remove',{operatorId:member.id})
+ const otherTeamAddress=['synthetic-porthole-9322','example.invalid'].join(String.fromCharCode(64))
+ cookie=await freshOwner();await post('/app/settings/members/invite',{email:otherTeamAddress,displayName:'Other team network reader',role:'responder',scope:{services:roles,environments:['production'],teams:['synthetic-porthole-other-team']}},202)
+ const otherTeamCookie=await signIn(otherTeamAddress),otherTeamMember=(await read('/auth/session',otherTeamCookie)).operator
+ const otherTeamView=await read(root+backlog.query,otherTeamCookie);assert.deepEqual(otherTeamView.network,[]);assert.deepEqual(otherTeamView.messaging,[],'no other team edge, queue or counter appears from the nonempty fixture')
+ cookie=await freshOwner();await post('/app/settings/members/remove',await reviewRemoval(origin,cookie,otherTeamMember.id,{call}))
+ cookie=await freshOwner();await post('/app/settings/members/remove',await reviewRemoval(origin,cookie,member.id,{call}))
  assert.equal((await call(root+backlog.query,{headers:{cookie:restricted}})).status,401,'next-request scope revocation fences accumulated evidence')
  await restartWorker();cookie=await freshOwner()
  assert.deepEqual(await read(root+dns.query+'&snapshot='+dns.view.snapshot),dns.view,'restart reconstructs exact evidence from retained inputs')
@@ -120,6 +133,13 @@ export async function networkJourney({origin,call=(path,options)=>fetch(origin+p
   await post('/api/porthole/v1/subject-erasure/apply',{identifier:'checkout-kafka',digest:preview.digest,confirm:'erase-exact-batches'})
   const erased=await read(root+backlog.query);assert.ok(!erased.network.some(n=>JSON.parse(n.key)[0]==='checkout-kafka'));assert.ok(!erased.messaging.some(q=>JSON.parse(q.scope)[0]==='checkout-kafka'),'no detached aggregate survives erased source custody')
   await restartWorker();cookie=await freshOwner();assert.deepEqual(await read(root+backlog.query),erased)
+  let refused=0
+  for(const p of proof.packets){const r=await call(p.path,{method:'POST',headers:{authorization:'Bearer '+source.secret,'content-type':p.type},body:p.body});assert.ok([200,409].includes(r.status));if(r.status===409)refused++}
+  assert.ok(refused>0,'actual erased network capture replay is refused')
+  for(let i=0;i<100;i++)if(!(await post('/api/porthole/v1/ingest/drain',{})).pendingBatches)break
+  assert.ok(!(await read(root+backlog.query)).network.some(n=>JSON.parse(n.key)[0]==='checkout-kafka'),'latest intake watermark cannot resurrect erased evidence')
+  const afterReplay=await read(root+backlog.query)
+  await restartWorker();cookie=await freshOwner();assert.deepEqual(await read(root+backlog.query),afterReplay)
  }
  await post('/app/settings/credentials/revoke',{id:source.credential.id})
  assert.equal((await call(proof.packets[0].path,{method:'POST',headers:{authorization:'Bearer '+source.secret,'content-type':proof.packets[0].type},body:proof.packets[0].body})).status,401)

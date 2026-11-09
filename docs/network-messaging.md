@@ -95,3 +95,34 @@ resource identities, alongside trace and span IDs. This exception is limited to
 those resource keys and their declared hexadecimal formats. Ordinary resource
 payload values retain mandatory masks. An explicit custom masking rule prevents
 this restoration, leaving correlation unknown when the identity is masked.
+
+Collector configuration also requires the reviewed topic and consumer group, or
+RabbitMQ virtual host and queue. Stock receiver and filter settings remove other
+namespaces before assigning the application's telemetry scope. The application
+must declare `porthole.messaging.rabbitmq.vhost` for RabbitMQ correlation; an
+absent or masked virtual host remains unknown. Queue names alone are insufficient,
+even on the same broker. The fixture independently sends seven messages to a
+same-name queue in another virtual host and asserts those metrics never enter
+the application's intake.
+
+Dependency details resolve DNS and connection spans through their HTTP client
+ancestor and the actual propagated server span. Both runtime resource identities
+must be present. Missing, hidden or ambiguous peers remain unknown. Counter
+samples retain first and last sample times; their sample delta does not include
+unobserved boundaries of the selected window. The fault journey compares this
+delta with independently read namespace counters, within two increments, and
+records the actual traffic-control statistics before removing each fault.
+
+Retained stock OBI network flow metrics are distinct from eBPF application spans.
+Only flows whose declared source container, host and current scope match a
+visible runtime are shown. Raw peer-name labels do not establish a permitted
+peer and are withheld from this projection; the peer remains unknown without
+declared identity evidence. Original metric reads apply current authority again.
+An application span alone cannot establish network-flow coverage.
+
+Each service association keeps its own producer and consumer observations. Its
+visible queue summary and propagated links combine only currently authorized
+spans with the same declared broker identity, namespace and destination. Missing
+producer or consumer observations yield unknown throughput on that side. Current
+scope is applied before this join, and every contributing input is fenced again
+before release.

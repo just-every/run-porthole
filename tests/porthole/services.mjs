@@ -232,7 +232,7 @@ export async function servicesJourney({origin,freshOwner,signIn,sql,restartWorke
  return {view,query,checkoutId:checkout.id}
 }
 
-export async function servicesBrowser({origin,cookie='',path,contains,name,status=200,dispatch,save=false,follow=false,observed}) {
+export async function servicesBrowser({origin,cookie='',path,contains,name,status=200,dispatch,save=false,follow=false,observed,networkExpected}) {
  const {chromium}=await import('@playwright/test'),browser=await chromium.launch({headless:true,...(process.env.PORTHOLE_CHROMIUM_PATH?{executablePath:process.env.PORTHOLE_CHROMIUM_PATH}:{}),args:['--no-sandbox','--use-mock-keychain','--password-store=basic']})
  try{
   const context=await browser.newContext({viewport:{width:1440,height:900}})
@@ -240,6 +240,12 @@ export async function servicesBrowser({origin,cookie='',path,contains,name,statu
   if(dispatch)await context.route(origin+'/**',async route=>{const r=route.request(),response=await dispatch(r.url(),{method:r.method(),headers:r.headers(),...(r.postDataBuffer()?{body:r.postDataBuffer()}:{})});await route.fulfill({status:response.status,headers:Object.fromEntries(response.headers),body:Buffer.from(await response.arrayBuffer())})})
   const page=await context.newPage(),response=await page.goto(origin+path)
   assert.equal(response.status(),status);assert.ok((await page.locator('body').innerText()).includes(contains))
+  if(networkExpected){
+   const body=await page.locator('body').innerText(),n=networkExpected.network,q=networkExpected.queue
+   if(n)for(const series of [n.dns,n.connections])if(series.observations){assert.ok(body.includes(series.observations+' observations'));assert.ok(body.includes('p95 '+(Number(series.p95Ns)/1e6).toFixed(2)+' ms'))}
+   for(const metric of [...(n?.counters??[]),...(q?.metrics??[])]){const dimensions=Object.entries(metric.attributes??{}).sort(([a],[b])=>a.localeCompare(b)).map(([k,v])=>k+'='+String(v)).join(' · ');assert.ok(body.includes(metric.name+(dimensions?' · '+dimensions:'')+' · '+metric.state+' · latest '+(metric.value===null?'Unknown':metric.value)+' '+metric.unit),'Services shows the source-checked metric dimensions, value and state')}
+   if(q){assert.ok(body.includes('Visible queue producer throughput '+(q.visibleQueue.producerPerSecond===null?'Unknown':q.visibleQueue.producerPerSecond.toPrecision(3)+' per second')));assert.ok(body.includes('Propagated producer to consumer links: '+q.links.length))}
+  }
   if(observed){const body=await page.locator('body').innerText();assert.ok(body.includes(observed.requests+' requests · '+observed.errors+' errors'));for(const name of ['p50','p95','p99'])assert.ok(body.includes(name+' '+(Number(observed[name+'Ns'])/1e6).toFixed(2)+' ms'),'Services shows the independently reconciled '+name);const href=await page.getByRole('link',{name:'Read this snapshot as JSON',exact:true}).getAttribute('href');const linked=await page.goto(origin+href);assert.equal(linked.status(),200);const json=await linked.json();assert.equal(json.summary.requests,observed.requests);assert.equal(json.summary.errors,observed.errors);assert.equal(json.summary.p95Ns,observed.p95Ns);await page.goto(origin+path)}
   if(observed){assert.match(await page.locator('body').innerText(),/database.*postgresql.*synthetic_porthole_8400/);assert.match(await page.locator('body').innerText(),/messaging.*kafka/)}
   if(observed){

@@ -18,6 +18,7 @@ export async function networkEstate({dispatch,secret}) {
  const gateway=createServer(async(req,res)=>{
   try{const chunks=[];for await(const c of req)chunks.push(c);const body=Buffer.concat(chunks),type=req.headers['content-type']??'application/x-protobuf';packets.push({path:req.url,body,type,encoding:req.headers['content-encoding']??null});const response=await dispatch(req.url,{method:'POST',headers:{'content-type':type,...(req.headers['content-encoding']?{'content-encoding':req.headers['content-encoding']}:{}),authorization:'Bearer '+secret},body});if(!response.ok)console.log('Network stock export HTTP '+response.status+' '+await response.clone().text());res.writeHead(response.status,{'content-type':response.headers.get('content-type')??'application/x-protobuf'});res.end(Buffer.from(await response.arrayBuffer()))}catch{res.writeHead(503);res.end()}
  })
+ let foreignReceipt=null
  let network,ids={},addresses={},exportEndpoint,internalNoProxy='localhost,127.0.0.1'
  const roles=['checkout-kafka','fulfillment-kafka','checkout-rabbitmq','fulfillment-rabbitmq']
  async function create(name,args,options={}){const full=tag+'-'+name;containers.push(full);const id=await docker('create','--name',full,...(options.namespace?['--network','container:'+tag+'-'+options.namespace]:['--network',tag,'--network-alias',name]),...args);ids[name]=id;return full}
@@ -29,11 +30,11 @@ export async function networkEstate({dispatch,secret}) {
  async function command(name,args){return docker('exec',tag+'-'+name,...args)}
  async function kafkaCommand(tool,args){return command('kafka',['/opt/kafka/bin/kafka-'+tool+'.sh','--bootstrap-server','kafka:9092','--command-config','/run/admin.properties',...args])}
  async function netem(namespace,args,capability=true){return docker('run','--rm','--network','container:'+tag+'-'+namespace,...(capability?['--cap-add','NET_ADMIN']:[]),networkPins.netem,'tc',...args).catch(error=>{if(/qdisc kind is unknown/.test(error.stderr??''))throw Error('network_fault_kernel_unavailable: CONFIG_NET_SCH_NETEM and CONFIG_NET_SCH_PRIO required; '+error.stderr.trim());throw error})}
- async function snap(){return {atNs:String(BigInt(Date.now())*1000000n),apps:await stats(),snmp:await command('checkout-kafka',['cat','/proc/net/snmp']),netstat:await command('checkout-kafka',['cat','/proc/net/netstat']),kafka:await kafkaCommand('consumer-groups',['--describe','--group','synthetic-porthole-network-group']),rabbit:await command('rabbit',['rabbitmqctl','-q','list_queues','name','messages_ready','messages_unacknowledged','messages'])}}
+ async function snap(){return {atNs:String(BigInt(Date.now())*1000000n),apps:await stats(),containerDrops:{rx:Number(await command('checkout-kafka',['cat','/sys/class/net/eth0/statistics/rx_dropped'])),tx:Number(await command('checkout-kafka',['cat','/sys/class/net/eth0/statistics/tx_dropped']))},snmp:await command('checkout-kafka',['cat','/proc/net/snmp']),netstat:await command('checkout-kafka',['cat','/proc/net/netstat']),kafka:await kafkaCommand('consumer-groups',['--describe','--group','synthetic-porthole-network-group']),rabbit:await command('rabbit',['rabbitmqctl','-q','list_queues','name','messages_ready','messages_unacknowledged','messages'])}}
  async function record(name,injected,run){
   console.log('Network window: '+name)
-  const from=String(BigInt(Date.now())*1000000n),before=await snap();await run();await pause(4500);for(const role of roles)await app(role,'/flush');await pause(500)
-  const after=await snap(),through=String(BigInt(Date.now())*1000000n),window={name,injected,from,through,before,after};windows.push(window);return window
+  const from=String(BigInt(Date.now())*1000000n),before=await snap(),groundTruth=await run();await pause(4500);for(const role of roles)await app(role,'/flush');await pause(500)
+  const after=await snap(),through=String(BigInt(Date.now())*1000000n),window={name,injected,from,through,before,after,...(groundTruth?{groundTruth}:{})};windows.push(window);return window
  }
  async function collect(name,config,mountSocket=true){const file=join(scratch,name+'.json');await writeFile(file,JSON.stringify(config));return run(name,['--user','0:0','-e','NO_PROXY='+internalNoProxy,'-e','no_proxy='+internalNoProxy,'-v',file+':/etc/otelcol/config.json:ro',...(mountSocket?['-v','/var/run/docker.sock:/var/run/docker.sock:ro']:[]),'-e','KAFKA_READER_PASSWORD='+password,'-e','RABBITMQ_MONITOR_PASSWORD='+password,networkPins.collector,'--config=/etc/otelcol/config.json'])}
  async function start(){
@@ -48,9 +49,16 @@ export async function networkEstate({dispatch,secret}) {
   ids.rabbitmq=ids.rabbit
   await waitFor('kafka',()=>kafkaCommand('topics',['--list']).then(()=>true))
   await kafkaCommand('topics',['--create','--topic',destination,'--partitions','1','--replication-factor','1'])
-  for(const args of [['--topic','*'],['--group','*'],['--cluster']])await kafkaCommand('acls',['--add','--allow-principal','User:reader','--operation','Describe',...args])
+  for(const args of [['--topic',destination],['--group','synthetic-porthole-network-group'],['--cluster']])await kafkaCommand('acls',['--add','--allow-principal','User:reader','--operation','Describe',...args])
   await waitFor('rabbit',()=>command('rabbit',['rabbitmqctl','await_startup']).then(()=>true))
   await command('rabbit',['rabbitmqctl','add_user','monitor',password]);await command('rabbit',['rabbitmqctl','set_user_tags','monitor','monitoring']);await command('rabbit',['rabbitmqctl','set_permissions','-p','/','monitor','','','.*'])
+  // An independently counted same-name queue in a different virtual host
+  // must never be assigned to the reviewed application's metric scope.
+  await command('rabbit',['rabbitmqctl','add_vhost','synthetic-porthole-foreign'])
+  await command('rabbit',['rabbitmqctl','set_permissions','-p','synthetic-porthole-foreign','workload','.*','.*','.*'])
+  const foreign=await run('foreign-workload',['-v',root+':/app:ro','-w','/app','-e','WORKLOAD_PASSWORD='+password,'-e','DESTINATION='+destination,networkPins.workload,'node','tests/porthole/network/foreign.cjs'])
+  await docker('wait',foreign);foreignReceipt=JSON.parse(await docker('logs',foreign))
+  assert.equal(foreignReceipt.sent,7)
   // Create first, then declare the real Docker IDs before starting SDKs.
   for(const role of roles){
    const system=role.endsWith('kafka')?'kafka':'rabbitmq'
@@ -81,16 +89,16 @@ export async function networkEstate({dispatch,secret}) {
   await run('node-exporter',['--pid','container:'+tag+'-checkout-kafka',networkPins.nodeExporter,'--collector.disable-defaults','--collector.netstat','--collector.netstat.fields=^(Tcp_RetransSegs|TcpExt_TCPTimeouts)$','--web.listen-address=:9100'],{namespace:'checkout-kafka'})
   const identity={service:'checkout-kafka',environment:'production',team:'commerce',containerId:ids['checkout-kafka'],hostId:ids.host}
   await collect('network-collector',networkConfiguration({identity,exportEndpoint}))
-  for(const system of ['kafka','rabbitmq'])await collect(system+'-collector',messagingConfiguration({identity:{...identity,service:'checkout-'+system,containerId:ids[system],brokerId:ids[system]},consumerIdentity:{...identity,service:'fulfillment-'+system,containerId:ids[system],brokerId:ids[system]},system,exportEndpoint}),false)
+  for(const system of ['kafka','rabbitmq'])await collect(system+'-collector',messagingConfiguration({identity:{...identity,destination,group:'synthetic-porthole-network-group',vhost:'/',service:'checkout-'+system,containerId:ids[system],brokerId:ids[system]},consumerIdentity:{...identity,service:'fulfillment-'+system,containerId:ids[system],brokerId:ids[system]},system,exportEndpoint}),false)
   return {tag,ids,addresses}
  }
  async function exercise(){
   await record('baseline',{transactionsPerBroker:12},async()=>{for(const s of ['kafka','rabbitmq'])await app('checkout-'+s,'/work?count=12&window=baseline')})
-  await record('dns-delay',{resolverInterface:'eth0',delayMs:80,transactions:8},async()=>{await netem('resolver',['qdisc','add','dev','eth0','root','netem','delay','80ms']);try{await app('checkout-kafka','/work?count=8&window=dns-delay')}finally{await netem('resolver',['qdisc','del','dev','eth0','root'])}})
+  await record('dns-delay',{resolverInterface:'eth0',delayMs:80,transactions:8},async()=>{await netem('resolver',['qdisc','add','dev','eth0','root','netem','delay','80ms']);try{await app('checkout-kafka','/work?count=8&window=dns-delay');return {qdisc:await netem('resolver',['-s','qdisc','show','dev','eth0'])}}finally{await netem('resolver',['qdisc','del','dev','eth0','root'])}})
   await record('packet-loss',{sourceContainer:ids['checkout-kafka'],targetContainer:ids['fulfillment-kafka'],lossPercent:20,transactions:12},async()=>{
    const ip=(await inspect('fulfillment-kafka')).NetworkSettings.Networks[tag].IPAddress
    await netem('checkout-kafka',['qdisc','add','dev','eth0','root','handle','1:','prio']);await netem('checkout-kafka',['qdisc','add','dev','eth0','parent','1:3','handle','30:','netem','loss','20%']);await netem('checkout-kafka',['filter','add','dev','eth0','protocol','ip','parent','1:0','prio','1','u32','match','ip','dst',ip+'/32','flowid','1:3'])
-   try{await app('checkout-kafka','/work?count=12&window=packet-loss')}finally{await netem('checkout-kafka',['qdisc','del','dev','eth0','root'])}
+   try{await app('checkout-kafka','/work?count=12&window=packet-loss');return {qdisc:await netem('checkout-kafka',['-s','qdisc','show','dev','eth0'])}}finally{await netem('checkout-kafka',['qdisc','del','dev','eth0','root'])}
   })
   await record('backlog',{pausedKafkaGroup:'synthetic-porthole-network-group',pausedRabbitConsumer:true,transactionsPerBroker:24},async()=>{
    for(const s of ['kafka','rabbitmq'])await app('fulfillment-'+s,'/pause')
@@ -101,7 +109,7 @@ export async function networkEstate({dispatch,secret}) {
   for(const [name,remove,restore,privilege] of [
    ['namespace',()=>docker('stop',tag+'-node-exporter'),()=>docker('start',tag+'-node-exporter'),'affected network namespace access'],
    ['docker-socket',async()=>{await docker('stop',tag+'-network-collector');await collect('network-no-socket',networkConfiguration({identity:{service:'checkout-kafka',environment:'production',team:'commerce',containerId:ids['checkout-kafka'],hostId:ids.host},exportEndpoint}),false)},async()=>{await docker('stop',tag+'-network-no-socket');await docker('start',tag+'-network-collector')},'Docker socket read access'],
-   ['kafka-grant',()=>kafkaCommand('acls',['--remove','--force','--allow-principal','User:reader','--operation','Describe','--group','*']),()=>kafkaCommand('acls',['--add','--allow-principal','User:reader','--operation','Describe','--group','*']),'Kafka consumer group Describe ACL'],
+   ['kafka-grant',()=>kafkaCommand('acls',['--remove','--force','--allow-principal','User:reader','--operation','Describe','--group','synthetic-porthole-network-group']),()=>kafkaCommand('acls',['--add','--allow-principal','User:reader','--operation','Describe','--group','synthetic-porthole-network-group']),'Kafka consumer group Describe ACL'],
    ['rabbit-permission',async()=>{await command('rabbit',['rabbitmqctl','set_user_tags','monitor']);await command('rabbit',['rabbitmqctl','clear_permissions','-p','/','monitor'])},async()=>{await command('rabbit',['rabbitmqctl','set_user_tags','monitor','monitoring']);await command('rabbit',['rabbitmqctl','set_permissions','-p','/','monitor','','','.*'])},'RabbitMQ monitoring user vhost permission'],
   ]){
    await remove();await record('denied-'+name,{removed:privilege},async()=>{await pause(16000);for(const system of ['kafka','rabbitmq'])await app('checkout-'+system,'/work?count=1&window=denied-'+name)});denials.push({name,privilege,state:'removed'});await restore();await record('restored-'+name,{restored:privilege},async()=>{for(const system of ['kafka','rabbitmq'])await app('checkout-'+system,'/work?count=1&window=restored-'+name)})
@@ -114,8 +122,8 @@ export async function networkEstate({dispatch,secret}) {
    try{await run(name,['--pid','container:'+tag+'-checkout-kafka',...caps.flatMap(c=>['--cap-add',c]),'-e','OTEL_EBPF_OPEN_PORT=8080','-e','OTEL_EXPORTER_OTLP_ENDPOINT='+exportEndpoint,networkPins.obi],{namespace:'checkout-kafka'});await pause(3000);const state=(await inspect(name)).State,logs=await docker('logs',tag+'-'+name);denials.push({name,privilege:'BPF and PERFMON with kernel support',state:state.Running?'running-unqualified':'kernel-or-privilege-gap',diagnostic:logs.slice(-1600)});if(state.Running)await docker('stop',tag+'-'+name)}catch(error){denials.push({name,privilege:'BPF and PERFMON with kernel support',state:'kernel-or-privilege-gap',diagnostic:String(error.stderr??error.message).slice(-1000)})}
   }
   for(const role of roles)await app(role,'/flush');await pause(500)
-  return {windows,denials,packets,stats:await stats(),ids,pins:{...networkPins,...messagingPins}}
+  return {windows,denials,packets,stats:await stats(),ids,foreign:foreignReceipt,pins:{...networkPins,...messagingPins}}
  }
  async function stop(){for(const name of [...containers].reverse()){await docker('rm','-f',name).catch(()=>{})}if(network)await docker('network','rm',tag).catch(()=>{});if(gateway.listening)await new Promise(r=>gateway.close(r));await rm(scratch,{recursive:true,force:true})}
- return {start,exercise,stop,app,stats,windows,packets,denials,ids,diagnostics:async()=>Promise.all(containers.filter(n=>n.includes('collector')).map(async name=>({name,state:JSON.parse(await docker('inspect',name))[0].State,logs:await docker('logs',name)})))}
+ return {get foreign(){return foreignReceipt},start,exercise,stop,app,stats,windows,packets,denials,ids,diagnostics:async()=>Promise.all(containers.filter(n=>n.includes('collector')).map(async name=>({name,state:JSON.parse(await docker('inspect',name))[0].State,logs:await docker('logs',name)})))}
 }
