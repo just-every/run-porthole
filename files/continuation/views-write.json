@@ -1,0 +1,19 @@
+{
+  "command": [
+    "node",
+    "scripts/porthole/contract-docs.mjs",
+    "write",
+    "PORT-061"
+  ],
+  "ended_at": "2026-11-09T01:04:34.764418+00:00",
+  "exit": 0,
+  "head": "2517ca49f046eb292521933e1611424bfeda8eb9",
+  "head_after": "2517ca49f046eb292521933e1611424bfeda8eb9",
+  "log": "views-write.log",
+  "log_sha256": "e68c8db477f90c3115124f056f11e21a6c570b739090c96ccc6e3885a50d2c8a",
+  "name": "views-write",
+  "started_at": "2026-11-09T01:04:34.689792+00:00",
+  "tree": "e3f8630e939e73ad0f57282a25038116a501531e",
+  "tree_after": "e3f8630e939e73ad0f57282a25038116a501531e",
+  "working_tree": "M docs/standard-signal-apis.md\n M tests/porthole/archive.mjs"
+}

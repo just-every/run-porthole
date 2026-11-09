@@ -1,0 +1,23 @@
+{
+  "command": [
+    "timeout",
+    "300",
+    "pnpm",
+    "exec",
+    "rer",
+    "check",
+    "--profile",
+    "first-party"
+  ],
+  "ended_at": "2026-11-09T01:05:38.732934+00:00",
+  "exit": 0,
+  "head": "c62aa0a225f5da1b2965b37c20b6bcdfb12fee3f",
+  "head_after": "c62aa0a225f5da1b2965b37c20b6bcdfb12fee3f",
+  "log": "first-party-exact.log",
+  "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "name": "first-party-exact",
+  "started_at": "2026-11-09T01:05:38.096478+00:00",
+  "tree": "a797f42e98b91ae087c357639fef7efd6c0fb311",
+  "tree_after": "a797f42e98b91ae087c357639fef7efd6c0fb311",
+  "working_tree": ""
+}

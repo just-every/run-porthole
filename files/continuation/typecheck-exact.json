@@ -1,0 +1,20 @@
+{
+  "command": [
+    "timeout",
+    "300",
+    "pnpm",
+    "run",
+    "typecheck"
+  ],
+  "ended_at": "2026-11-09T01:05:37.355454+00:00",
+  "exit": 0,
+  "head": "c62aa0a225f5da1b2965b37c20b6bcdfb12fee3f",
+  "head_after": "c62aa0a225f5da1b2965b37c20b6bcdfb12fee3f",
+  "log": "typecheck-exact.log",
+  "log_sha256": "66bd9bc7218f77b455cfad68c51c8eeabf832bdd869fc7c1bda1b139c9659e3e",
+  "name": "typecheck-exact",
+  "started_at": "2026-11-09T01:05:36.962004+00:00",
+  "tree": "a797f42e98b91ae087c357639fef7efd6c0fb311",
+  "tree_after": "a797f42e98b91ae087c357639fef7efd6c0fb311",
+  "working_tree": ""
+}

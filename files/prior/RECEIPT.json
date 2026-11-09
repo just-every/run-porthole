@@ -1,0 +1,358 @@
+{
+  "branch": "cloud/sx-porthole-c-f464",
+  "checks": {
+    "analytical": {
+      "command": [
+        "timeout",
+        "1200",
+        "env",
+        "PORTHOLE_STANDARD_ANALYTICAL_ONLY=1",
+        "node",
+        "tests/runtime.mjs"
+      ],
+      "ended_at": "2026-11-09T00:28:34.025029+00:00",
+      "exit": 0,
+      "head": "bf9eba1ad9206f6267a720c0fce3358ead041a34",
+      "log": "analytical.log",
+      "name": "analytical",
+      "started_at": "2026-11-09T00:23:56.062173+00:00"
+    },
+    "analytical-final": {
+      "command": [
+        "timeout",
+        "1200",
+        "env",
+        "PORTHOLE_STANDARD_ANALYTICAL_ONLY=1",
+        "node",
+        "tests/runtime.mjs"
+      ],
+      "ended_at": "2026-11-09T00:36:54.829520+00:00",
+      "exit": 0,
+      "head": "bf9eba1ad9206f6267a720c0fce3358ead041a34",
+      "input_sha256": {
+        "package.json": "5764715eb1fe725297af6521a48bac709d5fdb19f86a3e848afea45860990216",
+        "src/porthole/ingest/read.ts": "90ce1274a9d437cb77a018fb060446dddcc34f8d8b1d62c91432d69e28194ee8",
+        "src/porthole/signals/standard/http.ts": "5fcea049a3216167973ef904c123b6b5311fd5297aef20d5aa15f3753cd61982",
+        "src/porthole/signals/standard/openapi.ts": "cc6a89f702eb43773631ed5d3d1592bdab8f9bfbdb65c56ffdb067a4963cc7d1",
+        "src/porthole/signals/standard/prometheus.ts": "c547f5807d393d5ef4929f7fab34551defd61db7e162f02be5e918b1cafc9c4e",
+        "src/porthole/signals/standard/protobuf.ts": "6bbd4fba7d91af847d6b317a9d20334005ca9943dba5f1d06ea6b5fa02c33145",
+        "src/porthole/signals/standard/read.ts": "1a0de81b8733db7db690e77cbaff1fd4d5b6d7ebcee6382a96b8b682571e8f65",
+        "src/porthole/signals/standard/tempo.ts": "0ec10004901fda0ee3f9eaecbc018ba6b50314a8deb08cfbb677d970338acc2f",
+        "tests/porthole/standard-reads.mjs": "d47ee4348536341c46820d4678fe20e000835c88b7fd84748a3b09af2df26371",
+        "tests/runtime.mjs": "1a4b507b8d1ed00c5bec26acf1c6f187b43345a83e7d4a28e0140da020023a23",
+        "verification.json": "86c83377f27a4e17fbd1eaeb942831988f8111c5c90d3a3de16a6901ba9ccbd1"
+      },
+      "inputs_unchanged": true,
+      "log": "analytical-final.log",
+      "name": "analytical-final",
+      "started_at": "2026-11-09T00:29:07.681607+00:00",
+      "working_tree_at_start": [
+        " M docs/signal-exports.md",
+        " M docs/standard-signal-apis.md",
+        " M tests/porthole/standard-reads.mjs"
+      ]
+    },
+    "build": {
+      "command": [
+        "timeout",
+        "1200",
+        "npx",
+        "-y",
+        "@runeditrun/rer",
+        "build"
+      ],
+      "ended_at": "2026-11-09T00:36:59.877346+00:00",
+      "exit": 0,
+      "head": "bf9eba1ad9206f6267a720c0fce3358ead041a34",
+      "input_sha256": {
+        "package.json": "5764715eb1fe725297af6521a48bac709d5fdb19f86a3e848afea45860990216",
+        "src/porthole/ingest/read.ts": "90ce1274a9d437cb77a018fb060446dddcc34f8d8b1d62c91432d69e28194ee8",
+        "src/porthole/signals/standard/http.ts": "5fcea049a3216167973ef904c123b6b5311fd5297aef20d5aa15f3753cd61982",
+        "src/porthole/signals/standard/openapi.ts": "cc6a89f702eb43773631ed5d3d1592bdab8f9bfbdb65c56ffdb067a4963cc7d1",
+        "src/porthole/signals/standard/prometheus.ts": "c547f5807d393d5ef4929f7fab34551defd61db7e162f02be5e918b1cafc9c4e",
+        "src/porthole/signals/standard/protobuf.ts": "6bbd4fba7d91af847d6b317a9d20334005ca9943dba5f1d06ea6b5fa02c33145",
+        "src/porthole/signals/standard/read.ts": "1a0de81b8733db7db690e77cbaff1fd4d5b6d7ebcee6382a96b8b682571e8f65",
+        "src/porthole/signals/standard/tempo.ts": "0ec10004901fda0ee3f9eaecbc018ba6b50314a8deb08cfbb677d970338acc2f",
+        "tests/porthole/standard-reads.mjs": "d47ee4348536341c46820d4678fe20e000835c88b7fd84748a3b09af2df26371",
+        "tests/runtime.mjs": "1a4b507b8d1ed00c5bec26acf1c6f187b43345a83e7d4a28e0140da020023a23",
+        "verification.json": "86c83377f27a4e17fbd1eaeb942831988f8111c5c90d3a3de16a6901ba9ccbd1"
+      },
+      "inputs_unchanged": true,
+      "log": "build.log",
+      "name": "build",
+      "started_at": "2026-11-09T00:31:16.339090+00:00",
+      "working_tree_at_start": [
+        " M docs/signal-exports.md",
+        " M docs/standard-signal-apis.md",
+        " M tests/porthole/standard-reads.mjs"
+      ]
+    },
+    "first-party": {
+      "command": [
+        "timeout",
+        "300",
+        "npx",
+        "-y",
+        "@runeditrun/rer",
+        "check",
+        "--profile",
+        "first-party"
+      ],
+      "ended_at": "2026-11-09T00:25:12.597866+00:00",
+      "exit": 0,
+      "head": "bf9eba1ad9206f6267a720c0fce3358ead041a34",
+      "log": "first-party.log",
+      "name": "first-party",
+      "started_at": "2026-11-09T00:25:11.371599+00:00"
+    },
+    "schema": {
+      "command": [
+        "timeout",
+        "300",
+        "node",
+        "scripts/porthole/public-schema.mjs",
+        "--check"
+      ],
+      "ended_at": "2026-11-09T00:37:50.790995+00:00",
+      "exit": 0,
+      "head": "bf9eba1ad9206f6267a720c0fce3358ead041a34",
+      "input_sha256": {
+        "package.json": "5764715eb1fe725297af6521a48bac709d5fdb19f86a3e848afea45860990216",
+        "src/porthole/ingest/read.ts": "90ce1274a9d437cb77a018fb060446dddcc34f8d8b1d62c91432d69e28194ee8",
+        "src/porthole/signals/standard/http.ts": "5fcea049a3216167973ef904c123b6b5311fd5297aef20d5aa15f3753cd61982",
+        "src/porthole/signals/standard/openapi.ts": "cc6a89f702eb43773631ed5d3d1592bdab8f9bfbdb65c56ffdb067a4963cc7d1",
+        "src/porthole/signals/standard/prometheus.ts": "c547f5807d393d5ef4929f7fab34551defd61db7e162f02be5e918b1cafc9c4e",
+        "src/porthole/signals/standard/protobuf.ts": "6bbd4fba7d91af847d6b317a9d20334005ca9943dba5f1d06ea6b5fa02c33145",
+        "src/porthole/signals/standard/read.ts": "1a0de81b8733db7db690e77cbaff1fd4d5b6d7ebcee6382a96b8b682571e8f65",
+        "src/porthole/signals/standard/tempo.ts": "0ec10004901fda0ee3f9eaecbc018ba6b50314a8deb08cfbb677d970338acc2f",
+        "tests/porthole/standard-reads.mjs": "d47ee4348536341c46820d4678fe20e000835c88b7fd84748a3b09af2df26371",
+        "tests/runtime.mjs": "1a4b507b8d1ed00c5bec26acf1c6f187b43345a83e7d4a28e0140da020023a23",
+        "verification.json": "86c83377f27a4e17fbd1eaeb942831988f8111c5c90d3a3de16a6901ba9ccbd1"
+      },
+      "inputs_unchanged": true,
+      "log": "schema.log",
+      "name": "schema",
+      "started_at": "2026-11-09T00:37:49.910076+00:00",
+      "working_tree_at_start": [
+        " M docs/signal-exports.md",
+        " M docs/standard-signal-apis.md",
+        " M tests/porthole/standard-reads.mjs"
+      ]
+    },
+    "source-check": {
+      "command": [
+        "timeout",
+        "300",
+        "pnpm",
+        "run",
+        "source:check"
+      ],
+      "ended_at": "2026-11-09T00:37:52.253677+00:00",
+      "exit": 0,
+      "head": "bf9eba1ad9206f6267a720c0fce3358ead041a34",
+      "input_sha256": {
+        "package.json": "5764715eb1fe725297af6521a48bac709d5fdb19f86a3e848afea45860990216",
+        "src/porthole/ingest/read.ts": "90ce1274a9d437cb77a018fb060446dddcc34f8d8b1d62c91432d69e28194ee8",
+        "src/porthole/signals/standard/http.ts": "5fcea049a3216167973ef904c123b6b5311fd5297aef20d5aa15f3753cd61982",
+        "src/porthole/signals/standard/openapi.ts": "cc6a89f702eb43773631ed5d3d1592bdab8f9bfbdb65c56ffdb067a4963cc7d1",
+        "src/porthole/signals/standard/prometheus.ts": "c547f5807d393d5ef4929f7fab34551defd61db7e162f02be5e918b1cafc9c4e",
+        "src/porthole/signals/standard/protobuf.ts": "6bbd4fba7d91af847d6b317a9d20334005ca9943dba5f1d06ea6b5fa02c33145",
+        "src/porthole/signals/standard/read.ts": "1a0de81b8733db7db690e77cbaff1fd4d5b6d7ebcee6382a96b8b682571e8f65",
+        "src/porthole/signals/standard/tempo.ts": "0ec10004901fda0ee3f9eaecbc018ba6b50314a8deb08cfbb677d970338acc2f",
+        "tests/porthole/standard-reads.mjs": "d47ee4348536341c46820d4678fe20e000835c88b7fd84748a3b09af2df26371",
+        "tests/runtime.mjs": "1a4b507b8d1ed00c5bec26acf1c6f187b43345a83e7d4a28e0140da020023a23",
+        "verification.json": "86c83377f27a4e17fbd1eaeb942831988f8111c5c90d3a3de16a6901ba9ccbd1"
+      },
+      "inputs_unchanged": true,
+      "log": "source-check.log",
+      "name": "source-check",
+      "started_at": "2026-11-09T00:37:51.654118+00:00",
+      "working_tree_at_start": [
+        "M  docs/signal-exports.md",
+        "M  docs/standard-signal-apis.md",
+        " M sources.lock.json",
+        "M  tests/porthole/standard-reads.mjs"
+      ]
+    },
+    "source-lock": {
+      "command": [
+        "timeout",
+        "300",
+        "pnpm",
+        "run",
+        "source:lock"
+      ],
+      "ended_at": "2026-11-09T00:37:51.599800+00:00",
+      "exit": 0,
+      "head": "bf9eba1ad9206f6267a720c0fce3358ead041a34",
+      "input_sha256": {
+        "package.json": "5764715eb1fe725297af6521a48bac709d5fdb19f86a3e848afea45860990216",
+        "src/porthole/ingest/read.ts": "90ce1274a9d437cb77a018fb060446dddcc34f8d8b1d62c91432d69e28194ee8",
+        "src/porthole/signals/standard/http.ts": "5fcea049a3216167973ef904c123b6b5311fd5297aef20d5aa15f3753cd61982",
+        "src/porthole/signals/standard/openapi.ts": "cc6a89f702eb43773631ed5d3d1592bdab8f9bfbdb65c56ffdb067a4963cc7d1",
+        "src/porthole/signals/standard/prometheus.ts": "c547f5807d393d5ef4929f7fab34551defd61db7e162f02be5e918b1cafc9c4e",
+        "src/porthole/signals/standard/protobuf.ts": "6bbd4fba7d91af847d6b317a9d20334005ca9943dba5f1d06ea6b5fa02c33145",
+        "src/porthole/signals/standard/read.ts": "1a0de81b8733db7db690e77cbaff1fd4d5b6d7ebcee6382a96b8b682571e8f65",
+        "src/porthole/signals/standard/tempo.ts": "0ec10004901fda0ee3f9eaecbc018ba6b50314a8deb08cfbb677d970338acc2f",
+        "tests/porthole/standard-reads.mjs": "d47ee4348536341c46820d4678fe20e000835c88b7fd84748a3b09af2df26371",
+        "tests/runtime.mjs": "1a4b507b8d1ed00c5bec26acf1c6f187b43345a83e7d4a28e0140da020023a23",
+        "verification.json": "86c83377f27a4e17fbd1eaeb942831988f8111c5c90d3a3de16a6901ba9ccbd1"
+      },
+      "inputs_unchanged": true,
+      "log": "source-lock.log",
+      "name": "source-lock",
+      "started_at": "2026-11-09T00:37:51.027124+00:00",
+      "working_tree_at_start": [
+        "M  docs/signal-exports.md",
+        "M  docs/standard-signal-apis.md",
+        "M  tests/porthole/standard-reads.mjs"
+      ]
+    },
+    "standard": {
+      "command": [
+        "timeout",
+        "1200",
+        "env",
+        "PORTHOLE_STANDARD_ONLY=1",
+        "node",
+        "tests/runtime.mjs"
+      ],
+      "ended_at": "2026-11-09T00:32:44.993030+00:00",
+      "exit": 0,
+      "head": "bf9eba1ad9206f6267a720c0fce3358ead041a34",
+      "log": "standard.log",
+      "name": "standard",
+      "started_at": "2026-11-09T00:24:37.459175+00:00"
+    },
+    "typecheck-final": {
+      "command": [
+        "timeout",
+        "300",
+        "pnpm",
+        "run",
+        "typecheck"
+      ],
+      "ended_at": "2026-11-09T00:37:49.856254+00:00",
+      "exit": 0,
+      "head": "bf9eba1ad9206f6267a720c0fce3358ead041a34",
+      "input_sha256": {
+        "package.json": "5764715eb1fe725297af6521a48bac709d5fdb19f86a3e848afea45860990216",
+        "src/porthole/ingest/read.ts": "90ce1274a9d437cb77a018fb060446dddcc34f8d8b1d62c91432d69e28194ee8",
+        "src/porthole/signals/standard/http.ts": "5fcea049a3216167973ef904c123b6b5311fd5297aef20d5aa15f3753cd61982",
+        "src/porthole/signals/standard/openapi.ts": "cc6a89f702eb43773631ed5d3d1592bdab8f9bfbdb65c56ffdb067a4963cc7d1",
+        "src/porthole/signals/standard/prometheus.ts": "c547f5807d393d5ef4929f7fab34551defd61db7e162f02be5e918b1cafc9c4e",
+        "src/porthole/signals/standard/protobuf.ts": "6bbd4fba7d91af847d6b317a9d20334005ca9943dba5f1d06ea6b5fa02c33145",
+        "src/porthole/signals/standard/read.ts": "1a0de81b8733db7db690e77cbaff1fd4d5b6d7ebcee6382a96b8b682571e8f65",
+        "src/porthole/signals/standard/tempo.ts": "0ec10004901fda0ee3f9eaecbc018ba6b50314a8deb08cfbb677d970338acc2f",
+        "tests/porthole/standard-reads.mjs": "d47ee4348536341c46820d4678fe20e000835c88b7fd84748a3b09af2df26371",
+        "tests/runtime.mjs": "1a4b507b8d1ed00c5bec26acf1c6f187b43345a83e7d4a28e0140da020023a23",
+        "verification.json": "86c83377f27a4e17fbd1eaeb942831988f8111c5c90d3a3de16a6901ba9ccbd1"
+      },
+      "inputs_unchanged": true,
+      "log": "typecheck-final.log",
+      "name": "typecheck-final",
+      "started_at": "2026-11-09T00:37:49.427846+00:00",
+      "working_tree_at_start": [
+        " M docs/signal-exports.md",
+        " M docs/standard-signal-apis.md",
+        " M tests/porthole/standard-reads.mjs"
+      ]
+    }
+  },
+  "ci_completed_success": false,
+  "ci_discovery": [
+    {
+      "conclusion": null,
+      "event": "push",
+      "head_branch": "cloud/sx-porthole-c-f464",
+      "head_sha": "0714a69f24edacb85ac194622f121a6251328dbd",
+      "html_url": "https://github.com/just-every/run-porthole/actions/runs/42541236693",
+      "id": 42541236693,
+      "name": "Verify",
+      "status": "in_progress"
+    }
+  ],
+  "ci_latest": {
+    "conclusion": "cancelled",
+    "github_calls_used": 6,
+    "head_sha": "0714a69f24edacb85ac194622f121a6251328dbd",
+    "html_url": "https://github.com/just-every/run-porthole/actions/runs/42541236693",
+    "observed_at": "2026-11-09T00:53:21.986441+00:00",
+    "run_id": 42541236693,
+    "status": "completed"
+  },
+  "contract_unchanged": true,
+  "counts_after": {
+    "done": 10,
+    "missing": 69,
+    "partial": 20
+  },
+  "counts_before": {
+    "done": 10,
+    "missing": 69,
+    "partial": 20
+  },
+  "exact_candidate_input_matches_final_analytical": {
+    "package.json": true,
+    "src/porthole/ingest/read.ts": true,
+    "src/porthole/signals/standard/http.ts": true,
+    "src/porthole/signals/standard/openapi.ts": true,
+    "src/porthole/signals/standard/prometheus.ts": true,
+    "src/porthole/signals/standard/protobuf.ts": true,
+    "src/porthole/signals/standard/read.ts": true,
+    "src/porthole/signals/standard/tempo.ts": true,
+    "tests/porthole/standard-reads.mjs": true,
+    "tests/runtime.mjs": true,
+    "verification.json": true
+  },
+  "generated_views_unchanged": true,
+  "github_calls_used": 6,
+  "handoff_policy": "Cloud cancellation exception permits READY custody handoff; successful exact-SHA Verify remains required before landing",
+  "head": "0714a69f24edacb85ac194622f121a6251328dbd",
+  "historical_local_failure": {
+    "command": "PORTHOLE_STANDARD_ONLY=1 node tests/runtime.mjs",
+    "error": "TypeError: terminated; incorrect header check; Z_DATA_ERROR",
+    "exit": 1,
+    "head": "bf9eba1ad9206f6267a720c0fce3358ead041a34",
+    "log": "relay-before-fix.log",
+    "resolution": "Relay requests identity encoding; subsequent native and analytical runs pass"
+  },
+  "landing": {
+    "main_equality": false,
+    "run_site": "pending_guarded_landing",
+    "status": "branch_only"
+  },
+  "main_head_at_merge": "4a86b252865d95d341e2a54d5b5b88e98c40bdd4",
+  "mechanical": {
+    "ledger": {
+      "command": null,
+      "exit": 0,
+      "reason": "No migration changes"
+    },
+    "lock": {
+      "check": "pnpm run source:check",
+      "exit": 0,
+      "generate": "pnpm run source:lock"
+    },
+    "views": {
+      "check": "node scripts/porthole/contract-docs.mjs check PORT-061",
+      "exit": 0,
+      "restored": true,
+      "write": "node scripts/porthole/contract-docs.mjs write PORT-061"
+    }
+  },
+  "publication_scan": {
+    "complete": null,
+    "findings": null,
+    "historyScanned": null,
+    "owner": "guarded Mac lander",
+    "status": "not_run_cloud"
+  },
+  "pushed_head": "0714a69f24edacb85ac194622f121a6251328dbd",
+  "recorded_at": "2026-11-09T00:55:01.287692+00:00",
+  "repository": "just-every/run-porthole",
+  "tag": "sx-porthole-c-f464",
+  "test_registrations_added": 0,
+  "test_registrations_removed": 0,
+  "worktree_clean": true
+}

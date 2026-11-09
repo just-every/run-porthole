@@ -1,0 +1,10 @@
+{
+  "branch": "cloud/sx-porthole-c-f464",
+  "head": "c62aa0a225f5da1b2965b37c20b6bcdfb12fee3f",
+  "main_equality": false,
+  "main_head": "4a86b252865d95d341e2a54d5b5b88e98c40bdd4",
+  "observed_at": "2026-11-09T01:14:43.835486+00:00",
+  "product_pushed": true,
+  "remote_head": "c62aa0a225f5da1b2965b37c20b6bcdfb12fee3f",
+  "worktree_clean": true
+}

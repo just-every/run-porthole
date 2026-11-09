@@ -1,0 +1,10 @@
+PROBE PORT-061 standard metrics: stock Prometheus 3.5.0 remote_read evaluates 19 fixed expressions over real scrape, stock OTLP and official-schema summary input -> exact reference series, labels, timestamps and values
+PROBE PORT-061 restore: inactive owner installation restore -> original samples and exact stock Tempo trace in both representations across restart; new destination authority only, revocation enforced, intake remains paused
+PROBE PORT-061 schema and erasure: cumulative gauges, sums, buckets and summaries map exactly; raw float bits survive; delta and exponential inputs refuse; native erased subject and replay remain absent after restart
+STANDARD_READ_RESULT {"metricSeries":223,"metricSamples":1117,"traceIds":3,"selectedTraceSpans":8,"prometheus":"3.5.0","tempoClient":"2.8.2","result":"passed"}
+PROBE PORT-061 standard traces: captured stock HTTP and Kafka spans -> official OTLP binary reader exact spans and stock Tempo CLI; restricted span set and explicit partial evidence; restart and inactive restore
+PROBE PORT-061 standard metrics: stock Prometheus 3.5.0 remote_read evaluates 19 fixed expressions over real scrape, stock OTLP and official-schema summary input -> exact reference series, labels, timestamps and values on both analytical configurations
+STANDARD_READ_RESULT {"metricSeries":223,"metricSamples":1117,"traceIds":3,"selectedTraceSpans":8,"prometheus":"3.5.0","tempoClient":"2.8.2","result":"passed"}
+PROBE PORT-061 standard traces: captured stock HTTP and Kafka spans -> official OTLP binary reader exact spans and stock Tempo CLI; restricted span set and explicit partial evidence; restart and inactive restore
+PROBE PORT-061 analytical schema: exact mappings and legacy quotas; analytical erasure refuses unchanged; prior-journal fixture fences both stores and replay; complete row and byte budget refusals
+PROBE PORT-061 authority: both real analytical backends -> same stock samples; mid-read revoke and expiry -> 401; narrowing and custody change -> 409; quota -> 429; excluded records absent; unavailable backend -> 503

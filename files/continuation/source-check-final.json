@@ -1,0 +1,18 @@
+{
+  "command": [
+    "pnpm",
+    "run",
+    "source:check"
+  ],
+  "ended_at": "2026-11-09T01:04:36.111056+00:00",
+  "exit": 0,
+  "head": "2517ca49f046eb292521933e1611424bfeda8eb9",
+  "head_after": "2517ca49f046eb292521933e1611424bfeda8eb9",
+  "log": "source-check-final.log",
+  "log_sha256": "3bb5e8ddb29b5cbe760d37fc1b32c9ca23fcc92c92ce9f447643d290f62be523",
+  "name": "source-check-final",
+  "started_at": "2026-11-09T01:04:35.546354+00:00",
+  "tree": "e3f8630e939e73ad0f57282a25038116a501531e",
+  "tree_after": "e3f8630e939e73ad0f57282a25038116a501531e",
+  "working_tree": "M  docs/standard-signal-apis.md\n M sources.lock.json\nM  tests/porthole/archive.mjs"
+}

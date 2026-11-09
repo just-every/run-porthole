@@ -1,0 +1,20 @@
+{
+  "command": [
+    "timeout",
+    "300",
+    "pnpm",
+    "run",
+    "source:check"
+  ],
+  "ended_at": "2026-11-09T01:03:17.454279+00:00",
+  "exit": 0,
+  "head": "2517ca49f046eb292521933e1611424bfeda8eb9",
+  "head_after": "2517ca49f046eb292521933e1611424bfeda8eb9",
+  "log": "source-check.log",
+  "log_sha256": "317aa6435ec87c5d59095c98438de0e55b1492576d1c20cfb4f287357d51d934",
+  "name": "source-check",
+  "started_at": "2026-11-09T01:03:16.887342+00:00",
+  "tree": "e3f8630e939e73ad0f57282a25038116a501531e",
+  "tree_after": "e3f8630e939e73ad0f57282a25038116a501531e",
+  "working_tree": ""
+}

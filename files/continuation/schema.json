@@ -1,0 +1,20 @@
+{
+  "command": [
+    "timeout",
+    "300",
+    "node",
+    "scripts/porthole/public-schema.mjs",
+    "--check"
+  ],
+  "ended_at": "2026-11-09T01:03:16.838549+00:00",
+  "exit": 0,
+  "head": "2517ca49f046eb292521933e1611424bfeda8eb9",
+  "head_after": "2517ca49f046eb292521933e1611424bfeda8eb9",
+  "log": "schema.log",
+  "log_sha256": "d5d2c2b407f81c8ab37ebc27a26eedb39beed567e0ba49143f7ae5a76c08753b",
+  "name": "schema",
+  "started_at": "2026-11-09T01:03:15.953890+00:00",
+  "tree": "e3f8630e939e73ad0f57282a25038116a501531e",
+  "tree_after": "e3f8630e939e73ad0f57282a25038116a501531e",
+  "working_tree": ""
+}
