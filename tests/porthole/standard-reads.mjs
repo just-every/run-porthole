@@ -317,7 +317,12 @@ export async function standardReadJourney({origin,cookie,call=(path,options)=>fe
   await restartWorker();cookie=await freshOwner()
   assert.deepEqual(await remoteWindows(call,reader.secret,metrics.windows),before,'restart preserves exact standard samples')
   if(withEmptyDestination){const {standardArchiveJourney}=await import('./archive.mjs');await standardArchiveJourney({origin,freshOwner,withEmptyDestination,reader,traceReader,scope,windows:metrics.windows,expected:before,traceId:selected})}
-  if(withEmptyDestination)await standardSchemaProof({origin,cookie,call,source,reader,post,restartWorker,sql})
+  if(withEmptyDestination){
+   // The independent restore can outlast the native owner's step-up proof.
+   // Reauthenticate before the next owner-only credential and erasure actions.
+   cookie=await freshOwner()
+   await standardSchemaProof({origin,cookie,call,source,reader,post,restartWorker,sql})
+  }
   cookie=await freshOwner()
   const auditResponse=await call('/api/v1/audit/export',{headers:{cookie}})
   assert.equal(auditResponse.status,200)
