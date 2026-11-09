@@ -1347,7 +1347,13 @@ export async function handoverArchiveJourney({origin,cookie,withEmptyDestination
 }
 
 /** Standard reads remain credential-only after inactive installation restore. */
-export async function standardArchiveJourney({origin,freshOwner,withEmptyDestination,reader,scope,windows,expected,traceId}) {
+export async function standardArchiveJourney({origin,freshOwner,withEmptyDestination,reader,traceReader,scope,windows,expected,traceId}) {
+ const traceHeaders={authorization:'Bearer '+traceReader.secret}
+ const sourceTrace=await value(await fetch(origin+'/api/traces/'+traceId,{headers:traceHeaders}))
+ assert.ok(sourceTrace.batches.flatMap(resource=>resource.scopeSpans.flatMap(scope=>scope.spans)).length>2,'restore proof starts with a real populated stock trace')
+ const sourceBinary=await fetch(origin+'/api/traces/'+traceId,{headers:{...traceHeaders,accept:'application/protobuf'}})
+ assert.equal(sourceBinary.status,200)
+ const sourceBytes=Buffer.from(await sourceBinary.arrayBuffer())
  const cookie=await freshOwner(),saved=await savedExport(origin,cookie,await post(origin,cookie,api+'/exports',{}))
  await withEmptyDestination(async destination=>{
   const acting=await destination.freshOwner(),restore=await value(await post(destination.origin,acting,api+'/restores',{manifest:saved.manifest}),201)
@@ -1356,15 +1362,40 @@ export async function standardArchiveJourney({origin,freshOwner,withEmptyDestina
   const call=(path,options)=>fetch(destination.origin+path,options)
   const {remoteRead,remoteWindows}=await import('./standard-reads.mjs')
   assert.equal((await remoteRead(call,reader.secret)).status,401,'archive transfers no source read authority')
+  assert.equal((await call('/api/traces/'+traceId,{headers:traceHeaders})).status,401,'restored trace data transfers no source read authority')
   assert.equal((await call('/api/traces/'+traceId,{headers:{cookie:acting}})).status,401,'destination owner cookie cannot replace a standard read credential')
   assert.equal((await destination.sql('SELECT COUNT(*) AS n FROM porthole_credentials'))[0].n,0)
   assert.equal((await destination.sql('SELECT paused FROM porthole_ingest_control'))[0].paused,1)
   const minted=await value(await post(destination.origin,acting,'/app/settings/credentials/mint',{name:'Restored standard reader',class:'read',scope}),201)
+  const traceKey=await value(await post(destination.origin,acting,'/app/settings/credentials/mint',{name:'Restored standard trace reader',class:'read',scope:traceReader.credential.scope}),201)
+  const restrictedTrace=await value(await post(destination.origin,acting,'/app/settings/credentials/mint',{name:'Restored restricted trace reader',class:'read',scope:{...traceReader.credential.scope,services:['fulfillment'],teams:['fulfillment']}}),201)
+  const restrictedExpected={batches:sourceTrace.batches.filter(resource=>resource.resource.attributes.some(attribute=>attribute.key==='team.name'&&attribute.value.stringValue==='fulfillment'))}
+  assert.ok(restrictedExpected.batches.length>0&&restrictedExpected.batches.length<sourceTrace.batches.length,'restored scope proof has permitted and forbidden stock spans')
+  const checkTrace=async()=>{
+   const headers={authorization:'Bearer '+traceKey.secret}
+   const response=await call('/api/traces/'+traceId,{headers})
+   assert.equal(response.status,200)
+   assert.equal(response.headers.get('x-porthole-trace-completeness'),'partial')
+   assert.deepEqual(await response.json(),sourceTrace,'inactive restore preserves every authorized stock span, resource and scope in Tempo JSON')
+   const binary=await call('/api/traces/'+traceId,{headers:{...headers,accept:'application/protobuf'}})
+   assert.equal(binary.status,200)
+   assert.deepEqual(Buffer.from(await binary.arrayBuffer()),sourceBytes,'inactive restore preserves the complete stock Tempo protobuf')
+   const restricted=await call('/api/traces/'+traceId,{headers:{authorization:'Bearer '+restrictedTrace.secret}})
+   assert.equal(restricted.status,200)
+   assert.equal(restricted.headers.get('x-porthole-trace-completeness'),'partial')
+   assert.deepEqual(await restricted.json(),restrictedExpected,'restored trace scope releases only the permitted team, with no hidden spans or resource attributes')
+   assert.equal((await destination.sql('SELECT paused FROM porthole_ingest_control'))[0].paused,1,'standard reads cannot activate restored intake')
+  }
   assert.deepEqual(await remoteWindows(call,minted.secret,windows),expected)
+  await checkTrace()
   await destination.restartWorker()
   assert.deepEqual(await remoteWindows(call,minted.secret,windows),expected)
+  await checkTrace()
+  const currentOwner=await destination.freshOwner()
+  await value(await post(destination.origin,currentOwner,'/app/settings/credentials/revoke',{id:traceKey.credential.id}))
+  assert.equal((await call('/api/traces/'+traceId,{headers:{cookie:currentOwner,authorization:'Bearer '+traceKey.secret}})).status,401,'revoked destination trace authority cannot borrow an owner cookie')
  })
- console.log('PROBE PORT-061 restore: inactive owner installation restore -> original samples with newly minted destination authority, no imported credentials, intake remains paused')
+ console.log('PROBE PORT-061 restore: inactive owner installation restore -> original samples and exact stock Tempo trace in both representations across restart; new destination authority only, revocation enforced, intake remains paused')
 }
 
 /** Network evidence is reconstructed from ordinary telemetry custody only. */
