@@ -232,7 +232,10 @@ Status output contains no credential, response body or configured URL.
    with `mode: "commit"` and that exact `confirmation` digest. Repeat for standby.
    A changed review, foreign identity, mismatched content or missing owner proof
    refuses. Preview and commit are private owner operations; bearer credentials
-   cannot call them. The current bounded door handles at most 1,000 sealed
+   cannot call them. Confirmed recovery marks analytical custody before adoption,
+   so existing erasure restrictions remain effective while the connection is
+   paused. A transport failure keeps this custody fence for owner investigation;
+   it never silently restores local-only erasure authority. The current bounded door handles at most 1,000 sealed
    batches and refuses a larger inventory without changing worker custody.
 6. The worker retains every physical row. Only the exact backed-up batch content
    becomes the destination's active query inventory. Rows accepted after export

@@ -489,7 +489,7 @@
       "executable": false
     },
     "docs/recovery.md": {
-      "sha256": "72b8e475e87d8224881aa567eb694383c4336b3ee9e97b16a6fd48a41d73282b",
+      "sha256": "bc65f2298c67c9deec4dc95773c0c8338b058d900ce474948f65e2706306b86d",
       "executable": false
     },
     "docs/retention-erasure.md": {
@@ -5273,7 +5273,7 @@
       "executable": false
     },
     "src/porthole/recovery/control-plane/analytical.ts": {
-      "sha256": "620980a97ce08767601233e67600960f25c02084283b4ba91f3c51e57421f664",
+      "sha256": "3d24fb83ee4f60e220c48d305845254aed4174d3eae5ba02fd2716b6f2f5fe02",
       "executable": false
     },
     "src/porthole/recovery/mail.ts": {
@@ -5721,7 +5721,7 @@
       "executable": false
     },
     "tests/porthole/control-plane-recovery.mjs": {
-      "sha256": "655a102531c00db61c509f32c6cd0bdccf50b091046f9c66b2929c971936adae",
+      "sha256": "f47ae4e44c75ed773c98beda74744997c2199fccb657bbaa80b4b121b78b762b",
       "executable": false
     },
     "tests/porthole/credentials.mjs": {
