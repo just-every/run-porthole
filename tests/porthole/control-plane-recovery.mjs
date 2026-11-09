@@ -175,6 +175,8 @@ export async function controlPlaneRecoveryJourney(){
   await destination.db.prepare('UPDATE oa_step_up_challenges SET consumed_at=0').run()
   const beforeRefusal=await Promise.all(['primary','standby'].map(role=>estate.inspect(role)))
   await destination.post('/api/porthole/v1/analytics/recovery',noProof,403)
+  const sourceBearer=await destination.call('/api/porthole/v1/analytics/recovery',{...form(destination.origin,destination.cookie,noProof),headers:{...form(destination.origin,destination.cookie,noProof).headers,authorization:'Bearer '+credentials[0].secret}})
+  assert.equal(sourceBearer.status,403,'a source bearer cannot acquire reconnection authority beside a destination owner cookie')
   assert.deepEqual(await Promise.all(['primary','standby'].map(role=>estate.inspect(role))),beforeRefusal,'missing fresh owner proof changes no analytical custody')
   for(const row of proofRows)await destination.db.prepare('UPDATE oa_step_up_challenges SET consumed_at=? WHERE id=?').bind(row.consumed_at,row.id).run()
   for(const role of ['primary','standby']){

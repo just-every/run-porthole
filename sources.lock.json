@@ -5721,7 +5721,7 @@
       "executable": false
     },
     "tests/porthole/control-plane-recovery.mjs": {
-      "sha256": "6d3d650daeebcf094617350ae885d9486cc12da5b0d6d1061dcc128b3ee3c324",
+      "sha256": "655a102531c00db61c509f32c6cd0bdccf50b091046f9c66b2929c971936adae",
       "executable": false
     },
     "tests/porthole/credentials.mjs": {
