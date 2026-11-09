@@ -92,6 +92,12 @@ and Tempo search, tags and v2 retrieval explicitly refuse. Standard log and
 profile reads, TraceQL and Jaeger interfaces remain outside this implementation.
 Broader erasure and retention qualification remains with PORT-035 and PORT-096.
 
+Inactive installation restore preserves retained samples and trace content,
+including both Tempo representations, but transfers no source read credentials.
+The destination owner must mint a current read credential. Its live scope still
+filters every returned span, its revocation takes effect on the next request,
+and standard reads leave restored intake paused across restart.
+
 ## Interoperability qualification
 
 The focused standard-read journeys use unmodified Prometheus 3.5.0 with only

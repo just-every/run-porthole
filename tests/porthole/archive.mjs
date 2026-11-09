@@ -1338,6 +1338,9 @@ export async function standardArchiveJourney({origin,freshOwner,withEmptyDestina
   assert.equal((await destination.sql('SELECT paused FROM porthole_ingest_control'))[0].paused,1)
   const minted=await value(await post(destination.origin,acting,'/app/settings/credentials/mint',{name:'Restored standard reader',class:'read',scope}),201)
   const traceKey=await value(await post(destination.origin,acting,'/app/settings/credentials/mint',{name:'Restored standard trace reader',class:'read',scope:traceReader.credential.scope}),201)
+  const restrictedTrace=await value(await post(destination.origin,acting,'/app/settings/credentials/mint',{name:'Restored restricted trace reader',class:'read',scope:{...traceReader.credential.scope,services:['fulfillment'],teams:['fulfillment']}}),201)
+  const restrictedExpected={batches:sourceTrace.batches.filter(resource=>resource.resource.attributes.some(attribute=>attribute.key==='team.name'&&attribute.value.stringValue==='fulfillment'))}
+  assert.ok(restrictedExpected.batches.length>0&&restrictedExpected.batches.length<sourceTrace.batches.length,'restored scope proof has permitted and forbidden stock spans')
   const checkTrace=async()=>{
    const headers={authorization:'Bearer '+traceKey.secret}
    const response=await call('/api/traces/'+traceId,{headers})
@@ -1347,6 +1350,10 @@ export async function standardArchiveJourney({origin,freshOwner,withEmptyDestina
    const binary=await call('/api/traces/'+traceId,{headers:{...headers,accept:'application/protobuf'}})
    assert.equal(binary.status,200)
    assert.deepEqual(Buffer.from(await binary.arrayBuffer()),sourceBytes,'inactive restore preserves the complete stock Tempo protobuf')
+   const restricted=await call('/api/traces/'+traceId,{headers:{authorization:'Bearer '+restrictedTrace.secret}})
+   assert.equal(restricted.status,200)
+   assert.equal(restricted.headers.get('x-porthole-trace-completeness'),'partial')
+   assert.deepEqual(await restricted.json(),restrictedExpected,'restored trace scope releases only the permitted team, with no hidden spans or resource attributes')
    assert.equal((await destination.sql('SELECT paused FROM porthole_ingest_control'))[0].paused,1,'standard reads cannot activate restored intake')
   }
   assert.deepEqual(await remoteWindows(call,minted.secret,windows),expected)
