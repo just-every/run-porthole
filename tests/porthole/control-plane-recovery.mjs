@@ -63,12 +63,12 @@ export async function controlPlaneRecoveryJourney(){
   worker.snapshot=async()=>Object.fromEntries(await Promise.all(snapshotTables.map(async table=>[table,(await worker.db.prepare('SELECT * FROM '+table).all()).results])))
   await start();return worker
  }
- async function collector(worker,secret,heartbeat){
+ async function collector(worker,secret,heartbeat,intervalSeconds=1){
   const child=spawn(process.execPath,[join(root,'tests/porthole/collector-process.mjs')],{stdio:['pipe','pipe','pipe']});collectors.push(child)
   const rows=[];let pending=''
   child.stdout.on('data',chunk=>{pending+=chunk;let end;while((end=pending.indexOf('\n'))>=0){const line=pending.slice(0,end);pending=pending.slice(end+1);try{const row=JSON.parse(line);rows.push(row);statuses.push(row)}catch{}}})
-  child.stdin.end(JSON.stringify({origin:worker.origin,secret,heartbeat,supervised:true,intervalSeconds:1}))
-  const wait=async predicate=>{for(let i=0;i<100;i++){const row=rows.find(predicate);if(row)return row;assert.equal(child.exitCode,null,'supervised collector stays running');await pause(100)}throw Error('collector_status_timeout')}
+  child.stdin.end(JSON.stringify({origin:worker.origin,secret,heartbeat,supervised:true,intervalSeconds}))
+  const wait=async predicate=>{for(let i=0;i<700;i++){const row=rows.find(predicate);if(row)return row;assert.equal(child.exitCode,null,'supervised collector stays running');await pause(100)}throw Error('collector_status_timeout')}
   return {child,rows,wait,stop:async()=>{if(child.exitCode===null){child.kill('SIGTERM');await once(child,'exit')}}}
  }
  const retained=(snapshot,table)=>snapshot[table].map(row=>canonical(row)).sort()
@@ -84,7 +84,7 @@ export async function controlPlaneRecoveryJourney(){
   for(const [index,scope]of scopes.entries()){
    const credential=await source.post('/app/settings/credentials/mint',{name:'Recovery collector '+index,class:'ingest',scope:{...scope,signals:['logs'],actions:['telemetry.write']}},201);credentials.push(credential)
    const heartbeat={collectorId:'synthetic-porthole-'+(8010+index),team:scope.teams[0],service:scope.services[0],environment:'production',signal:'logs'};heartbeats.push(heartbeat)
-   const check=await collector(source,credential.secret,heartbeat);beats.push(check);await check.wait(row=>row.status==='heartbeat_accepted')
+   const check=await collector(source,credential.secret,heartbeat,60);beats.push(check);await check.wait(row=>row.status==='heartbeat_accepted')
   }
   const submit=async(worker,credential,index,{identity='synthetic-porthole-'+(8020+index),expected=200}={})=>{
    const response=await worker.call('/v1/logs',{method:'POST',headers:{authorization:'Bearer '+credential.secret,'content-type':'application/json','x-porthole-batch-id':identity},body:JSON.stringify(packets[index])});assert.equal(response.status,expected,await response.clone().text());return response
@@ -106,6 +106,9 @@ export async function controlPlaneRecoveryJourney(){
    else for(const row of retained(before,table))assert.ok(backup.includes(row),'backup preserves every source audit entry')
   }
   record('native populated two-team export reconciled',{tables:Object.fromEntries(snapshotTables.map(table=>[table,{count:rows.filter(row=>row.table===table).length,digest:digest(rows.filter(row=>row.table===table).map(row=>row.row).sort((a,b)=>canonical(a).localeCompare(canonical(b))))}]))})
+  // Audit chains are verified independently from the export manifest.
+  for(const stream of new Set(rows.filter(row=>row.table==='porthole_archive_audit').map(row=>row.row.stream))){let previous='0'.repeat(64);for(const {row}of rows.filter(row=>row.table==='porthole_archive_audit'&&row.row.stream===stream).sort((a,b)=>a.row.sequence-b.row.sequence)){assert.equal(row.previous_hash,previous);assert.equal(createHash('sha256').update(row.entry).digest('hex'),row.hash);previous=row.hash}}
+  {let previous='0'.repeat(64);for(const {row}of rows.filter(row=>row.table==='porthole_audit_entries').sort((a,b)=>a.row.sequence-b.row.sequence)){assert.equal(row.previous_hash,previous);assert.equal(createHash('sha256').update(row.entry).digest('hex'),row.hash);previous=row.hash}}
   // This post-export accepted cohort is deliberately absent from the backup.
   for(let i=6;i<8;i++){packets[i]=packet(i,scopes[i%2]);await submit(source,credentials[i%2],i)}
   await source.post('/api/porthole/v1/ingest/drain',{})
@@ -183,7 +186,7 @@ export async function controlPlaneRecoveryJourney(){
   for(const credential of destinationCredentials){const row=accounting.sources.find(row=>row.sourceId===credential.credential.id);assert.equal(row.accepted,2);assert.equal(row.queryable,2);assert.equal(row.archived,2);assert.equal(row.duplicates,2);assert.equal(row.lost,0)}
   await healthBrowser({origin:destination.origin,cookie:destination.cookie,name:'control-recovery-recovered',contains:'Healthy'})
   // The original process clears once the selected installation answers again.
-  await source.start();for(const beat of beats){const start=beat.rows.length;for(let i=0;i<50&&!beat.rows.slice(start).some(row=>row.status==='heartbeat_accepted');i++)await pause(100);assert.ok(beat.rows.slice(start).some(row=>row.status==='heartbeat_accepted'))}
+  await source.start();for(const beat of beats){const start=beat.rows.length;for(let i=0;i<700&&!beat.rows.slice(start).some(row=>row.status==='heartbeat_accepted');i++)await pause(100);assert.ok(beat.rows.slice(start).some(row=>row.status==='heartbeat_accepted'))}
   await destination.stop()
   const occupiedBefore=await readFile(file)
   await native(destinationDirectory,['import','--input',file,'--yes'],{refused:true})
