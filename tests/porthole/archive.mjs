@@ -819,7 +819,12 @@ async function run(source) {
   throw Error('Native erasure Worker did not start')
  }
  async function restartWorker(change){await stop();if(change)await change();await start()}
- const helpers=fixture({origin,sql:statement=>sql(source,statement),restartWorker,sessionSecret:'synthetic-porthole-native-erasure-session-secret',ownerEmail})
+ const helpers=fixture({origin,sql:async statement=>{
+  if(!worker)return sql(source,statement)
+  let rows
+  await restartWorker(async()=>{rows=await sql(source,statement)})
+  return rows
+ },restartWorker,sessionSecret:'synthetic-porthole-native-erasure-session-secret',ownerEmail})
  const value=async(response,status=200)=>{
   response=await response
   assert.equal(response.status,status,await response.clone().text())
@@ -835,14 +840,18 @@ async function run(source) {
  const logs=(subject,offset)=>({resourceLogs:[{resource:{attributes},scopeLogs:[{logRecords:[{timeUnixNano:String(time+BigInt(offset)),severityNumber:17,body:{stringValue:subject}}]}]}]})
  let credential
  const intake=(signal,body)=>fetch(origin+'/v1/'+signal,{method:'POST',headers:{authorization:'Bearer '+credential.secret,'content-type':'application/json'},body:JSON.stringify(body)})
- const snapshot=async()=>({
+ const snapshot=async()=>{
+  // Wrangler's local D1 reader must not compete with the running runtime.
+  await stop()
+  try {return {
   batches:await sql(source,'SELECT id,records,wire_base64,record_count FROM porthole_ingest_batches ORDER BY id'),
   hot:await sql(source,'SELECT id,payload FROM porthole_telemetry_records ORDER BY id'),
   cold:await sql(source,'SELECT id,payload FROM porthole_telemetry_archive ORDER BY id'),
   custody:await sql(source,'SELECT job_id,ordinal,payload FROM porthole_archive_rows ORDER BY job_id,ordinal'),
   chunks:await sql(source,'SELECT job_id,chunk_index,packet FROM porthole_archive_chunks ORDER BY job_id,chunk_index'),
   history:await sql(source,'SELECT * FROM porthole_monitor_evaluations ORDER BY id'),
- })
+  }} finally {await start()}
+ }
  try {
   await start();cookie=await helpers.freshOwner()
   await fetch(origin+'/setup',{method:'POST',redirect:'manual',headers:{origin,cookie,'content-type':'application/x-www-form-urlencoded'},body:new URLSearchParams({confirm:'yes'})})
@@ -855,8 +864,8 @@ async function run(source) {
    for(const packet of databaseProof.packets)assert.equal((await fetch(origin+'/v1/traces',{method:'POST',headers:{authorization:'Bearer '+dbsource.secret,'content-type':'application/x-protobuf'},body:packet})).status,200)
    await value(send('/api/porthole/v1/ingest/drain',{}))
    const view=await value(fetch(origin+'/api/porthole/v1/database',{headers:{cookie}}));assert.equal(view.captures.length,2)
-   const expected=await sql(source,"SELECT payload FROM porthole_telemetry_records WHERE signal='logs' ORDER BY id")
    await stop()
+   const expected=await sql(source,"SELECT payload FROM porthole_telemetry_records WHERE signal='logs' ORDER BY id")
    const archivePath=join(source,'exports','database.rer');await command(source,['export','--output',archivePath])
    const {fileRecords}=await import('@runeditrun/rer/modules/portability/files'),records=[]
    for await(const record of fileRecords(archivePath))records.push(record)
@@ -913,21 +922,26 @@ async function run(source) {
    monitors[signal]=monitor.id
   }
   await value(send('/api/v1/health/tick',{}))
+  await stop()
   const traceHistory=await sql(source,"SELECT * FROM porthole_monitor_evaluations WHERE object_id="+literal(monitors.traces))
   assert.equal(traceHistory.length,1,'one real trace evaluation exists before backup')
   const traceState=await sql(source,"SELECT * FROM porthole_monitor_state WHERE object_id="+literal(monitors.traces))
   const peerRows=await sql(source,'SELECT * FROM porthole_telemetry_records WHERE batch_id='+literal(peerBatch))
   assert.equal(peerRows.length,1,'the unrelated subject exists before erasure')
+  await start()
   assert.equal((await query('logs')).records.length,3)
   assert.equal((await query('traces')).records.length,1)
   const host=await value(send('/api/porthole/v1/objects',{kind:'monitor',name:'Native archived host',scope,body:{type:'host-heartbeat',signal:'logs',hosts:['synthetic-porthole-9709'],missedAfterSeconds:60,pendingSeconds:3,recoverySeconds:4}}),201)
   await value(send('/api/porthole/v1/objects/activate',{id:host.id,revision:1,confirm:'activate'}))
   await value(send('/api/porthole/v1/monitors/evaluate',{id:host.id,revision:1}))
   const liveHostTables=['porthole_host_sources','porthole_host_heartbeats','porthole_host_monitor_state']
-  const hostRows=Object.fromEntries(await Promise.all(liveHostTables.map(async table=>[table,await sql(source,'SELECT * FROM '+table)])))
+  await stop()
+  const hostRows={}
+  for(const table of liveHostTables)hostRows[table]=await sql(source,'SELECT * FROM '+table)
   for(const table of liveHostTables)assert.ok(hostRows[table].length,'native backup starts with real '+table)
   const hostVersions=await sql(source,'SELECT * FROM porthole_host_monitor_versions WHERE object_id='+literal(host.id))
   const hostHistory=await sql(source,'SELECT * FROM porthole_host_monitor_evaluations WHERE object_id='+literal(host.id))
+  await start()
   // Prepare a real Settings export too, including cached download packets.
   const frozen=await value(send(archive+'/exports',{}),201)
   for(let index=0;index<frozen.totalChunks;index++)await value(await fetch(origin+archive+'/exports/'+frozen.id+'/chunks/'+index,{headers:{cookie}}))
@@ -955,10 +969,12 @@ async function run(source) {
   assert.ok(!JSON.stringify(after).includes(identifier),'live and backed-up custody contain no erased subject')
   const skeletons=after.batches.filter(row=>targetBatches.includes(row.id))
   assert.equal(skeletons.length,2);assert.ok(skeletons.every(row=>row.records==='[]'&&row.wire_base64===''&&row.record_count===0))
+  await stop()
   assert.deepEqual(await sql(source,'SELECT * FROM porthole_telemetry_records WHERE batch_id='+literal(peerBatch)),peerRows,'the unrelated subject stays one unchanged record')
   assert.deepEqual(await sql(source,'SELECT * FROM porthole_monitor_evaluations WHERE object_id='+literal(monitors.traces)),traceHistory,'trace history stays one unchanged entry')
   assert.deepEqual(await sql(source,'SELECT * FROM porthole_monitor_state WHERE object_id='+literal(monitors.traces)),traceState,'log erasure leaves unrelated trace-monitor evidence unchanged')
   assert.equal((await sql(source,'SELECT status FROM porthole_monitor_state WHERE object_id='+literal(monitors.logs)))[0].status,'Unknown','a monitor of erased logs cannot present its old count as current evidence')
+  await start()
   assert.equal((await fetch(origin+archive+'/exports/'+frozen.id+'/manifest',{headers:{cookie}})).status,404,'old product custody is withdrawn')
   assert.equal((await query('logs')).records.length,1)
   assert.ok(JSON.stringify((await query('logs')).records).includes(peer))
