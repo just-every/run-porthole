@@ -64,9 +64,9 @@ const stores=[persist]
 const migrationEnv={...process.env,CI:'1',WRANGLER_SEND_METRICS:'false'}
 const migrate=config=>execFileSync(process.execPath,['node_modules/wrangler/bin/wrangler.js','d1','migrations','apply','foundation','--local','--persist-to',persist,'--config',config],{stdio:'pipe',env:migrationEnv,maxBuffer:128*1024*1024})
 const cliSql=async command=>JSON.parse((await execute(process.execPath,['node_modules/wrangler/bin/wrangler.js','d1','execute','foundation','--local','--persist-to',persist,'--config','dist/server/wrangler.json','--json','--command',command],{encoding:'utf8',env:migrationEnv,maxBuffer:128*1024*1024})).stdout).flatMap(result=>result.results??[])
-// Service storage assertions use the same live migrated D1 as the public doors.
+// Service and database storage assertions use the same live migrated D1 as the public doors.
 // Keep the CLI for stopped runtimes, including native sign-in fixture staging.
-const sql=async command=>process.env.PORTHOLE_SERVICES_ONLY==='1'&&workerRunning
+const sql=async command=>(process.env.PORTHOLE_SERVICES_ONLY==='1'||process.env.PORTHOLE_DATABASE_ONLY==='1')&&workerRunning
  ? (await (await worker.getD1Database('DB')).prepare(command).all()).results
  : cliSql(command)
 // Upgrade a real prior installation: Base first, then existing members, then
