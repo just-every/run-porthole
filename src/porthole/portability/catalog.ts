@@ -1,4 +1,6 @@
 import {fleetColumns} from '../fleet/model'
+import {handoffColumns} from '../handoffs/model'
+import {packetColumns} from '../evidence/model'
 import {eventColumns,filterColumns} from '../events/model'
 import {metadataColumns} from '../services/model'
 import {publicationColumns} from '../notebooks/publication-model'
@@ -15,6 +17,8 @@ export interface TableSpec { table: string; columns: string[]; query: string; or
 const spec = (table: string, columns: string[], order: string): TableSpec => ({ table, columns, order, query: `SELECT ${columns.join(',')} FROM ${table}` })
 export const catalog: TableSpec[] = [
  spec('porthole_fleet_installs',fleetColumns,'id'),
+ spec('porthole_handoff_versions',handoffColumns,'product,revision'),
+ spec('porthole_service_packets',packetColumns,'id'),
  spec('porthole_handover_history',['id','target_ref','actor_ref','inventory_digest','decisions','occurred_at','state'],'id'),
  spec('porthole_custom_events',eventColumns,'sequence'),
  spec('porthole_event_filters',filterColumns,'id'),
@@ -67,12 +71,13 @@ function allPredicates(clauses:string[]):string {
  return `(${allPredicates(clauses.slice(0,middle))} AND ${allPredicates(clauses.slice(middle))})`
 }
 export const emptyProduct = allPredicates([emptyCustody,
- 'NOT EXISTS(SELECT 1 FROM porthole_fleet_installs)',
  'NOT EXISTS(SELECT 1 FROM porthole_handover_history)',
  'NOT EXISTS(SELECT 1 FROM porthole_database_sources)',
  'NOT EXISTS(SELECT 1 FROM porthole_custom_events)',
  'NOT EXISTS(SELECT 1 FROM porthole_event_filters)',
  'NOT EXISTS(SELECT 1 FROM porthole_service_versions)',
+ 'NOT EXISTS(SELECT 1 FROM porthole_handoff_versions)',
+ 'NOT EXISTS(SELECT 1 FROM porthole_service_packets)',
  'NOT EXISTS(SELECT 1 FROM porthole_notebook_publications)',
  'NOT EXISTS(SELECT 1 FROM porthole_notebooks)',
  'NOT EXISTS(SELECT 1 FROM porthole_notebook_versions)',

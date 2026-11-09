@@ -23,7 +23,7 @@ export async function publicSite() {
 
 export async function browsePublicDocs(site,privateValues) {
  const {chromium}=await import('@playwright/test')
- const browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']})
+ const browser=await chromium.launch({headless:true,...(process.env.PORTHOLE_CHROMIUM_PATH?{executablePath:process.env.PORTHOLE_CHROMIUM_PATH}:{}),args:['--no-sandbox','--use-mock-keychain','--password-store=basic']})
  const snippets={}
  try {
   const desktop=await browser.newContext({viewport:{width:1440,height:900}}),page=await desktop.newPage()

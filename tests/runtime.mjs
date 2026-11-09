@@ -62,7 +62,7 @@ async function withPinnedClock(now, run) {
 let persist = await mkdtemp(join(tmpdir(), 'foundation-runtime-'))
 const stores=[persist]
 const migrationEnv={...process.env,CI:'1',WRANGLER_SEND_METRICS:'false'}
-const migrate=config=>execFileSync(process.execPath,['node_modules/wrangler/bin/wrangler.js','d1','migrations','apply','foundation','--local','--persist-to',persist,'--config',config],{stdio:'pipe',env:migrationEnv})
+const migrate=config=>execFileSync(process.execPath,['node_modules/wrangler/bin/wrangler.js','d1','migrations','apply','foundation','--local','--persist-to',persist,'--config',config],{stdio:'pipe',env:migrationEnv,maxBuffer:128*1024*1024})
 const sql=async command=>JSON.parse((await execute(process.execPath,['node_modules/wrangler/bin/wrangler.js','d1','execute','foundation','--local','--persist-to',persist,'--config','dist/server/wrangler.json','--json','--command',command],{encoding:'utf8',env:migrationEnv,maxBuffer:128*1024*1024})).stdout).flatMap(result=>result.results??[])
 // Upgrade a real prior installation: Base first, then existing members, then
 // the shipped product migrations through Wrangler's actual migration command.
@@ -81,6 +81,8 @@ const origin = `http://127.0.0.1:${port}`
 // The emitted Worker's owner-claim setup token: a synthetic test value.
 const setupToken = 'synthetic-runtime-setup-token-1234567890123456789'
 let worker
+// Snapshot the same live D1 used by HTTP without launching Wrangler for each read.
+sql.read=async command=>(await (await worker.getD1Database('DB')).prepare(command).all()).results
 let ownerEmail='owner@example.com'
 let allOutput = ''
 async function startWorker() {
@@ -208,6 +210,8 @@ try {
   } else if(process.env.PORTHOLE_SERVICES_ONLY==='1') {
    const {servicesJourney}=await import('./porthole/services.mjs')
    await servicesJourney({origin,restartWorker,withEmptyDestination,withPinnedClock,...helpers})
+   const {routeInventory}=await import('./porthole/handoffs.mjs')
+   await routeInventory({origin,cookie:await helpers.freshOwner()})
    const {servicesAnalyticalJourney}=await import('./porthole/analytics.mjs')
    await servicesAnalyticalJourney()
   } else if(process.env.PORTHOLE_PIPELINES_ONLY==='1') {
