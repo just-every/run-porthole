@@ -33,9 +33,9 @@ const packed=b=>{const n=b.length-1;return cat(vint(b.length),n<60?Buffer.from([
 function unpack(b){let at=0;const uint=()=>{let n=0,shift=0,v;do{v=b[at++];n+=(v&127)*2**shift;shift+=7}while(v&128);return n};const size=uint(),out=Buffer.alloc(size);let pos=0;while(at<b.length){const tag=b[at++],kind=tag&3;let count,distance;if(!kind){count=tag>>2;if(count<60)count++;else{const bytes=count-59;count=1;for(let i=0;i<bytes;i++)count+=b[at++]*2**(i*8)}b.copy(out,pos,at,at+count);at+=count;pos+=count}else{if(kind===1){count=4+((tag>>2)&7);distance=((tag&224)<<3)+b[at++]}else{count=1+(tag>>2);distance=0;for(let i=0;i<(kind===2?2:4);i++)distance+=b[at++]*2**(i*8)}for(let i=0;i<count;i++)out[pos]=out[pos++-distance]}}assert.equal(pos,size);return out}
 function fields(b){let at=0;const uint=()=>{let n=0n,shift=0n,v;do{v=b[at++];n|=BigInt(v&127)<<shift;shift+=7n}while(v&128);return n};const result=[];while(at<b.length){const tag=Number(uint()),wire=tag&7;let v;if(wire===0)v=uint();else if(wire===2){const size=Number(uint());v=b.subarray(at,at+=size)}else{assert.ok(wire===1||wire===5);v=b.subarray(at,at+=wire===1?8:4)}result.push([tag>>3,v])}return result}
 const get=(parts,n)=>parts.find(([k])=>k===n)?.[1]
-export function remoteBody({from=0n,through=18446744073709n,matchers=[['__name__','.*',2]],types=[0]}={}){
- const query=cat(integer(1,from),integer(2,through),...matchers.map(([name,v,type=0])=>msg(3,cat(integer(1,type),text(2,name),text(3,v)))))
- return packed(cat(msg(1,query),...types.map(type=>integer(2,type))))
+export function remoteBody({from=0n,through=18446744073709n,matchers=[['__name__','.*',2]],types=[0],queries}={}){
+ const query=({from:start=from,through:end=through,matchers:selectors=matchers})=>cat(integer(1,start),integer(2,end),...selectors.map(([name,v,type=0])=>msg(3,cat(integer(1,type),text(2,name),text(3,v)))))
+ return packed(cat(...(queries??[{from,through,matchers}]).map(item=>msg(1,query(item))),...types.map(type=>integer(2,type))))
 }
 export async function remoteRead(call,secret,options={},extra={}){
  return call('/api/v1/read',{method:'POST',headers:{...auth(secret),'content-type':'application/x-protobuf','content-encoding':'snappy','x-prometheus-remote-read-version':'0.1.0',...extra},body:remoteBody(options)})
@@ -110,7 +110,7 @@ async function stockMetrics({origin,cookie,call,reader,source,scratch,compareBac
   try{
    const chunks=[];for await(const b of req)chunks.push(b);const body=Buffer.concat(chunks)
    const read=req.url.startsWith('/api/v1/read'),otlp=req.url==='/v1/metrics'
-   const headers={'content-type':req.headers['content-type']??'application/x-protobuf',authorization:req.headers.authorization??'',...(req.headers['content-encoding']?{'content-encoding':req.headers['content-encoding']}:{}),...(read?{'x-prometheus-remote-read-version':'0.1.0'}:{'x-prometheus-remote-write-version':'0.1.0'})}
+   const headers={'accept-encoding':'identity','content-type':req.headers['content-type']??'application/x-protobuf',authorization:req.headers.authorization??'',...(req.headers['content-encoding']?{'content-encoding':req.headers['content-encoding']}:{}),...(read?{'x-prometheus-remote-read-version':'0.1.0'}:{'x-prometheus-remote-write-version':'0.1.0'})}
    assert.ok(headers.authorization==='Bearer '+(read?reader.secret:source.secret),'stock client sends its configured credential')
    const response=await call(req.url,{method:'POST',headers,body})
    if(otlp){otlpPackets.push(body);const reference=await fetch(referenceOrigin+'/api/v1/otlp/v1/metrics',{method:'POST',headers:{'content-type':headers['content-type']},body});assert.equal(reference.status,200,await reference.text())}
@@ -486,6 +486,22 @@ async function standardMappingProof({origin,cookie,call,source,reader,post,resta
  assert.deepEqual(byName('synthetic_edge_histogram_seconds_bucket').map(s=>[s.metric.le,s.values[0][1]]).sort(),[['+Inf',6],['0.0000001',1],['0.5',3]].sort())
  assert.deepEqual(byName('synthetic_edge_summary').map(s=>[s.metric.quantile,s.values[0][1]]).sort(),[['0.0000001',0.2],['0.9',0.8]])
  if(compareBackend)await compareBackend(async()=>assert.deepEqual(await remoteSeries(await remoteRead(call,reader.secret,query)),rows,'both analytical configurations preserve the entire supported OTLP mapping'))
+ const atMillis=at/1000000n
+ const orderedQueries=async()=>{
+  const response=await remoteRead(call,reader.secret,{types:[1,0],queries:[
+   {from:atMillis,through:atMillis,matchers:[['__name__','synthetic_edge_.*',2],['__name__','synthetic_edge_(counter_total|nonmonotonic|histogram_seconds_.*|summary.*)',3]]},
+   {from:atMillis+1n,through:atMillis+1n,matchers:[['__name__','synthetic_edge_gauge_milliseconds']]},
+   {from:atMillis,through:atMillis,matchers:[['__name__','synthetic_edge_summary'],['privacy_subject','synthetic-porthole-[0-9]+',2]]},
+  ]})
+  assert.equal(response.status,200,await response.clone().text())
+  const results=fields(unpack(Buffer.from(await response.arrayBuffer()))).map(([,result])=>fields(result))
+  assert.deepEqual(results.map(result=>result.length),[1,0,2],'batched queries retain order and empty results, inclusive millisecond bounds and positive and negative regex matchers')
+  const names=result=>result.map(([,series])=>fields(series).filter(([number])=>number===1).map(([,label])=>fields(label)).find(label=>get(label,1).toString()==='__name__')).map(label=>get(label,2).toString())
+  assert.deepEqual(names(results[0]),['synthetic_edge_gauge_milliseconds'])
+  assert.deepEqual(names(results[2]),['synthetic_edge_summary','synthetic_edge_summary'])
+ }
+ await orderedQueries()
+ if(compareBackend)await compareBackend(orderedQueries)
  for(const label of ['absent','constructor']){
   const missing=await remoteSeries(await remoteRead(call,reader.secret,{...query,matchers:[['__name__','synthetic_edge_gauge_milliseconds'],[label,'',0]]}))
   assert.equal(missing.length,1,'absent label equals empty string, including inherited object names')
