@@ -11,7 +11,8 @@
         "pnpm run build",
         "python3 -m venv .cache/export-readers && .cache/export-readers/bin/pip install --disable-pip-version-check -r tests/porthole/standard-readers.txt",
         "node scripts/porthole/standard-clients.mjs",
-        "PORTHOLE_STANDARD_ONLY=1 pnpm run test:runtime"
+        "PORTHOLE_STANDARD_ONLY=1 pnpm run test:runtime",
+        "PORTHOLE_STANDARD_ANALYTICAL_ONLY=1 pnpm run test:runtime"
       ]
     },
     {
@@ -66,8 +67,7 @@
         "PORTHOLE_TRACE_ONLY=1 pnpm run test:runtime",
         "PORTHOLE_GENAI_ONLY=1 pnpm run test:runtime",
         "PORTHOLE_GENAI_ANALYTICAL_ONLY=1 pnpm run test:runtime",
-        "PORTHOLE_GENAI_CONTENT_ONLY=1 pnpm run test:runtime",
-        "PORTHOLE_STANDARD_ANALYTICAL_ONLY=1 pnpm run test:runtime"
+        "PORTHOLE_GENAI_CONTENT_ONLY=1 pnpm run test:runtime"
       ]
     },
     {
