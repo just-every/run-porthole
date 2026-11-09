@@ -66,5 +66,45 @@
       "command": "gh run view 42559157780 --repo just-every/run-porthole --job 128971553763 --log",
       "exit": 0
     }
-  ]
+  ],
+  "final_head_calls": [
+    {
+      "call": 8,
+      "at": 1794198606,
+      "result": {
+        "conclusion": null,
+        "head_sha": "07a6af131788ac851a58d9d824ff8f128276e426",
+        "html_url": "https://github.com/just-every/run-porthole/actions/runs/42561706552",
+        "id": 42561706552,
+        "name": "Verify",
+        "status": "in_progress"
+      }
+    },
+    {
+      "call": 9,
+      "at": 1794198908,
+      "result": {
+        "conclusion": null,
+        "head_sha": "07a6af131788ac851a58d9d824ff8f128276e426",
+        "html_url": "https://github.com/just-every/run-porthole/actions/runs/42561706552",
+        "id": 42561706552,
+        "name": "Verify",
+        "status": "in_progress"
+      }
+    },
+    {
+      "call": 10,
+      "at": 1794199209,
+      "result": {
+        "conclusion": "cancelled",
+        "head_sha": "07a6af131788ac851a58d9d824ff8f128276e426",
+        "html_url": "https://github.com/just-every/run-porthole/actions/runs/42561706552",
+        "id": 42561706552,
+        "name": "Verify",
+        "status": "completed"
+      }
+    }
+  ],
+  "used_total": 10,
+  "remaining": 0
 }

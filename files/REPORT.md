@@ -65,3 +65,15 @@ GitHub calls used before the final watched candidate: 7 (four run discovery/stat
 The cancelled shard's run window also justified removing CLI startup from handoff storage snapshots. Commit 0e83e14c9d58e2e82cf82c4b8d5715fdf8b89c57 supplies an optional snapshot read using the emitted Worker's actual D1 binding. The identical SQL and every per-case mutation/read assertion remain; synthetic mutation setup keeps the existing Wrangler path. The focused probe exercises the live-binding snapshot path successfully. No mock database or skipped case is introduced.
 
 Main then advanced with newer standard-read and inactive-restore qualification. The final merge retains all of those assertions and documentation, main's contract and generated views whole, and regenerates the lock last. No additional migration renumbering is needed: main's highest remains 0063 and the candidate's migrations remain 0064–0066. The final merge head is 07a6af131788ac851a58d9d824ff8f128276e426. Its build, typecheck, schema/source checks, 28-case/66-read proof and 1440/390 screenshots pass. The interim e4d2f8 watcher was stopped before its first API call; the global API budget remains seven calls used before the final watcher.
+
+## Final-head CI watch
+
+Verify 42561706552 is the final-head run: https://github.com/just-every/run-porthole/actions/runs/42561706552. Its first scheduled discovery reports in_progress on 07a6af131788ac851a58d9d824ff8f128276e426. The global call count is eight; two calls remain. No READY claim is made while it is in progress.
+
+## Terminal outcome: BLOCKED on required CI
+
+Product branch cloud/sx-porthole-f461fix1 is pushed at 07a6af131788ac851a58d9d824ff8f128276e426, and the remote ref was verified. Final Verify 42561706552 completed with conclusion cancelled on that exact SHA at the tenth permitted GitHub call. This is not success and is not the generated-view exception. The cancellation reason has not been established within the allowed API budget. No additional GitHub API call, same-SHA rerun/dispatch, empty CI-trigger commit or main push is made.
+
+The local implementation checks, 28 write refusals, 66 disclosure-free reads and owner/contractor browser proof pass on the final head. The initial failing source fixture interaction was repaired without deleting or weakening assertions. All product work is committed and pushed; no product changes remain unpublished. The plan is complete through implementation, local verification and product/report publication; required exact-SHA green CI remains unresolved and is the sole terminal blocker. No PR was created or required.
+
+Contract counts remain 10 DONE, 20 PARTIAL, 69 MISSING, 99 total. PORT-054's Status, Gap and Evidence cells are unchanged; its existing PARTIAL builder claim is retained verbatim above. The fleet owns independent gate, publication scan and landing. This run emits no READY signal and does not claim acceptance or landing.

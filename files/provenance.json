@@ -20,5 +20,14 @@
   "push": "PUSH_OK branch=cloud/sx-porthole-f461fix1",
   "unpublished_work": false,
   "previous_pushed_head": "aae559bd25c456dd069dadc511a8654fa65eb7bb",
-  "product_pushed_head": "07a6af131788ac851a58d9d824ff8f128276e426"
+  "product_pushed_head": "07a6af131788ac851a58d9d824ff8f128276e426",
+  "terminal_status": "BLOCKED",
+  "final_verify": {
+    "conclusion": "cancelled",
+    "head_sha": "07a6af131788ac851a58d9d824ff8f128276e426",
+    "html_url": "https://github.com/just-every/run-porthole/actions/runs/42561706552",
+    "id": 42561706552,
+    "name": "Verify",
+    "status": "completed"
+  }
 }
