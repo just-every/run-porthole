@@ -31,7 +31,21 @@ export async function networkEstate({dispatch,secret}) {
  async function command(name,args){return docker('exec',tag+'-'+name,...args)}
  async function kafkaCommand(tool,args){return command('kafka',['/opt/kafka/bin/kafka-'+tool+'.sh','--bootstrap-server','kafka:9092','--command-config','/run/admin.properties',...args])}
  async function netem(namespace,args,capability=true){return docker('run','--rm','--network','container:'+tag+'-'+namespace,...(capability?['--cap-add','NET_ADMIN']:[]),networkPins.netem,'tc',...args).catch(error=>{if(/qdisc kind is unknown/.test(error.stderr??''))throw Error('network_fault_kernel_unavailable: CONFIG_NET_SCH_NETEM and CONFIG_NET_SCH_PRIO required; '+error.stderr.trim());throw error})}
- async function snap(){return {atNs:String(BigInt(Date.now())*1000000n),apps:await stats(),containerDrops:{rx:Number(await command('checkout-kafka',['cat','/sys/class/net/eth0/statistics/rx_dropped'])),tx:Number(await command('checkout-kafka',['cat','/sys/class/net/eth0/statistics/tx_dropped']))},snmp:await command('checkout-kafka',['cat','/proc/net/snmp']),netstat:await command('checkout-kafka',['cat','/proc/net/netstat']),kafka:await kafkaCommand('consumer-groups',['--describe','--group','synthetic-porthole-network-group']),rabbit:await command('rabbit',['rabbitmqctl','-q','list_queues','name','messages_ready','messages_unacknowledged','messages'])}}
+ // Read independent witnesses together, within the same before/after window.
+ // Fault injection, sample intervals and every counter assertion stay intact.
+ async function snap(){
+  const atNs=String(BigInt(Date.now())*1000000n)
+  const [apps,rx,tx,snmp,netstat,kafka,rabbit]=await Promise.all([
+   stats(),
+   command('checkout-kafka',['cat','/sys/class/net/eth0/statistics/rx_dropped']),
+   command('checkout-kafka',['cat','/sys/class/net/eth0/statistics/tx_dropped']),
+   command('checkout-kafka',['cat','/proc/net/snmp']),
+   command('checkout-kafka',['cat','/proc/net/netstat']),
+   kafkaCommand('consumer-groups',['--describe','--group','synthetic-porthole-network-group']),
+   command('rabbit',['rabbitmqctl','-q','list_queues','name','messages_ready','messages_unacknowledged','messages']),
+  ])
+  return {atNs,apps,containerDrops:{rx:Number(rx),tx:Number(tx)},snmp,netstat,kafka,rabbit}
+ }
  async function record(name,injected,run){
   console.log('Network window: '+name)
   const from=String(BigInt(Date.now())*1000000n),before=await snap(),groundTruth=await run();await pause(4500);for(const role of roles)await app(role,'/flush');await pause(500)
