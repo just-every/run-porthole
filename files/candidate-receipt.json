@@ -1,78 +1,14 @@
 {
-  "head": "d9e6b48a489b5e0fb3f963617db44dcb761561f7",
+  "head": "d77a80daa5c1b4a608839d079ccc20ca28ecc7c9",
   "branch": "cloud/sx-porthole-c-f466-pc1",
   "preservedStart": "a9e9d8ae410e9289ee8bf33744c52e573564be37",
   "startIsAncestor": true,
   "mainMerged": "85b79464fa8a79597741711f6689f1b21132cd89",
-  "saveCommit": "da2b4a29edfcb8cc82b1c7091dff70988e9f4b92",
-  "productCodeUnchangedFromSavedHead": true,
-  "changedPathsFromSavedHead": [
-    "docs/signal-exports.md",
-    "docs/standard-signal-apis.md",
-    "sources.lock.json",
-    "tests/porthole/analytics.mjs",
-    "tests/porthole/archive.mjs",
-    "tests/porthole/standard-reads.mjs",
-    "tests/runtime.mjs",
-    "verification.json"
-  ],
-  "countsBefore": {
-    "done": 10,
-    "partial": 20,
-    "missing": 69
-  },
-  "countsAfter": {
-    "done": 10,
-    "partial": 20,
-    "missing": 69
-  },
-  "contractSourceUnchangedFromMain": true,
-  "checks": [
-    {
-      "command": "pnpm run typecheck",
-      "exit": 0
-    },
-    {
-      "command": "npx -y @runeditrun/rer check --profile first-party",
-      "exit": 0
-    },
-    {
-      "command": "node scripts/porthole/public-schema.mjs --check",
-      "exit": 0
-    },
-    {
-      "command": "node scripts/porthole/contract-docs.mjs write PORT-060,PORT-075",
-      "exit": 0
-    },
-    {
-      "command": "node scripts/porthole/contract-docs.mjs check PORT-060,PORT-075",
-      "exit": 0
-    },
-    {
-      "command": "pnpm run source:lock",
-      "exit": 0
-    },
-    {
-      "command": "pnpm run source:check",
-      "exit": 0
-    },
-    {
-      "command": "node --check tests/porthole/analytics.mjs; node --check tests/runtime.mjs",
-      "exit": 0
-    }
-  ],
-  "viewsRestoredFromMain": true,
-  "migrationLedger": "not applicable; no migrations changed",
-  "shardCountBefore": 11,
-  "shardCountAfter": 11,
-  "previousShardCommandsRetained": true,
-  "existingAnalyticalAssertionsRetained": true,
-  "productPush": "PUSH_OK branch=cloud/sx-porthole-c-f466-pc1",
-  "githubCommandsUsedBeforeCandidateDiscovery": 7,
-  "ci": "not yet queried",
-  "publicationScan": "Mac lander gate, not run in this cloud",
-  "runSite": "Mac lander gate, not run on this branch",
   "commits": [
+    {
+      "head": "d77a80daa5c1b4a608839d079ccc20ca28ecc7c9",
+      "subject": "Accept stock metric withdrawal markers and balance Verify"
+    },
     {
       "head": "d9e6b48a489b5e0fb3f963617db44dcb761561f7",
       "subject": "Run Services analytical proof through the native runtime harness"
@@ -86,14 +22,36 @@
       "subject": "Merge current main before network verification repair [skip ci]"
     }
   ],
-  "runtimeEntry": "PORTHOLE_SERVICES_ANALYTICAL_ONLY=1 pnpm run test:runtime",
-  "runtimeComparisonExit": 0,
-  "exactHeadRuntimeExit": 0,
-  "exactHeadBuildExit": 0,
-  "sourceHashes": {
-    "tests/runtime.mjs": "e6ee790cb376e2a579dcd8a5a00316f40b68ec56e99d1d9ffae44febddd341f9",
-    "tests/porthole/analytics.mjs": "05dee7198456e0db26bbeea106c287f8b7e3b5f46b5813c808e73a5110bfd783",
-    "verification.json": "e1f9f1447ba682434e69b78947ccd8b0d584ef989b21e529157d3ba75b1a5839"
+  "countsBefore": {
+    "done": 10,
+    "partial": 20,
+    "missing": 69
   },
-  "remoteProductRefVerified": "d9e6b48a489b5e0fb3f963617db44dcb761561f7"
+  "countsAfter": {
+    "done": 10,
+    "partial": 20,
+    "missing": 69
+  },
+  "contractUnchangedFromMain": true,
+  "checks": {
+    "typecheck": 0,
+    "firstParty": 0,
+    "publicSchema": 0,
+    "contractWriteAndCheck": 0,
+    "sourceLockAndCheck": 0,
+    "noValueStockProof": 0,
+    "relocatedHandoverJourney": 0,
+    "existingAssertionsRetained": true,
+    "shardsBefore": 11,
+    "shardsAfter": 11
+  },
+  "localNoValueExecutionBase": "d9e6b48a489b5e0fb3f963617db44dcb761561f7",
+  "localSourceHashMatchesCommit": true,
+  "productPush": "PUSH_OK branch=cloud/sx-porthole-c-f466-pc1",
+  "latestVerify": "unqueried; budget exhausted",
+  "supersededVerify": 42572164345,
+  "generatedViewsCommitted": false,
+  "migrationLedger": "not applicable",
+  "publicationScan": "Mac lander; not run here",
+  "runSite": "Mac lander; not established here"
 }

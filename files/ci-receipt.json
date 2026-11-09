@@ -1,7 +1,129 @@
 {
-  "head": "d9e6b48a489b5e0fb3f963617db44dcb761561f7",
-  "repository": "just-every/run-porthole",
-  "status": "not yet queried",
-  "githubCommandsUsed": 7,
-  "priorVerify": 42557874976
+  "candidate": {
+    "head": "d77a80daa5c1b4a608839d079ccc20ca28ecc7c9",
+    "branch": "cloud/sx-porthole-c-f466-pc1",
+    "runId": null,
+    "status": "not queried after repair",
+    "reason": "ten-command GitHub budget exhausted"
+  },
+  "supersededRun": {
+    "conclusion": "failure",
+    "event": "push",
+    "head_branch": "cloud/sx-porthole-c-f466-pc1",
+    "head_sha": "d9e6b48a489b5e0fb3f963617db44dcb761561f7",
+    "html_url": "https://github.com/just-every/run-porthole/actions/runs/42572164345",
+    "id": 42572164345,
+    "name": "Verify",
+    "run_attempt": 1,
+    "status": "completed",
+    "githubCommandsUsed": 10,
+    "jobs": [
+      {
+        "conclusion": "success",
+        "failed_steps": [],
+        "id": 129011764313,
+        "name": "plan",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "failed_steps": [],
+        "id": 129011799482,
+        "name": "shards (analytical, true)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "failure",
+        "failed_steps": [
+          "Run this shard"
+        ],
+        "id": 129011799502,
+        "name": "shards (network, true)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "failed_steps": [],
+        "id": 129011799508,
+        "name": "shards (migration, true)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "failed_steps": [],
+        "id": 129011799521,
+        "name": "shards (ingest, true)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "failed_steps": [],
+        "id": 129011799553,
+        "name": "shards (dashboards, true)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "failed_steps": [],
+        "id": 129011799556,
+        "name": "shards (follow-up, true)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "failed_steps": [],
+        "id": 129011799557,
+        "name": "shards (source, false)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "failed_steps": [],
+        "id": 129011799573,
+        "name": "shards (traces, true)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "failed_steps": [],
+        "id": 129011799581,
+        "name": "shards (exports, true)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "cancelled",
+        "failed_steps": [],
+        "id": 129011799588,
+        "name": "shards (runtime, true)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "failed_steps": [],
+        "id": 129011799599,
+        "name": "shards (typecheck, true)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "failure",
+        "failed_steps": [
+          "Require every shard"
+        ],
+        "id": 129015692876,
+        "name": "verify",
+        "status": "completed"
+      }
+    ],
+    "networkFailure": {
+      "job": 129011799502,
+      "test": "networkJourney",
+      "path": "tests/porthole/network.mjs:125",
+      "failure": "400 !== 200; missing_metric_value",
+      "reproduction": "exact shard stopped earlier on the cloud kernel; isolated stock packet probe running"
+    }
+  },
+  "budget": {
+    "limit": 10,
+    "used": 10
+  }
 }

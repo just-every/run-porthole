@@ -1,0 +1,1899 @@
+{
+  "head": "d9e6b48a489b5e0fb3f963617db44dcb761561f7",
+  "from": "1794205912299000000",
+  "through": "1794205917576000000",
+  "snapshot": 38,
+  "scanComplete": true,
+  "counts": {
+    "checkout-kafka": {
+      "sent": [
+        "baseline-probe-0",
+        "baseline-probe-1",
+        "baseline-probe-2"
+      ],
+      "received": [],
+      "requests": 3,
+      "failed": 0
+    },
+    "fulfillment-kafka": {
+      "sent": [],
+      "received": [
+        "baseline-probe-0",
+        "baseline-probe-1",
+        "baseline-probe-2"
+      ],
+      "requests": 0,
+      "failed": 0
+    },
+    "checkout-rabbitmq": {
+      "sent": [
+        "baseline-probe-0",
+        "baseline-probe-1",
+        "baseline-probe-2"
+      ],
+      "received": [],
+      "requests": 3,
+      "failed": 0
+    },
+    "fulfillment-rabbitmq": {
+      "sent": [],
+      "received": [
+        "baseline-probe-0",
+        "baseline-probe-1",
+        "baseline-probe-2"
+      ],
+      "requests": 0,
+      "failed": 0
+    }
+  },
+  "network": [
+    {
+      "key": "[\"checkout-kafka\",\"production\",\"commerce\"]",
+      "dependencies": [
+        {
+          "from": "[\"checkout-kafka\",\"production\",\"commerce\"]",
+          "to": "[\"fulfillment-kafka\",\"production\",\"commerce\"]",
+          "source": {
+            "containerId": "d1d2c9ff45a1a1305162961f27210739a7ae1d39c569af18b7163ea124f31e90",
+            "hostId": "c9d7b3b4-ccf7-41a1-82e2-007e3b7283d2",
+            "brokerContainerId": "95c1304d0a63edb305b99bef90e95e4536b92c2f50c5a4f01c6c1a3e87fa637d",
+            "scope": "[\"checkout-kafka\",\"production\",\"commerce\"]"
+          },
+          "target": {
+            "containerId": "1a54317aa764932e468d8dc57db48bdb9bea7e400927699d96830e96139982fe",
+            "hostId": "c9d7b3b4-ccf7-41a1-82e2-007e3b7283d2",
+            "brokerContainerId": "95c1304d0a63edb305b99bef90e95e4536b92c2f50c5a4f01c6c1a3e87fa637d",
+            "scope": "[\"fulfillment-kafka\",\"production\",\"commerce\"]"
+          },
+          "dns": {
+            "state": "observed",
+            "observations": 3,
+            "failures": 0,
+            "timeouts": 0,
+            "p95Ns": "3741397",
+            "evidence": [
+              {
+                "recordId": "364ff85d-33ec-47f9-a2a3-aac4ec023bd0:0",
+                "traceId": "875de5e1770a3dcf10b78bc16c5b2217",
+                "spanId": "d1b80a3da937fdce"
+              },
+              {
+                "recordId": "364ff85d-33ec-47f9-a2a3-aac4ec023bd0:1",
+                "traceId": "875de5e1770a3dcf10b78bc16c5b2217",
+                "spanId": "dab0033383b44000"
+              },
+              {
+                "recordId": "364ff85d-33ec-47f9-a2a3-aac4ec023bd0:2",
+                "traceId": "875de5e1770a3dcf10b78bc16c5b2217",
+                "spanId": "134c7ed38e614121"
+              }
+            ]
+          },
+          "connections": {
+            "state": "observed",
+            "observations": 3,
+            "failures": 0,
+            "timeouts": 0,
+            "p95Ns": "6276509",
+            "evidence": [
+              {
+                "recordId": "364ff85d-33ec-47f9-a2a3-aac4ec023bd0:3",
+                "traceId": "875de5e1770a3dcf10b78bc16c5b2217",
+                "spanId": "5090e07e9fc0c48f"
+              },
+              {
+                "recordId": "364ff85d-33ec-47f9-a2a3-aac4ec023bd0:4",
+                "traceId": "875de5e1770a3dcf10b78bc16c5b2217",
+                "spanId": "1a7789fd5918bfa8"
+              },
+              {
+                "recordId": "364ff85d-33ec-47f9-a2a3-aac4ec023bd0:5",
+                "traceId": "875de5e1770a3dcf10b78bc16c5b2217",
+                "spanId": "7761d8620dbf37d3"
+              }
+            ]
+          },
+          "counterScope": "source network namespace; not an individual edge loss rate",
+          "counters": [
+            {
+              "name": "container.network.io.usage.rx_dropped",
+              "unit": "{packets}",
+              "attributes": {
+                "interface": "eth0"
+              },
+              "resource": {
+                "containerId": "d1d2c9ff45a1a1305162961f27210739a7ae1d39c569af18b7163ea124f31e90",
+                "hostId": "c9d7b3b4-ccf7-41a1-82e2-007e3b7283d2",
+                "brokerContainerId": null,
+                "scope": "[\"checkout-kafka\",\"production\",\"commerce\"]"
+              },
+              "state": "observed",
+              "firstAtNs": "1794205913565396125",
+              "lastAtNs": "1794205915785036285",
+              "value": 0,
+              "delta": 0,
+              "evidence": [
+                {
+                  "recordId": "e0989cb4-d1d9-47c8-af66-6479af2cd23b:0",
+                  "traceId": null,
+                  "spanId": null
+                },
+                {
+                  "recordId": "85cbed56-a689-4294-90ba-8b8d06039c2f:0",
+                  "traceId": null,
+                  "spanId": null
+                }
+              ]
+            },
+            {
+              "name": "container.network.io.usage.tx_dropped",
+              "unit": "{packets}",
+              "attributes": {
+                "interface": "eth0"
+              },
+              "resource": {
+                "containerId": "d1d2c9ff45a1a1305162961f27210739a7ae1d39c569af18b7163ea124f31e90",
+                "hostId": "c9d7b3b4-ccf7-41a1-82e2-007e3b7283d2",
+                "brokerContainerId": null,
+                "scope": "[\"checkout-kafka\",\"production\",\"commerce\"]"
+              },
+              "state": "observed",
+              "firstAtNs": "1794205913565396125",
+              "lastAtNs": "1794205915785036285",
+              "value": 0,
+              "delta": 0,
+              "evidence": [
+                {
+                  "recordId": "e0989cb4-d1d9-47c8-af66-6479af2cd23b:1",
+                  "traceId": null,
+                  "spanId": null
+                },
+                {
+                  "recordId": "85cbed56-a689-4294-90ba-8b8d06039c2f:1",
+                  "traceId": null,
+                  "spanId": null
+                }
+              ]
+            },
+            {
+              "name": "node_netstat_Tcp_RetransSegs",
+              "unit": "",
+              "attributes": {},
+              "resource": {
+                "containerId": "d1d2c9ff45a1a1305162961f27210739a7ae1d39c569af18b7163ea124f31e90",
+                "hostId": "c9d7b3b4-ccf7-41a1-82e2-007e3b7283d2",
+                "brokerContainerId": null,
+                "scope": "[\"checkout-kafka\",\"production\",\"commerce\"]"
+              },
+              "state": "observed",
+              "firstAtNs": "1794205916427000000",
+              "lastAtNs": "1794205916427000000",
+              "value": 0,
+              "delta": null,
+              "evidence": [
+                {
+                  "recordId": "3fa37489-b6fc-41d1-a42e-fc850ff6a591:0",
+                  "traceId": null,
+                  "spanId": null
+                }
+              ]
+            },
+            {
+              "name": "node_netstat_TcpExt_TCPTimeouts",
+              "unit": "",
+              "attributes": {},
+              "resource": {
+                "containerId": "d1d2c9ff45a1a1305162961f27210739a7ae1d39c569af18b7163ea124f31e90",
+                "hostId": "c9d7b3b4-ccf7-41a1-82e2-007e3b7283d2",
+                "brokerContainerId": null,
+                "scope": "[\"checkout-kafka\",\"production\",\"commerce\"]"
+              },
+              "state": "observed",
+              "firstAtNs": "1794205916427000000",
+              "lastAtNs": "1794205916427000000",
+              "value": 0,
+              "delta": null,
+              "evidence": [
+                {
+                  "recordId": "3fa37489-b6fc-41d1-a42e-fc850ff6a591:6",
+                  "traceId": null,
+                  "spanId": null
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "identities": [
+        {
+          "containerId": "d1d2c9ff45a1a1305162961f27210739a7ae1d39c569af18b7163ea124f31e90",
+          "hostId": "c9d7b3b4-ccf7-41a1-82e2-007e3b7283d2",
+          "brokerContainerId": "95c1304d0a63edb305b99bef90e95e4536b92c2f50c5a4f01c6c1a3e87fa637d",
+          "scope": "[\"checkout-kafka\",\"production\",\"commerce\"]"
+        }
+      ],
+      "dns": {
+        "state": "observed",
+        "observations": 3,
+        "failures": 0,
+        "timeouts": 0,
+        "p95Ns": "3741397",
+        "evidence": [
+          {
+            "recordId": "364ff85d-33ec-47f9-a2a3-aac4ec023bd0:0",
+            "traceId": "875de5e1770a3dcf10b78bc16c5b2217",
+            "spanId": "d1b80a3da937fdce"
+          },
+          {
+            "recordId": "364ff85d-33ec-47f9-a2a3-aac4ec023bd0:1",
+            "traceId": "875de5e1770a3dcf10b78bc16c5b2217",
+            "spanId": "dab0033383b44000"
+          },
+          {
+            "recordId": "364ff85d-33ec-47f9-a2a3-aac4ec023bd0:2",
+            "traceId": "875de5e1770a3dcf10b78bc16c5b2217",
+            "spanId": "134c7ed38e614121"
+          }
+        ]
+      },
+      "connections": {
+        "state": "observed",
+        "observations": 3,
+        "failures": 0,
+        "timeouts": 0,
+        "p95Ns": "6276509",
+        "evidence": [
+          {
+            "recordId": "364ff85d-33ec-47f9-a2a3-aac4ec023bd0:3",
+            "traceId": "875de5e1770a3dcf10b78bc16c5b2217",
+            "spanId": "5090e07e9fc0c48f"
+          },
+          {
+            "recordId": "364ff85d-33ec-47f9-a2a3-aac4ec023bd0:4",
+            "traceId": "875de5e1770a3dcf10b78bc16c5b2217",
+            "spanId": "1a7789fd5918bfa8"
+          },
+          {
+            "recordId": "364ff85d-33ec-47f9-a2a3-aac4ec023bd0:5",
+            "traceId": "875de5e1770a3dcf10b78bc16c5b2217",
+            "spanId": "7761d8620dbf37d3"
+          }
+        ]
+      },
+      "counters": [
+        {
+          "name": "container.network.io.usage.rx_dropped",
+          "unit": "{packets}",
+          "attributes": {
+            "interface": "eth0"
+          },
+          "resource": {
+            "containerId": "d1d2c9ff45a1a1305162961f27210739a7ae1d39c569af18b7163ea124f31e90",
+            "hostId": "c9d7b3b4-ccf7-41a1-82e2-007e3b7283d2",
+            "brokerContainerId": null,
+            "scope": "[\"checkout-kafka\",\"production\",\"commerce\"]"
+          },
+          "state": "observed",
+          "firstAtNs": "1794205913565396125",
+          "lastAtNs": "1794205915785036285",
+          "value": 0,
+          "delta": 0,
+          "evidence": [
+            {
+              "recordId": "e0989cb4-d1d9-47c8-af66-6479af2cd23b:0",
+              "traceId": null,
+              "spanId": null
+            },
+            {
+              "recordId": "85cbed56-a689-4294-90ba-8b8d06039c2f:0",
+              "traceId": null,
+              "spanId": null
+            }
+          ]
+        },
+        {
+          "name": "container.network.io.usage.tx_dropped",
+          "unit": "{packets}",
+          "attributes": {
+            "interface": "eth0"
+          },
+          "resource": {
+            "containerId": "d1d2c9ff45a1a1305162961f27210739a7ae1d39c569af18b7163ea124f31e90",
+            "hostId": "c9d7b3b4-ccf7-41a1-82e2-007e3b7283d2",
+            "brokerContainerId": null,
+            "scope": "[\"checkout-kafka\",\"production\",\"commerce\"]"
+          },
+          "state": "observed",
+          "firstAtNs": "1794205913565396125",
+          "lastAtNs": "1794205915785036285",
+          "value": 0,
+          "delta": 0,
+          "evidence": [
+            {
+              "recordId": "e0989cb4-d1d9-47c8-af66-6479af2cd23b:1",
+              "traceId": null,
+              "spanId": null
+            },
+            {
+              "recordId": "85cbed56-a689-4294-90ba-8b8d06039c2f:1",
+              "traceId": null,
+              "spanId": null
+            }
+          ]
+        },
+        {
+          "name": "node_netstat_Tcp_RetransSegs",
+          "unit": "",
+          "attributes": {},
+          "resource": {
+            "containerId": "d1d2c9ff45a1a1305162961f27210739a7ae1d39c569af18b7163ea124f31e90",
+            "hostId": "c9d7b3b4-ccf7-41a1-82e2-007e3b7283d2",
+            "brokerContainerId": null,
+            "scope": "[\"checkout-kafka\",\"production\",\"commerce\"]"
+          },
+          "state": "observed",
+          "firstAtNs": "1794205916427000000",
+          "lastAtNs": "1794205916427000000",
+          "value": 0,
+          "delta": null,
+          "evidence": [
+            {
+              "recordId": "3fa37489-b6fc-41d1-a42e-fc850ff6a591:0",
+              "traceId": null,
+              "spanId": null
+            }
+          ]
+        },
+        {
+          "name": "node_netstat_TcpExt_TCPTimeouts",
+          "unit": "",
+          "attributes": {},
+          "resource": {
+            "containerId": "d1d2c9ff45a1a1305162961f27210739a7ae1d39c569af18b7163ea124f31e90",
+            "hostId": "c9d7b3b4-ccf7-41a1-82e2-007e3b7283d2",
+            "brokerContainerId": null,
+            "scope": "[\"checkout-kafka\",\"production\",\"commerce\"]"
+          },
+          "state": "observed",
+          "firstAtNs": "1794205916427000000",
+          "lastAtNs": "1794205916427000000",
+          "value": 0,
+          "delta": null,
+          "evidence": [
+            {
+              "recordId": "3fa37489-b6fc-41d1-a42e-fc850ff6a591:6",
+              "traceId": null,
+              "spanId": null
+            }
+          ]
+        }
+      ],
+      "flows": [],
+      "applicationSpans": [],
+      "gaps": [
+        {
+          "source": "obi",
+          "state": "unknown",
+          "missing": "BPF and PERFMON capabilities and supported kernel",
+          "nextAction": "Authorize BPF and PERFMON in the affected namespace; inspect the official OBI kernel diagnostics.",
+          "reason": "No fresh correlated evidence; collection absence does not identify a denial by itself."
+        }
+      ],
+      "fullTraffic": false
+    },
+    {
+      "key": "[\"checkout-rabbitmq\",\"production\",\"commerce\"]",
+      "dependencies": [
+        {
+          "from": "[\"checkout-rabbitmq\",\"production\",\"commerce\"]",
+          "to": "[\"fulfillment-rabbitmq\",\"production\",\"commerce\"]",
+          "source": {
+            "containerId": "4521979eacd4da7892fa98bcadd74d881c18975d23243b6d2648f80af7adb88a",
+            "hostId": "c9d7b3b4-ccf7-41a1-82e2-007e3b7283d2",
+            "brokerContainerId": "7668a39184222d858143d6b766fee105738ac860b4ef6aa3b157d3b82ce0b8b7",
+            "scope": "[\"checkout-rabbitmq\",\"production\",\"commerce\"]"
+          },
+          "target": {
+            "containerId": "81aab8a11de2b36a44ca864a2ecf3ea6a42f7d0e2b82a6a13164e06c5d985f2d",
+            "hostId": "c9d7b3b4-ccf7-41a1-82e2-007e3b7283d2",
+            "brokerContainerId": "7668a39184222d858143d6b766fee105738ac860b4ef6aa3b157d3b82ce0b8b7",
+            "scope": "[\"fulfillment-rabbitmq\",\"production\",\"commerce\"]"
+          },
+          "dns": {
+            "state": "observed",
+            "observations": 3,
+            "failures": 0,
+            "timeouts": 0,
+            "p95Ns": "9908391",
+            "evidence": [
+              {
+                "recordId": "9ba6e24a-4bfb-4492-97f9-13fe41cdebf7:0",
+                "traceId": "c77e18469859bf47f235755acdeffb4f",
+                "spanId": "8a1cfb23ea6ca815"
+              },
+              {
+                "recordId": "9ba6e24a-4bfb-4492-97f9-13fe41cdebf7:1",
+                "traceId": "c77e18469859bf47f235755acdeffb4f",
+                "spanId": "44df79e6e706ce77"
+              },
+              {
+                "recordId": "9ba6e24a-4bfb-4492-97f9-13fe41cdebf7:2",
+                "traceId": "c77e18469859bf47f235755acdeffb4f",
+                "spanId": "2b0af8d2426e6c70"
+              }
+            ]
+          },
+          "connections": {
+            "state": "observed",
+            "observations": 3,
+            "failures": 0,
+            "timeouts": 0,
+            "p95Ns": "11845485",
+            "evidence": [
+              {
+                "recordId": "9ba6e24a-4bfb-4492-97f9-13fe41cdebf7:3",
+                "traceId": "c77e18469859bf47f235755acdeffb4f",
+                "spanId": "715ec9e36ae33099"
+              },
+              {
+                "recordId": "9ba6e24a-4bfb-4492-97f9-13fe41cdebf7:4",
+                "traceId": "c77e18469859bf47f235755acdeffb4f",
+                "spanId": "2fd2fce898703633"
+              },
+              {
+                "recordId": "9ba6e24a-4bfb-4492-97f9-13fe41cdebf7:5",
+                "traceId": "c77e18469859bf47f235755acdeffb4f",
+                "spanId": "130469d45160727b"
+              }
+            ]
+          },
+          "counterScope": "source network namespace; not an individual edge loss rate",
+          "counters": []
+        }
+      ],
+      "identities": [
+        {
+          "containerId": "4521979eacd4da7892fa98bcadd74d881c18975d23243b6d2648f80af7adb88a",
+          "hostId": "c9d7b3b4-ccf7-41a1-82e2-007e3b7283d2",
+          "brokerContainerId": "7668a39184222d858143d6b766fee105738ac860b4ef6aa3b157d3b82ce0b8b7",
+          "scope": "[\"checkout-rabbitmq\",\"production\",\"commerce\"]"
+        }
+      ],
+      "dns": {
+        "state": "observed",
+        "observations": 3,
+        "failures": 0,
+        "timeouts": 0,
+        "p95Ns": "9908391",
+        "evidence": [
+          {
+            "recordId": "9ba6e24a-4bfb-4492-97f9-13fe41cdebf7:0",
+            "traceId": "c77e18469859bf47f235755acdeffb4f",
+            "spanId": "8a1cfb23ea6ca815"
+          },
+          {
+            "recordId": "9ba6e24a-4bfb-4492-97f9-13fe41cdebf7:1",
+            "traceId": "c77e18469859bf47f235755acdeffb4f",
+            "spanId": "44df79e6e706ce77"
+          },
+          {
+            "recordId": "9ba6e24a-4bfb-4492-97f9-13fe41cdebf7:2",
+            "traceId": "c77e18469859bf47f235755acdeffb4f",
+            "spanId": "2b0af8d2426e6c70"
+          }
+        ]
+      },
+      "connections": {
+        "state": "observed",
+        "observations": 3,
+        "failures": 0,
+        "timeouts": 0,
+        "p95Ns": "11845485",
+        "evidence": [
+          {
+            "recordId": "9ba6e24a-4bfb-4492-97f9-13fe41cdebf7:3",
+            "traceId": "c77e18469859bf47f235755acdeffb4f",
+            "spanId": "715ec9e36ae33099"
+          },
+          {
+            "recordId": "9ba6e24a-4bfb-4492-97f9-13fe41cdebf7:4",
+            "traceId": "c77e18469859bf47f235755acdeffb4f",
+            "spanId": "2fd2fce898703633"
+          },
+          {
+            "recordId": "9ba6e24a-4bfb-4492-97f9-13fe41cdebf7:5",
+            "traceId": "c77e18469859bf47f235755acdeffb4f",
+            "spanId": "130469d45160727b"
+          }
+        ]
+      },
+      "counters": [],
+      "flows": [],
+      "applicationSpans": [],
+      "gaps": [
+        {
+          "source": "tcp",
+          "state": "unknown",
+          "missing": "namespace access and netstat collector",
+          "nextAction": "Authorize the affected container network namespace and restart the stock node exporter.",
+          "reason": "No fresh correlated evidence; collection absence does not identify a denial by itself."
+        },
+        {
+          "source": "container",
+          "state": "unknown",
+          "missing": "Docker socket read access",
+          "nextAction": "Restore read access to the owned Docker socket for the stock docker_stats receiver.",
+          "reason": "No fresh correlated evidence; collection absence does not identify a denial by itself."
+        },
+        {
+          "source": "obi",
+          "state": "unknown",
+          "missing": "BPF and PERFMON capabilities and supported kernel",
+          "nextAction": "Authorize BPF and PERFMON in the affected namespace; inspect the official OBI kernel diagnostics.",
+          "reason": "No fresh correlated evidence; collection absence does not identify a denial by itself."
+        }
+      ],
+      "fullTraffic": false
+    },
+    {
+      "key": "[\"fulfillment-kafka\",\"production\",\"commerce\"]",
+      "dependencies": [],
+      "identities": [
+        {
+          "containerId": "1a54317aa764932e468d8dc57db48bdb9bea7e400927699d96830e96139982fe",
+          "hostId": "c9d7b3b4-ccf7-41a1-82e2-007e3b7283d2",
+          "brokerContainerId": "95c1304d0a63edb305b99bef90e95e4536b92c2f50c5a4f01c6c1a3e87fa637d",
+          "scope": "[\"fulfillment-kafka\",\"production\",\"commerce\"]"
+        }
+      ],
+      "dns": {
+        "state": "unknown",
+        "observations": 0,
+        "failures": 0,
+        "timeouts": 0,
+        "p95Ns": null,
+        "evidence": []
+      },
+      "connections": {
+        "state": "unknown",
+        "observations": 0,
+        "failures": 0,
+        "timeouts": 0,
+        "p95Ns": null,
+        "evidence": []
+      },
+      "counters": [],
+      "flows": [],
+      "applicationSpans": [],
+      "gaps": [
+        {
+          "source": "tcp",
+          "state": "unknown",
+          "missing": "namespace access and netstat collector",
+          "nextAction": "Authorize the affected container network namespace and restart the stock node exporter.",
+          "reason": "No fresh correlated evidence; collection absence does not identify a denial by itself."
+        },
+        {
+          "source": "container",
+          "state": "unknown",
+          "missing": "Docker socket read access",
+          "nextAction": "Restore read access to the owned Docker socket for the stock docker_stats receiver.",
+          "reason": "No fresh correlated evidence; collection absence does not identify a denial by itself."
+        },
+        {
+          "source": "obi",
+          "state": "unknown",
+          "missing": "BPF and PERFMON capabilities and supported kernel",
+          "nextAction": "Authorize BPF and PERFMON in the affected namespace; inspect the official OBI kernel diagnostics.",
+          "reason": "No fresh correlated evidence; collection absence does not identify a denial by itself."
+        }
+      ],
+      "fullTraffic": false
+    },
+    {
+      "key": "[\"fulfillment-rabbitmq\",\"production\",\"commerce\"]",
+      "dependencies": [],
+      "identities": [
+        {
+          "containerId": "81aab8a11de2b36a44ca864a2ecf3ea6a42f7d0e2b82a6a13164e06c5d985f2d",
+          "hostId": "c9d7b3b4-ccf7-41a1-82e2-007e3b7283d2",
+          "brokerContainerId": "7668a39184222d858143d6b766fee105738ac860b4ef6aa3b157d3b82ce0b8b7",
+          "scope": "[\"fulfillment-rabbitmq\",\"production\",\"commerce\"]"
+        }
+      ],
+      "dns": {
+        "state": "unknown",
+        "observations": 0,
+        "failures": 0,
+        "timeouts": 0,
+        "p95Ns": null,
+        "evidence": []
+      },
+      "connections": {
+        "state": "unknown",
+        "observations": 0,
+        "failures": 0,
+        "timeouts": 0,
+        "p95Ns": null,
+        "evidence": []
+      },
+      "counters": [],
+      "flows": [],
+      "applicationSpans": [],
+      "gaps": [
+        {
+          "source": "tcp",
+          "state": "unknown",
+          "missing": "namespace access and netstat collector",
+          "nextAction": "Authorize the affected container network namespace and restart the stock node exporter.",
+          "reason": "No fresh correlated evidence; collection absence does not identify a denial by itself."
+        },
+        {
+          "source": "container",
+          "state": "unknown",
+          "missing": "Docker socket read access",
+          "nextAction": "Restore read access to the owned Docker socket for the stock docker_stats receiver.",
+          "reason": "No fresh correlated evidence; collection absence does not identify a denial by itself."
+        },
+        {
+          "source": "obi",
+          "state": "unknown",
+          "missing": "BPF and PERFMON capabilities and supported kernel",
+          "nextAction": "Authorize BPF and PERFMON in the affected namespace; inspect the official OBI kernel diagnostics.",
+          "reason": "No fresh correlated evidence; collection absence does not identify a denial by itself."
+        }
+      ],
+      "fullTraffic": false
+    }
+  ],
+  "messaging": [
+    {
+      "key": "[\"[\\\"checkout-kafka\\\",\\\"production\\\",\\\"commerce\\\"]\",\"kafka\",\"synthetic-porthole-network-orders\",\"[\\\"95c1304d0a63edb305b99bef90e95e4536b92c2f50c5a4f01c6c1a3e87fa637d\\\",\\\"c9d7b3b4-ccf7-41a1-82e2-007e3b7283d2\\\"]\",null]",
+      "scope": "[\"checkout-kafka\",\"production\",\"commerce\"]",
+      "system": "kafka",
+      "destination": "synthetic-porthole-network-orders",
+      "namespace": null,
+      "brokerIdentity": "[\"95c1304d0a63edb305b99bef90e95e4536b92c2f50c5a4f01c6c1a3e87fa637d\",\"c9d7b3b4-ccf7-41a1-82e2-007e3b7283d2\"]",
+      "producers": {
+        "state": "observed",
+        "observations": 3,
+        "failures": 0,
+        "timeouts": 0,
+        "p95Ns": "51289285",
+        "evidence": [
+          {
+            "recordId": "364ff85d-33ec-47f9-a2a3-aac4ec023bd0:10",
+            "traceId": "875de5e1770a3dcf10b78bc16c5b2217",
+            "spanId": "2c544ea9986f9e3a"
+          },
+          {
+            "recordId": "364ff85d-33ec-47f9-a2a3-aac4ec023bd0:11",
+            "traceId": "875de5e1770a3dcf10b78bc16c5b2217",
+            "spanId": "6566aa78905c36ed"
+          },
+          {
+            "recordId": "364ff85d-33ec-47f9-a2a3-aac4ec023bd0:12",
+            "traceId": "875de5e1770a3dcf10b78bc16c5b2217",
+            "spanId": "61aa63f90eab45c2"
+          }
+        ]
+      },
+      "consumers": {
+        "state": "unknown",
+        "observations": 0,
+        "failures": 0,
+        "timeouts": 0,
+        "p95Ns": null,
+        "evidence": []
+      },
+      "producerPerSecond": 0.5685048321833419,
+      "consumerPerSecond": 0,
+      "visibleQueue": {
+        "producers": {
+          "state": "observed",
+          "observations": 3,
+          "failures": 0,
+          "timeouts": 0,
+          "p95Ns": "51289285",
+          "evidence": [
+            {
+              "recordId": "364ff85d-33ec-47f9-a2a3-aac4ec023bd0:10",
+              "traceId": "875de5e1770a3dcf10b78bc16c5b2217",
+              "spanId": "2c544ea9986f9e3a"
+            },
+            {
+              "recordId": "364ff85d-33ec-47f9-a2a3-aac4ec023bd0:11",
+              "traceId": "875de5e1770a3dcf10b78bc16c5b2217",
+              "spanId": "6566aa78905c36ed"
+            },
+            {
+              "recordId": "364ff85d-33ec-47f9-a2a3-aac4ec023bd0:12",
+              "traceId": "875de5e1770a3dcf10b78bc16c5b2217",
+              "spanId": "61aa63f90eab45c2"
+            }
+          ]
+        },
+        "consumers": {
+          "state": "observed",
+          "observations": 3,
+          "failures": 0,
+          "timeouts": 0,
+          "p95Ns": "17110328",
+          "evidence": [
+            {
+              "recordId": "762c8b4a-2906-42c0-997e-12a146f7b92e:3",
+              "traceId": "875de5e1770a3dcf10b78bc16c5b2217",
+              "spanId": "546336bd82c2e7ad"
+            },
+            {
+              "recordId": "78bc6209-400d-4682-aff1-1a2e36e2c8a3:0",
+              "traceId": "875de5e1770a3dcf10b78bc16c5b2217",
+              "spanId": "df0ecfa4185a4913"
+            },
+            {
+              "recordId": "78bc6209-400d-4682-aff1-1a2e36e2c8a3:1",
+              "traceId": "875de5e1770a3dcf10b78bc16c5b2217",
+              "spanId": "8cf2b0977e1a0bd5"
+            }
+          ]
+        },
+        "producerPerSecond": 0.5685048321833419,
+        "consumerPerSecond": 0.5685048321833419,
+        "contributors": [
+          "[\"checkout-kafka\",\"production\",\"commerce\"]",
+          "[\"fulfillment-kafka\",\"production\",\"commerce\"]"
+        ]
+      },
+      "processingLatency": {
+        "state": "observed",
+        "observations": 3,
+        "failures": 0,
+        "timeouts": 0,
+        "p95Ns": "17110328",
+        "evidence": [
+          {
+            "recordId": "762c8b4a-2906-42c0-997e-12a146f7b92e:3",
+            "traceId": "875de5e1770a3dcf10b78bc16c5b2217",
+            "spanId": "546336bd82c2e7ad"
+          },
+          {
+            "recordId": "78bc6209-400d-4682-aff1-1a2e36e2c8a3:0",
+            "traceId": "875de5e1770a3dcf10b78bc16c5b2217",
+            "spanId": "df0ecfa4185a4913"
+          },
+          {
+            "recordId": "78bc6209-400d-4682-aff1-1a2e36e2c8a3:1",
+            "traceId": "875de5e1770a3dcf10b78bc16c5b2217",
+            "spanId": "8cf2b0977e1a0bd5"
+          }
+        ]
+      },
+      "metrics": [
+        {
+          "name": "kafka.partition.current_offset",
+          "unit": "1",
+          "attributes": {
+            "topic": "synthetic-porthole-network-orders",
+            "partition": "0"
+          },
+          "resource": {
+            "containerId": "95c1304d0a63edb305b99bef90e95e4536b92c2f50c5a4f01c6c1a3e87fa637d",
+            "hostId": "c9d7b3b4-ccf7-41a1-82e2-007e3b7283d2",
+            "brokerContainerId": "95c1304d0a63edb305b99bef90e95e4536b92c2f50c5a4f01c6c1a3e87fa637d",
+            "scope": "[\"checkout-kafka\",\"production\",\"commerce\"]"
+          },
+          "state": "observed",
+          "firstAtNs": "1794205912779621273",
+          "lastAtNs": "1794205916708481935",
+          "value": 3,
+          "delta": null,
+          "evidence": [
+            {
+              "recordId": "7a704c7c-a198-494d-87d6-55dfa36ab87e:0",
+              "traceId": null,
+              "spanId": null
+            },
+            {
+              "recordId": "11e2f9e1-f3cb-45c6-8b23-0fc9b08bbb9b:0",
+              "traceId": null,
+              "spanId": null
+            },
+            {
+              "recordId": "bc59a8dc-259a-49be-9faf-af5a369a7e65:0",
+              "traceId": null,
+              "spanId": null
+            }
+          ]
+        },
+        {
+          "name": "kafka.consumer_group.lag",
+          "unit": "1",
+          "attributes": {
+            "group": "synthetic-porthole-network-group",
+            "topic": "synthetic-porthole-network-orders",
+            "partition": "0"
+          },
+          "resource": {
+            "containerId": "95c1304d0a63edb305b99bef90e95e4536b92c2f50c5a4f01c6c1a3e87fa637d",
+            "hostId": "c9d7b3b4-ccf7-41a1-82e2-007e3b7283d2",
+            "brokerContainerId": "95c1304d0a63edb305b99bef90e95e4536b92c2f50c5a4f01c6c1a3e87fa637d",
+            "scope": "[\"checkout-kafka\",\"production\",\"commerce\"]"
+          },
+          "state": "observed",
+          "firstAtNs": "1794205913076072246",
+          "lastAtNs": "1794205916721885805",
+          "value": 0,
+          "delta": null,
+          "evidence": [
+            {
+              "recordId": "7a704c7c-a198-494d-87d6-55dfa36ab87e:1",
+              "traceId": null,
+              "spanId": null
+            },
+            {
+              "recordId": "11e2f9e1-f3cb-45c6-8b23-0fc9b08bbb9b:1",
+              "traceId": null,
+              "spanId": null
+            },
+            {
+              "recordId": "bc59a8dc-259a-49be-9faf-af5a369a7e65:1",
+              "traceId": null,
+              "spanId": null
+            }
+          ]
+        },
+        {
+          "name": "kafka.consumer_group.offset",
+          "unit": "1",
+          "attributes": {
+            "group": "synthetic-porthole-network-group",
+            "topic": "synthetic-porthole-network-orders",
+            "partition": "0"
+          },
+          "resource": {
+            "containerId": "95c1304d0a63edb305b99bef90e95e4536b92c2f50c5a4f01c6c1a3e87fa637d",
+            "hostId": "c9d7b3b4-ccf7-41a1-82e2-007e3b7283d2",
+            "brokerContainerId": "95c1304d0a63edb305b99bef90e95e4536b92c2f50c5a4f01c6c1a3e87fa637d",
+            "scope": "[\"checkout-kafka\",\"production\",\"commerce\"]"
+          },
+          "state": "observed",
+          "firstAtNs": "1794205913076072246",
+          "lastAtNs": "1794205916721885805",
+          "value": 3,
+          "delta": null,
+          "evidence": [
+            {
+              "recordId": "7a704c7c-a198-494d-87d6-55dfa36ab87e:2",
+              "traceId": null,
+              "spanId": null
+            },
+            {
+              "recordId": "11e2f9e1-f3cb-45c6-8b23-0fc9b08bbb9b:2",
+              "traceId": null,
+              "spanId": null
+            },
+            {
+              "recordId": "bc59a8dc-259a-49be-9faf-af5a369a7e65:2",
+              "traceId": null,
+              "spanId": null
+            }
+          ]
+        }
+      ],
+      "links": [
+        {
+          "producer": {
+            "recordId": "364ff85d-33ec-47f9-a2a3-aac4ec023bd0:10",
+            "traceId": "875de5e1770a3dcf10b78bc16c5b2217",
+            "spanId": "2c544ea9986f9e3a"
+          },
+          "consumer": {
+            "recordId": "762c8b4a-2906-42c0-997e-12a146f7b92e:3",
+            "traceId": "875de5e1770a3dcf10b78bc16c5b2217",
+            "spanId": "546336bd82c2e7ad"
+          }
+        },
+        {
+          "producer": {
+            "recordId": "364ff85d-33ec-47f9-a2a3-aac4ec023bd0:11",
+            "traceId": "875de5e1770a3dcf10b78bc16c5b2217",
+            "spanId": "6566aa78905c36ed"
+          },
+          "consumer": {
+            "recordId": "78bc6209-400d-4682-aff1-1a2e36e2c8a3:0",
+            "traceId": "875de5e1770a3dcf10b78bc16c5b2217",
+            "spanId": "df0ecfa4185a4913"
+          }
+        },
+        {
+          "producer": {
+            "recordId": "364ff85d-33ec-47f9-a2a3-aac4ec023bd0:12",
+            "traceId": "875de5e1770a3dcf10b78bc16c5b2217",
+            "spanId": "61aa63f90eab45c2"
+          },
+          "consumer": {
+            "recordId": "78bc6209-400d-4682-aff1-1a2e36e2c8a3:1",
+            "traceId": "875de5e1770a3dcf10b78bc16c5b2217",
+            "spanId": "8cf2b0977e1a0bd5"
+          }
+        }
+      ],
+      "gaps": [],
+      "fullTraffic": false
+    },
+    {
+      "key": "[\"[\\\"checkout-rabbitmq\\\",\\\"production\\\",\\\"commerce\\\"]\",\"rabbitmq\",\"synthetic-porthole-network-orders\",\"[\\\"7668a39184222d858143d6b766fee105738ac860b4ef6aa3b157d3b82ce0b8b7\\\",\\\"c9d7b3b4-ccf7-41a1-82e2-007e3b7283d2\\\"]\",\"/\"]",
+      "scope": "[\"checkout-rabbitmq\",\"production\",\"commerce\"]",
+      "system": "rabbitmq",
+      "destination": "synthetic-porthole-network-orders",
+      "namespace": "/",
+      "brokerIdentity": "[\"7668a39184222d858143d6b766fee105738ac860b4ef6aa3b157d3b82ce0b8b7\",\"c9d7b3b4-ccf7-41a1-82e2-007e3b7283d2\"]",
+      "producers": {
+        "state": "observed",
+        "observations": 3,
+        "failures": 0,
+        "timeouts": 0,
+        "p95Ns": "13122059",
+        "evidence": [
+          {
+            "recordId": "9ba6e24a-4bfb-4492-97f9-13fe41cdebf7:9",
+            "traceId": "c77e18469859bf47f235755acdeffb4f",
+            "spanId": "d525676a2d311024"
+          },
+          {
+            "recordId": "9ba6e24a-4bfb-4492-97f9-13fe41cdebf7:10",
+            "traceId": "c77e18469859bf47f235755acdeffb4f",
+            "spanId": "62cd69828fd56a14"
+          },
+          {
+            "recordId": "f82c0056-1ef8-439f-ad90-e25e080a6130:0",
+            "traceId": "c77e18469859bf47f235755acdeffb4f",
+            "spanId": "7335b434514e04c0"
+          }
+        ]
+      },
+      "consumers": {
+        "state": "unknown",
+        "observations": 0,
+        "failures": 0,
+        "timeouts": 0,
+        "p95Ns": null,
+        "evidence": []
+      },
+      "producerPerSecond": 0.5685048321833419,
+      "consumerPerSecond": 0,
+      "visibleQueue": {
+        "producers": {
+          "state": "observed",
+          "observations": 3,
+          "failures": 0,
+          "timeouts": 0,
+          "p95Ns": "13122059",
+          "evidence": [
+            {
+              "recordId": "9ba6e24a-4bfb-4492-97f9-13fe41cdebf7:9",
+              "traceId": "c77e18469859bf47f235755acdeffb4f",
+              "spanId": "d525676a2d311024"
+            },
+            {
+              "recordId": "9ba6e24a-4bfb-4492-97f9-13fe41cdebf7:10",
+              "traceId": "c77e18469859bf47f235755acdeffb4f",
+              "spanId": "62cd69828fd56a14"
+            },
+            {
+              "recordId": "f82c0056-1ef8-439f-ad90-e25e080a6130:0",
+              "traceId": "c77e18469859bf47f235755acdeffb4f",
+              "spanId": "7335b434514e04c0"
+            }
+          ]
+        },
+        "consumers": {
+          "state": "observed",
+          "observations": 3,
+          "failures": 0,
+          "timeouts": 0,
+          "p95Ns": "18193512",
+          "evidence": [
+            {
+              "recordId": "fd3b8b18-9f21-4d93-8fee-fb5ec3b53307:3",
+              "traceId": "c77e18469859bf47f235755acdeffb4f",
+              "spanId": "315d69d524315686"
+            },
+            {
+              "recordId": "fd3b8b18-9f21-4d93-8fee-fb5ec3b53307:4",
+              "traceId": "c77e18469859bf47f235755acdeffb4f",
+              "spanId": "cfdf77bc5a6faf07"
+            },
+            {
+              "recordId": "fd3b8b18-9f21-4d93-8fee-fb5ec3b53307:5",
+              "traceId": "c77e18469859bf47f235755acdeffb4f",
+              "spanId": "3946a2f7f00e93d1"
+            }
+          ]
+        },
+        "producerPerSecond": 0.5685048321833419,
+        "consumerPerSecond": 0.5685048321833419,
+        "contributors": [
+          "[\"checkout-rabbitmq\",\"production\",\"commerce\"]",
+          "[\"fulfillment-rabbitmq\",\"production\",\"commerce\"]"
+        ]
+      },
+      "processingLatency": {
+        "state": "observed",
+        "observations": 3,
+        "failures": 0,
+        "timeouts": 0,
+        "p95Ns": "18193512",
+        "evidence": [
+          {
+            "recordId": "fd3b8b18-9f21-4d93-8fee-fb5ec3b53307:3",
+            "traceId": "c77e18469859bf47f235755acdeffb4f",
+            "spanId": "315d69d524315686"
+          },
+          {
+            "recordId": "fd3b8b18-9f21-4d93-8fee-fb5ec3b53307:4",
+            "traceId": "c77e18469859bf47f235755acdeffb4f",
+            "spanId": "cfdf77bc5a6faf07"
+          },
+          {
+            "recordId": "fd3b8b18-9f21-4d93-8fee-fb5ec3b53307:5",
+            "traceId": "c77e18469859bf47f235755acdeffb4f",
+            "spanId": "3946a2f7f00e93d1"
+          }
+        ]
+      },
+      "metrics": [
+        {
+          "name": "rabbitmq.message.current",
+          "unit": "{messages}",
+          "attributes": {
+            "rabbitmq.queue.name": "synthetic-porthole-network-orders",
+            "rabbitmq.vhost.name": "/",
+            "state": "unacknowledged"
+          },
+          "resource": {
+            "containerId": "7668a39184222d858143d6b766fee105738ac860b4ef6aa3b157d3b82ce0b8b7",
+            "hostId": "c9d7b3b4-ccf7-41a1-82e2-007e3b7283d2",
+            "brokerContainerId": "7668a39184222d858143d6b766fee105738ac860b4ef6aa3b157d3b82ce0b8b7",
+            "scope": "[\"checkout-rabbitmq\",\"production\",\"commerce\"]"
+          },
+          "state": "observed",
+          "firstAtNs": "1794205913478336745",
+          "lastAtNs": "1794205917478422341",
+          "value": 0,
+          "delta": null,
+          "evidence": [
+            {
+              "recordId": "2c69fbf4-2768-4eef-b819-7ba88b1a22ee:0",
+              "traceId": null,
+              "spanId": null
+            },
+            {
+              "recordId": "7e697e40-5501-4b6d-9200-38dcd6a22bbc:1",
+              "traceId": null,
+              "spanId": null
+            },
+            {
+              "recordId": "00eeae79-606e-4025-b5bf-248d1f6041da:1",
+              "traceId": null,
+              "spanId": null
+            }
+          ]
+        },
+        {
+          "name": "rabbitmq.message.current",
+          "unit": "{messages}",
+          "attributes": {
+            "rabbitmq.queue.name": "synthetic-porthole-network-orders",
+            "rabbitmq.vhost.name": "/",
+            "state": "ready"
+          },
+          "resource": {
+            "containerId": "7668a39184222d858143d6b766fee105738ac860b4ef6aa3b157d3b82ce0b8b7",
+            "hostId": "c9d7b3b4-ccf7-41a1-82e2-007e3b7283d2",
+            "brokerContainerId": "7668a39184222d858143d6b766fee105738ac860b4ef6aa3b157d3b82ce0b8b7",
+            "scope": "[\"checkout-rabbitmq\",\"production\",\"commerce\"]"
+          },
+          "state": "observed",
+          "firstAtNs": "1794205913478336745",
+          "lastAtNs": "1794205917478422341",
+          "value": 0,
+          "delta": null,
+          "evidence": [
+            {
+              "recordId": "2c69fbf4-2768-4eef-b819-7ba88b1a22ee:1",
+              "traceId": null,
+              "spanId": null
+            },
+            {
+              "recordId": "7e697e40-5501-4b6d-9200-38dcd6a22bbc:2",
+              "traceId": null,
+              "spanId": null
+            },
+            {
+              "recordId": "00eeae79-606e-4025-b5bf-248d1f6041da:2",
+              "traceId": null,
+              "spanId": null
+            }
+          ]
+        },
+        {
+          "name": "rabbitmq.message.published",
+          "unit": "{messages}",
+          "attributes": {
+            "rabbitmq.queue.name": "synthetic-porthole-network-orders",
+            "rabbitmq.vhost.name": "/"
+          },
+          "resource": {
+            "containerId": "7668a39184222d858143d6b766fee105738ac860b4ef6aa3b157d3b82ce0b8b7",
+            "hostId": "c9d7b3b4-ccf7-41a1-82e2-007e3b7283d2",
+            "brokerContainerId": "7668a39184222d858143d6b766fee105738ac860b4ef6aa3b157d3b82ce0b8b7",
+            "scope": "[\"checkout-rabbitmq\",\"production\",\"commerce\"]"
+          },
+          "state": "observed",
+          "firstAtNs": "1794205913478336745",
+          "lastAtNs": "1794205917478422341",
+          "value": 3,
+          "delta": 0,
+          "evidence": [
+            {
+              "recordId": "2c69fbf4-2768-4eef-b819-7ba88b1a22ee:2",
+              "traceId": null,
+              "spanId": null
+            },
+            {
+              "recordId": "7e697e40-5501-4b6d-9200-38dcd6a22bbc:4",
+              "traceId": null,
+              "spanId": null
+            },
+            {
+              "recordId": "00eeae79-606e-4025-b5bf-248d1f6041da:4",
+              "traceId": null,
+              "spanId": null
+            }
+          ]
+        },
+        {
+          "name": "rabbitmq.message.acknowledged",
+          "unit": "{messages}",
+          "attributes": {
+            "rabbitmq.queue.name": "synthetic-porthole-network-orders",
+            "rabbitmq.vhost.name": "/"
+          },
+          "resource": {
+            "containerId": "7668a39184222d858143d6b766fee105738ac860b4ef6aa3b157d3b82ce0b8b7",
+            "hostId": "c9d7b3b4-ccf7-41a1-82e2-007e3b7283d2",
+            "brokerContainerId": "7668a39184222d858143d6b766fee105738ac860b4ef6aa3b157d3b82ce0b8b7",
+            "scope": "[\"checkout-rabbitmq\",\"production\",\"commerce\"]"
+          },
+          "state": "observed",
+          "firstAtNs": "1794205915479380033",
+          "lastAtNs": "1794205917478422341",
+          "value": 3,
+          "delta": 0,
+          "evidence": [
+            {
+              "recordId": "7e697e40-5501-4b6d-9200-38dcd6a22bbc:0",
+              "traceId": null,
+              "spanId": null
+            },
+            {
+              "recordId": "00eeae79-606e-4025-b5bf-248d1f6041da:0",
+              "traceId": null,
+              "spanId": null
+            }
+          ]
+        },
+        {
+          "name": "rabbitmq.message.delivered",
+          "unit": "{messages}",
+          "attributes": {
+            "rabbitmq.queue.name": "synthetic-porthole-network-orders",
+            "rabbitmq.vhost.name": "/"
+          },
+          "resource": {
+            "containerId": "7668a39184222d858143d6b766fee105738ac860b4ef6aa3b157d3b82ce0b8b7",
+            "hostId": "c9d7b3b4-ccf7-41a1-82e2-007e3b7283d2",
+            "brokerContainerId": "7668a39184222d858143d6b766fee105738ac860b4ef6aa3b157d3b82ce0b8b7",
+            "scope": "[\"checkout-rabbitmq\",\"production\",\"commerce\"]"
+          },
+          "state": "observed",
+          "firstAtNs": "1794205915479380033",
+          "lastAtNs": "1794205917478422341",
+          "value": 3,
+          "delta": 0,
+          "evidence": [
+            {
+              "recordId": "7e697e40-5501-4b6d-9200-38dcd6a22bbc:3",
+              "traceId": null,
+              "spanId": null
+            },
+            {
+              "recordId": "00eeae79-606e-4025-b5bf-248d1f6041da:3",
+              "traceId": null,
+              "spanId": null
+            }
+          ]
+        }
+      ],
+      "links": [
+        {
+          "producer": {
+            "recordId": "9ba6e24a-4bfb-4492-97f9-13fe41cdebf7:9",
+            "traceId": "c77e18469859bf47f235755acdeffb4f",
+            "spanId": "d525676a2d311024"
+          },
+          "consumer": {
+            "recordId": "fd3b8b18-9f21-4d93-8fee-fb5ec3b53307:3",
+            "traceId": "c77e18469859bf47f235755acdeffb4f",
+            "spanId": "315d69d524315686"
+          }
+        },
+        {
+          "producer": {
+            "recordId": "9ba6e24a-4bfb-4492-97f9-13fe41cdebf7:10",
+            "traceId": "c77e18469859bf47f235755acdeffb4f",
+            "spanId": "62cd69828fd56a14"
+          },
+          "consumer": {
+            "recordId": "fd3b8b18-9f21-4d93-8fee-fb5ec3b53307:4",
+            "traceId": "c77e18469859bf47f235755acdeffb4f",
+            "spanId": "cfdf77bc5a6faf07"
+          }
+        },
+        {
+          "producer": {
+            "recordId": "f82c0056-1ef8-439f-ad90-e25e080a6130:0",
+            "traceId": "c77e18469859bf47f235755acdeffb4f",
+            "spanId": "7335b434514e04c0"
+          },
+          "consumer": {
+            "recordId": "fd3b8b18-9f21-4d93-8fee-fb5ec3b53307:5",
+            "traceId": "c77e18469859bf47f235755acdeffb4f",
+            "spanId": "3946a2f7f00e93d1"
+          }
+        }
+      ],
+      "gaps": [],
+      "fullTraffic": false
+    },
+    {
+      "key": "[\"[\\\"fulfillment-kafka\\\",\\\"production\\\",\\\"commerce\\\"]\",\"kafka\",\"synthetic-porthole-network-orders\",\"[\\\"95c1304d0a63edb305b99bef90e95e4536b92c2f50c5a4f01c6c1a3e87fa637d\\\",\\\"c9d7b3b4-ccf7-41a1-82e2-007e3b7283d2\\\"]\",null]",
+      "scope": "[\"fulfillment-kafka\",\"production\",\"commerce\"]",
+      "system": "kafka",
+      "destination": "synthetic-porthole-network-orders",
+      "namespace": null,
+      "brokerIdentity": "[\"95c1304d0a63edb305b99bef90e95e4536b92c2f50c5a4f01c6c1a3e87fa637d\",\"c9d7b3b4-ccf7-41a1-82e2-007e3b7283d2\"]",
+      "producers": {
+        "state": "unknown",
+        "observations": 0,
+        "failures": 0,
+        "timeouts": 0,
+        "p95Ns": null,
+        "evidence": []
+      },
+      "consumers": {
+        "state": "observed",
+        "observations": 3,
+        "failures": 0,
+        "timeouts": 0,
+        "p95Ns": "17110328",
+        "evidence": [
+          {
+            "recordId": "762c8b4a-2906-42c0-997e-12a146f7b92e:3",
+            "traceId": "875de5e1770a3dcf10b78bc16c5b2217",
+            "spanId": "546336bd82c2e7ad"
+          },
+          {
+            "recordId": "78bc6209-400d-4682-aff1-1a2e36e2c8a3:0",
+            "traceId": "875de5e1770a3dcf10b78bc16c5b2217",
+            "spanId": "df0ecfa4185a4913"
+          },
+          {
+            "recordId": "78bc6209-400d-4682-aff1-1a2e36e2c8a3:1",
+            "traceId": "875de5e1770a3dcf10b78bc16c5b2217",
+            "spanId": "8cf2b0977e1a0bd5"
+          }
+        ]
+      },
+      "producerPerSecond": 0,
+      "consumerPerSecond": 0.5685048321833419,
+      "visibleQueue": {
+        "producers": {
+          "state": "observed",
+          "observations": 3,
+          "failures": 0,
+          "timeouts": 0,
+          "p95Ns": "51289285",
+          "evidence": [
+            {
+              "recordId": "364ff85d-33ec-47f9-a2a3-aac4ec023bd0:10",
+              "traceId": "875de5e1770a3dcf10b78bc16c5b2217",
+              "spanId": "2c544ea9986f9e3a"
+            },
+            {
+              "recordId": "364ff85d-33ec-47f9-a2a3-aac4ec023bd0:11",
+              "traceId": "875de5e1770a3dcf10b78bc16c5b2217",
+              "spanId": "6566aa78905c36ed"
+            },
+            {
+              "recordId": "364ff85d-33ec-47f9-a2a3-aac4ec023bd0:12",
+              "traceId": "875de5e1770a3dcf10b78bc16c5b2217",
+              "spanId": "61aa63f90eab45c2"
+            }
+          ]
+        },
+        "consumers": {
+          "state": "observed",
+          "observations": 3,
+          "failures": 0,
+          "timeouts": 0,
+          "p95Ns": "17110328",
+          "evidence": [
+            {
+              "recordId": "762c8b4a-2906-42c0-997e-12a146f7b92e:3",
+              "traceId": "875de5e1770a3dcf10b78bc16c5b2217",
+              "spanId": "546336bd82c2e7ad"
+            },
+            {
+              "recordId": "78bc6209-400d-4682-aff1-1a2e36e2c8a3:0",
+              "traceId": "875de5e1770a3dcf10b78bc16c5b2217",
+              "spanId": "df0ecfa4185a4913"
+            },
+            {
+              "recordId": "78bc6209-400d-4682-aff1-1a2e36e2c8a3:1",
+              "traceId": "875de5e1770a3dcf10b78bc16c5b2217",
+              "spanId": "8cf2b0977e1a0bd5"
+            }
+          ]
+        },
+        "producerPerSecond": 0.5685048321833419,
+        "consumerPerSecond": 0.5685048321833419,
+        "contributors": [
+          "[\"checkout-kafka\",\"production\",\"commerce\"]",
+          "[\"fulfillment-kafka\",\"production\",\"commerce\"]"
+        ]
+      },
+      "processingLatency": {
+        "state": "observed",
+        "observations": 3,
+        "failures": 0,
+        "timeouts": 0,
+        "p95Ns": "17110328",
+        "evidence": [
+          {
+            "recordId": "762c8b4a-2906-42c0-997e-12a146f7b92e:3",
+            "traceId": "875de5e1770a3dcf10b78bc16c5b2217",
+            "spanId": "546336bd82c2e7ad"
+          },
+          {
+            "recordId": "78bc6209-400d-4682-aff1-1a2e36e2c8a3:0",
+            "traceId": "875de5e1770a3dcf10b78bc16c5b2217",
+            "spanId": "df0ecfa4185a4913"
+          },
+          {
+            "recordId": "78bc6209-400d-4682-aff1-1a2e36e2c8a3:1",
+            "traceId": "875de5e1770a3dcf10b78bc16c5b2217",
+            "spanId": "8cf2b0977e1a0bd5"
+          }
+        ]
+      },
+      "metrics": [
+        {
+          "name": "kafka.partition.current_offset",
+          "unit": "1",
+          "attributes": {
+            "topic": "synthetic-porthole-network-orders",
+            "partition": "0"
+          },
+          "resource": {
+            "containerId": "95c1304d0a63edb305b99bef90e95e4536b92c2f50c5a4f01c6c1a3e87fa637d",
+            "hostId": "c9d7b3b4-ccf7-41a1-82e2-007e3b7283d2",
+            "brokerContainerId": "95c1304d0a63edb305b99bef90e95e4536b92c2f50c5a4f01c6c1a3e87fa637d",
+            "scope": "[\"fulfillment-kafka\",\"production\",\"commerce\"]"
+          },
+          "state": "observed",
+          "firstAtNs": "1794205912779621273",
+          "lastAtNs": "1794205916708481935",
+          "value": 3,
+          "delta": null,
+          "evidence": [
+            {
+              "recordId": "057cfe87-631e-4352-acb1-844fdb3dd605:0",
+              "traceId": null,
+              "spanId": null
+            },
+            {
+              "recordId": "48ea9012-451c-4ba5-aa0c-17c15c6d70e3:0",
+              "traceId": null,
+              "spanId": null
+            },
+            {
+              "recordId": "99671e73-5dae-4905-bbfe-1fea3bce7682:0",
+              "traceId": null,
+              "spanId": null
+            }
+          ]
+        },
+        {
+          "name": "kafka.consumer_group.lag",
+          "unit": "1",
+          "attributes": {
+            "group": "synthetic-porthole-network-group",
+            "topic": "synthetic-porthole-network-orders",
+            "partition": "0"
+          },
+          "resource": {
+            "containerId": "95c1304d0a63edb305b99bef90e95e4536b92c2f50c5a4f01c6c1a3e87fa637d",
+            "hostId": "c9d7b3b4-ccf7-41a1-82e2-007e3b7283d2",
+            "brokerContainerId": "95c1304d0a63edb305b99bef90e95e4536b92c2f50c5a4f01c6c1a3e87fa637d",
+            "scope": "[\"fulfillment-kafka\",\"production\",\"commerce\"]"
+          },
+          "state": "observed",
+          "firstAtNs": "1794205913076072246",
+          "lastAtNs": "1794205916721885805",
+          "value": 0,
+          "delta": null,
+          "evidence": [
+            {
+              "recordId": "057cfe87-631e-4352-acb1-844fdb3dd605:1",
+              "traceId": null,
+              "spanId": null
+            },
+            {
+              "recordId": "48ea9012-451c-4ba5-aa0c-17c15c6d70e3:1",
+              "traceId": null,
+              "spanId": null
+            },
+            {
+              "recordId": "99671e73-5dae-4905-bbfe-1fea3bce7682:1",
+              "traceId": null,
+              "spanId": null
+            }
+          ]
+        },
+        {
+          "name": "kafka.consumer_group.offset",
+          "unit": "1",
+          "attributes": {
+            "group": "synthetic-porthole-network-group",
+            "topic": "synthetic-porthole-network-orders",
+            "partition": "0"
+          },
+          "resource": {
+            "containerId": "95c1304d0a63edb305b99bef90e95e4536b92c2f50c5a4f01c6c1a3e87fa637d",
+            "hostId": "c9d7b3b4-ccf7-41a1-82e2-007e3b7283d2",
+            "brokerContainerId": "95c1304d0a63edb305b99bef90e95e4536b92c2f50c5a4f01c6c1a3e87fa637d",
+            "scope": "[\"fulfillment-kafka\",\"production\",\"commerce\"]"
+          },
+          "state": "observed",
+          "firstAtNs": "1794205913076072246",
+          "lastAtNs": "1794205916721885805",
+          "value": 3,
+          "delta": null,
+          "evidence": [
+            {
+              "recordId": "057cfe87-631e-4352-acb1-844fdb3dd605:2",
+              "traceId": null,
+              "spanId": null
+            },
+            {
+              "recordId": "48ea9012-451c-4ba5-aa0c-17c15c6d70e3:2",
+              "traceId": null,
+              "spanId": null
+            },
+            {
+              "recordId": "99671e73-5dae-4905-bbfe-1fea3bce7682:2",
+              "traceId": null,
+              "spanId": null
+            }
+          ]
+        }
+      ],
+      "links": [
+        {
+          "producer": {
+            "recordId": "364ff85d-33ec-47f9-a2a3-aac4ec023bd0:10",
+            "traceId": "875de5e1770a3dcf10b78bc16c5b2217",
+            "spanId": "2c544ea9986f9e3a"
+          },
+          "consumer": {
+            "recordId": "762c8b4a-2906-42c0-997e-12a146f7b92e:3",
+            "traceId": "875de5e1770a3dcf10b78bc16c5b2217",
+            "spanId": "546336bd82c2e7ad"
+          }
+        },
+        {
+          "producer": {
+            "recordId": "364ff85d-33ec-47f9-a2a3-aac4ec023bd0:11",
+            "traceId": "875de5e1770a3dcf10b78bc16c5b2217",
+            "spanId": "6566aa78905c36ed"
+          },
+          "consumer": {
+            "recordId": "78bc6209-400d-4682-aff1-1a2e36e2c8a3:0",
+            "traceId": "875de5e1770a3dcf10b78bc16c5b2217",
+            "spanId": "df0ecfa4185a4913"
+          }
+        },
+        {
+          "producer": {
+            "recordId": "364ff85d-33ec-47f9-a2a3-aac4ec023bd0:12",
+            "traceId": "875de5e1770a3dcf10b78bc16c5b2217",
+            "spanId": "61aa63f90eab45c2"
+          },
+          "consumer": {
+            "recordId": "78bc6209-400d-4682-aff1-1a2e36e2c8a3:1",
+            "traceId": "875de5e1770a3dcf10b78bc16c5b2217",
+            "spanId": "8cf2b0977e1a0bd5"
+          }
+        }
+      ],
+      "gaps": [],
+      "fullTraffic": false
+    },
+    {
+      "key": "[\"[\\\"fulfillment-rabbitmq\\\",\\\"production\\\",\\\"commerce\\\"]\",\"rabbitmq\",\"synthetic-porthole-network-orders\",\"[\\\"7668a39184222d858143d6b766fee105738ac860b4ef6aa3b157d3b82ce0b8b7\\\",\\\"c9d7b3b4-ccf7-41a1-82e2-007e3b7283d2\\\"]\",\"/\"]",
+      "scope": "[\"fulfillment-rabbitmq\",\"production\",\"commerce\"]",
+      "system": "rabbitmq",
+      "destination": "synthetic-porthole-network-orders",
+      "namespace": "/",
+      "brokerIdentity": "[\"7668a39184222d858143d6b766fee105738ac860b4ef6aa3b157d3b82ce0b8b7\",\"c9d7b3b4-ccf7-41a1-82e2-007e3b7283d2\"]",
+      "producers": {
+        "state": "unknown",
+        "observations": 0,
+        "failures": 0,
+        "timeouts": 0,
+        "p95Ns": null,
+        "evidence": []
+      },
+      "consumers": {
+        "state": "observed",
+        "observations": 3,
+        "failures": 0,
+        "timeouts": 0,
+        "p95Ns": "18193512",
+        "evidence": [
+          {
+            "recordId": "fd3b8b18-9f21-4d93-8fee-fb5ec3b53307:3",
+            "traceId": "c77e18469859bf47f235755acdeffb4f",
+            "spanId": "315d69d524315686"
+          },
+          {
+            "recordId": "fd3b8b18-9f21-4d93-8fee-fb5ec3b53307:4",
+            "traceId": "c77e18469859bf47f235755acdeffb4f",
+            "spanId": "cfdf77bc5a6faf07"
+          },
+          {
+            "recordId": "fd3b8b18-9f21-4d93-8fee-fb5ec3b53307:5",
+            "traceId": "c77e18469859bf47f235755acdeffb4f",
+            "spanId": "3946a2f7f00e93d1"
+          }
+        ]
+      },
+      "producerPerSecond": 0,
+      "consumerPerSecond": 0.5685048321833419,
+      "visibleQueue": {
+        "producers": {
+          "state": "observed",
+          "observations": 3,
+          "failures": 0,
+          "timeouts": 0,
+          "p95Ns": "13122059",
+          "evidence": [
+            {
+              "recordId": "9ba6e24a-4bfb-4492-97f9-13fe41cdebf7:9",
+              "traceId": "c77e18469859bf47f235755acdeffb4f",
+              "spanId": "d525676a2d311024"
+            },
+            {
+              "recordId": "9ba6e24a-4bfb-4492-97f9-13fe41cdebf7:10",
+              "traceId": "c77e18469859bf47f235755acdeffb4f",
+              "spanId": "62cd69828fd56a14"
+            },
+            {
+              "recordId": "f82c0056-1ef8-439f-ad90-e25e080a6130:0",
+              "traceId": "c77e18469859bf47f235755acdeffb4f",
+              "spanId": "7335b434514e04c0"
+            }
+          ]
+        },
+        "consumers": {
+          "state": "observed",
+          "observations": 3,
+          "failures": 0,
+          "timeouts": 0,
+          "p95Ns": "18193512",
+          "evidence": [
+            {
+              "recordId": "fd3b8b18-9f21-4d93-8fee-fb5ec3b53307:3",
+              "traceId": "c77e18469859bf47f235755acdeffb4f",
+              "spanId": "315d69d524315686"
+            },
+            {
+              "recordId": "fd3b8b18-9f21-4d93-8fee-fb5ec3b53307:4",
+              "traceId": "c77e18469859bf47f235755acdeffb4f",
+              "spanId": "cfdf77bc5a6faf07"
+            },
+            {
+              "recordId": "fd3b8b18-9f21-4d93-8fee-fb5ec3b53307:5",
+              "traceId": "c77e18469859bf47f235755acdeffb4f",
+              "spanId": "3946a2f7f00e93d1"
+            }
+          ]
+        },
+        "producerPerSecond": 0.5685048321833419,
+        "consumerPerSecond": 0.5685048321833419,
+        "contributors": [
+          "[\"checkout-rabbitmq\",\"production\",\"commerce\"]",
+          "[\"fulfillment-rabbitmq\",\"production\",\"commerce\"]"
+        ]
+      },
+      "processingLatency": {
+        "state": "observed",
+        "observations": 3,
+        "failures": 0,
+        "timeouts": 0,
+        "p95Ns": "18193512",
+        "evidence": [
+          {
+            "recordId": "fd3b8b18-9f21-4d93-8fee-fb5ec3b53307:3",
+            "traceId": "c77e18469859bf47f235755acdeffb4f",
+            "spanId": "315d69d524315686"
+          },
+          {
+            "recordId": "fd3b8b18-9f21-4d93-8fee-fb5ec3b53307:4",
+            "traceId": "c77e18469859bf47f235755acdeffb4f",
+            "spanId": "cfdf77bc5a6faf07"
+          },
+          {
+            "recordId": "fd3b8b18-9f21-4d93-8fee-fb5ec3b53307:5",
+            "traceId": "c77e18469859bf47f235755acdeffb4f",
+            "spanId": "3946a2f7f00e93d1"
+          }
+        ]
+      },
+      "metrics": [
+        {
+          "name": "rabbitmq.message.current",
+          "unit": "{messages}",
+          "attributes": {
+            "rabbitmq.queue.name": "synthetic-porthole-network-orders",
+            "rabbitmq.vhost.name": "/",
+            "state": "unacknowledged"
+          },
+          "resource": {
+            "containerId": "7668a39184222d858143d6b766fee105738ac860b4ef6aa3b157d3b82ce0b8b7",
+            "hostId": "c9d7b3b4-ccf7-41a1-82e2-007e3b7283d2",
+            "brokerContainerId": "7668a39184222d858143d6b766fee105738ac860b4ef6aa3b157d3b82ce0b8b7",
+            "scope": "[\"fulfillment-rabbitmq\",\"production\",\"commerce\"]"
+          },
+          "state": "observed",
+          "firstAtNs": "1794205913478336745",
+          "lastAtNs": "1794205917478422341",
+          "value": 0,
+          "delta": null,
+          "evidence": [
+            {
+              "recordId": "38b83796-8332-40be-a824-c9c2009e064d:0",
+              "traceId": null,
+              "spanId": null
+            },
+            {
+              "recordId": "e580cfc2-6dff-4464-8284-4297233cb789:1",
+              "traceId": null,
+              "spanId": null
+            },
+            {
+              "recordId": "71a02ccc-9fe2-4cb9-8fcb-7d4173708a4f:1",
+              "traceId": null,
+              "spanId": null
+            }
+          ]
+        },
+        {
+          "name": "rabbitmq.message.current",
+          "unit": "{messages}",
+          "attributes": {
+            "rabbitmq.queue.name": "synthetic-porthole-network-orders",
+            "rabbitmq.vhost.name": "/",
+            "state": "ready"
+          },
+          "resource": {
+            "containerId": "7668a39184222d858143d6b766fee105738ac860b4ef6aa3b157d3b82ce0b8b7",
+            "hostId": "c9d7b3b4-ccf7-41a1-82e2-007e3b7283d2",
+            "brokerContainerId": "7668a39184222d858143d6b766fee105738ac860b4ef6aa3b157d3b82ce0b8b7",
+            "scope": "[\"fulfillment-rabbitmq\",\"production\",\"commerce\"]"
+          },
+          "state": "observed",
+          "firstAtNs": "1794205913478336745",
+          "lastAtNs": "1794205917478422341",
+          "value": 0,
+          "delta": null,
+          "evidence": [
+            {
+              "recordId": "38b83796-8332-40be-a824-c9c2009e064d:1",
+              "traceId": null,
+              "spanId": null
+            },
+            {
+              "recordId": "e580cfc2-6dff-4464-8284-4297233cb789:2",
+              "traceId": null,
+              "spanId": null
+            },
+            {
+              "recordId": "71a02ccc-9fe2-4cb9-8fcb-7d4173708a4f:2",
+              "traceId": null,
+              "spanId": null
+            }
+          ]
+        },
+        {
+          "name": "rabbitmq.message.published",
+          "unit": "{messages}",
+          "attributes": {
+            "rabbitmq.queue.name": "synthetic-porthole-network-orders",
+            "rabbitmq.vhost.name": "/"
+          },
+          "resource": {
+            "containerId": "7668a39184222d858143d6b766fee105738ac860b4ef6aa3b157d3b82ce0b8b7",
+            "hostId": "c9d7b3b4-ccf7-41a1-82e2-007e3b7283d2",
+            "brokerContainerId": "7668a39184222d858143d6b766fee105738ac860b4ef6aa3b157d3b82ce0b8b7",
+            "scope": "[\"fulfillment-rabbitmq\",\"production\",\"commerce\"]"
+          },
+          "state": "observed",
+          "firstAtNs": "1794205913478336745",
+          "lastAtNs": "1794205917478422341",
+          "value": 3,
+          "delta": 0,
+          "evidence": [
+            {
+              "recordId": "38b83796-8332-40be-a824-c9c2009e064d:2",
+              "traceId": null,
+              "spanId": null
+            },
+            {
+              "recordId": "e580cfc2-6dff-4464-8284-4297233cb789:4",
+              "traceId": null,
+              "spanId": null
+            },
+            {
+              "recordId": "71a02ccc-9fe2-4cb9-8fcb-7d4173708a4f:4",
+              "traceId": null,
+              "spanId": null
+            }
+          ]
+        },
+        {
+          "name": "rabbitmq.message.acknowledged",
+          "unit": "{messages}",
+          "attributes": {
+            "rabbitmq.queue.name": "synthetic-porthole-network-orders",
+            "rabbitmq.vhost.name": "/"
+          },
+          "resource": {
+            "containerId": "7668a39184222d858143d6b766fee105738ac860b4ef6aa3b157d3b82ce0b8b7",
+            "hostId": "c9d7b3b4-ccf7-41a1-82e2-007e3b7283d2",
+            "brokerContainerId": "7668a39184222d858143d6b766fee105738ac860b4ef6aa3b157d3b82ce0b8b7",
+            "scope": "[\"fulfillment-rabbitmq\",\"production\",\"commerce\"]"
+          },
+          "state": "observed",
+          "firstAtNs": "1794205915479380033",
+          "lastAtNs": "1794205917478422341",
+          "value": 3,
+          "delta": 0,
+          "evidence": [
+            {
+              "recordId": "e580cfc2-6dff-4464-8284-4297233cb789:0",
+              "traceId": null,
+              "spanId": null
+            },
+            {
+              "recordId": "71a02ccc-9fe2-4cb9-8fcb-7d4173708a4f:0",
+              "traceId": null,
+              "spanId": null
+            }
+          ]
+        },
+        {
+          "name": "rabbitmq.message.delivered",
+          "unit": "{messages}",
+          "attributes": {
+            "rabbitmq.queue.name": "synthetic-porthole-network-orders",
+            "rabbitmq.vhost.name": "/"
+          },
+          "resource": {
+            "containerId": "7668a39184222d858143d6b766fee105738ac860b4ef6aa3b157d3b82ce0b8b7",
+            "hostId": "c9d7b3b4-ccf7-41a1-82e2-007e3b7283d2",
+            "brokerContainerId": "7668a39184222d858143d6b766fee105738ac860b4ef6aa3b157d3b82ce0b8b7",
+            "scope": "[\"fulfillment-rabbitmq\",\"production\",\"commerce\"]"
+          },
+          "state": "observed",
+          "firstAtNs": "1794205915479380033",
+          "lastAtNs": "1794205917478422341",
+          "value": 3,
+          "delta": 0,
+          "evidence": [
+            {
+              "recordId": "e580cfc2-6dff-4464-8284-4297233cb789:3",
+              "traceId": null,
+              "spanId": null
+            },
+            {
+              "recordId": "71a02ccc-9fe2-4cb9-8fcb-7d4173708a4f:3",
+              "traceId": null,
+              "spanId": null
+            }
+          ]
+        }
+      ],
+      "links": [
+        {
+          "producer": {
+            "recordId": "9ba6e24a-4bfb-4492-97f9-13fe41cdebf7:9",
+            "traceId": "c77e18469859bf47f235755acdeffb4f",
+            "spanId": "d525676a2d311024"
+          },
+          "consumer": {
+            "recordId": "fd3b8b18-9f21-4d93-8fee-fb5ec3b53307:3",
+            "traceId": "c77e18469859bf47f235755acdeffb4f",
+            "spanId": "315d69d524315686"
+          }
+        },
+        {
+          "producer": {
+            "recordId": "9ba6e24a-4bfb-4492-97f9-13fe41cdebf7:10",
+            "traceId": "c77e18469859bf47f235755acdeffb4f",
+            "spanId": "62cd69828fd56a14"
+          },
+          "consumer": {
+            "recordId": "fd3b8b18-9f21-4d93-8fee-fb5ec3b53307:4",
+            "traceId": "c77e18469859bf47f235755acdeffb4f",
+            "spanId": "cfdf77bc5a6faf07"
+          }
+        },
+        {
+          "producer": {
+            "recordId": "f82c0056-1ef8-439f-ad90-e25e080a6130:0",
+            "traceId": "c77e18469859bf47f235755acdeffb4f",
+            "spanId": "7335b434514e04c0"
+          },
+          "consumer": {
+            "recordId": "fd3b8b18-9f21-4d93-8fee-fb5ec3b53307:5",
+            "traceId": "c77e18469859bf47f235755acdeffb4f",
+            "spanId": "3946a2f7f00e93d1"
+          }
+        }
+      ],
+      "gaps": [],
+      "fullTraffic": false
+    }
+  ],
+  "checks": [
+    "three counted sends and receives per broker",
+    "three propagated links per broker",
+    "stock DNS observations",
+    "Services and versioned evidence share a completed snapshot",
+    "Services browser values, keyboard focus and reflow at 1440; screenshots at 1440 and 390"
+  ],
+  "faults": "Not induced; the cloud kernel lacks netem."
+}

@@ -1,0 +1,31 @@
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mProxy environment variables detected. We'll use your proxy for fetch requests.[0m
+
+
+Installed owner claim rejects missing/wrong setup tokens and request demo flags
+HTTP-001 passed against emitted local Worker: health, the installed homepage, HTTP and document 404s
+Network: counted Kafka and RabbitMQ runtimes ready
+Network stock export HTTP 400 {"code":3,"message":"missing_metric_value"}
+Stock withdrawal point shapes: [{"name":"up","kind":"gauge","hasAsDouble":true,"hasAsInt":false},{"name":"scrape_duration_seconds","kind":"gauge","hasAsDouble":true,"hasAsInt":false},{"name":"scrape_samples_scraped","kind":"gauge","hasAsDouble":true,"hasAsInt":false},{"name":"scrape_samples_post_metric_relabeling","kind":"gauge","hasAsDouble":true,"hasAsInt":false},{"name":"scrape_series_added","kind":"gauge","hasAsDouble":true,"hasAsInt":false},{"name":"node_netstat_TcpExt_TCPTimeouts","kind":"gauge","flags":1,"hasAsDouble":false,"hasAsInt":false},{"name":"node_netstat_Tcp_RetransSegs","kind":"gauge","flags":1,"hasAsDouble":false,"hasAsInt":false}]
+Network stock export HTTP 401 {"code":16,"message":"invalid_credential"}
+Network stock export HTTP 401 {"code":16,"message":"invalid_credential"}
+
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: {"code":3,"message":"missing_metric_value"}
+
+400 !== 200
+
+    at staleReplayProbe (file:///tmp/porthole-stale-probe.mjs:29:10)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async file:///workspace/run-porthole/tests/.porthole-stale-runtime.mjs:187:4 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: 400,
+  expected: 200,
+  operator: 'strictEqual',
+  diff: 'simple'
+}
+
+Node.js v22.20.0

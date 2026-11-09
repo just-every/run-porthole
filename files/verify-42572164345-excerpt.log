@@ -1,0 +1,43 @@
+2026-11-09T06:20:20.0797655Z Network: counted Kafka and RabbitMQ runtimes ready
+2026-11-09T06:20:24.0985166Z Network window: baseline
+2026-11-09T06:20:34.6718147Z Network window: dns-delay
+2026-11-09T06:20:56.0761119Z Network window: packet-loss
+2026-11-09T06:21:11.9316140Z Network window: backlog
+2026-11-09T06:21:22.4535344Z Network window: restored-consumers
+2026-11-09T06:21:32.7835384Z Network window: application-failures
+2026-11-09T06:21:43.2433432Z Network window: denied-namespace
+2026-11-09T06:21:45.1009014Z Network stock export HTTP 400 {"code":3,"message":"missing_metric_value"}
+2026-11-09T06:22:09.6601887Z Network window: restored-namespace
+2026-11-09T06:22:23.2795896Z Network window: denied-docker-socket
+2026-11-09T06:22:49.9419763Z Network window: restored-docker-socket
+2026-11-09T06:23:02.1199667Z Network window: denied-kafka-grant
+2026-11-09T06:23:30.3460518Z Network window: restored-kafka-grant
+2026-11-09T06:23:41.9231363Z Network window: denied-rabbit-permission
+2026-11-09T06:24:09.5980129Z Network window: restored-rabbit-permission
+2026-11-09T06:25:09.4269011Z 
+2026-11-09T06:25:09.4688256Z node:internal/modules/run_main:123
+2026-11-09T06:25:09.4689061Z     triggerUncaughtException(
+2026-11-09T06:25:09.4689586Z     ^
+2026-11-09T06:25:09.4689767Z 
+2026-11-09T06:25:09.4690266Z AssertionError [ERR_ASSERTION]: {"code":3,"message":"missing_metric_value"}
+2026-11-09T06:25:09.4690776Z 
+2026-11-09T06:25:09.4690907Z 400 !== 200
+2026-11-09T06:25:09.4691092Z 
+2026-11-09T06:25:09.4691525Z     at networkJourney (file://[REDACTED]/tests/porthole/network.mjs:125:184)
+2026-11-09T06:25:09.4692515Z     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+2026-11-09T06:25:09.4693393Z     at async file://[REDACTED]/tests/runtime.mjs:187:4 {
+2026-11-09T06:25:09.4693904Z   generatedMessage: false,
+2026-11-09T06:25:09.4694280Z   code: 'ERR_ASSERTION',
+2026-11-09T06:25:09.4694901Z   actual: 400,
+2026-11-09T06:25:09.4695254Z   expected: 200,
+2026-11-09T06:25:09.4695625Z   operator: 'strictEqual',
+2026-11-09T06:25:09.4696003Z   diff: 'simple'
+2026-11-09T06:25:09.4696304Z }
+2026-11-09T06:25:09.4696467Z 
+2026-11-09T06:25:09.4696614Z Node.js v22.20.0
+
+Hosted runtime observations:
+2026-11-09T06:24:14.7777550Z handoverJourney passed: complete native inventory, wrong-scope and stale refusals with no writes, mixed transfer and unassignment, void approvals, identical readable sets, next-request session and personal credential REST CLI MCP refusal, restart and inactive restore
+2026-11-09T06:30:07.3513771Z Agent door conformance: 614/614 points passed.
+2026-11-09T06:30:07.3832776Z verify: complete (exit 0)
+2026-11-09T06:30:07.4555127Z ##[error]The operation was canceled.

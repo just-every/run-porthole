@@ -1,81 +1,89 @@
 # PORT-060 continuation report
 
-Candidate: d9e6b48a489b5e0fb3f963617db44dcb761561f7
+PUSHED product candidate: d77a80daa5c1b4a608839d079ccc20ca28ecc7c9
 Branch: cloud/sx-porthole-c-f466-pc1
 Repository: just-every/run-porthole
-Starting published head: a9e9d8ae410e9289ee8bf33744c52e573564be37
+Saved starting head retained: a9e9d8ae410e9289ee8bf33744c52e573564be37
 Main incorporated: 85b79464fa8a79597741711f6689f1b21132cd89
 
-PORT-060 is claimed PARTIAL, with no whole acceptance sentence closed. Its Status row remains missing, exactly as on main. Counts before and after are 10 done, 20 partial and 69 missing, 99 total. No acceptance wording, Status, Gap or Evidence cell was edited. No plan status row was edited; this report is the continuation entry for PORT-060.
+The stock withdrawal replay failure is repaired and local public-door checks pass. The newest exact-SHA Verify has not been queried because the ten-command GitHub budget is exhausted. No READY or DONE is claimed. PORT-060 is claimed PARTIAL with no whole acceptance sentence closed. Its committed Status row remains missing, exactly as on main. Counts before and after remain 10 done, 20 partial and 69 missing, 99 total. No acceptance wording, Status, Gap, Evidence or plan status cell changed.
 
-## Plan and resulting changes
+## Plan and implementation
 
-1. Preserve the saved history, install fleet authentication and commit hooks, and recover diagnostics from Verify 42557874976.
-2. Run the original failed and cancelled shards before editing. Classify infrastructure failures using the same command on main where necessary.
-3. Keep every existing assertion and shard command. Isolate network qualification from Services and redistribute existing journeys within the existing 11 shards, preserving the workflow and its timeout.
-4. Merge current main, retain its contract judgments and generated views, generate and check the contract locally, then regenerate and check the source lock last.
-5. Push only the named product branch, run touched checks and public-door proof, inspect the exact-SHA Verify within the ten-command GitHub budget, and publish selected non-secret reports separately.
+1. Resume the exact saved head without rewriting published history; install fleet authentication and commit hooks.
+2. Recover original failed job logs and execute the original shard commands before repair. Compare unrelated local failures with main.
+3. Separate native network qualification from Services, preserving the native and both analytical paths and every assertion. Redistribute existing commands within the existing 11 shards and leave the workflow and timeout intact.
+4. Reproduce the newly exposed stock withdrawal failure through the actual receiver and public intake. Preserve the scalar oneof guard while accepting a valid missing-value marker. Prove persistence, replay, explicit refusals, archive and both analytical copies.
+5. Merge main, retain its judgments and generated views, generate and check contract documents locally, regenerate the source lock last, then push only the named product branch.
+6. Publish the complete selected non-secret report packet separately and hand over exact product provenance and the remaining CI obligation.
 
-The product implementation, collectors, schema artifact and dependencies are byte-identical to the saved starting head. Only test orchestration, the generated source lock and main's intervening documentation and test changes differ. Existing network and messaging assertions moved from the Services analytical wrapper into networkAnalyticalJourney. The network command runs the native fault estate and reuses its actual captured stock packets for both analytical backends. It additionally checks that stopping the selected backend returns 503 and restoration recovers the original completed window. Services keeps its own native and analytical journeys. Native backup, heartbeat, provider-edge mail and database qualification remain scheduled. No assertion, test registration, width requirement, authorization check, erasure fence, workflow or timeout was removed or weakened. No new shard was added.
+The functional repair is in src/porthole/ingest/normalize.ts. Stock scalar points may omit their numeric oneof when a valid unsigned 32-bit flags value sets NO_RECORDED_VALUE. The flag and original timestamp persist; no numerical zero is inserted. Unmarked missing values and simultaneous asDouble and asInt still refuse. Existing network projection already excludes these missing measurements from numeric evidence. Existing scope, source-existence, erasure and authority fences remain unchanged. docs/network-messaging.md documents this behavior. Collector pins, unmodified component configurations, dependencies and UI code were not changed by this repair.
 
-The first separated Services command stalled when invoked directly. Transport initialization alone and a fresh artifact did not resolve it. Those owned test processes were stopped by their recorded PIDs. The final invocation uses the same complete native runtime harness as the original Services invocation, with a dedicated analytical-only selector. This corrected invocation completed successfully before the final commit; the exact-head repetition also completed successfully. No product code was changed for these test-runner differences.
+Network qualification now has its own push shard and reuses the actual stock capture across its native and analytical phases. Services retains separate native and analytical commands. The analytical Services command uses its original complete runtime harness; a direct standalone invocation stalled locally, while the restored runner completed. The independently scoped handover journey moved from membership's core command to the typecheck shard, preserving its original empty-destination fixture and all assertions. This removes about four and a half minutes from the hosted core job that reached its deadline. Native backup, heartbeat, database, provider-edge mail, all native network faults and both query backends remain scheduled. No assertion, width requirement, test registration, source gate, workflow or timeout was deleted or weakened; no shard was added.
 
-## Original Verify and local reproduction
+## CI and reproduction
 
-Original Verify 42557874976, attempt 1:
+Original Verify 42557874976, attempt 1, at a9e9d8ae410e9289ee8bf33744c52e573564be37:
 
-- exports, job 128967693092: failure. The actual error was `MiniflareCoreError [ERR_ADDRESS_IN_USE]: Address already in use (127.0.0.1:40885)` during fixture restart in signalExportJourney. The unchanged complete exports shard passed locally at the starting SHA, including subjectErasureJourney, signalExportJourney, independent four-signal OTLP readers, DuckDB, inactive restore, replay and erasure. This is the brief's named address-in-use infrastructure class; no product repair was made for it.
-- typecheck, job 128967693069: cancelled at the job time limit. The archive shows successful compiler, native backup and local Services proof, then the native network fixture reached its denied Docker socket window when cancellation occurred. The exact local shard passed compiler, all seven incremental compiler assertions, nativeBackupErasureJourney and servicesJourney, then failed at DNS fault injection because this cloud kernel lacks the netem queue discipline.
-- analytical, job 128967693118: cancelled at the job time limit. The archive shows analytical connection and heartbeat passing and the database native archive proof finishing before cancellation. Local execution instead failed at analyticalConnectionJourney, tests/porthole/analytics.mjs:225, with `Unknown` instead of `Firing`. The same command failed with the identical assertion on main 85b79464fa8a79597741711f6689f1b21132cd89 on this runner. It is reported as also failing on main; no health policy or assertion was weakened.
+- exports job 128967693092 failed with Miniflare ERR_ADDRESS_IN_USE at 127.0.0.1:40885 during signalExportJourney. Its earlier subjectErasureJourney passed. The unchanged complete exports shard passed locally at that SHA, including independent OTLP readers and DuckDB, inactive restore, erasure and replay. No product repair was made for the address-in-use infrastructure flake.
+- typecheck job 128967693069 was cancelled at the job limit after compiler, native backup and local Services passed and network faults reached the denied Docker socket window. The exact local shard passed compiler, seven incremental compiler assertions, nativeBackupErasureJourney and servicesJourney, then reached the cloud kernel's missing netem discipline.
+- analytical job 128967693118 was cancelled after analytical connection and heartbeat passed and database native archive proof finished. Local analyticalConnectionJourney instead failed at tests/porthole/analytics.mjs:225 with Unknown rather than Firing. The identical command failed at the same assertion on main 85b79464fa8a79597741711f6689f1b21132cd89 on this runner. No health policy or assertion was weakened for it.
 
-The installed gh 2.46.0 returned exit 0 and empty output for each requested failed-log invocation. It had downloaded the run archive. Reading that existing local ZIP recovered all three job logs without a redirected job-log request or additional provider call. The full CI archive is not selected for publication because it contains routine runner setup environment output; this report and receipts retain the actual relevant non-secret diagnostics.
+Superseded exact-SHA Verify 42572164345, push, attempt 1, at d9e6b48a489b5e0fb3f963617db44dcb761561f7: completed/failure. Source, typecheck, ingest, traces, analytical, exports, migration, dashboards and follow-up succeeded. Network job 129011799502 failed at tests/porthole/network.mjs:125 because replay returned 400 instead of 200 with missing_metric_value. Its actual DNS delay, packet loss, backlog, privilege-removal windows, same-window reads, trace pivots, scope checks and browser assertions before that line completed. Hosted runtime job 129011799588 reported all 614 conformance points passed and verify complete, exit 0, then was marked cancelled at its job deadline. This prompted the independent handover relocation.
 
-Local runtime: Node 22.20.0 and supplied system Chromium. A local Playwright executable-path link selects that Chromium for old helpers. Missing local Chromium caused the first exports attempt to stop; the unchanged shard passed after that environment setup. No TLS verification policy or product source was changed.
+The failed network shard's exact command was rerun at that SHA. This cloud lacks CONFIG_NET_SCH_NETEM and CONFIG_NET_SCH_PRIO, so the complete shard stopped earlier at DNS injection. The same replay failure was then independently reproduced at the same SHA without fault substitution: stop the owned namespace's real node exporter after successful scrapes, capture the unmodified pinned Contrib receiver's actual withdrawal packet, and replay those exact bytes through public /v1/metrics. The original and replay both returned 400 and the probe exited 1 with the same missing_metric_value assertion. The captured packet contains two NO_RECORDED_VALUE scalar points with neither numeric field. This is actual component output, not hand-authored telemetry. The exact-shard limitation and the matching public-door reproduction are separately recorded in verify-reproduction.json.
 
-## Public-door proof and limits
+VERIFY_REPRODUCED {"head": "d9e6b48a489b5e0fb3f963617db44dcb761561f7", "job": 129011799502, "command": "CI=true WRANGLER_SEND_METRICS=false PORTHOLE_NETWORK_ONLY=1 node tests/.porthole-stale-runtime.mjs", "test": "staleReplayProbe reproduces the networkJourney stock-packet replay", "exit": 1, "failure": "400 !== 200; {\"code\":3,\"message\":\"missing_metric_value\"}"}
 
-PROBE PORT-060 native fault estate: counted real Kafka and RabbitMQ containers on the owned bridge reached baseline and DNS-delay setup; stock netem returned `network_fault_kernel_unavailable: CONFIG_NET_SCH_NETEM and CONFIG_NET_SCH_PRIO required; Error: Specified qdisc kind is unknown.` Full local fault proof is unavailable on this kernel. No fault, response or metric was fabricated and the test remains mandatory in Verify.
+The installed gh 2.46.0 returned empty failed-log output but downloaded the run ZIP. Reading that existing local archive recovered the diagnostics without redirected job-log requests or another provider call. Only the relevant sanitized excerpt is selected, not the CI setup environment dump. All ten permitted GitHub commands are used. No further query, dispatch or rerun was made. The new push starts its normal Verify; its run ID and conclusion remain unestablished here.
 
-PROBE PORT-008 regression: real stock HTTP, PostgreSQL and Kafka source traffic through intake and Services -> exact service identities, versions, RED summaries, dependency and association pivots, audited metadata, native scope refusal, restart, inactive archive, erasure and replay passed on the unchanged implementation. The corrected analytical invocation also passed primary and standby equality, stopped-backend 503 and restart recovery.
+## Actual public-door results
 
-PROBE PORT-035 regression: native backup and erasure plus subjectErasureJourney -> exact reviewed destructive operation, unchanged unrelated subjects, retry refusal, inactive restore and original archive fences passed on the unchanged implementation.
+PROBE PORT-060 baseline: three counted sends and receives through each real broker produced exact native API producer and consumer counts and three propagated links per broker. Stock DNS observations and Services used the same completed watermark. Network values, keyboard focus and reflow passed at 1440, with screenshots at 1440 and 390. This baseline ran at the superseded SHA; relevant renderer and numeric baseline code is unchanged in the final revision. network-baseline-receipt.json retains the actual window, counters and native projections.
 
-The exact-head Services analytical runtime finished with exit 0. The final exact-head Verify and public-door runtime result are recorded separately in candidate-receipt.json and ci-receipt.json when available.
+PROBE PORT-060 withdrawal before repair: stopping the owned node exporter produced the captured stock packet; public intake and replay both returned 400, missing_metric_value. The probe's actual exit was 1. No synthetic DNS, loss or latency evidence was substituted.
+
+PROBE PORT-060 withdrawal after repair: the captured stock JSON document and its replay return 200. Seven source points persist, including two flagged points whose numerical fields remain absent. Unmarked missing values and dual-value variants return 400 and persist none of their earlier valid points. Replay does not duplicate records. A real inactive archive, independent empty restore and re-export preserve the original telemetry. Actual primary and standby Workers preserve the markers exactly. Metric input alone creates no detached network aggregate. Revoked ingestion returns 401. no-value-fix-receipt.json binds the passing source hash to d77a80daa5c1b4a608839d079ccc20ca28ecc7c9; execution used the fixed worktree and no tested source byte changed before commit.
+
+PROBE PORT-099 regression only: the moved handoverJourney passes its complete inventory, wrong-scope and stale refusals, unchanged storage, mixed transfer and unassignment, void approvals, retained readable sets, next-request session and credential refusals, restart and inactive restore through the same empty-destination fixture. No PORT-099 status claim is made.
+
+Existing native Services, Services analytical equality and stopped-backend refusal, native backup, subject erasure and signal export also passed during this continuation. Their implementation is unchanged by the scalar marker repair. Actual commands, heads, failures and results are retained in the receipts and sanitized logs.
 
 ## Acceptance sentences and held boundaries
 
-- A1, induced DNS latency, packet loss and consumer backlog in an authorized real application network: UNPROVEN. The retained native journey uses an owned disposable bridge; it is expressly not that authorized network.
-- A2, affected Services and Infrastructure edges, queue lag and asynchronous spans in the same window: native Services and versioned evidence assertions remain mandatory in networkJourney and networkAnalyticalJourney. The real Infrastructure and authorized-estate remainder stays unproved.
-- A3, removed real collector privileges and private endpoint grants producing explicit gaps: native disposable privilege and grant removal assertions remain mandatory. Real private endpoint authorization and real collector qualification stay unproved.
+- A1: authorized real-application DNS latency, packet loss and consumer backlog remains UNPROVEN. Disposable fault windows ran in the superseded CI; this owned bridge is expressly not that authorized real network.
+- A2: same-window Services and versioned evidence, queue metrics and span pivots have native assertions in tests/porthole/network.mjs:64 through :106 and analytical equality in tests/porthole/analytics.mjs:377. Infrastructure and real-estate qualification remain unproved. The final full fault run still needs exact-head Verify.
+- A3: disposable namespace, Docker socket, broker grant and OBI capability checks remain mandatory in the network journey. Real collector privileges and private endpoint grants remain unproved.
 
-Authorized real private estates, ECS, Nomad, supported cloud queues and their accounts, real route and collector grants, Infrastructure inventory and the full real-network journey remain held. All existing outbound, device, partner, custody, retention and other-clause holds remain intact. No new policy default or authority was adopted. No DONE claim is made.
+The authorized real private estate, ECS, Nomad, supported cloud queues and their accounts, real route and collector grants, Infrastructure inventory and the full real-network journey remain held. Every existing outbound, partner, device, custody and retention boundary remains intact. No new policy default or authority was adopted. No DONE claim is made.
 
-## DONE riders
+## Riders and inherited duties
 
-1. FAIL for full DONE: the authorized real-network outcomes remain unperformed. Native journey names: tests/porthole/network.mjs#networkJourney; tests/porthole/analytics.mjs#networkAnalyticalJourney.
-2. PARTIAL: actual counted stock traffic and dangerous refusal paths are retained; native Services, exports and erasure passed. Full network proof requires its eligible runner and the external real-network remainder.
-3. PENDING: exact-head Verify is recorded in ci-receipt.json; no green result is inferred from a different SHA.
-4. PASS for the repaired implementation comparison: no product, collector or dependency bytes changed from the saved SHA; changed orchestration is exercised by the final candidate's own Verify.
-5. INSPECTED: no acceptance or inherited-duty wording changed and no new inheritance claim is made.
-6. PASS mechanically: Status, Gap and Evidence preserved; generator write and check passed and generated views were restored from main. No count or judged-provenance promotion is claimed.
-7. PASS: acceptance and Status source unchanged; no ruling or obligation was added or removed.
-8. PARTIAL for full DONE: existing Services and erasure allowed and refused paths passed; network current-scope and revocation assertions remain scheduled. No authority was widened.
-9. PASS: all provider, real-estate and legal boundaries remain explicit and unproved.
-10. PASS: no new custody, consent, spending or authority default was adopted.
-11. PENDING LANDER: branch-only; main equality, Run site and complete full-history publication scanning remain Mac lander gates.
+1. FAIL for full DONE: the real-network outcomes remain unperformed. Native networkJourney and networkAnalyticalJourney remain in push Verify; latest head is unqueried.
+2. PARTIAL: actual counted stock traffic and dangerous refusal paths are retained. Actual scalar withdrawal, malformed input, replay, archive and revoked-source cases passed locally; the full final network journey awaits its eligible runner.
+3. PENDING: no exact-head green Verify is established for d77a80daa5c1b4a608839d079ccc20ca28ecc7c9. The superseded run is explicitly red; no result is borrowed from another SHA.
+4. PASS for local source relevance: no tested normalizer or handover byte changed before commit; the passing normalizer hash matches the candidate. Baseline rendering code is unchanged.
+5. INSPECTED: acceptance and inherited-duty wording unchanged; no new inheritance claim.
+6. PASS mechanically: Status, Gap and Evidence preserved; generator write and check pass, and generated views restored from main. No count or judged-provenance promotion.
+7. PASS: no acceptance point, ruling or obligation added or removed.
+8. PARTIAL for full DONE: current scope and next-request revocation assertions remain intact; real unsafe and allowed handover, malformed intake and source revocation passed. Full network erasure and authority proof still require candidate Verify.
+9. PASS: provider, real-estate and legal boundaries remain explicit and unproved.
+10. PASS: no custody, consent, spending or authority default adopted.
+11. PENDING LANDER: branch-only. Main equality, exact-head Verify, Run site and complete full-history publication scan remain fleet gates.
 
-## Pre-READY and mechanical checks
+Inherited current authority is asserted at tests/porthole/network.mjs:112 and :121. Erased-input and replay fences remain at :132 through :142 and are not claimed fully exercised on the final head. Native archive custody is exercised by networkArchiveJourney and the passing stock-marker proof, including exact raw telemetry re-export and no restored collection credentials. No broader provider erasure or retention duty is claimed.
 
-- Every previous shard command and analytical assertion line is retained. The native and both analytical network paths remain invoked by push Verify. No browser width assertion was removed.
-- Product scope, replay and erasure code is unchanged. Existing real refusal and erasure journeys passed; network revocation and erased-input proof remain mandatory in its candidate Verify.
-- No UI, stylesheet, homepage, logo or icon control changed in this repair. Existing Services browser checks enforce text labels, minimum text size, focus and reflow. Full real-network browser qualification is not claimed.
-- Typecheck, first-party validation, public schema check, JavaScript syntax checks, contract generation, source lock generation and source lock freshness passed. No migration changed, so no migration ledger operation applies.
-- Cloud publication scanning is not required for a branch push and was not run. A COMPLETE scan, historyScanned and findings count are unestablished here; the Mac must run the required scan before landing. Run site and main equality are also unestablished here.
+## Mechanical checks and custody
+
+Typecheck, JavaScript syntax, first-party profile, public schema, contract generation, source lock generation and source lock freshness passed. Every prior shard command and analytical and membership assertion line is retained. No UI, stylesheet, homepage, logo or icon control changed in this repair. Existing browser checks retain text labels, minimum text size, focus and reflow. No migration changed.
 
 MECHANICAL lock=pnpm run source:lock and pnpm run source:check exit=0; views=node scripts/porthole/contract-docs.mjs write PORT-060,PORT-075 and check PORT-060,PORT-075 exit=0, views restored from origin/main; ledger=none exit=0.
 
-## Custody
+The pre-READY exact-CI condition is unestablished, so terminal custody is PUSHED. Full-history publication scanning is a Mac gate and was not run here: COMPLETE, historyScanned and findings are unestablished, as are Run site and main equality. No scan result is fabricated.
 
-The saved head remains an ancestor. Fleet identity and every candidate co-author trailer were checked before each guarded product push. Product commits contain only repository work; this report and receipts are outside the checkout and will be published only to evidence/sx-porthole-c-f466-pc1. No main push, history rewrite, PR, live provider call, account setup, external probe or inbox write occurred.
+All product commits are new, use fleet identity and preserved hooks, and were checked across every candidate parent before guarded pushes. No main push, force push, PR, account setup, real provider call, external probe or inbox write occurred. Product commits contain no fleet reports. Selected actual reports, stock input, receipts and screenshots are published only to evidence/sx-porthole-c-f466-pc1. The plan continuation is PORT-060 PARTIAL, points none, with unchanged committed counts.
 
-Proof locations: native fault and broker reconciliations at tests/porthole/network.mjs:64, :69, :76 and :78; privilege gaps at :89 and :94; current scope at :112; archive at :129; erased capture and replay at :132 to :142. The extracted analytical backend comparison is tests/porthole/analytics.mjs:377, with exact standby equality at :397, stopped-backend refusal at :399 and restored evidence at :401. Existing Services analytical proof is tests/porthole/analytics.mjs:339.
+CLAIM PORT-060 PARTIAL points=none tests=tests/porthole/network.mjs#networkJourney; tests/porthole/analytics.mjs#networkAnalyticalJourney
+GAP PORT-060: final exact-SHA Verify remains unqueried after the API budget; the cloud kernel cannot run netem, and authorized real-network and private-grant qualification remain held.
+
+Stock packet encoding: stock-no-value-otlp.json is a pretty-printed JSON rendering that preserves every source field and value. The before-fix refusal probe replayed the original raw packet bytes. The fixed proof replayed the published JSON document unchanged; no timestamp, flag, identity or measurement was manufactured.

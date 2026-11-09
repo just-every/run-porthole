@@ -1,0 +1,16 @@
+{
+  "head": "d9e6b48a489b5e0fb3f963617db44dcb761561f7",
+  "job": 129011799502,
+  "command": "CI=true WRANGLER_SEND_METRICS=false PORTHOLE_NETWORK_ONLY=1 node tests/.porthole-stale-runtime.mjs",
+  "test": "staleReplayProbe reproduces the networkJourney stock-packet replay",
+  "exit": 1,
+  "failure": "400 !== 200; {\"code\":3,\"message\":\"missing_metric_value\"}",
+  "input": "stock-no-value-otlp.json",
+  "exactShard": {
+    "command": "CI=true WRANGLER_SEND_METRICS=false PLAYWRIGHT_SKIP_BROWSER_GC=1 node scripts/verify-ci.mjs network",
+    "exit": 1,
+    "failure": "network_fault_kernel_unavailable: CONFIG_NET_SCH_NETEM and CONFIG_NET_SCH_PRIO required",
+    "reachedReplayFailure": false
+  },
+  "repair": "accept an absent scalar oneof only with a valid uint32 NO_RECORDED_VALUE flag; retain dual-value and unmarked-missing refusals"
+}

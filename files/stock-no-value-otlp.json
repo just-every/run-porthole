@@ -1,0 +1,215 @@
+{
+  "resourceMetrics": [
+    {
+      "resource": {
+        "attributes": [
+          {
+            "key": "service.name",
+            "value": {
+              "stringValue": "checkout-kafka"
+            }
+          },
+          {
+            "key": "server.address",
+            "value": {
+              "stringValue": "checkout-kafka"
+            }
+          },
+          {
+            "key": "service.instance.id",
+            "value": {
+              "stringValue": "checkout-kafka:9100"
+            }
+          },
+          {
+            "key": "server.port",
+            "value": {
+              "stringValue": "9100"
+            }
+          },
+          {
+            "key": "url.scheme",
+            "value": {
+              "stringValue": "http"
+            }
+          },
+          {
+            "key": "deployment.environment.name",
+            "value": {
+              "stringValue": "production"
+            }
+          },
+          {
+            "key": "team.name",
+            "value": {
+              "stringValue": "commerce"
+            }
+          },
+          {
+            "key": "container.id",
+            "value": {
+              "stringValue": "c4f173ca35736b415732238376a2f6951a55c326b752c8800b1ef4ce39fb9347"
+            }
+          },
+          {
+            "key": "host.id",
+            "value": {
+              "stringValue": "c9d7b3b4-ccf7-41a1-82e2-007e3b7283d2"
+            }
+          }
+        ]
+      },
+      "scopeMetrics": [
+        {
+          "scope": {
+            "name": "github.com/open-telemetry/opentelemetry-collector-contrib/receiver/prometheusreceiver",
+            "version": "0.135.0"
+          },
+          "metrics": [
+            {
+              "name": "up",
+              "description": "The scraping was successful",
+              "gauge": {
+                "dataPoints": [
+                  {
+                    "timeUnixNano": "1794206909628000000",
+                    "asDouble": 0
+                  }
+                ]
+              },
+              "metadata": [
+                {
+                  "key": "prometheus.type",
+                  "value": {
+                    "stringValue": "gauge"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "scrape_duration_seconds",
+              "description": "Duration of the scrape",
+              "unit": "s",
+              "gauge": {
+                "dataPoints": [
+                  {
+                    "timeUnixNano": "1794206909628000000",
+                    "asDouble": 0.048867405
+                  }
+                ]
+              },
+              "metadata": [
+                {
+                  "key": "prometheus.type",
+                  "value": {
+                    "stringValue": "gauge"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "scrape_samples_scraped",
+              "description": "The number of samples the target exposed",
+              "gauge": {
+                "dataPoints": [
+                  {
+                    "timeUnixNano": "1794206909628000000",
+                    "asDouble": 0
+                  }
+                ]
+              },
+              "metadata": [
+                {
+                  "key": "prometheus.type",
+                  "value": {
+                    "stringValue": "gauge"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "scrape_samples_post_metric_relabeling",
+              "description": "The number of samples remaining after metric relabeling was applied",
+              "gauge": {
+                "dataPoints": [
+                  {
+                    "timeUnixNano": "1794206909628000000",
+                    "asDouble": 0
+                  }
+                ]
+              },
+              "metadata": [
+                {
+                  "key": "prometheus.type",
+                  "value": {
+                    "stringValue": "gauge"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "scrape_series_added",
+              "description": "The approximate number of new series in this scrape",
+              "gauge": {
+                "dataPoints": [
+                  {
+                    "timeUnixNano": "1794206909628000000",
+                    "asDouble": 0
+                  }
+                ]
+              },
+              "metadata": [
+                {
+                  "key": "prometheus.type",
+                  "value": {
+                    "stringValue": "gauge"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "node_netstat_TcpExt_TCPTimeouts",
+              "description": "Statistic TcpExtTCPTimeouts.",
+              "gauge": {
+                "dataPoints": [
+                  {
+                    "timeUnixNano": "1794206909628000000",
+                    "flags": 1
+                  }
+                ]
+              },
+              "metadata": [
+                {
+                  "key": "prometheus.type",
+                  "value": {
+                    "stringValue": "unknown"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "node_netstat_Tcp_RetransSegs",
+              "description": "Statistic TcpRetransSegs.",
+              "gauge": {
+                "dataPoints": [
+                  {
+                    "timeUnixNano": "1794206909628000000",
+                    "flags": 1
+                  }
+                ]
+              },
+              "metadata": [
+                {
+                  "key": "prometheus.type",
+                  "value": {
+                    "stringValue": "unknown"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

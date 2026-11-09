@@ -1,0 +1,55 @@
+{
+  "head": "d9e6b48a489b5e0fb3f963617db44dcb761561f7",
+  "collector": "unmodified pinned Contrib Prometheus receiver",
+  "action": "stopped the owned namespace node exporter after successful scrapes",
+  "firstResponse": 400,
+  "firstError": "{\"code\":3,\"message\":\"missing_metric_value\"}",
+  "replayResponse": 400,
+  "replayError": "{\"code\":3,\"message\":\"missing_metric_value\"}",
+  "points": [
+    {
+      "name": "up",
+      "kind": "gauge",
+      "hasAsDouble": true,
+      "hasAsInt": false
+    },
+    {
+      "name": "scrape_duration_seconds",
+      "kind": "gauge",
+      "hasAsDouble": true,
+      "hasAsInt": false
+    },
+    {
+      "name": "scrape_samples_scraped",
+      "kind": "gauge",
+      "hasAsDouble": true,
+      "hasAsInt": false
+    },
+    {
+      "name": "scrape_samples_post_metric_relabeling",
+      "kind": "gauge",
+      "hasAsDouble": true,
+      "hasAsInt": false
+    },
+    {
+      "name": "scrape_series_added",
+      "kind": "gauge",
+      "hasAsDouble": true,
+      "hasAsInt": false
+    },
+    {
+      "name": "node_netstat_TcpExt_TCPTimeouts",
+      "kind": "gauge",
+      "flags": 1,
+      "hasAsDouble": false,
+      "hasAsInt": false
+    },
+    {
+      "name": "node_netstat_Tcp_RetransSegs",
+      "kind": "gauge",
+      "flags": 1,
+      "hasAsDouble": false,
+      "hasAsInt": false
+    }
+  ]
+}

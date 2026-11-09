@@ -1,0 +1,85 @@
+{
+  "executionBaseHead": "d9e6b48a489b5e0fb3f963617db44dcb761561f7",
+  "normalizerSha256": "03639e5f77ff3946059c89d78f2d3791ddfc810259c2f41980019091f87b1881",
+  "wireSha256": "764642baa7dbc9a7381744c8561b90b5fa1cc83060ce212a4bc0a8df4d45a08e",
+  "local": {
+    "name": "local",
+    "records": 7,
+    "missing": [
+      {
+        "name": "node_netstat_TcpExt_TCPTimeouts",
+        "flags": 1,
+        "hasAsDouble": false,
+        "hasAsInt": false
+      },
+      {
+        "name": "node_netstat_Tcp_RetransSegs",
+        "flags": 1,
+        "hasAsDouble": false,
+        "hasAsInt": false
+      }
+    ],
+    "snapshot": 1,
+    "accepted": 200,
+    "replay": 200,
+    "invalidRefusals": [
+      "unmarked",
+      "both-values"
+    ],
+    "inactiveArchive": true,
+    "recordIds": [
+      "900479f8-e756-43d1-8f63-5228d7b6823f:0",
+      "900479f8-e756-43d1-8f63-5228d7b6823f:1",
+      "900479f8-e756-43d1-8f63-5228d7b6823f:2",
+      "900479f8-e756-43d1-8f63-5228d7b6823f:3",
+      "900479f8-e756-43d1-8f63-5228d7b6823f:4",
+      "900479f8-e756-43d1-8f63-5228d7b6823f:5",
+      "900479f8-e756-43d1-8f63-5228d7b6823f:6"
+    ]
+  },
+  "primary": {
+    "name": "primary",
+    "records": 7,
+    "missing": [
+      {
+        "name": "node_netstat_TcpExt_TCPTimeouts",
+        "flags": 1,
+        "hasAsDouble": false,
+        "hasAsInt": false
+      },
+      {
+        "name": "node_netstat_Tcp_RetransSegs",
+        "flags": 1,
+        "hasAsDouble": false,
+        "hasAsInt": false
+      }
+    ],
+    "snapshot": 1,
+    "accepted": 200,
+    "replay": 200,
+    "invalidRefusals": [
+      "unmarked",
+      "both-values"
+    ],
+    "inactiveArchive": false,
+    "recordIds": [
+      "3d1c7c29-bb36-41d7-90bc-965add566df0:0",
+      "3d1c7c29-bb36-41d7-90bc-965add566df0:1",
+      "3d1c7c29-bb36-41d7-90bc-965add566df0:2",
+      "3d1c7c29-bb36-41d7-90bc-965add566df0:3",
+      "3d1c7c29-bb36-41d7-90bc-965add566df0:4",
+      "3d1c7c29-bb36-41d7-90bc-965add566df0:5",
+      "3d1c7c29-bb36-41d7-90bc-965add566df0:6"
+    ]
+  },
+  "standby": {
+    "name": "standby",
+    "records": 7,
+    "missing": 2
+  },
+  "source": "captured unchanged from the pinned stock receiver before repair",
+  "committedHead": "d77a80daa5c1b4a608839d079ccc20ca28ecc7c9",
+  "sourceBytesMatchCommittedHead": true,
+  "exit": 0,
+  "captureEncoding": "The published stock input is a pretty-printed JSON rendering with all source fields preserved; the before-fix diagnostic replay used the original raw bytes."
+}
