@@ -186,14 +186,14 @@ async function encodedService({origin,call,secret}) {
 export async function handoffCredentialRefusal({origin,cookie,call,sql,service,responders,query,change,storage}) {
  // One table assertion covers write refusal and every live read surface for
  // legacy rows accepted before the credential rule was tightened.
- const credentialMarker='synthetic-porthole-8510',credentialProof=[]
+ const credentialMarker='synthetic-porthole-8510',credentialProof=[],credentialBefore=await storage()
  const credentialUrls=['sig','%73ig','SIG','%2573ig','token','%54OKEN','key','%4bEY','secret','%73ecret','signature','SIGNATURE'].map(key=>'https://handoff.example/?'+key+'='+credentialMarker)
  credentialUrls.push('https://'+credentialMarker+'@handoff.example/','https://'+credentialMarker+'%40handoff.example/')
  for(const value of credentialUrls)for(const field of ['destination','template']){
-  const before=await storage(),response=await call(root+'/vane',form(origin,cookie,{...change,[field]:value})),body=await response.text()
-  const unchanged=JSON.stringify(await storage())===JSON.stringify(before)
+  const response=await call(root+'/vane',form(origin,cookie,{...change,[field]:value})),body=await response.text()
+  const unchanged=JSON.stringify(await storage())===JSON.stringify(credentialBefore)
   // Clean up a vulnerable pre-fix write so every case probes the same revision.
-  await sql("DELETE FROM porthole_handoff_versions WHERE product='vane' AND revision>1")
+  if(response.status===201)await sql("DELETE FROM porthole_handoff_versions WHERE product='vane' AND revision>1")
   const reads=[]
   if(credentialUrls.indexOf(value)<3){
    await sql(`UPDATE porthole_handoff_versions SET ${field}=${literal(value)} WHERE product='vane' AND revision=1`)
