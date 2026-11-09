@@ -1,0 +1,7 @@
+{
+  "command": "pinned Node 22.20.0 collectors/heartbeat/process.mjs --once",
+  "exit": 5,
+  "stdout": "{\"check\":\"authenticated-heartbeat\",\"status\":\"local_network_unavailable\",\"exitStatus\":5,\"checkedAt\":\"2026-11-09T01:42:08.425Z\",\"lastAccepted\":null,\"telemetryHealth\":\"Unknown\"}\n",
+  "stderr": "",
+  "transport": "Reserved IPv6 documentation address; actual local socket routing refusal"
+}

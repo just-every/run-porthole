@@ -1,0 +1,107 @@
+{
+  "journey": "controlPlaneRecoveryJourney",
+  "candidate": "0097a510107f72272b9f91e9f5d50749e54666b5",
+  "runtime": "local emitted Workers; no deployment qualification",
+  "steps": [
+    {
+      "step": "supervisor refuses credential and malformed acknowledgements",
+      "credentialExit": 3,
+      "malformedExit": 4
+    },
+    {
+      "step": "native setup completed"
+    },
+    {
+      "step": "native populated two-team export reconciled",
+      "tables": {
+        "porthole_ingest_batches": {
+          "count": 6,
+          "digest": "2a88ea2616ca5d9680388175b0aec3c76f8eb94bfcc332ce0ffc1a8e7adb3afa"
+        },
+        "porthole_telemetry_records": {
+          "count": 6,
+          "digest": "2038b5a74a22bb4a34b799065ce88fb6014973300ab82c7a0e1eb4413652a622"
+        },
+        "porthole_telemetry_archive": {
+          "count": 6,
+          "digest": "826b728e53501d949a642351463bd2568a80f8b97903752dceb9191877f277bf"
+        },
+        "porthole_audit_entries": {
+          "count": 37,
+          "digest": "1e075e34eca11ed9fd9b92c9512634b3e7ed951efb477336d8784d3b6e4750a2"
+        },
+        "porthole_archive_audit": {
+          "count": 0,
+          "digest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        }
+      }
+    },
+    {
+      "step": "stopped control plane reported outside it",
+      "status": "control_plane_unreachable",
+      "lastAcceptedAcknowledgements": [
+        {
+          "collectorId": "synthetic-porthole-8010",
+          "hostId": "bbb662c3ffaa",
+          "observedAt": "2026-11-09T03:02:51.214Z",
+          "status": "heartbeat_accepted"
+        },
+        {
+          "collectorId": "synthetic-porthole-8011",
+          "hostId": "bbb662c3ffaa",
+          "observedAt": "2026-11-09T03:02:51.352Z",
+          "status": "heartbeat_accepted"
+        }
+      ],
+      "analyticalRecords": 8
+    },
+    {
+      "step": "stock collector queued outage telemetry",
+      "uniqueRecords": 4,
+      "queuedSubmissions": 8,
+      "processRunning": true
+    },
+    {
+      "step": "native setup completed"
+    },
+    {
+      "step": "fresh destination owner reviewed exact analytical custody",
+      "retainedBatches": 6,
+      "retainedRecords": 6,
+      "fencedBatches": 2,
+      "fencedRecords": 2,
+      "physicalRecords": 8
+    },
+    {
+      "step": "heartbeat check cleared after reviewed destination reconnection",
+      "status": "heartbeat_accepted",
+      "telemetryHealth": "Unknown"
+    },
+    {
+      "step": "buffered outage input reconciled once",
+      "backupRecords": 6,
+      "postExportGap": 2,
+      "bufferedRecords": 4,
+      "destinationRecords": 10,
+      "duplicatesAccounted": 4,
+      "originalNanoseconds": true
+    }
+  ],
+  "originalEventNanoseconds": [
+    "01794193371379008000",
+    "01794193371405008001",
+    "01794193371420008002",
+    "01794193371435008003",
+    "01794193371446008004",
+    "01794193371457008005"
+  ],
+  "originalReceiptNanoseconds": [
+    "1794193371386000000",
+    "1794193371410000000",
+    "1794193371424000000",
+    "1794193371439000000",
+    "1794193371449000000",
+    "1794193371460000000"
+  ],
+  "result": "passed"
+}

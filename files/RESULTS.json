@@ -1,0 +1,122 @@
+{
+  "tag": "sx-porthole-c-f465",
+  "repository": "just-every/run-porthole",
+  "branch": "cloud/sx-porthole-c-f465",
+  "head": "0097a510107f72272b9f91e9f5d50749e54666b5",
+  "main_at_last_fetch": "a4b8bed320f94b9bbeb1b0e1d21b232fb6b4c9ed",
+  "generated_at": "2026-11-09T03:08:51.671720+00:00",
+  "claim": {
+    "clause": "PORT-094",
+    "status": "PARTIAL",
+    "points": "none",
+    "planner_local_points": [
+      1,
+      2,
+      3
+    ],
+    "stored_status": "missing",
+    "counts_before": {
+      "done": 10,
+      "partial": 20,
+      "missing": 69,
+      "total": 99
+    },
+    "counts_after": {
+      "done": 10,
+      "partial": 20,
+      "missing": 69,
+      "total": 99
+    }
+  },
+  "checks": [
+    {
+      "command": "PORTHOLE_CONTROL_RECOVERY_ONLY=1 node tests/runtime.mjs",
+      "exit": 0,
+      "head": "0097a510107f72272b9f91e9f5d50749e54666b5",
+      "receipt": "control-plane-recovery.json"
+    },
+    {
+      "command": "pnpm typecheck",
+      "exit": 0,
+      "head": "0097a510107f72272b9f91e9f5d50749e54666b5"
+    },
+    {
+      "command": "pnpm exec rer check --profile first-party",
+      "exit": 0,
+      "head": "0097a510107f72272b9f91e9f5d50749e54666b5"
+    },
+    {
+      "command": "node scripts/porthole/contract-docs.mjs write PORT-094; node scripts/porthole/contract-docs.mjs check PORT-094; git checkout origin/main -- ACCEPTANCE.md docs/CLAIMS.md",
+      "exit": 0,
+      "head": "0097a510107f72272b9f91e9f5d50749e54666b5"
+    },
+    {
+      "command": "pnpm run source:lock; pnpm run source:check",
+      "exit": 0,
+      "head": "0097a510107f72272b9f91e9f5d50749e54666b5",
+      "note": "lock regenerated after final source/test edits; check repeated on final committed tree"
+    },
+    {
+      "command": "analyticalKernelJourney()",
+      "exit": 0,
+      "head": "9e79af7f6806dcf0e578640dd95e0274b21f2fe6",
+      "note": "same analytical code as final; only final refusal assertions added after kernel probe"
+    },
+    {
+      "command": "PORTHOLE_ANALYTICAL_ONLY=1 node tests/runtime.mjs",
+      "exit": 0,
+      "head": "6d171089e78a63418015f83dc05f8316a079c0fd",
+      "note": "supporting regression before final review/projection safety additions; final control drill exercises those new paths"
+    },
+    {
+      "command": "PORTHOLE_HEALTH_ONLY=1 node tests/runtime.mjs",
+      "exit": 0,
+      "note": "supporting regression; final drill checks final health restoration behavior"
+    },
+    {
+      "command": "PORTHOLE_HOST_HEARTBEAT_ONLY=1 node tests/runtime.mjs",
+      "exit": 0,
+      "note": "supporting regression; final drill runs the real production heartbeat process"
+    },
+    {
+      "command": "node tests/porthole/native-archive.mjs",
+      "exit": 0,
+      "note": "supporting original native archive regression; final drill reruns actual setup, export and import"
+    }
+  ],
+  "ci": [
+    {
+      "conclusion": null,
+      "event": "push",
+      "head_sha": "0097a510107f72272b9f91e9f5d50749e54666b5",
+      "html_url": "https://github.com/just-every/run-porthole/actions/runs/42554552544",
+      "id": 42554552544,
+      "name": "Verify",
+      "status": "in_progress"
+    }
+  ],
+  "scan": {
+    "status": "delegated to maintained Mac lander",
+    "complete": false,
+    "historyScanned": false,
+    "findings": null,
+    "full_clone_history": true
+  },
+  "landing": {
+    "main_equals_head": false,
+    "run_site": "pending maintained Mac lander",
+    "pr": null
+  },
+  "data": {
+    "backup_records": 6,
+    "physical_at_outage": 8,
+    "post_export_gap": 2,
+    "unique_buffered_outage_records": 4,
+    "duplicate_records_accounted": 4,
+    "destination_active_records": 10,
+    "analytical_physical_records": 12,
+    "original_event_and_receipt_nanoseconds_preserved": true
+  },
+  "contract_diff": "",
+  "working_tree_clean": true
+}

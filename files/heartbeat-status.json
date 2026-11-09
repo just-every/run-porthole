@@ -1,0 +1,832 @@
+[
+  {
+    "check": "authenticated-heartbeat",
+    "status": "credential_refused",
+    "exitStatus": 3,
+    "checkedAt": "2026-11-09T03:01:38.087Z",
+    "lastAccepted": null,
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "response_invalid",
+    "exitStatus": 4,
+    "checkedAt": "2026-11-09T03:01:38.182Z",
+    "lastAccepted": null,
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "response_invalid",
+    "exitStatus": 4,
+    "checkedAt": "2026-11-09T03:01:38.270Z",
+    "lastAccepted": null,
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "heartbeat_accepted",
+    "exitStatus": 0,
+    "checkedAt": "2026-11-09T03:02:51.223Z",
+    "lastAccepted": {
+      "collectorId": "synthetic-porthole-8010",
+      "hostId": "bbb662c3ffaa",
+      "observedAt": "2026-11-09T03:02:51.214Z",
+      "status": "heartbeat_accepted"
+    },
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "heartbeat_accepted",
+    "exitStatus": 0,
+    "checkedAt": "2026-11-09T03:02:51.357Z",
+    "lastAccepted": {
+      "collectorId": "synthetic-porthole-8011",
+      "hostId": "bbb662c3ffaa",
+      "observedAt": "2026-11-09T03:02:51.352Z",
+      "status": "heartbeat_accepted"
+    },
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "control_plane_unreachable",
+    "exitStatus": 2,
+    "checkedAt": "2026-11-09T03:03:51.267Z",
+    "lastAccepted": {
+      "collectorId": "synthetic-porthole-8010",
+      "hostId": "bbb662c3ffaa",
+      "observedAt": "2026-11-09T03:02:51.214Z",
+      "status": "heartbeat_accepted"
+    },
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "control_plane_unreachable",
+    "exitStatus": 2,
+    "checkedAt": "2026-11-09T03:03:51.391Z",
+    "lastAccepted": {
+      "collectorId": "synthetic-porthole-8011",
+      "hostId": "bbb662c3ffaa",
+      "observedAt": "2026-11-09T03:02:51.352Z",
+      "status": "heartbeat_accepted"
+    },
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "control_plane_unreachable",
+    "exitStatus": 2,
+    "checkedAt": "2026-11-09T03:04:51.371Z",
+    "lastAccepted": {
+      "collectorId": "synthetic-porthole-8010",
+      "hostId": "bbb662c3ffaa",
+      "observedAt": "2026-11-09T03:02:51.214Z",
+      "status": "heartbeat_accepted"
+    },
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "control_plane_unreachable",
+    "exitStatus": 2,
+    "checkedAt": "2026-11-09T03:04:51.494Z",
+    "lastAccepted": {
+      "collectorId": "synthetic-porthole-8011",
+      "hostId": "bbb662c3ffaa",
+      "observedAt": "2026-11-09T03:02:51.352Z",
+      "status": "heartbeat_accepted"
+    },
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "control_plane_unreachable",
+    "exitStatus": 2,
+    "checkedAt": "2026-11-09T03:05:51.477Z",
+    "lastAccepted": {
+      "collectorId": "synthetic-porthole-8010",
+      "hostId": "bbb662c3ffaa",
+      "observedAt": "2026-11-09T03:02:51.214Z",
+      "status": "heartbeat_accepted"
+    },
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "control_plane_unreachable",
+    "exitStatus": 2,
+    "checkedAt": "2026-11-09T03:05:51.592Z",
+    "lastAccepted": {
+      "collectorId": "synthetic-porthole-8011",
+      "hostId": "bbb662c3ffaa",
+      "observedAt": "2026-11-09T03:02:51.352Z",
+      "status": "heartbeat_accepted"
+    },
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "heartbeat_accepted",
+    "exitStatus": 0,
+    "checkedAt": "2026-11-09T03:06:00.475Z",
+    "lastAccepted": {
+      "collectorId": "synthetic-porthole-8010",
+      "hostId": "bbb662c3ffaa",
+      "observedAt": "2026-11-09T03:06:00.470Z",
+      "status": "heartbeat_accepted"
+    },
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "heartbeat_accepted",
+    "exitStatus": 0,
+    "checkedAt": "2026-11-09T03:06:00.695Z",
+    "lastAccepted": {
+      "collectorId": "synthetic-porthole-8011",
+      "hostId": "bbb662c3ffaa",
+      "observedAt": "2026-11-09T03:06:00.690Z",
+      "status": "heartbeat_accepted"
+    },
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "heartbeat_accepted",
+    "exitStatus": 0,
+    "checkedAt": "2026-11-09T03:06:01.488Z",
+    "lastAccepted": {
+      "collectorId": "synthetic-porthole-8010",
+      "hostId": "bbb662c3ffaa",
+      "observedAt": "2026-11-09T03:06:01.484Z",
+      "status": "heartbeat_accepted"
+    },
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "heartbeat_accepted",
+    "exitStatus": 0,
+    "checkedAt": "2026-11-09T03:06:01.708Z",
+    "lastAccepted": {
+      "collectorId": "synthetic-porthole-8011",
+      "hostId": "bbb662c3ffaa",
+      "observedAt": "2026-11-09T03:06:01.705Z",
+      "status": "heartbeat_accepted"
+    },
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "heartbeat_accepted",
+    "exitStatus": 0,
+    "checkedAt": "2026-11-09T03:06:02.506Z",
+    "lastAccepted": {
+      "collectorId": "synthetic-porthole-8010",
+      "hostId": "bbb662c3ffaa",
+      "observedAt": "2026-11-09T03:06:02.499Z",
+      "status": "heartbeat_accepted"
+    },
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "heartbeat_accepted",
+    "exitStatus": 0,
+    "checkedAt": "2026-11-09T03:06:02.720Z",
+    "lastAccepted": {
+      "collectorId": "synthetic-porthole-8011",
+      "hostId": "bbb662c3ffaa",
+      "observedAt": "2026-11-09T03:06:02.717Z",
+      "status": "heartbeat_accepted"
+    },
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "heartbeat_accepted",
+    "exitStatus": 0,
+    "checkedAt": "2026-11-09T03:06:03.520Z",
+    "lastAccepted": {
+      "collectorId": "synthetic-porthole-8010",
+      "hostId": "bbb662c3ffaa",
+      "observedAt": "2026-11-09T03:06:03.516Z",
+      "status": "heartbeat_accepted"
+    },
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "heartbeat_accepted",
+    "exitStatus": 0,
+    "checkedAt": "2026-11-09T03:06:03.732Z",
+    "lastAccepted": {
+      "collectorId": "synthetic-porthole-8011",
+      "hostId": "bbb662c3ffaa",
+      "observedAt": "2026-11-09T03:06:03.729Z",
+      "status": "heartbeat_accepted"
+    },
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "heartbeat_accepted",
+    "exitStatus": 0,
+    "checkedAt": "2026-11-09T03:06:04.536Z",
+    "lastAccepted": {
+      "collectorId": "synthetic-porthole-8010",
+      "hostId": "bbb662c3ffaa",
+      "observedAt": "2026-11-09T03:06:04.527Z",
+      "status": "heartbeat_accepted"
+    },
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "heartbeat_accepted",
+    "exitStatus": 0,
+    "checkedAt": "2026-11-09T03:06:04.749Z",
+    "lastAccepted": {
+      "collectorId": "synthetic-porthole-8011",
+      "hostId": "bbb662c3ffaa",
+      "observedAt": "2026-11-09T03:06:04.742Z",
+      "status": "heartbeat_accepted"
+    },
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "heartbeat_accepted",
+    "exitStatus": 0,
+    "checkedAt": "2026-11-09T03:06:05.552Z",
+    "lastAccepted": {
+      "collectorId": "synthetic-porthole-8010",
+      "hostId": "bbb662c3ffaa",
+      "observedAt": "2026-11-09T03:06:05.541Z",
+      "status": "heartbeat_accepted"
+    },
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "heartbeat_accepted",
+    "exitStatus": 0,
+    "checkedAt": "2026-11-09T03:06:05.757Z",
+    "lastAccepted": {
+      "collectorId": "synthetic-porthole-8011",
+      "hostId": "bbb662c3ffaa",
+      "observedAt": "2026-11-09T03:06:05.752Z",
+      "status": "heartbeat_accepted"
+    },
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "heartbeat_accepted",
+    "exitStatus": 0,
+    "checkedAt": "2026-11-09T03:06:06.591Z",
+    "lastAccepted": {
+      "collectorId": "synthetic-porthole-8010",
+      "hostId": "bbb662c3ffaa",
+      "observedAt": "2026-11-09T03:06:06.582Z",
+      "status": "heartbeat_accepted"
+    },
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "heartbeat_accepted",
+    "exitStatus": 0,
+    "checkedAt": "2026-11-09T03:06:06.772Z",
+    "lastAccepted": {
+      "collectorId": "synthetic-porthole-8011",
+      "hostId": "bbb662c3ffaa",
+      "observedAt": "2026-11-09T03:06:06.767Z",
+      "status": "heartbeat_accepted"
+    },
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "heartbeat_accepted",
+    "exitStatus": 0,
+    "checkedAt": "2026-11-09T03:06:07.605Z",
+    "lastAccepted": {
+      "collectorId": "synthetic-porthole-8010",
+      "hostId": "bbb662c3ffaa",
+      "observedAt": "2026-11-09T03:06:07.599Z",
+      "status": "heartbeat_accepted"
+    },
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "control_plane_unreachable",
+    "exitStatus": 2,
+    "checkedAt": "2026-11-09T03:06:07.775Z",
+    "lastAccepted": {
+      "collectorId": "synthetic-porthole-8011",
+      "hostId": "bbb662c3ffaa",
+      "observedAt": "2026-11-09T03:06:06.767Z",
+      "status": "heartbeat_accepted"
+    },
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "control_plane_unreachable",
+    "exitStatus": 2,
+    "checkedAt": "2026-11-09T03:06:08.608Z",
+    "lastAccepted": {
+      "collectorId": "synthetic-porthole-8010",
+      "hostId": "bbb662c3ffaa",
+      "observedAt": "2026-11-09T03:06:07.599Z",
+      "status": "heartbeat_accepted"
+    },
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "control_plane_unreachable",
+    "exitStatus": 2,
+    "checkedAt": "2026-11-09T03:06:08.782Z",
+    "lastAccepted": {
+      "collectorId": "synthetic-porthole-8011",
+      "hostId": "bbb662c3ffaa",
+      "observedAt": "2026-11-09T03:06:06.767Z",
+      "status": "heartbeat_accepted"
+    },
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "control_plane_unreachable",
+    "exitStatus": 2,
+    "checkedAt": "2026-11-09T03:06:09.610Z",
+    "lastAccepted": {
+      "collectorId": "synthetic-porthole-8010",
+      "hostId": "bbb662c3ffaa",
+      "observedAt": "2026-11-09T03:06:07.599Z",
+      "status": "heartbeat_accepted"
+    },
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "control_plane_unreachable",
+    "exitStatus": 2,
+    "checkedAt": "2026-11-09T03:06:09.785Z",
+    "lastAccepted": {
+      "collectorId": "synthetic-porthole-8011",
+      "hostId": "bbb662c3ffaa",
+      "observedAt": "2026-11-09T03:06:06.767Z",
+      "status": "heartbeat_accepted"
+    },
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "control_plane_unreachable",
+    "exitStatus": 2,
+    "checkedAt": "2026-11-09T03:06:10.611Z",
+    "lastAccepted": {
+      "collectorId": "synthetic-porthole-8010",
+      "hostId": "bbb662c3ffaa",
+      "observedAt": "2026-11-09T03:06:07.599Z",
+      "status": "heartbeat_accepted"
+    },
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "control_plane_unreachable",
+    "exitStatus": 2,
+    "checkedAt": "2026-11-09T03:06:10.787Z",
+    "lastAccepted": {
+      "collectorId": "synthetic-porthole-8011",
+      "hostId": "bbb662c3ffaa",
+      "observedAt": "2026-11-09T03:06:06.767Z",
+      "status": "heartbeat_accepted"
+    },
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "control_plane_unreachable",
+    "exitStatus": 2,
+    "checkedAt": "2026-11-09T03:06:11.617Z",
+    "lastAccepted": {
+      "collectorId": "synthetic-porthole-8010",
+      "hostId": "bbb662c3ffaa",
+      "observedAt": "2026-11-09T03:06:07.599Z",
+      "status": "heartbeat_accepted"
+    },
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "control_plane_unreachable",
+    "exitStatus": 2,
+    "checkedAt": "2026-11-09T03:06:11.794Z",
+    "lastAccepted": {
+      "collectorId": "synthetic-porthole-8011",
+      "hostId": "bbb662c3ffaa",
+      "observedAt": "2026-11-09T03:06:06.767Z",
+      "status": "heartbeat_accepted"
+    },
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "control_plane_unreachable",
+    "exitStatus": 2,
+    "checkedAt": "2026-11-09T03:06:12.625Z",
+    "lastAccepted": {
+      "collectorId": "synthetic-porthole-8010",
+      "hostId": "bbb662c3ffaa",
+      "observedAt": "2026-11-09T03:06:07.599Z",
+      "status": "heartbeat_accepted"
+    },
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "control_plane_unreachable",
+    "exitStatus": 2,
+    "checkedAt": "2026-11-09T03:06:12.801Z",
+    "lastAccepted": {
+      "collectorId": "synthetic-porthole-8011",
+      "hostId": "bbb662c3ffaa",
+      "observedAt": "2026-11-09T03:06:06.767Z",
+      "status": "heartbeat_accepted"
+    },
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "control_plane_unreachable",
+    "exitStatus": 2,
+    "checkedAt": "2026-11-09T03:06:13.632Z",
+    "lastAccepted": {
+      "collectorId": "synthetic-porthole-8010",
+      "hostId": "bbb662c3ffaa",
+      "observedAt": "2026-11-09T03:06:07.599Z",
+      "status": "heartbeat_accepted"
+    },
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "control_plane_unreachable",
+    "exitStatus": 2,
+    "checkedAt": "2026-11-09T03:06:13.807Z",
+    "lastAccepted": {
+      "collectorId": "synthetic-porthole-8011",
+      "hostId": "bbb662c3ffaa",
+      "observedAt": "2026-11-09T03:06:06.767Z",
+      "status": "heartbeat_accepted"
+    },
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "heartbeat_accepted",
+    "exitStatus": 0,
+    "checkedAt": "2026-11-09T03:06:14.812Z",
+    "lastAccepted": {
+      "collectorId": "synthetic-porthole-8010",
+      "hostId": "bbb662c3ffaa",
+      "observedAt": "2026-11-09T03:06:14.734Z",
+      "status": "heartbeat_accepted"
+    },
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "heartbeat_accepted",
+    "exitStatus": 0,
+    "checkedAt": "2026-11-09T03:06:14.823Z",
+    "lastAccepted": {
+      "collectorId": "synthetic-porthole-8011",
+      "hostId": "bbb662c3ffaa",
+      "observedAt": "2026-11-09T03:06:14.814Z",
+      "status": "heartbeat_accepted"
+    },
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "heartbeat_accepted",
+    "exitStatus": 0,
+    "checkedAt": "2026-11-09T03:06:15.822Z",
+    "lastAccepted": {
+      "collectorId": "synthetic-porthole-8010",
+      "hostId": "bbb662c3ffaa",
+      "observedAt": "2026-11-09T03:06:15.818Z",
+      "status": "heartbeat_accepted"
+    },
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "heartbeat_accepted",
+    "exitStatus": 0,
+    "checkedAt": "2026-11-09T03:06:15.832Z",
+    "lastAccepted": {
+      "collectorId": "synthetic-porthole-8011",
+      "hostId": "bbb662c3ffaa",
+      "observedAt": "2026-11-09T03:06:15.829Z",
+      "status": "heartbeat_accepted"
+    },
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "heartbeat_accepted",
+    "exitStatus": 0,
+    "checkedAt": "2026-11-09T03:06:16.909Z",
+    "lastAccepted": {
+      "collectorId": "synthetic-porthole-8010",
+      "hostId": "bbb662c3ffaa",
+      "observedAt": "2026-11-09T03:06:16.852Z",
+      "status": "heartbeat_accepted"
+    },
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "heartbeat_accepted",
+    "exitStatus": 0,
+    "checkedAt": "2026-11-09T03:06:16.919Z",
+    "lastAccepted": {
+      "collectorId": "synthetic-porthole-8011",
+      "hostId": "bbb662c3ffaa",
+      "observedAt": "2026-11-09T03:06:16.911Z",
+      "status": "heartbeat_accepted"
+    },
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "heartbeat_accepted",
+    "exitStatus": 0,
+    "checkedAt": "2026-11-09T03:06:17.923Z",
+    "lastAccepted": {
+      "collectorId": "synthetic-porthole-8010",
+      "hostId": "bbb662c3ffaa",
+      "observedAt": "2026-11-09T03:06:17.918Z",
+      "status": "heartbeat_accepted"
+    },
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "heartbeat_accepted",
+    "exitStatus": 0,
+    "checkedAt": "2026-11-09T03:06:17.934Z",
+    "lastAccepted": {
+      "collectorId": "synthetic-porthole-8011",
+      "hostId": "bbb662c3ffaa",
+      "observedAt": "2026-11-09T03:06:17.926Z",
+      "status": "heartbeat_accepted"
+    },
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "heartbeat_accepted",
+    "exitStatus": 0,
+    "checkedAt": "2026-11-09T03:06:18.954Z",
+    "lastAccepted": {
+      "collectorId": "synthetic-porthole-8010",
+      "hostId": "bbb662c3ffaa",
+      "observedAt": "2026-11-09T03:06:18.938Z",
+      "status": "heartbeat_accepted"
+    },
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "heartbeat_accepted",
+    "exitStatus": 0,
+    "checkedAt": "2026-11-09T03:06:18.982Z",
+    "lastAccepted": {
+      "collectorId": "synthetic-porthole-8011",
+      "hostId": "bbb662c3ffaa",
+      "observedAt": "2026-11-09T03:06:18.957Z",
+      "status": "heartbeat_accepted"
+    },
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "heartbeat_accepted",
+    "exitStatus": 0,
+    "checkedAt": "2026-11-09T03:06:19.961Z",
+    "lastAccepted": {
+      "collectorId": "synthetic-porthole-8010",
+      "hostId": "bbb662c3ffaa",
+      "observedAt": "2026-11-09T03:06:19.957Z",
+      "status": "heartbeat_accepted"
+    },
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "heartbeat_accepted",
+    "exitStatus": 0,
+    "checkedAt": "2026-11-09T03:06:19.988Z",
+    "lastAccepted": {
+      "collectorId": "synthetic-porthole-8011",
+      "hostId": "bbb662c3ffaa",
+      "observedAt": "2026-11-09T03:06:19.985Z",
+      "status": "heartbeat_accepted"
+    },
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "heartbeat_accepted",
+    "exitStatus": 0,
+    "checkedAt": "2026-11-09T03:06:20.970Z",
+    "lastAccepted": {
+      "collectorId": "synthetic-porthole-8010",
+      "hostId": "bbb662c3ffaa",
+      "observedAt": "2026-11-09T03:06:20.965Z",
+      "status": "heartbeat_accepted"
+    },
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "heartbeat_accepted",
+    "exitStatus": 0,
+    "checkedAt": "2026-11-09T03:06:20.996Z",
+    "lastAccepted": {
+      "collectorId": "synthetic-porthole-8011",
+      "hostId": "bbb662c3ffaa",
+      "observedAt": "2026-11-09T03:06:20.992Z",
+      "status": "heartbeat_accepted"
+    },
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "heartbeat_accepted",
+    "exitStatus": 0,
+    "checkedAt": "2026-11-09T03:06:21.982Z",
+    "lastAccepted": {
+      "collectorId": "synthetic-porthole-8010",
+      "hostId": "bbb662c3ffaa",
+      "observedAt": "2026-11-09T03:06:21.978Z",
+      "status": "heartbeat_accepted"
+    },
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "heartbeat_accepted",
+    "exitStatus": 0,
+    "checkedAt": "2026-11-09T03:06:22.010Z",
+    "lastAccepted": {
+      "collectorId": "synthetic-porthole-8011",
+      "hostId": "bbb662c3ffaa",
+      "observedAt": "2026-11-09T03:06:22.005Z",
+      "status": "heartbeat_accepted"
+    },
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "heartbeat_accepted",
+    "exitStatus": 0,
+    "checkedAt": "2026-11-09T03:06:22.992Z",
+    "lastAccepted": {
+      "collectorId": "synthetic-porthole-8010",
+      "hostId": "bbb662c3ffaa",
+      "observedAt": "2026-11-09T03:06:22.989Z",
+      "status": "heartbeat_accepted"
+    },
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "heartbeat_accepted",
+    "exitStatus": 0,
+    "checkedAt": "2026-11-09T03:06:23.022Z",
+    "lastAccepted": {
+      "collectorId": "synthetic-porthole-8011",
+      "hostId": "bbb662c3ffaa",
+      "observedAt": "2026-11-09T03:06:23.018Z",
+      "status": "heartbeat_accepted"
+    },
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "heartbeat_accepted",
+    "exitStatus": 0,
+    "checkedAt": "2026-11-09T03:06:24.001Z",
+    "lastAccepted": {
+      "collectorId": "synthetic-porthole-8010",
+      "hostId": "bbb662c3ffaa",
+      "observedAt": "2026-11-09T03:06:23.998Z",
+      "status": "heartbeat_accepted"
+    },
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "heartbeat_accepted",
+    "exitStatus": 0,
+    "checkedAt": "2026-11-09T03:06:24.035Z",
+    "lastAccepted": {
+      "collectorId": "synthetic-porthole-8011",
+      "hostId": "bbb662c3ffaa",
+      "observedAt": "2026-11-09T03:06:24.028Z",
+      "status": "heartbeat_accepted"
+    },
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "heartbeat_accepted",
+    "exitStatus": 0,
+    "checkedAt": "2026-11-09T03:06:25.012Z",
+    "lastAccepted": {
+      "collectorId": "synthetic-porthole-8010",
+      "hostId": "bbb662c3ffaa",
+      "observedAt": "2026-11-09T03:06:25.009Z",
+      "status": "heartbeat_accepted"
+    },
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "heartbeat_accepted",
+    "exitStatus": 0,
+    "checkedAt": "2026-11-09T03:06:25.044Z",
+    "lastAccepted": {
+      "collectorId": "synthetic-porthole-8011",
+      "hostId": "bbb662c3ffaa",
+      "observedAt": "2026-11-09T03:06:25.041Z",
+      "status": "heartbeat_accepted"
+    },
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "heartbeat_accepted",
+    "exitStatus": 0,
+    "checkedAt": "2026-11-09T03:06:26.024Z",
+    "lastAccepted": {
+      "collectorId": "synthetic-porthole-8010",
+      "hostId": "bbb662c3ffaa",
+      "observedAt": "2026-11-09T03:06:26.021Z",
+      "status": "heartbeat_accepted"
+    },
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "heartbeat_accepted",
+    "exitStatus": 0,
+    "checkedAt": "2026-11-09T03:06:26.056Z",
+    "lastAccepted": {
+      "collectorId": "synthetic-porthole-8011",
+      "hostId": "bbb662c3ffaa",
+      "observedAt": "2026-11-09T03:06:26.053Z",
+      "status": "heartbeat_accepted"
+    },
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "heartbeat_accepted",
+    "exitStatus": 0,
+    "checkedAt": "2026-11-09T03:06:27.033Z",
+    "lastAccepted": {
+      "collectorId": "synthetic-porthole-8010",
+      "hostId": "bbb662c3ffaa",
+      "observedAt": "2026-11-09T03:06:27.029Z",
+      "status": "heartbeat_accepted"
+    },
+    "telemetryHealth": "Unknown"
+  },
+  {
+    "check": "authenticated-heartbeat",
+    "status": "heartbeat_accepted",
+    "exitStatus": 0,
+    "checkedAt": "2026-11-09T03:06:27.067Z",
+    "lastAccepted": {
+      "collectorId": "synthetic-porthole-8011",
+      "hostId": "bbb662c3ffaa",
+      "observedAt": "2026-11-09T03:06:27.064Z",
+      "status": "heartbeat_accepted"
+    },
+    "telemetryHealth": "Unknown"
+  }
+]
