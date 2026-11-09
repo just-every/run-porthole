@@ -63,10 +63,11 @@ exporters:
       authenticator: bearertokenauth
     retry_on_failure:
       enabled: true
-      max_elapsed_time: 60s
+      max_elapsed_time: 0s
     sending_queue:
       enabled: true
       queue_size: 100
+      storage: file_storage
 service:
   extensions: [bearertokenauth, file_storage]
   pipelines:

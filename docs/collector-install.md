@@ -34,7 +34,14 @@ Run from this checkout:
 node packaging/collector/install.mjs install --env-file /absolute/private/collector.env
 ```
 
-Keep the installer process running for observations every 15 seconds. Its
+Keep the installer process running for observations every 15 seconds. Transient
+fleet-report failures (including 429, 503, timeouts and connection resets) leave
+the Collector running. The installer retries with exponential backoff and jitter
+from 0.5 seconds up to 30 seconds between attempts, honoring longer Retry-After
+values on 429/503. Each report has a ten-second deadline. Authentication, scope,
+TLS configuration and other permanent target errors stop the installer with an
+explicit error code; repair that configuration before restarting. Ctrl-C or
+SIGTERM interrupts a retry wait or request and stops collection. Its
 credential is read from the private file, never from a URL or command argument.
 Do not pass a token with a command-line environment assignment. Docker receives
 the private file through its env-file option; an administrator of that Docker
@@ -65,9 +72,11 @@ when an exporter is refused. File offsets persist in the named Docker volume
 `porthole-state-<install-id>` across Collector restarts; uninstall preserves that
 offset state. Treat the local file-offset and source-fingerprint volume as
 telemetry custody; it is not included in Porthole's portable product archive.
-The export queue remains bounded and in memory. The exporter
-retries for 60 seconds with a bounded in-memory queue; this is not
-a durable, lossless buffer. Delivery and loss accounting remain visible in
+The export queue is persisted in that same volume and bounded to 100 queued
+export requests. The exporter retries queued requests without a time limit
+until delivery or queue exhaustion; fleet-report retries do not pause collection
+or telemetry export. This bounded spool cannot guarantee lossless delivery
+through an unlimited outage. Uninstall preserves the spool along with offsets. Delivery and loss accounting remain visible in
 Pipeline health, and queue exhaustion must not be interpreted as healthy.
 
 Open **Fleet coverage** under Settings, or GET `/api/porthole/v1/fleet` with your

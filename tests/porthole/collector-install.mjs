@@ -177,6 +177,7 @@ export async function collectorInstallJourney({origin,freshOwner,signIn,sql,rest
  * proves current authority, scope, monotonic freshness and inert restoration.
  * The separate Docker journey proves the actual receiver and removed mounts. */
 export async function fleetJourney({origin,freshOwner,signIn,sql,restartWorker,withPinnedClock,withEmptyDestination}) {
+ await collectorReportRecoveryJourney()
  const {hostname,release}=await import('node:os')
  let cookie=await freshOwner(),sequence=1
  const post=async(path,data,status=200)=>{const r=await fetch(origin+path,form(origin,cookie,data));assert.equal(r.status,status,await r.clone().text());return r.json()}
@@ -239,4 +240,76 @@ export async function fleetJourney({origin,freshOwner,signIn,sql,restartWorker,w
  const {fleetArchiveJourney}=await import('./archive.mjs')
  await fleetArchiveJourney({origin,freshOwner,withEmptyDestination,id:report.id})
  console.log('PROBE PORT-003 fleet: native-owner observation and API -> exact live and stale states, named missing access, foreign binding and scope and revoked credential refuse unchanged; inactive restore has no credential')
+}
+
+/** CLI fault injection at the fleet network edge. The Docker command fixture
+ * supplies inspection/lifecycle responses only; it never claims an installed
+ * Collector or substitutes for the held Services/Docker installation journey. */
+export async function collectorReportScenarios() {
+ const dir=await mkdtemp(join(tmpdir(),'porthole-report-')),rows=[]
+ const {chmod}=await import('node:fs/promises')
+ const node=process.execPath
+ try {
+  await execute('openssl',['req','-x509','-newkey','rsa:2048','-nodes','-keyout',join(dir,'key.pem'),'-out',join(dir,'ca.pem'),'-days','1','-subj','/CN=localhost','-addext','subjectAltName=IP:127.0.0.1'])
+  await writeFile(join(dir,'docker'),'#!'+node+'\n'+`
+import {appendFileSync,writeFileSync,readFileSync} from 'node:fs';
+const verb=process.argv[2],dir=process.env.PORTHOLE_FIXTURE;
+appendFileSync(dir+'/commands',verb+'\\n');
+if(verb==='create')console.log('a'.repeat(64));
+if(verb==='start')writeFileSync(dir+'/running','yes');
+if(verb==='stop')writeFileSync(dir+'/running','no');
+if(verb==='inspect')console.log(JSON.stringify([{Mounts:[],Config:{User:'0:0'},HostConfig:{},State:{Running:readFileSync(dir+'/running','utf8')==='yes',ExitCode:0}}]));
+if(verb==='version')console.log('fixture-runtime');
+`)
+  await chmod(join(dir,'docker'),0o700)
+  for(const kind of ['503','429','timeout','reset','401','403','400','malformed']) {
+   await writeFile(join(dir,'commands'),'');await writeFile(join(dir,'running'),'no')
+   let attempts=0,accepted=false,first,second,retryAfterUntil=0,output='',exit,stoppedBeforeRecovery=false
+   const sockets=new Set()
+   const endpoint=createServer({key:await readFile(join(dir,'key.pem')),cert:await readFile(join(dir,'ca.pem'))},async(req,res)=>{
+    const chunks=[];for await(const chunk of req)chunks.push(chunk)
+    if(JSON.parse(Buffer.concat(chunks)).state==='stopped'){res.writeHead(200,{'content-type':'application/json'});res.end('{}');return}
+    attempts++
+    if(attempts===1){
+     first=Date.now()
+     if(kind==='timeout')return
+     if(kind==='reset'){req.socket.destroy();return}
+     const headers={}
+     if(kind==='503'){headers['retry-after']='1';retryAfterUntil=Date.now()+1000}
+     if(kind==='429'){headers['retry-after']=new Date(Date.now()+2000).toUTCString();retryAfterUntil=Date.parse(headers['retry-after'])}
+     res.writeHead(Number(kind),headers);res.end('{}');return
+    }
+    second=Date.now();accepted=true;res.writeHead(200,{'content-type':'application/json'});res.end('{}')
+   })
+   endpoint.on('connection',socket=>{sockets.add(socket);socket.on('close',()=>sockets.delete(socket))})
+   await new Promise(r=>endpoint.listen(0,'127.0.0.1',r))
+   const file=join(dir,'collector.env')
+   await writeFile(file,Object.entries({PORTHOLE_ENDPOINT:kind==='malformed'?'file:///invalid':'https://127.0.0.1:'+endpoint.address().port,PORTHOLE_INSTALL_ID:'synthetic-porthole-8620',PORTHOLE_SERVICE:'synthetic-porthole-8621',PORTHOLE_ENVIRONMENT:'production',PORTHOLE_TEAM:'synthetic-porthole-8622',PORTHOLE_INGEST_TOKEN:'synthetic-porthole-8623',PORTHOLE_CA_FILE:join(dir,'ca.pem')}).map(([k,v])=>k+'='+v).join('\n'),{mode:0o600})
+   const child=spawn(node,['packaging/collector/install.mjs','install','--env-file',file],{env:{...process.env,PATH:dir+':'+process.env.PATH,PORTHOLE_FIXTURE:dir},stdio:['ignore','pipe','pipe']})
+   const done=new Promise((resolve,reject)=>{child.once('error',reject);child.once('exit',(code,signal)=>{exit=code??signal;resolve()})})
+   child.stdout.on('data',b=>{output+=b});child.stderr.on('data',b=>{output+=b})
+   try {
+    const deadline=Date.now()+20000
+    while(exit===undefined&&!accepted&&Date.now()<deadline){
+     if(!accepted&&(await readFile(join(dir,'commands'),'utf8')).split('\n').includes('stop'))stoppedBeforeRecovery=true
+     await new Promise(r=>setTimeout(r,25))
+    }
+    if(accepted)child.kill('SIGINT')
+    const forced=setTimeout(()=>child.kill('SIGKILL'),2000)
+    await done;clearTimeout(forced)
+    rows.push({kind,recovered:accepted,keptRunning:!stoppedBeforeRecovery,attempts,retryAfterHonored:!retryAfterUntil||second>=retryAfterUntil-30,exit,explicit:exit===0||/fleet_report_refused_(400|401|403)|https_origin_required/.test(output),cleanStop:kind==='malformed'||(await readFile(join(dir,'running'),'utf8'))==='no'})
+   } finally {
+    if(exit===undefined){child.kill('SIGKILL');await done}
+    for(const socket of sockets)socket.destroy()
+    await new Promise(r=>endpoint.close(r))
+   }
+  }
+  return rows
+ } finally {await rm(dir,{recursive:true,force:true})}
+}
+export async function collectorReportRecoveryJourney() {
+ const rows=await collectorReportScenarios()
+ assert.deepEqual(rows, ['503','429','timeout','reset','401','403','400','malformed'].map(kind=>({kind,recovered:['503','429','timeout','reset'].includes(kind),keptRunning:['503','429','timeout','reset','malformed'].includes(kind),attempts:kind==='malformed'?0:['503','429','timeout','reset'].includes(kind)?2:1,retryAfterHonored:true,exit:['503','429','timeout','reset'].includes(kind)?0:1,explicit:true,cleanStop:true})), 'transient fleet failures keep collection running and recover; permanent configuration errors stop explicitly')
+ console.log('PROBE PORT-003 fleet-report recovery: '+JSON.stringify(rows))
+ return rows
 }

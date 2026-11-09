@@ -1,3 +1,4 @@
+import {reviewRemoval} from './fixture.mjs'
 import assert from 'node:assert/strict'
 import {mkdir} from 'node:fs/promises'
 import {join} from 'node:path'
@@ -77,7 +78,7 @@ export async function actionJourney({origin,cookie,restartWorker,freshOwner,sql,
  await browserOperations({origin,cookie,restrictedCookie})
  const target=(await sql(`SELECT id FROM oa_operators WHERE email='${email}'`))[0]
  cookie=await freshOwner()
- assert.equal((await post('/app/settings/members/remove',{operatorId:target.id})).status,200)
+ assert.equal((await post('/app/settings/members/remove',await reviewRemoval(origin,cookie,target.id))).status,200)
  cookie=await freshOwner()
  assert.equal((await post('/api/porthole/v1/actors/erase',{actorRef:target.id,confirm:'erase'})).status,200)
  const anonymous=(await sql(`SELECT email,display_name,status FROM oa_operators WHERE id='${target.id}'`))[0]

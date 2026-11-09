@@ -37,8 +37,22 @@ export function readRequest(input:Uint8Array):ReadQuery[] {
 }
 interface Sample {timestamp:bigint;value:number;bits?:string}
 interface Point extends Sample {labels:Record<string,string>}
-const unitNames:Record<string,string> = Object.assign(Object.create(null),{d:'days',h:'hours',min:'minutes',s:'seconds',ms:'milliseconds',us:'microseconds',ns:'nanoseconds',By:'bytes',KiBy:'kibibytes',MiBy:'mebibytes',GiBy:'gibibytes',TiBy:'tebibytes',kBy:'kilobytes',MBy:'megabytes',GBy:'gigabytes',TBy:'terabytes',m:'meters',V:'volts',A:'amperes',J:'joules',W:'watts',g:'grams',Cel:'celsius',Hz:'hertz','%':'percent','1':'ratio'})
-const normalize=(name:string,metric=false)=>{let n=name.replace(metric?/[^a-zA-Z0-9_:]/g:/[^a-zA-Z0-9_]/g,'_').replace(/_+/g,'_');if(/^\d/.test(n))n='_'+n;return n}
+const unitNames:Record<string,string> = Object.assign(Object.create(null),{d:'days',h:'hours',min:'minutes',s:'seconds',ms:'milliseconds',us:'microseconds',ns:'nanoseconds',By:'bytes',KiBy:'kibibytes',MiBy:'mebibytes',GiBy:'gibibytes',TiBy:'tebibytes',KBy:'kilobytes',MBy:'megabytes',GBy:'gigabytes',TBy:'terabytes',m:'meters',V:'volts',A:'amperes',J:'joules',W:'watts',g:'grams',Cel:'celsius',Hz:'hertz','%':'percent','1':''})
+// The pinned receiver treats label underscores differently from metric-name
+// token separators. Colliding normalized keys merge in original key order.
+function labelName(name:string) {
+ const n=name.replace(/[^a-zA-Z0-9_]/gu,'_')
+ return /^\d/.test(n)?'key_'+n:/^_[^_]/.test(n)||n==='_'?'key'+n:n
+}
+const cleanUnit=(unit:string)=>unit.replace(/[^a-zA-Z0-9:]/gu,'_').replace(/_+/g,'_').replace(/^_+/,'')
+// Bucket and quantile labels use fixed decimal notation in the pinned receiver.
+function decimal(value:number) {
+ const text=String(value)
+ if(!/[eE]/.test(text))return text
+ const [coefficient,exponent]=text.toLowerCase().split('e'),negative=coefficient.startsWith('-'),digits=coefficient.replace('-','').replace('.','')
+ const position=(coefficient.replace('-','').split('.')[0].length)+Number(exponent)
+ return (negative?'-':'')+(position<=0?'0.'+'0'.repeat(-position)+digits:position>=digits.length?digits+'0'.repeat(position-digits.length):digits.slice(0,position)+'.'+digits.slice(position))
+}
 const jsonString=(value:unknown)=>JSON.stringify(value).replace(/[<>&\u2028\u2029]/g,char=>'\\u'+char.charCodeAt(0).toString(16).padStart(4,'0'))
 /** Prometheus renders compound attributes from their logical OTLP values,
  * without the protobuf JSON wrappers. Preserve int64 JSON lexemes exactly. */
@@ -75,7 +89,7 @@ function labelValue(value:unknown):string {
 function labels(values:Record<string,unknown>) {
  const result:Record<string,string>=Object.create(null)
  for(const key of Object.keys(values).sort()){
-  const name=normalize(key);if(!name)fail('unmappable_metric_label',422)
+  const name=labelName(key);if(!name)fail('unmappable_metric_label',422)
   const value=labelValue(values[key])
   result[name]=Object.hasOwn(result,name)?result[name]+';'+value:value
  }
@@ -86,13 +100,21 @@ function number(value:unknown):number {
  if(value===undefined||value===null||!['number','string'].includes(typeof value)||typeof value==='string'&&!/^(?:[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?|NaN|[+-]?Infinity)$/.test(value))fail('unmappable_metric_value',422)
  return n
 }
-function metricName(name:string,unit:string,counter:boolean) {
- let n=normalize(name,true),u=unit.replace(/\{[^}]*\}/g,'')
- if(counter)n=n.replace(/_total$/,'')
- const perUnits:Record<string,string> = Object.assign(Object.create(null),{d:'day',h:'hour',min:'minute',s:'second',ms:'millisecond',us:'microsecond',ns:'nanosecond'})
- const parts=u.split('/');u=parts.map((part,i)=>i?perUnits[part]??unitNames[part]??normalize(part):part==='1'&&parts.length>1?'':unitNames[part]??normalize(part)).join('_per_').replace(/^_+/,'')
- if(u&&!(counter&&unit==='1')&&!n.endsWith('_'+u))n+='_'+u
- if(counter)n+='_total'
+function metricName(name:string,unit:string,counter:boolean,gauge:boolean) {
+ let tokens=name.split(/[^a-zA-Z0-9:]+/u).filter(Boolean)
+ const perUnits:Record<string,string>=Object.assign(Object.create(null),{s:'second',m:'minute',h:'hour',d:'day',w:'week',mo:'month',y:'year'})
+ const slash=unit.indexOf('/'),parts=slash<0?[unit]:[unit.slice(0,slash),unit.slice(slash+1)]
+ const suffix=(part:string,map:Record<string,string>)=>{part=part.trim();return !part||/[{}]/.test(part)?'':Object.hasOwn(map,part)?map[part]:part}
+ let main=cleanUnit(suffix(parts[0],unitNames)),per=parts.length>1?suffix(parts[1],perUnits):''
+ per=per?cleanUnit('per_'+per).replace(/_$/,''):''
+ if(tokens.includes(main))main=''
+ if(per==='per_'||tokens.includes(per))per=''
+ if(per)main=main.replace(/_$/,'')
+ if(main)tokens.push(main)
+ if(per)tokens.push(per)
+ if(counter)tokens=[...tokens.filter(token=>token!=='total'),'total']
+ if(unit==='1'&&gauge)tokens=[...tokens.filter(token=>token!=='ratio'),'ratio']
+ let n=tokens.join('_');if(/^\d/.test(n))n='_'+n
  if(!n)fail('unmappable_metric_name',422)
  return n
 }
@@ -109,7 +131,7 @@ export function metricPoints(row:StandardRow):Point[] {
  if(['sum','histogram'].includes(kind)&&![2,'AGGREGATION_TEMPORALITY_CUMULATIVE'].includes(container.aggregationTemporality as number))fail('unmappable_metric_temporality',422)
  const hint=attributes(metric.metadata)['prometheus.type']
  if(hint!==undefined&&!['gauge','counter','unknown'].includes(String(hint)))fail('unmappable_metric_metadata',422)
- const counter=kind==='sum'&&container.isMonotonic===true,name=metricName(String(metric.name),String(metric.unit??''),counter)
+ const counter=kind==='sum'&&container.isMonotonic===true,name=metricName(String(metric.name),String(metric.unit??''),counter,kind==='gauge')
  const resource=attributes((p.resource as Record<string,unknown>)?.attributes),base=labels(attributes(record.attributes))
  // This declared receiver profile disables scope-info series and scope labels,
  // as does the pinned Prometheus OTLP receiver. Resource identity still binds
@@ -127,7 +149,7 @@ export function metricPoints(row:StandardRow):Point[] {
   const bounds=(record.explicitBounds??[]) as number[],counts=(record.bucketCounts??[]) as unknown[]
   if(counts.length!==bounds.length+1||bounds.some((v,i)=>!Number.isFinite(v)||i>0&&v<=bounds[i-1])||counts.some(v=>!Number.isSafeInteger(Number(v))||Number(v)<0))fail('unmappable_histogram',422)
   let cumulative=0
-  for(let i=0;i<counts.length;i++){cumulative+=number(counts[i]);add(name+'_bucket',cumulative,{le:i===bounds.length?'+Inf':String(bounds[i])})}
+  for(let i=0;i<counts.length;i++){cumulative+=number(counts[i]);add(name+'_bucket',cumulative,{le:i===bounds.length?'+Inf':decimal(bounds[i])})}
   if(cumulative!==number(record.count))fail('unmappable_histogram_count',422)
   add(name+'_count',record.count)
   if(record.sum!==undefined){if(bounds.some(v=>v<0)||Number(record.sum)<0)fail('unmappable_negative_histogram_sum',422);add(name+'_sum',record.sum)}
@@ -135,7 +157,7 @@ export function metricPoints(row:StandardRow):Point[] {
   add(name+'_count',record.count)
   if(Number(record.sum)<0)fail('unmappable_negative_summary_sum',422)
   add(name+'_sum',record.sum)
-  for(const quantile of (record.quantileValues??[]) as {quantile:number;value:number}[]){if(quantile.quantile<0||quantile.quantile>1)fail('unmappable_summary_quantile',422);add(name,quantile.value,{quantile:String(quantile.quantile)})}
+  for(const quantile of (record.quantileValues??[]) as {quantile:number;value:number}[]){if(quantile.quantile<0||quantile.quantile>1)fail('unmappable_summary_quantile',422);add(name,quantile.value,{quantile:decimal(quantile.quantile)})}
  }
  if(job||instance){
   const extra=Object.fromEntries(Object.entries(resource).filter(([key])=>!['service.name','service.namespace','service.instance.id'].includes(key)))

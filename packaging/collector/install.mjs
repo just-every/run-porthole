@@ -7,6 +7,7 @@ import {fileURLToPath,pathToFileURL} from 'node:url'
 import {request as httpsRequest} from 'node:https'
 import {request as httpRequest} from 'node:http'
 import {hostname,release} from 'node:os'
+import {setTimeout as pause} from 'node:timers/promises'
 import {collectorImage,version} from './release.mjs'
 const execute=promisify(execFile),here=dirname(fileURLToPath(import.meta.url))
 export async function configuration(file,{localTest=false}={}) {
@@ -15,7 +16,8 @@ export async function configuration(file,{localTest=false}={}) {
  const values={}
  for(const line of (await readFile(file,'utf8')).split('\n')){if(!line||line.startsWith('#'))continue;const i=line.indexOf('=');if(i<1)throw Error('invalid_env_file');values[line.slice(0,i)]=line.slice(i+1)}
  for(const key of ['PORTHOLE_INSTALL_ID','PORTHOLE_SERVICE','PORTHOLE_ENVIRONMENT','PORTHOLE_TEAM'])if(!/^[A-Za-z0-9][A-Za-z0-9._:-]{0,119}$/.test(values[key]??''))throw Error('invalid_install_scope')
- const endpoint=new URL(values.PORTHOLE_ENDPOINT)
+ let endpoint
+ try{endpoint=new URL(values.PORTHOLE_ENDPOINT)}catch{throw Error('https_origin_required')}
  if(endpoint.username||endpoint.password||endpoint.search||endpoint.hash||endpoint.pathname!=='/'||endpoint.protocol!=='https:'&&!(localTest&&endpoint.protocol==='http:'))throw Error('https_origin_required')
  if(!values.PORTHOLE_INGEST_TOKEN&&!values.PORTHOLE_SECRET_FILE)throw Error('ingest_credential_file_required')
  if(values.PORTHOLE_INGEST_TOKEN&&values.PORTHOLE_SECRET_FILE)throw Error('choose_one_credential_file')
@@ -23,7 +25,7 @@ export async function configuration(file,{localTest=false}={}) {
  return values
 }
 const docker=async(args,env)=>(await execute('docker',args,{maxBuffer:1024*1024,...(env?{env:{...process.env,...env}}:{})})).stdout
-export async function observe(name,config,sequence,state='active') {
+export async function observe(name,config,sequence,state='active',{signal}={}) {
  let inspect
  try{inspect=JSON.parse(await docker(['inspect',name]))[0]}catch{throw Error('collector_inspection_unavailable')}
  const mounts=inspect.Mounts??[],granted=[]
@@ -38,16 +40,41 @@ export async function observe(name,config,sequence,state='active') {
  const engine=(await docker(['version','--format','{{.Server.Version}}'])).trim()
  const resourceLimits=[inspect.HostConfig.Memory?'memory-bytes-'+inspect.HostConfig.Memory:'memory-unlimited',inspect.HostConfig.CpuQuota>0?'cpu-quota-'+inspect.HostConfig.CpuQuota:'cpu-quota-unlimited']
  const token=config.PORTHOLE_INGEST_TOKEN??(await readFile(config.PORTHOLE_SECRET_FILE,'utf8')).trim()
- const report={id:config.PORTHOLE_INSTALL_ID,service:config.PORTHOLE_SERVICE,environment:config.PORTHOLE_ENVIRONMENT,team:config.PORTHOLE_TEAM,state:state==='stopped'||!inspect.State.Running?'stopped':'active',report:{collector:inspect.State.Running?'running':inspect.State.ExitCode?'failed':'stopped',platform:'docker',node:hostname(),kernel:release(),runtime:'docker-'+engine,collectorVersion:version,obiVersion:null,requested,granted,limits:[...resourceLimits,'linux-only','docker-json-file-logs','bounded-memory-queue','no-ebpf-in-docker-install'],services:[],obi:'not-installed',sequence}}
+ const report={id:config.PORTHOLE_INSTALL_ID,service:config.PORTHOLE_SERVICE,environment:config.PORTHOLE_ENVIRONMENT,team:config.PORTHOLE_TEAM,state:state==='stopped'||!inspect.State.Running?'stopped':'active',report:{collector:inspect.State.Running?'running':inspect.State.ExitCode?'failed':'stopped',platform:'docker',node:hostname(),kernel:release(),runtime:'docker-'+engine,collectorVersion:version,obiVersion:null,requested,granted,limits:[...resourceLimits,'linux-only','docker-json-file-logs','bounded-persistent-queue','no-ebpf-in-docker-install'],services:[],obi:'not-installed',sequence}}
  const url=new URL('/api/porthole/v1/fleet/report',config.PORTHOLE_ENDPOINT),body=JSON.stringify(report),ca=config.PORTHOLE_CA_FILE?await readFile(config.PORTHOLE_CA_FILE):undefined
  const receipt=await new Promise((resolve,reject)=>{
-  const outgoing=(url.protocol==='https:'?httpsRequest:httpRequest)(url,{method:'POST',...(ca?{ca}:{}),timeout:10000,headers:{authorization:'Bearer '+token,'content-type':'application/json','content-length':Buffer.byteLength(body)}},response=>{
+  const outgoing=(url.protocol==='https:'?httpsRequest:httpRequest)(url,{method:'POST',signal,...(ca?{ca}:{}),headers:{authorization:'Bearer '+token,'content-type':'application/json','content-length':Buffer.byteLength(body)}},response=>{
    const chunks=[];let size=0
    response.on('data',chunk=>{size+=chunk.length;if(size>16384)outgoing.destroy(Error('fleet_response_too_large'));else chunks.push(chunk)})
    response.on('error',()=>reject(Error('fleet_response_failed')))
-   response.on('end',()=>{if(response.statusCode!==200)return reject(Error('fleet_report_refused_'+response.statusCode));try{resolve(JSON.parse(Buffer.concat(chunks)))}catch{reject(Error('fleet_response_invalid'))}})
+   response.on('end',()=>{
+    if(response.statusCode!==200){
+     const status=response.statusCode,error=Error('fleet_report_refused_'+status)
+     // A sequence conflict after a lost acknowledgement is retried with a new
+     // observation. Authentication, scope and target errors need owner repair.
+     error.permanent=status>=400&&status<500&&![408,409,425,429].includes(status)
+     if([429,503].includes(status)){
+      const value=response.headers['retry-after']
+      const until=/^\d+$/.test(value??'')?Date.now()+Number(value)*1000:Date.parse(value)
+      if(Number.isFinite(until))error.retryAfter=Math.max(0,until-Date.now())
+     }
+     return reject(error)
+    }
+    try{resolve(JSON.parse(Buffer.concat(chunks)))}catch{reject(Error('fleet_response_invalid'))}
+   })
   })
-  outgoing.on('timeout',()=>outgoing.destroy(Error('fleet_timeout')));outgoing.on('error',()=>reject(Error('fleet_listener_unavailable')));outgoing.end(body)
+  // Bound the whole request, including a slow response body, not just socket
+  // inactivity. A timeout must never escape as a fatal installer error.
+  const deadline=setTimeout(()=>outgoing.destroy(Error('fleet_timeout')),10000)
+  outgoing.on('close',()=>clearTimeout(deadline))
+  outgoing.on('error',error=>{
+   const failure=Error(error.message==='fleet_timeout'?'fleet_timeout':'fleet_listener_unavailable')
+   if(['CERT_HAS_EXPIRED','DEPTH_ZERO_SELF_SIGNED_CERT','UNABLE_TO_VERIFY_LEAF_SIGNATURE','SELF_SIGNED_CERT_IN_CHAIN','ERR_TLS_CERT_ALTNAME_INVALID','UNABLE_TO_GET_ISSUER_CERT_LOCALLY'].includes(error.code)){
+    failure.message='fleet_tls_configuration_invalid';failure.permanent=true
+   }
+   reject(failure)
+  })
+  outgoing.end(body)
  })
  return {report,receipt}
 
@@ -80,16 +107,44 @@ export async function install(file,{localTest=false,name,configPath=resolve(here
  await docker(['start',name])
  return {name,config,state}
 }
+// Retry forever while collection is active; the delay, request lifetime and
+// Collector queue are bounded. No report payloads accumulate in the installer.
+export async function watchFleet(name,config,{signal,onObservation=()=>{},onRetry=()=>{}}={}) {
+ let sequence=Date.now(),failures=0
+ const wait=async milliseconds=>{
+  // Node timers overflow after ~24 days; honor even long Retry-After values in
+  // interruptible chunks rather than accidentally retrying immediately.
+  const until=Date.now()+milliseconds
+  while(!signal?.aborted&&Date.now()<until)await pause(Math.min(until-Date.now(),2147483647),undefined,{signal})
+ }
+ try {
+  while(!signal?.aborted){
+   try {
+    const result=await observe(name,config,++sequence,'active',{signal})
+    failures=0;onObservation(result)
+    if(result.report.state==='stopped')return
+   } catch(error) {
+    if(signal?.aborted)return
+    if(error.permanent)throw error
+    const ceiling=Math.min(30000,1000*2**Math.min(failures++,5))
+    const delay=Math.max(ceiling*(0.5+Math.random()*0.5),error.retryAfter??0)
+    onRetry(Math.ceil(delay))
+    await wait(delay);continue
+   }
+   await wait(15000)
+  }
+ } catch(error) {if(!signal?.aborted)throw error}
+}
 async function main() {
  const [verb,...args]=process.argv.slice(2),at=args.indexOf('--env-file'),file=at<0?null:args[at+1]
  if(!file||!['install','uninstall'].includes(verb))throw Error('usage_install_or_uninstall_with_env_file')
  const config=await configuration(file),name='porthole-'+config.PORTHOLE_INSTALL_ID
  if(verb==='uninstall'){await docker(['stop','--time','10',name]);console.log('Collector stopped. Retained telemetry is unchanged. The running installer records a stopped observation.');return}
- const started=await install(file);let sequence=Date.now(),stopping=false
- const stop=()=>{stopping=true};process.on('SIGINT',stop);process.on('SIGTERM',stop)
+ const started=await install(file),controller=new AbortController()
+ const stop=()=>controller.abort();process.on('SIGINT',stop);process.on('SIGTERM',stop)
  try{
   console.log('Collector started. Keep this installer running for fleet observations; use the uninstall command to stop collection.')
-  while(!stopping){const result=await observe(name,config,++sequence);console.log('Fleet observation accepted: '+result.report.state);if(result.report.state==='stopped')break;await new Promise(r=>setTimeout(r,15000))}
- }finally{await docker(['stop','--time','10',started.name]).catch(()=>{});await observe(name,config,++sequence,'stopped').catch(()=>{});process.removeListener('SIGINT',stop);process.removeListener('SIGTERM',stop)}
+  await watchFleet(name,config,{signal:controller.signal,onObservation:result=>console.log('Fleet observation accepted: '+result.report.state),onRetry:delay=>console.error('Fleet observation unavailable; Collector remains running. Retrying in '+delay+' ms.')})
+ }finally{await docker(['stop','--time','10',started.name]).catch(()=>{});await observe(name,config,Date.now()+1,'stopped').catch(()=>{});process.removeListener('SIGINT',stop);process.removeListener('SIGTERM',stop)}
 }
-if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href)main().catch(error=>{const code=/^(fleet_report_refused_[0-9]{3}|credential_file_requires_mode_0600|https_origin_required|ingest_credential_file_required|invalid_install_scope|choose_one_credential_file|fleet_listener_unavailable)$/.test(error.message)?error.message:'installation_unavailable';console.error('Collector installation stopped: '+code+'. Check Docker, private credential file, scope and connectivity.');process.exitCode=1})
+if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href)main().catch(error=>{const code=/^(fleet_report_refused_[0-9]{3}|fleet_tls_configuration_invalid|credential_file_requires_mode_0600|https_origin_required|ingest_credential_file_required|invalid_install_scope|choose_one_credential_file|fleet_listener_unavailable)$/.test(error.message)?error.message:'installation_unavailable';console.error('Collector installation stopped: '+code+'. Check Docker, private credential file, scope and connectivity.');process.exitCode=1})

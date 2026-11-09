@@ -138,7 +138,7 @@ try {
   const setupPage=await fetch(`${origin}/setup`, { headers: { cookie } })
   assert.equal(setupPage.status,200)
   assert.match(await setupPage.text(),/Independent notices off — incomplete coverage/)
-  if(!process.env.PORTHOLE_STANDARD_ONLY && !process.env.PORTHOLE_FLEET_ONLY && !process.env.PORTHOLE_COLLECTOR_INSTALL_ONLY && !process.env.PORTHOLE_DATABASE_ONLY && !process.env.PORTHOLE_EVENTS_ONLY && !process.env.PORTHOLE_SERVICES_ONLY && !process.env.PORTHOLE_LOG_CLUSTERS_ONLY && !process.env.PORTHOLE_PIPELINES_ONLY && !process.env.PORTHOLE_GENAI_ONLY && !process.env.PORTHOLE_NOTEBOOKS_ONLY && !process.env.PORTHOLE_METRIC_RULES_ONLY && !process.env.PORTHOLE_SLO_ONLY && !process.env.PORTHOLE_ERASURE_ONLY && !process.env.PORTHOLE_API_ONLY && !process.env.PORTHOLE_DASHBOARD_ONLY && !process.env.PORTHOLE_EXPORT_ONLY && !process.env.PORTHOLE_MIGRATION_ONLY && !process.env.PORTHOLE_PROTOCOL_ONLY && !process.env.PORTHOLE_INGEST_ONLY && !process.env.PORTHOLE_ACCESS_ONLY && !process.env.PORTHOLE_TRACE_ONLY && (process.env.PORTHOLE_HEALTH_ONLY==='1' || !process.env.PORTHOLE_AUDIT_ONLY && !process.env.PORTHOLE_STOCK_ONLY)) {
+  if(!process.env.PORTHOLE_FLEET_ONLY && !process.env.PORTHOLE_COLLECTOR_INSTALL_ONLY && !process.env.PORTHOLE_HANDOVER_ONLY && !process.env.PORTHOLE_STANDARD_ONLY && !process.env.PORTHOLE_DATABASE_ONLY && !process.env.PORTHOLE_EVENTS_ONLY && !process.env.PORTHOLE_SERVICES_ONLY && !process.env.PORTHOLE_LOG_CLUSTERS_ONLY && !process.env.PORTHOLE_PIPELINES_ONLY && !process.env.PORTHOLE_GENAI_ONLY && !process.env.PORTHOLE_NOTEBOOKS_ONLY && !process.env.PORTHOLE_METRIC_RULES_ONLY && !process.env.PORTHOLE_SLO_ONLY && !process.env.PORTHOLE_ERASURE_ONLY && !process.env.PORTHOLE_API_ONLY && !process.env.PORTHOLE_DASHBOARD_ONLY && !process.env.PORTHOLE_EXPORT_ONLY && !process.env.PORTHOLE_MIGRATION_ONLY && !process.env.PORTHOLE_PROTOCOL_ONLY && !process.env.PORTHOLE_INGEST_ONLY && !process.env.PORTHOLE_ACCESS_ONLY && !process.env.PORTHOLE_TRACE_ONLY && (process.env.PORTHOLE_HEALTH_ONLY==='1' || !process.env.PORTHOLE_AUDIT_ONLY && !process.env.PORTHOLE_STOCK_ONLY)) {
    const {healthBrowser}=await import('./porthole/health.mjs')
    await healthBrowser({origin,cookie,name:'setup-notices-off',path:'/setup',contains:'Independent notices off — incomplete coverage'})
   }
@@ -190,6 +190,9 @@ try {
    const proof=await collectorInstallJourney({origin,restartWorker,withEmptyDestination,withPinnedClock,...helpers})
    const {collectorAnalyticalJourney}=await import('./porthole/analytics.mjs')
    await collectorAnalyticalJourney(proof)
+  } else if(process.env.PORTHOLE_HANDOVER_ONLY==='1') {
+   const {handoverJourney}=await import('./porthole/handover.mjs')
+   await handoverJourney({origin,restartWorker,withEmptyDestination,...helpers,sessionSecret:'runtime-session-secret-1234567890123456'})
   } else if(process.env.PORTHOLE_STANDARD_ONLY==='1') {
    const {standardReadJourney}=await import('./porthole/standard-reads.mjs')
    await standardReadJourney({origin,cookie,restartWorker,withEmptyDestination,withPinnedClock,...helpers})
@@ -307,7 +310,7 @@ try {
   } else {
   const {membershipJourney}=await import('./porthole/membership.mjs')
   const {credentialJourney}=await import('./porthole/credentials.mjs')
-  const membership=await membershipJourney({origin,cookie,foreignCookie,persist,restartWorker,...helpers,sessionSecret:'runtime-session-secret-1234567890123456'})
+  const membership=await membershipJourney({origin,cookie,foreignCookie,persist,restartWorker,withEmptyDestination,...helpers,sessionSecret:'runtime-session-secret-1234567890123456'})
   cookie=membership.cookie
   await credentialJourney({origin,cookie,persist,restartWorker,...helpers,getLogs:()=>allOutput})
   const {credentialQueryJourney}=await import('./porthole/credentials.mjs')
