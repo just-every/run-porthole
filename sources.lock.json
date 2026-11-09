@@ -2173,7 +2173,7 @@
       "executable": false
     },
     "scripts/verify-app.mjs": {
-      "sha256": "4c3a87c809e2b671a555dc36171b60675f87be96362de7d2269d9f5e1c3100b6",
+      "sha256": "537900194f2410cc97c5948a83be19ad7f04b0c6ed8416f26b17797cc4b9d66f",
       "executable": false
     },
     "scripts/verify-ci.mjs": {
@@ -6029,7 +6029,7 @@
       "executable": false
     },
     "verification.json": {
-      "sha256": "74a1a730016acbd212462302bf4ae11f1cd6f07d7c8fc1d46cef1d6616631ba3",
+      "sha256": "67e8fe3a64ae513f1d9f2ea2b77a79de9d754e7e9478b78542173fc6c7ef1571",
       "executable": false
     },
     "VERIFY-WORKFLOW.md": {
