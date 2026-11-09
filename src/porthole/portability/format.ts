@@ -1,3 +1,6 @@
+import {validateFleetRow} from '../fleet/model'
+import {validateHandoff} from '../handoffs/model'
+import {validatePacket} from '../evidence/model'
 import {rangeKeys} from '../query/range/model'
 import { databasePrivacy,assertDatabaseWire } from '../database/privacy'
 import {validateEventRow,eventFilter} from '../events/model'
@@ -42,7 +45,8 @@ const bad = (): never => fail('archive_semantics_invalid',422)
 const object = (value: unknown): value is Record<string,unknown> => !!value && typeof value==='object' && !Array.isArray(value)
 export function manifestInput(value: unknown): Manifest {
  if(!object(value) || Object.keys(value).sort().join(',')!==['format','id','createdAt','rowCount','chunks','rootHash','tables','inactive'].sort().join(',') || value.format!==format || !uuid(value.id) || !integer(value.createdAt) || !integer(value.rowCount) || !integer(value.chunks) || !hex(value.rootHash) || value.inactive!==true || !object(value.tables)) return bad()
- for(const table of ['porthole_handover_history','porthole_custom_events','porthole_event_filters'])if(!Object.hasOwn(value.tables,table))value.tables[table]=0
+ for(const table of ['porthole_handover_history','porthole_handoff_versions','porthole_service_packets','porthole_custom_events','porthole_event_filters'])if(!Object.hasOwn(value.tables,table))value.tables[table]=0
+ if(!Object.hasOwn(value.tables,'porthole_fleet_installs'))value.tables.porthole_fleet_installs=0
  if(!Object.hasOwn(value.tables,'porthole_service_versions'))value.tables.porthole_service_versions=0
  // Older archives predate export exclusions. Their absent journal is empty;
  // a later destination journal still wins during restore.
@@ -80,7 +84,13 @@ export async function validateRow(payload: PortableRow, state: Validation): Prom
  if(Object.keys(row).sort().join(',')!==[...item.columns].sort().join(',')) bad()
  for(const [key,value] of Object.entries(row)) if(value!==null && typeof value!=='string' && !(item.table==='porthole_metric_points'&&key==='value'?Number.isSafeInteger(value):integer(value))) bad()
  const required=(...keys:string[])=>{for(const key of keys)if(!str(row[key]) || !(row[key] as string).length)bad()}
- if(item.table==='porthole_handover_history') {
+ if(item.table==='porthole_fleet_installs') {
+  validateFleetRow(row)
+ } else if(item.table==='porthole_handoff_versions'){
+  validateHandoff(row)
+ } else if(item.table==='porthole_service_packets'){
+  validatePacket(row)
+ } else if(item.table==='porthole_handover_history') {
   if(!uuid(row.id)||!uuid(row.target_ref)||!uuid(row.actor_ref)||!hex(row.inventory_digest)||!integer(row.occurred_at)||!['committed','quarantined'].includes(String(row.state)))bad()
   const decisions=json(row.decisions)
   const key=/^(?:service:[a-f0-9]{32}|(?:notebook|event-filter|follow-up|credential|personal-credential|notebook-publication|dashboard-publication|approval|signal-export|archive-job|slo|metric-rule):[a-f0-9-]{36}|notebook-share:[a-f0-9-]{36}:(?:member:[a-f0-9-]{36}|team:[a-zA-Z0-9][a-zA-Z0-9._:/-]{0,119})|database-source:[a-zA-Z0-9_-]{1,80}|pipeline:pipeline)$/

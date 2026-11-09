@@ -62,7 +62,7 @@ async function withPinnedClock(now, run) {
 let persist = await mkdtemp(join(tmpdir(), 'foundation-runtime-'))
 const stores=[persist]
 const migrationEnv={...process.env,CI:'1',WRANGLER_SEND_METRICS:'false'}
-const migrate=config=>execFileSync(process.execPath,['node_modules/wrangler/bin/wrangler.js','d1','migrations','apply','foundation','--local','--persist-to',persist,'--config',config],{stdio:'pipe',env:migrationEnv})
+const migrate=config=>execFileSync(process.execPath,['node_modules/wrangler/bin/wrangler.js','d1','migrations','apply','foundation','--local','--persist-to',persist,'--config',config],{stdio:'pipe',env:migrationEnv,maxBuffer:128*1024*1024})
 const sql=async command=>JSON.parse((await execute(process.execPath,['node_modules/wrangler/bin/wrangler.js','d1','execute','foundation','--local','--persist-to',persist,'--config','dist/server/wrangler.json','--json','--command',command],{encoding:'utf8',env:migrationEnv,maxBuffer:128*1024*1024})).stdout).flatMap(result=>result.results??[])
 // Upgrade a real prior installation: Base first, then existing members, then
 // the shipped product migrations through Wrangler's actual migration command.
@@ -81,6 +81,8 @@ const origin = `http://127.0.0.1:${port}`
 // The emitted Worker's owner-claim setup token: a synthetic test value.
 const setupToken = 'synthetic-runtime-setup-token-1234567890123456789'
 let worker
+// Snapshot the same live D1 used by HTTP without launching Wrangler for each read.
+sql.read=async command=>(await (await worker.getD1Database('DB')).prepare(command).all()).results
 let ownerEmail='owner@example.com'
 let allOutput = ''
 async function startWorker() {
@@ -138,7 +140,7 @@ try {
   const setupPage=await fetch(`${origin}/setup`, { headers: { cookie } })
   assert.equal(setupPage.status,200)
   assert.match(await setupPage.text(),/Independent notices off — incomplete coverage/)
-  if(!process.env.PORTHOLE_SERVICES_ANALYTICAL_ONLY && !process.env.PORTHOLE_NETWORK_ONLY && !process.env.PORTHOLE_HANDOVER_ONLY && !process.env.PORTHOLE_STANDARD_ONLY && !process.env.PORTHOLE_DATABASE_ONLY && !process.env.PORTHOLE_EVENTS_ONLY && !process.env.PORTHOLE_SERVICES_ONLY && !process.env.PORTHOLE_LOG_CLUSTERS_ONLY && !process.env.PORTHOLE_PIPELINES_ONLY && !process.env.PORTHOLE_GENAI_ONLY && !process.env.PORTHOLE_NOTEBOOKS_ONLY && !process.env.PORTHOLE_METRIC_RULES_ONLY && !process.env.PORTHOLE_SLO_ONLY && !process.env.PORTHOLE_ERASURE_ONLY && !process.env.PORTHOLE_API_ONLY && !process.env.PORTHOLE_DASHBOARD_ONLY && !process.env.PORTHOLE_EXPORT_ONLY && !process.env.PORTHOLE_MIGRATION_ONLY && !process.env.PORTHOLE_PROTOCOL_ONLY && !process.env.PORTHOLE_INGEST_ONLY && !process.env.PORTHOLE_ACCESS_ONLY && !process.env.PORTHOLE_TRACE_ONLY && (process.env.PORTHOLE_HEALTH_ONLY==='1' || !process.env.PORTHOLE_AUDIT_ONLY && !process.env.PORTHOLE_STOCK_ONLY)) {
+  if(!process.env.PORTHOLE_SERVICES_ANALYTICAL_ONLY && !process.env.PORTHOLE_NETWORK_ONLY && !process.env.PORTHOLE_FLEET_ONLY && !process.env.PORTHOLE_COLLECTOR_INSTALL_ONLY && !process.env.PORTHOLE_HANDOVER_ONLY && !process.env.PORTHOLE_STANDARD_ONLY && !process.env.PORTHOLE_DATABASE_ONLY && !process.env.PORTHOLE_EVENTS_ONLY && !process.env.PORTHOLE_SERVICES_ONLY && !process.env.PORTHOLE_LOG_CLUSTERS_ONLY && !process.env.PORTHOLE_PIPELINES_ONLY && !process.env.PORTHOLE_GENAI_ONLY && !process.env.PORTHOLE_NOTEBOOKS_ONLY && !process.env.PORTHOLE_METRIC_RULES_ONLY && !process.env.PORTHOLE_SLO_ONLY && !process.env.PORTHOLE_ERASURE_ONLY && !process.env.PORTHOLE_API_ONLY && !process.env.PORTHOLE_DASHBOARD_ONLY && !process.env.PORTHOLE_EXPORT_ONLY && !process.env.PORTHOLE_MIGRATION_ONLY && !process.env.PORTHOLE_PROTOCOL_ONLY && !process.env.PORTHOLE_INGEST_ONLY && !process.env.PORTHOLE_ACCESS_ONLY && !process.env.PORTHOLE_TRACE_ONLY && (process.env.PORTHOLE_HEALTH_ONLY==='1' || !process.env.PORTHOLE_AUDIT_ONLY && !process.env.PORTHOLE_STOCK_ONLY)) {
    const {healthBrowser}=await import('./porthole/health.mjs')
    await healthBrowser({origin,cookie,name:'setup-notices-off',path:'/setup',contains:'Independent notices off — incomplete coverage'})
   }
@@ -190,6 +192,14 @@ try {
   } else if(process.env.PORTHOLE_SERVICES_ANALYTICAL_ONLY==='1') {
    const {servicesAnalyticalJourney}=await import('./porthole/analytics.mjs')
    await servicesAnalyticalJourney()
+  } else if(process.env.PORTHOLE_FLEET_ONLY==='1') {
+   const {fleetJourney}=await import('./porthole/collector-install.mjs')
+   await fleetJourney({origin,restartWorker,withEmptyDestination,withPinnedClock,...helpers})
+  } else if(process.env.PORTHOLE_COLLECTOR_INSTALL_ONLY==='1') {
+   const {collectorInstallJourney}=await import('./porthole/collector-install.mjs')
+   const proof=await collectorInstallJourney({origin,restartWorker,withEmptyDestination,withPinnedClock,...helpers})
+   const {collectorAnalyticalJourney}=await import('./porthole/analytics.mjs')
+   await collectorAnalyticalJourney(proof)
   } else if(process.env.PORTHOLE_HANDOVER_ONLY==='1') {
    const {handoverJourney}=await import('./porthole/handover.mjs')
    await withEmptyDestination(destination=>handoverJourney({...destination,withEmptyDestination,sessionSecret:'runtime-session-secret-1234567890123456'}))
@@ -208,6 +218,10 @@ try {
   } else if(process.env.PORTHOLE_SERVICES_ONLY==='1') {
    const {servicesJourney}=await import('./porthole/services.mjs')
    await servicesJourney({origin,restartWorker,withEmptyDestination,withPinnedClock,...helpers})
+   const {routeInventory}=await import('./porthole/handoffs.mjs')
+   await routeInventory({origin,cookie:await helpers.freshOwner()})
+   const {servicesAnalyticalJourney}=await import('./porthole/analytics.mjs')
+   await servicesAnalyticalJourney()
   } else if(process.env.PORTHOLE_PIPELINES_ONLY==='1') {
    const {pipelineJourney,pipelineReadJourney}=await import('./porthole/pipelines.mjs')
    await pipelineJourney({origin,cookie,restartWorker,withEmptyDestination,withPinnedClock,...helpers})

@@ -17,7 +17,11 @@ export async function networkJourney({origin,call=(path,options)=>fetch(origin+p
  const read=async(path,acting=cookie)=>{const r=await call(path,{headers:{cookie:acting}});assert.equal(r.status,200,await r.clone().text());return r.json()}
  assert.equal((await call(root)).status,401)
  assert.equal((await read(root+'?from=1&through=2')).network.length,0)
- const source=await post('/app/settings/credentials/mint',{name:'Native disposable network fixture',class:'ingest',scope:sourceScope},201)
+ // Collectors export throughout the multi-minute fault windows; restart,
+ // analytical and erasure proofs then replay those same packets in a burst.
+ // Give this load fixture an explicit finite burst budget instead of spending
+ // the ordinary 600-request / 10 MiB per-minute defaults on captured history.
+ const source=await post('/app/settings/credentials/mint',{name:'Native disposable network fixture',class:'ingest',scope:sourceScope,requestsPerMinute:10000,acceptedBytesPerMinute:64*1024*1024},201)
  let proof
  if(!retainedProof){
   const estate=await networkEstate({dispatch:call,secret:source.secret})

@@ -1,0 +1,155 @@
+{{- if not (regexMatch "^https://[a-zA-Z0-9.:-]+/?$" .Values.endpoint) }}
+{{- fail "endpoint must be a credential-free HTTPS origin" }}
+{{- end }}
+{{- $mounts := .Values.mounts }}
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ .Release.Name }}
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: {{ .Release.Name }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/config.yaml") . | sha256sum }}
+    spec:
+      serviceAccountName: {{ .Release.Name }}
+      hostPID: {{ .Values.hostPID }}
+      terminationGracePeriodSeconds: 20
+      nodeSelector:
+        kubernetes.io/os: linux
+      tolerations:
+        - operator: Exists
+      containers:
+        - name: collector
+          image: {{ .Values.collector.image | quote }}
+          args: ["--config=/config/collector.yaml"]
+          securityContext:
+            runAsUser: 0
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          env:
+            - name: K8S_NODE_NAME
+              valueFrom: {fieldRef: {fieldPath: spec.nodeName}}
+            - name: PORTHOLE_INSTALL_ID
+              value: "{{ .Release.Name }}-$(K8S_NODE_NAME)"
+          resources:
+            requests: {cpu: 100m, memory: 128Mi}
+            limits: {memory: 512Mi}
+          volumeMounts:
+            - {name: config, mountPath: /config, readOnly: true}
+            - {name: credential, mountPath: /run/secrets/porthole, readOnly: true}
+            {{- if $mounts.proc }}
+            - {name: proc, mountPath: /hostfs/proc, readOnly: true}
+            {{- end }}
+            {{- if $mounts.sys }}
+            - {name: sys, mountPath: /hostfs/sys, readOnly: true}
+            {{- end }}
+            {{- if $mounts.logs }}
+            - {name: logs, mountPath: /var/log/pods, readOnly: true}
+            {{- end }}
+        - name: obi
+          image: {{ .Values.obi.image | quote }}
+          securityContext:
+            runAsUser: 0
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+              add: {{ .Values.obi.capabilities | toJson }}
+          env:
+            - name: OTEL_EBPF_AUTO_TARGET_EXE
+              value: {{ required "review obi.executable before installing" .Values.obi.executable | quote }}
+            - {name: OTEL_EBPF_KUBE_METADATA_ENABLE, value: "true"}
+            - {name: OTEL_EXPORTER_OTLP_ENDPOINT, value: "http://127.0.0.1:4318"}
+            - {name: OTEL_EXPORTER_OTLP_PROTOCOL, value: "http/protobuf"}
+            - {name: OTEL_TRACES_SAMPLER, value: "always_on"}
+          resources:
+            requests: {cpu: 100m, memory: 128Mi}
+            limits: {memory: 512Mi}
+          volumeMounts:
+            - {name: obi-state, mountPath: /var/run/obi}
+            {{- if $mounts.tracefs }}
+            - {name: tracefs, mountPath: /sys/kernel/tracing}
+            {{- end }}
+            {{- if $mounts.cgroup }}
+            - {name: cgroup, mountPath: /sys/fs/cgroup}
+            {{- end }}
+        - name: reporter
+          image: {{ .Values.reporter.image | quote }}
+          command: [node, /config/reporter.mjs]
+          securityContext:
+            runAsUser: 0
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          env:
+            - name: K8S_NODE_NAME
+              valueFrom: {fieldRef: {fieldPath: spec.nodeName}}
+            - name: POD_NAMESPACE
+              valueFrom: {fieldRef: {fieldPath: metadata.namespace}}
+            - name: POD_NAME
+              valueFrom: {fieldRef: {fieldPath: metadata.name}}
+            - {name: PORTHOLE_RELEASE, value: {{ .Release.Name | quote }}}
+            - {name: PORTHOLE_ENDPOINT, value: {{ .Values.endpoint | quote }}}
+            - {name: PORTHOLE_SERVICE, value: {{ .Values.service | quote }}}
+            - {name: PORTHOLE_TEAM, value: {{ .Values.team | quote }}}
+            - {name: PORTHOLE_ENVIRONMENT, value: {{ .Values.environment | quote }}}
+          resources:
+            requests: {cpu: 10m, memory: 32Mi}
+            limits: {memory: 128Mi}
+          volumeMounts:
+            - {name: config, mountPath: /config, readOnly: true}
+            - {name: credential, mountPath: /run/secrets/porthole, readOnly: true}
+            {{- if $mounts.proc }}
+            - {name: proc, mountPath: /hostfs/proc, readOnly: true}
+            {{- end }}
+            {{- if $mounts.sys }}
+            - {name: sys, mountPath: /hostfs/sys, readOnly: true}
+            {{- end }}
+            {{- if $mounts.logs }}
+            - {name: logs, mountPath: /var/log/pods, readOnly: true}
+            {{- end }}
+            {{- if $mounts.tracefs }}
+            - {name: tracefs, mountPath: /hostfs/tracefs, readOnly: true}
+            {{- end }}
+            {{- if $mounts.cgroup }}
+            - {name: cgroup, mountPath: /hostfs/cgroup, readOnly: true}
+            {{- end }}
+      volumes:
+        - name: config
+          configMap: {name: {{ .Release.Name }}}
+        - name: credential
+          secret:
+            secretName: {{ required "existingSecret is required" .Values.existingSecret }}
+            items:
+              - {key: {{ .Values.secretKey }}, path: token}
+        - name: obi-state
+          emptyDir: {}
+        {{- if $mounts.proc }}
+        - name: proc
+          hostPath: {path: /proc, type: Directory}
+        {{- end }}
+        {{- if $mounts.sys }}
+        - name: sys
+          hostPath: {path: /sys, type: Directory}
+        {{- end }}
+        {{- if $mounts.logs }}
+        - name: logs
+          hostPath: {path: /var/log/pods, type: Directory}
+        {{- end }}
+        {{- if $mounts.tracefs }}
+        - name: tracefs
+          hostPath: {path: /sys/kernel/tracing, type: Directory}
+        {{- end }}
+        {{- if $mounts.cgroup }}
+        - name: cgroup
+          hostPath: {path: /sys/fs/cgroup, type: Directory}
+        {{- end }}

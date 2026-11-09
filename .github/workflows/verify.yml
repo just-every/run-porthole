@@ -36,8 +36,68 @@ jobs:
           TIER: ${{ inputs.tier || 'push' }}
         run: echo "matrix=$(node scripts/verify-ci.mjs --matrix "$TIER")" >> "$GITHUB_OUTPUT"
 
-  shards:
+  prewarm:
     needs: plan
+    runs-on: ubuntu-24.04
+    timeout-minutes: ${{ inputs.timeout || 12 }}
+    outputs:
+      browser-key: ${{ steps.keys.outputs.browser }}
+      build-key: ${{ steps.keys.outputs.build }}
+    env:
+      CI: 'true'
+      WRANGLER_SEND_METRICS: 'false'
+      PLAYWRIGHT_SKIP_BROWSER_GC: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: '22.20.0'
+          package-manager-cache: false
+      - name: Check edition source lock freshness
+        run: node scripts/edition-authoring/cli.mjs check
+      - run: npm install --global pnpm@10.12.4
+      - name: Cache frozen dependencies
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684
+        with:
+          path: ~/.local/share/pnpm/store
+          key: seed-pnpm-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml') }}
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run deps
+      - id: keys
+        name: Key browser libraries by Playwright and runner image
+        shell: bash
+        run: |
+          playwright=$(node -p "require('@playwright/test/package.json').version")
+          echo "browser=seed-playwright-v1-${RUNNER_OS}-${RUNNER_ARCH}-${ImageOS}-${ImageVersion}-${playwright}-${{ hashFiles('scripts/ci-browser.sh', 'scripts/ci-browser.mjs') }}" >> "$GITHUB_OUTPUT"
+          echo "build=seed-build-v1-${RUNNER_OS}-${RUNNER_ARCH}-${GITHUB_SHA}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" >> "$GITHUB_OUTPUT"
+      - name: Cache Chromium and downloaded system packages
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684
+        with:
+          path: |
+            ~/.cache/ms-playwright
+            ~/.cache/porthole-playwright-apt
+          # No fallback across Playwright versions, architectures or runner images.
+          key: ${{ steps.keys.outputs.browser }}
+      - name: Prewarm Chromium and probe system libraries
+        if: contains(needs.plan.outputs.matrix, '"browser":true')
+        run: bash scripts/ci-browser.sh prewarm
+      - name: Build production output once
+        run: |
+          pnpm run build
+          node scripts/ci-build.mjs write
+      - name: Share this run's production output
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684
+        with:
+          path: |
+            dist
+            src/routeTree.gen.ts
+            .cache/verify-build.json
+          key: ${{ steps.keys.outputs.build }}
+
+  shards:
+    needs: [plan, prewarm]
     runs-on: ubuntu-24.04
     timeout-minutes: ${{ inputs.timeout || 12 }}
     strategy:
@@ -59,22 +119,35 @@ jobs:
         if: ${{ hashFiles('edition.json', 'sources.lock.json') != '' }}
         run: node scripts/edition-authoring/cli.mjs check
       - run: npm install --global pnpm@10.12.4
-      - name: Cache frozen dependencies and Chromium
-        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684
+      - name: Restore frozen dependencies
+        uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684
+        with:
+          path: ~/.local/share/pnpm/store
+          key: seed-pnpm-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml') }}
+      - name: Restore prewarmed Chromium and system packages
+        if: matrix.browser
+        uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684
         with:
           path: |
-            ~/.local/share/pnpm/store
             ~/.cache/ms-playwright
-          key: seed-ubuntu24-${{ runner.arch }}-browser-${{ matrix.browser }}-${{ hashFiles('pnpm-lock.yaml', 'package.json') }}
+            ~/.cache/porthole-playwright-apt
+          key: ${{ needs.prewarm.outputs.browser-key }}
       - run: pnpm install --frozen-lockfile
       - run: pnpm run deps
-      - name: Install Chromium and system libraries
+      - name: Probe Chromium; install missing system libraries once
         if: matrix.browser
-        run: |
-          # The runner's Azure package mirror can stall long enough to consume
-          # the entire push budget. Keep the same signed Ubuntu packages.
-          sudo sed -i 's|http://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' /etc/apt/sources.list.d/ubuntu.sources
-          pnpm exec playwright install --with-deps --only-shell chromium
+        run: bash scripts/ci-browser.sh shard
+      - name: Restore this run's production output
+        uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684
+        with:
+          path: |
+            dist
+            src/routeTree.gen.ts
+            .cache/verify-build.json
+          key: ${{ needs.prewarm.outputs.build-key }}
+          fail-on-cache-miss: true
+      - name: Validate shared production output
+        run: node scripts/ci-build.mjs check
       - name: Reserve disk for native runtime journeys
         if: matrix.browser
         run: |
@@ -104,10 +177,11 @@ jobs:
       - name: Run this shard
         env:
           SHARD: ${{ matrix.name }}
+          SEED_VERIFY_PREBUILT: '1'
         run: node scripts/verify-ci.mjs "$SHARD"
 
   verify:
-    needs: [plan, shards]
+    needs: [plan, prewarm, shards]
     if: ${{ always() }}
     runs-on: ubuntu-24.04
     timeout-minutes: 1
@@ -115,5 +189,6 @@ jobs:
       - name: Require every shard
         env:
           PLAN: ${{ needs.plan.result }}
+          PREWARM: ${{ needs.prewarm.result }}
           SHARDS: ${{ needs.shards.result }}
-        run: test "$PLAN" = success && test "$SHARDS" = success
+        run: test "$PLAN" = success && test "$PREWARM" = success && test "$SHARDS" = success

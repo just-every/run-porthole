@@ -9,9 +9,10 @@ const {createRequire}=require('node:module'),sdkRequire=createRequire(require.re
 const {BatchSpanProcessor}=sdkRequire('@opentelemetry/sdk-trace')
 const spans=[],resources=[],processor={onStart(){},onEnd(span){const receipt={traceId:span.spanContext().traceId,spanId:span.spanContext().spanId,parentSpanId:span.parentSpanContext?.spanId??null,kind:span.kind+1,name:span.name,attributes:span.attributes,status:span.status,resource:span.resource.attributes,startNs:(BigInt(span.startTime[0])*1000000000n+BigInt(span.startTime[1])).toString(),durationNs:(BigInt(span.duration[0])*1000000000n+BigInt(span.duration[1])).toString()};spans.push(receipt);resources.push({receipt,resource:span.resource})},forceFlush:async()=>{},shutdown:async()=>{}}
 const sdk=new NodeSDK({spanProcessors:[processor,new BatchSpanProcessor({exporter:new OTLPTraceExporter()})],instrumentations:[new HttpInstrumentation(),new KafkaJsInstrumentation(),new PgInstrumentation()]});sdk.start()
+const {logs}=require('@opentelemetry/api'),logger=logs.getLogger('synthetic-porthole-8502')
 const http=require('node:http'),{Kafka,logLevel}=require('kafkajs'),{trace,context}=require('@opentelemetry/api')
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms)),counts={},received=[]
-let databaseQueries=0
+let databaseQueries=0,logCount=0
 const request=url=>new Promise((resolve,reject)=>{const req=http.get(url,res=>{res.resume();res.once('end',()=>resolve(res.statusCode))});req.once('error',reject)})
 let server,client,producer,consumer
 async function main(){
@@ -25,6 +26,7 @@ async function main(){
   const url=new URL(req.url,'http://localhost'),path=url.pathname
   trace.getSpan(context.active())?.setAttribute('http.route',path)
   counts[path]=(counts[path]??0)+1
+  logger.emit({body:'synthetic-porthole-8503',severityNumber:9,attributes:{'synthetic.private':'synthetic-porthole-8504'}});logCount++
   try {
    if(process.env.PORTHOLE_SERVICE_ROLE==='checkout'){
     const selected=await client.query('SELECT $1::text AS request_id',[url.searchParams.get('id')]);if(selected.rows[0].request_id!==url.searchParams.get('id'))throw Error('Database request mismatch');databaseQueries++
@@ -51,7 +53,7 @@ async function main(){
    // Resource detectors settle asynchronously before the stock export. Capture
    // those same resolved source identities instead of an early incomplete map.
    for(const {receipt,resource}of resources){await resource.waitForAsyncAttributes?.();receipt.resource=resource.attributes}
-   process.send({type:'receipt',counts,received,databaseQueries,spans},()=>process.exit(0))
+   process.send({type:'receipt',counts,received,databaseQueries,logCount,spans},()=>process.exit(0))
   }
  })
 }
