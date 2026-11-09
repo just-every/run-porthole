@@ -1,0 +1,13 @@
+{
+  "head": "248f5a67669f7213d2d361c8a8874fc5d46ef125",
+  "job": 128963947896,
+  "command": "node scripts/verify-ci.mjs analytical",
+  "exit": 124,
+  "test": "analytical shard time budget",
+  "outerCommand": "timeout --kill-after=30s 1200 node scripts/verify-ci.mjs analytical",
+  "failure": "20 minute timeout during database qualification after analytical connection and host heartbeat passed",
+  "timings": {
+    "analyticalConnectionSeconds": 187.2,
+    "hostHeartbeatSeconds": 296.6
+  }
+}

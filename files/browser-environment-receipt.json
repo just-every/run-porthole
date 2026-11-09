@@ -1,0 +1,11 @@
+{
+  "head": "ccbc0ac32769466117c0424b07d6428feb4085ff",
+  "command": "node scripts/verify-ci.mjs exports",
+  "exit": 1,
+  "classification": "local environment",
+  "test": "browserProof",
+  "failure": "browserType.launch: missing Playwright headless-shell cache executable",
+  "repair": "Expected cache path points to the required system Chromium at /usr/bin/chromium",
+  "launchProbeExit": 0,
+  "productFilesChanged": false
+}

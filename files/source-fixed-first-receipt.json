@@ -1,0 +1,1 @@
+{"head": "9a79839201e2a53c2caf26337d1e2d41164080dd", "command": "node scripts/verify-ci.mjs source", "exit": 0}

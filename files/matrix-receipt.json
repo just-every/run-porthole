@@ -1,0 +1,11 @@
+{
+  "head": "ccbc0ac32769466117c0424b07d6428feb4085ff",
+  "commandsPreserved": true,
+  "removed": [],
+  "added": [],
+  "moved": [
+    "nativeBackupErasureJourney: typecheck to mail-receipts",
+    "host heartbeat: analytical to exports",
+    "analytical connection: analytical to traces"
+  ]
+}

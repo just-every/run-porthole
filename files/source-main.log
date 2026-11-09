@@ -1,0 +1,104 @@
+> pnpm run verify:app
+
+> @just-every/porthole@0.1.0 verify:app /workspace/run-porthole-main-proof
+> node scripts/verify-app.mjs
+
+> pnpm run check --profile first-party
+
+> @just-every/porthole@0.1.0 check /workspace/run-porthole-main-proof
+> rer check --profile first-party
+
+> node scripts/porthole/public-schema.mjs --check
+3:50:58 AM [vite] (client) Re-optimizing dependencies because vite config has changed
+Public API schema is current.
+> node scripts/porthole/contract-docs.mjs check PORT-075
+Contract documents are current for PORT-075
+> pnpm run build
+
+> @just-every/porthole@0.1.0 build /workspace/run-porthole-main-proof
+> rer build
+
+Checking pinned pnpm
+10.12.4
+Building your application
+build:app
+▲ [WARNING] Proxy environment variables detected. We'll use your proxy for fetch requests.
+
+
+vite v8.2.2 building client environment for production...
+transforming...
+✓ 141 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/client/.assetsignore               0.02 kB
+dist/client/assets/index-CRqGoFgh.js  313.67 kB │ gzip: 101.76 kB
+
+✓ built in 612ms
+vite v8.2.2 building ssr environment for production...
+transforming...
+✓ 831 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/server/wrangler.json                                      1.64 kB │ gzip:   0.83 kB
+dist/server/.vite/manifest.json                                2.45 kB │ gzip:   0.54 kB
+dist/server/assets/empty-plugin-adapters-Y2r5kxty.js           0.29 kB │ gzip:   0.19 kB
+dist/server/assets/start-BzEWLQkp.js                           0.30 kB │ gzip:   0.21 kB
+dist/server/assets/_tanstack-start-manifest_v-BNgg0tGh.js      0.36 kB │ gzip:   0.26 kB
+dist/server/assets/wire-C5pyjjqN.js                            7.77 kB │ gzip:   2.90 kB
+dist/server/assets/router-C1yCccz6.js                         37.74 kB │ gzip:  10.08 kB
+dist/server/assets/Match-BW6-PLtv.js                         169.65 kB │ gzip:  42.61 kB
+dist/server/index.js                                       3,332.93 kB │ gzip: 813.98 kB
+
+[INEFFECTIVE_DYNAMIC_IMPORT] src/porthole/ingest/otlp-proto.ts is dynamically imported by src/porthole/database/privacy.ts but also statically imported by src/porthole/genai/wire.ts, src/porthole/ingest/http.ts, src/porthole/signals/standard/tempo.ts, dynamic import will not move module into another chunk.
+
+[INEFFECTIVE_DYNAMIC_IMPORT] src/modules/import-kit/src/d1/undo-snapshot.ts is dynamically imported by src/modules/import-kit/src/d1/apply.ts but also statically imported by src/modules/import-kit/src/d1/preserved-preview.ts, src/modules/import-kit/src/d1/preserved-reverse.ts, dynamic import will not move module into another chunk.
+
+✓ built in 1.11s
+Your application is built
+build: complete (exit 0)
+> python3 -m venv .cache/export-readers && .cache/export-readers/bin/pip install --disable-pip-version-check -r tests/porthole/standard-readers.txt
+Collecting opentelemetry-proto==1.45.1 (from -r tests/porthole/standard-readers.txt (line 1))
+  Using cached opentelemetry_proto-1.45.1-py3-none-any.whl.metadata (2.3 kB)
+Collecting protobuf==6.33.6 (from -r tests/porthole/standard-readers.txt (line 2))
+  Using cached protobuf-6.33.6-cp39-abi3-manylinux2014_x86_64.whl.metadata (593 bytes)
+Using cached opentelemetry_proto-1.45.1-py3-none-any.whl (72 kB)
+Using cached protobuf-6.33.6-cp39-abi3-manylinux2014_x86_64.whl (323 kB)
+Installing collected packages: protobuf, opentelemetry-proto
+Successfully installed opentelemetry-proto-1.45.1 protobuf-6.33.6
+> node scripts/porthole/standard-clients.mjs
+Pinned Prometheus 3.5.0 and Tempo CLI 2.8.2 ready
+> PORTHOLE_STANDARD_ONLY=1 pnpm run test:runtime
+
+> @just-every/porthole@0.1.0 test:runtime /workspace/run-porthole-main-proof
+> rer queue test:runtime -- sh -c "node tests/runtime.mjs"
+
+test:runtime
+▲ [WARNING] Proxy environment variables detected. We'll use your proxy for fetch requests.
+
+
+Installed owner claim rejects missing/wrong setup tokens and request demo flags
+HTTP-001 passed against emitted local Worker: health, the installed homepage, HTTP and document 404s
+Stock scrape generations {"scrapes":15,"timestamps":[1794196334100,1794196340538,1794196341960,1794196343478,1794196344900],"counter":[{"metric":{"__name__":"synthetic_scrape_requests_total","environment":"production","instance":"127.0.0.1:36455","job":"synthetic-porthole-6100","producer":"synthetic-porthole-6200","service":"synthetic-porthole-6100","team":"commerce"},"values":[[1794196334.1,"1"],[1794196340.538,"2"],[1794196341.96,"3"],[1794196343.478,"4"],[1794196344.9,"5"]]}]}
+PROBE PORT-061 standard metrics: stock Prometheus 3.5.0 remote_read evaluates twelve fixed expressions over real scrape and stock OTLP input -> exact reference series, labels, timestamps and values
+PROBE PORT-061 restore: inactive owner installation restore -> original samples with newly minted destination authority, no imported credentials, intake remains paused
+PROBE PORT-061 schema and erasure: cumulative gauges, sums, buckets and summaries map exactly; raw float bits survive; delta and exponential inputs refuse; native erased subject and replay remain absent after restart
+STANDARD_READ_RESULT {"metricSeries":214,"metricSamples":1092,"traceIds":3,"selectedTraceSpans":8,"prometheus":"3.5.0","tempoClient":"2.8.2","result":"passed"}
+PROBE PORT-061 standard traces: captured stock HTTP and Kafka spans -> official OTLP binary reader exact spans and stock Tempo CLI; restricted span set and explicit partial evidence; restart and inactive restore
+APP-HOME passed against emitted local Worker: /app behind sign-in and setup, then the trace view with its stylesheets
+> PORTHOLE_STANDARD_ANALYTICAL_ONLY=1 pnpm run test:runtime
+
+> @just-every/porthole@0.1.0 test:runtime /workspace/run-porthole-main-proof
+> rer queue test:runtime -- sh -c "node tests/runtime.mjs"
+
+test:runtime
+Recipient fixture: parsing migrations
+Recipient fixture: migrations parsed
+Recipient fixture: starting emitted Worker
+Recipient fixture: D1 ready
+Recipient fixture: native bootstrap
+Stock scrape generations {"scrapes":15,"timestamps":[1794196571528,1794196577880,1794196579401,1794196580824,1794196582397],"counter":[{"metric":{"__name__":"synthetic_scrape_requests_total","environment":"production","instance":"127.0.0.1:45193","job":"synthetic-porthole-6100","producer":"synthetic-porthole-6200","service":"synthetic-porthole-6100","team":"commerce"},"values":[[1794196571.528,"1"],[1794196577.88,"2"],[1794196579.401,"3"],[1794196580.824,"4"],[1794196582.397,"5"]]}]}
+PROBE PORT-061 standard metrics: stock Prometheus 3.5.0 remote_read evaluates twelve fixed expressions over real scrape and stock OTLP input -> exact reference series, labels, timestamps and values
+STANDARD_READ_RESULT {"metricSeries":214,"metricSamples":1092,"traceIds":3,"selectedTraceSpans":8,"prometheus":"3.5.0","tempoClient":"2.8.2","result":"passed"}
+PROBE PORT-061 standard traces: captured stock HTTP and Kafka spans -> official OTLP binary reader exact spans and stock Tempo CLI; restricted span set and explicit partial evidence; restart and inactive restore
+PROBE PORT-061 analytical schema: exact mappings and legacy quotas; analytical erasure refuses unchanged; prior-journal fixture fences both stores and replay; complete row and byte budget refusals
+PROBE PORT-061 authority: both real analytical backends -> same stock samples; mid-read revoke and expiry -> 401; narrowing and custody change -> 409; quota -> 429; excluded records absent; unavailable backend -> 503

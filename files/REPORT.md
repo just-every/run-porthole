@@ -1,51 +1,97 @@
 # sx-porthole-c-f461-pc1
 
-Repository: just-every/run-porthole. Branch: cloud/sx-porthole-c-f461-pc1.
-Continuation starts at e2cfaedd2f158ea90c0f0176b9ea43fcee0fdffa. Published ancestry is preserved. No rebase, amend, force push, default-branch push or PR was performed.
+Product: just-every/run-porthole, cloud/sx-porthole-c-f461-pc1, ccbc0ac32769466117c0424b07d6428feb4085ff.
 
-The original Verify run 42528887928 has a cancelled typecheck job 128878480785 and a failed aggregate job 128881719162; all other shards succeeded. The cancelled job ran from 22:10:35 to 22:22:50 UTC on 8 November. Its shard step ran for 11 minutes 39 seconds inside the twelve-minute job. Both permitted CLI log reads returned empty output with exit zero; there was no assertion error to quote. The unchanged exact shard was run locally with CI settings, pinned Node 22.20.0, Chromium and a twenty-minute outer timeout. It completed successfully in 1,134.6 seconds. Thus the reproduced defect is excessive shard duration, not a failing product assertion. No invented nonzero assertion exit is reported.
+Starting saved head e2cfaedd2f158ea90c0f0176b9ea43fcee0fdffa is preserved. Current main a4b8bed320f94b9bbeb1b0e1d21b232fb6b4c9ed was merged. No published history was rewritten, no default branch was pushed and no PR was opened. Pushes use the fleet guard; identities and trailers were inspected across every candidate parent.
 
-The continuation merges current main a4b8bed and its standard signal readers and reviewed member-removal workflow. Router, OpenAPI, private audit and inactive archive conflicts retain both independent features. The input reader retains both main's explicit body budget and the packet form's declared repeated fields. Main's four service metadata revisions, including the reviewed owner unassignment, remain asserted. CONTRACT.md and its Status, Gap and Evidence cells are unchanged.
+The requested service-only handoff and evidence slice is retained. This continuation fixes its shared producer fixture and CI runtime. All original Verify commands remain present: native backup moves to mail-receipts, host heartbeat moves to exports, and analytical connection moves to traces, leaving database qualification isolated. Storage assertions for service and database journeys use the actual live migrated D1 binding; stopped-runtime authentication staging retains the CLI. No user operation bypasses its native public door. No assertion is removed, narrowed or disabled. The workflow file and published pins are unchanged.
 
-The focused service harness now reads storage assertions from the actual emitted Worker's live D1 binding. It retains Wrangler's CLI while the Worker is stopped, including native authentication fixture staging. Every user operation still goes through native HTTP or browser doors. The unchanged native backup and erasure journey moves from typecheck to the existing browser-enabled mail-receipts shard. No assertion is removed, narrowed, skipped or hidden from push Verify. No new shard or workflow edit is introduced. Each verification command now reports its elapsed time and exit status.
+Counts before and after: 10 done, 20 partial, 69 missing, 99 Status rows. PORT-054 remains missing in the authoritative table; the proposed claim is PARTIAL. No Status, Gap, Evidence or acceptance text is changed. No plan file is edited; only the PORT-054 service-only row is reported.
 
-Counts before and after: 10 done, 20 partial, 69 missing, 99 Status rows. PORT-054 remains missing in the authoritative table; this continuation proposes a PARTIAL claim. No plan file or Status cell is edited. The only plan row reported is PORT-054's service-only handoff and evidence slice.
+## CI reproduction and repairs
 
-## Acceptance outcomes and fixed rubric
+Original run 42528887928 cancelled typecheck job 128878480785 at its twelve-minute job limit. All other shards succeeded. The unchanged exact shard completed locally with exit 0 in 1,134.6 seconds, reproducing excessive duration. The first repaired candidate 248f5a67669f7213d2d361c8a8874fc5d46ef125 passed typecheck and mail-receipts in CI jobs 128963947775 and 128963947754 of run 42556690129.
 
-- R1, acceptance sentence 1: tests/porthole/handoffs.mjs handoffJourney at line 12, invoked by tests/porthole/services.mjs servicesJourney at line 9, configures all twelve named handoffs. It follows each from Help, Integrations and a runtime service record as native owner, maintainer, scoped responder and restricted contractor. It checks encoded service, environment and time values, independent destination permission, absent foreign-service links, the signed-out boundary, and malicious destination, bearer, non-owner and stale-revision refusals without storage changes. Browser assertions run at 1440; the changed states are captured at 1440 and 390. Baseline and exact-candidate local PASS; the result is recorded in RECEIPT.json.
-- R2, acceptance sentence 2: handoffJourney compares the service packet against the native Services and scoped signal APIs, checks the field allowlist, absent other-team and raw fields, actual trace and log references, external reference and canonical SHA-256 digest. Preview, approval, download and cancellation complete; wrong digest, stale metadata, bearer and non-owner actions refuse. Scope withdrawal and erasure block reuse. The service half is exercised; telemetry cost remains unavailable, so sentence 2 is not claimed fully closed.
-- R3, acceptance sentence 3: tests/porthole/handoffs.mjs routeInventory at line 149 exercises GET and POST on the running router and inspects current OpenAPI, route modules and built pages. Neighboring marketing funnels, CMDB, security cases, whole-cloud bills and duplicate compliance programs are absent. Baseline PASS; candidate route inventory is included in the packet.
-- R4, acceptance sentence 4: UNMET-EXTERNAL under the brief's held remainder. Native deployment and queue records and their prerequisites are not supplied. The service-only implementation neither imports partner results nor labels them locally measured recovery. No claim closes this sentence.
-- R5, inherited custody and authority: tests/porthole/archive.mjs servicesArchiveJourney at line 1264 proves configured handoffs and packet history restore quarantined, original sessions and grants do not transfer, download approval cannot revive, and re-export remains inactive. servicesJourney exercises next-request revocation, scoped views, exact local erasure and original-wire replay refusal. tests/porthole/analytics.mjs servicesAnalyticalJourney at line 339 repeats source checks on actual primary and standby readers and refuses unavailable storage without a local fallback. No new provider or erasure authority is created.
+That candidate failed source job 128963947863: standardReadJourney passed a captured log body to the official trace protobuf decoder. The exact failed-SHA source shard reproduced exit 1 and the same DecodeError. The full source shard passed on main. The repair makes the shared estate trace-only by default and explicitly enables real log export for service evidence. Every service log and trace assertion remains. verify-reproduced.json holds the full failure receipt.
+
+Run 42556690129 also cancelled analytical job 128963947896 at the job limit. Its unchanged local replay reached the twenty-minute outer timeout (exit 124), after analytical connection passed in 187.2 seconds and host heartbeat passed in 296.6 seconds; database qualification was still running. The matrix now separates these commands. analytical-timeout-receipt.json records the actual timeout; no assertion failure is invented.
+
+The ten-call GitHub budget is exhausted. No final-head Verify conclusion is claimed. The last observed red run belongs to the earlier SHA above. The final branch push starts its own Verify; its run ID and conclusion are unobserved here. This is PUSHED custody, not READY, acceptance or landing.
+
+## Local results
+
+- node scripts/verify-ci.mjs analytical: exit 0; head ccbc0ac32769466117c0424b07d6428feb4085ff; 468.4 seconds.
+
+- node scripts/verify-ci.mjs typecheck: exit 0; head ccbc0ac32769466117c0424b07d6428feb4085ff; 631.7 seconds.
+
+- node scripts/verify-ci.mjs exports: exit 0; head ccbc0ac32769466117c0424b07d6428feb4085ff; 690.3 seconds.
+
+- node scripts/verify-ci.mjs source: exit 0; head ccbc0ac32769466117c0424b07d6428feb4085ff; 595.8 seconds.
+
+- PORTHOLE_ANALYTICAL_ONLY=1 node tests/runtime.mjs: exit 0; head ccbc0ac32769466117c0424b07d6428feb4085ff.
+
+Mail and native-backup proof is retained from exact prior candidate 248f5a67669f7213d2d361c8a8874fc5d46ef125: local exit 0 in 612.1 seconds; corresponding CI job success. Relevant mail and native-backup code and tests have not changed. The complete final-head checks and earlier receipts are separate files.
+
+## Frozen acceptance rubric and inherited duties
+
+- R1, acceptance sentence 1: tests/porthole/handoffs.mjs handoffJourney (line 12), invoked by tests/porthole/services.mjs servicesJourney (line 9), configures all twelve named handoffs and follows each from Help, Integrations and service records as owner, maintainer, scoped responder and restricted contractor. It checks exact encoded targets, independent destination permissions, absent foreign-service values, signed-out privacy and unchanged storage after malicious destinations, bearer, non-owner, wrong-origin, stale-proof and stale-revision writes. Browser assertions run at 1440; changed states are captured at 1440 and 390.
+
+- R2, acceptance sentence 2: handoffJourney compares service evidence with native Services and current scoped trace and log APIs. It verifies populated source-counted references, field allowlisting, absent other-team and raw fields, external reference, canonical digest, preview, exact approval, download, cancellation and refusal after changed metadata or authority. The service half is covered; telemetry cost remains explicitly unavailable. This sentence is not fully closed.
+
+- R3, acceptance sentence 3: tests/porthole/handoffs.mjs routeInventory (line 149) probes GET and POST on the running router and inspects current OpenAPI, route modules and built pages. Marketing funnels, CMDB, security cases, whole-cloud bills and duplicate compliance programs are absent. The actual inventory is included.
+
+- R4, acceptance sentence 4: UNMET-EXTERNAL under the brief. Native deployment and queue records and their authorized estates are not supplied. No partner job or test result is imported or labeled locally measured recovery. This sentence is not closed.
+
+- R5, inherited custody and authority: tests/porthole/archive.mjs servicesArchiveJourney preserves quarantined handoff declarations and packet history, with no restored sessions, grants or approval. Re-export stays inactive. servicesJourney checks current scope, revocation, local erasure and original replay refusal. tests/porthole/analytics.mjs servicesAnalyticalJourney proves native service values on both actual analytical configurations and refuses unavailable selected storage without a local fallback.
 
 ## DONE-RIDERS
 
-1. PARTIAL: handoffs and route boundaries are exercised; the telemetry-cost, deployment and queue outcomes remain held.
-2. PASS for this slice: counted stock-instrumented multi-team traffic, populated references, allowed owner operations and unchanged storage after unsafe requests are asserted in handoffJourney and servicesJourney.
-3. Exact candidate Verify is recorded in RECEIPT.json. No green run from another SHA is substituted.
-4. Candidate journeys and proof artifacts are bound to their actual SHA in RECEIPT.json; the earlier baseline is identified separately.
-5. INSPECTED: acceptance text and inherited duties are not changed in this continuation. Service packet scope, native authority and inactive restore remain explicit.
-6. PASS mechanically: touched PORT-054 contract generation and check pass. Generated views are restored from main and never committed; Status, Gap and Evidence cells remain main's.
+1. PARTIAL: the service handoffs and route boundary are covered; telemetry-cost, deployment and queue outcomes remain held.
+
+2. PASS for the implemented slice: source-counted stock telemetry populates the journey, and unsafe writes refuse without mutation.
+
+3. UNESTABLISHED for final hosted Verify: its conclusion is not observed within the ten-call budget. Local receipts do not substitute for CI.
+
+4. Final local checks carry their actual SHA. Earlier baseline, main comparison and mail proof remain explicitly labeled with their own SHA; no older green is relabeled.
+
+5. INSPECTED: acceptance text and inherited duties remain unchanged; native authority, field scope and inactive restore remain explicit.
+
+6. PASS mechanically: touched-clause generation and check pass; generated views are restored from main and never committed. Status cells remain main's.
+
 7. PASS: no acceptance point, ruling or coverage rewrite is made.
-8. PASS for this slice: actual native owner writes succeed; maintainer, responder, contractor, bearer, wrong origin, stale proof, stale revision and revoked-owner cases refuse without mutation, with current-reader release fences retained.
-9. PARTIAL, honest boundary: no live provider, cost, full-traffic, real-estate, partner job or test, deployment, queue or compliance qualification is claimed.
-10. INSPECTED: this continuation introduces no new policy default. The brief's existing current-native-owner, fresh-proof, exact revision and download-only floor is retained. No scoped delegation or external delivery is added.
-11. PENDING LANDER: main equality, full-history publication scan and Run site are not cloud claims. The fleet must scan and land the exact candidate after its green branch Verify.
 
-## Pre-ready review
+8. PASS for the implemented slice: owner operations complete; non-owner, bearer, revoked, stale, invalid and foreign requests refuse, with storage comparisons and current-reader release fences.
 
-Every implemented slice outcome remains reachable through its existing public-door journey. No existing assertion is deleted, narrowed or moved behind a condition that excludes it from push Verify. Current owner and reader authority, erasure, excluded records and replay fences are preserved. Handoff controls have text labels; browser helpers reject unlabeled controls, assert minimum 13px text, keyboard access and desktop reflow, and capture both required widths. Configuration remains under Settings. The edition source lock and first-party checks are recorded in RECEIPT.json. No publication scan is run or claimed in this cloud; the Mac lander owns it. No email-shaped fixture string is added by this continuation.
+9. PARTIAL, honest boundary: no live provider, cost, full-traffic, real-estate, deployment, queue, partner-result or compliance qualification is claimed.
+
+10. INSPECTED: no new policy default is adopted. The brief's owner-only, fresh-proof, exact-revision, download-only floor is preserved.
+
+11. PENDING LANDER: main equality, exact-head green Verify, Run site and the full-history publication scan remain guarded landing gates.
+
+## Pre-ready review and mechanical evidence
+
+No existing assertion is removed, narrowed or hidden from push Verify; the matrix receipt proves the command multiset is unchanged. Current authority, erasure, replay and inactive-restore fences remain exercised. Handoff controls have text labels; browser helpers assert minimum 13px text, keyboard access, desktop reflow and both screenshot widths. Configuration remains under Settings. No email-shaped fixture string is added by this continuation.
+
+MECHANICAL results are in mechanical-receipt.json. Contract generation writes and checks PORT-054, restores ACCEPTANCE.md and docs/CLAIMS.md from main, and regenerates and checks the source lock last. First-party and OpenAPI checks are retained. Native installation export and import in the final database journey exercise the migration ledger, without changing applied migrations.
+
+Publication scan: commit=ccbc0ac32769466117c0424b07d6428feb4085ff complete=false historyScanned=false findings=unestablished. No cloud scan result is claimed. Main is a4b8bed320f94b9bbeb1b0e1d21b232fb6b4c9ed; it is not the candidate. Run site is pending guarded landing.
+
+## Probes
+
+PROBE PORT-054 1: native Help, Integrations and scoped Services with all named configured products -> exact encoded external navigation, no destination authority and no out-of-scope service values.
+
+PROBE PORT-054 2: owner service evidence preview, exact digest approval, download and cancellation -> native metadata, RED and scoped references match; disallowed and foreign fields absent; telemetry cost explicitly unavailable.
+
+PROBE PORT-054 3: running router, current schema and built pages -> forbidden neighboring workflows absent.
+
+PROBE PORT-054 4: none; deployment, queue and cost domains remain under the brief's stated holds.
 
 CLAIM PORT-054 PARTIAL points=1,3 tests=tests/porthole/handoffs.mjs#handoffJourney; tests/porthole/handoffs.mjs#routeInventory; tests/porthole/services.mjs#servicesJourney; tests/porthole/archive.mjs#servicesArchiveJourney; tests/porthole/analytics.mjs#servicesAnalyticalJourney
-GAP PORT-054: Telemetry-cost evidence awaits PORT-023 and the PORT-038 hold; deployment and queue handoffs await native PORT-022 and PORT-060 records and their authorized estates. Existing Evidence-side export, adapter lifecycle, Base discovery, custody and retention holds remain unchanged. No DONE claim.
 
-## Exact candidate results
+GAP PORT-054: Telemetry-cost evidence awaits PORT-023 and the PORT-038 hold; deployment and queue handoffs await PORT-022 and PORT-060 records and their authorized estates. Existing Evidence-side export, adapter lifecycle, Base discovery, custody and retention holds remain unchanged. No DONE claim.
 
-Candidate: 248f5a67669f7213d2d361c8a8874fc5d46ef125. Both affected shards pass locally: typecheck in 551.4 seconds and mail-receipts in 612.1 seconds. The moved native backup and erasure journey itself passes in 289.3 seconds. The earlier combined shard required 1,134.6 seconds. The candidate remains unchanged after these runs.
+## Final completion
 
-MECHANICAL lock=pnpm run source:lock and pnpm run source:check exit=0; views=node scripts/porthole/contract-docs.mjs write PORT-054 and check PORT-054 exit=0; ledger=nativeBackupErasureJourney native export and import validation within node scripts/verify-ci.mjs mail-receipts exit=0. Generated views are restored from main. First-party and OpenAPI checks exit 0; tracked worktree clean.
+All five final-head local checks pass: the analytical, typecheck, exports and source shards, plus the relocated analytical connection journey. The final browser proof includes the changed screens at 1440 and 390. A local exports launch first failed because an older helper did not honor the Chromium override; its expected Playwright cache path was linked to the required /usr/bin/chromium and a launch probe passed. The full unchanged exports shard then passed. This was a local environment repair with no product-file or assertion change; browser-environment-receipt.json and the original failure log are included.
 
-Publication scan: commit=248f5a67669f7213d2d361c8a8874fc5d46ef125 complete=false historyScanned=false findings=unestablished. The cloud branch push does not waive the Mac lander scan. Main is a4b8bed320f94b9bbeb1b0e1d21b232fb6b4c9ed, not the candidate. Run site and landing remain unestablished. No PR is created because branch pushes are a Verify entry point.
-
-Branch Verify: push event, run 42556690129, exact head 248f5a67669f7213d2d361c8a8874fc5d46ef125; in progress at the 03:40 UTC observation. This is not a green claim.
+Product custody is independently verified by Git at ccbc0ac32769466117c0424b07d6428feb4085ff. No product command remains pending. Final hosted Verify remains unobserved at the ten-call budget; no READY or green-CI claim is made. The Mac lander still owns exact-head Verify, publication scanning and Run site. No product blocker remains in the local checks; the full-clause holds and the unobserved hosted gate remain explicit.

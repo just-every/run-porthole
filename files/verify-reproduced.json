@@ -1,0 +1,8 @@
+{
+  "head": "248f5a67669f7213d2d361c8a8874fc5d46ef125",
+  "job": 128963947863,
+  "command": "node scripts/verify-ci.mjs source",
+  "exit": 1,
+  "test": "standardReadJourney",
+  "failure": "google.protobuf.message.DecodeError: Error parsing message with type 'opentelemetry.proto.collector.trace.v1.ExportTraceServiceRequest'"
+}

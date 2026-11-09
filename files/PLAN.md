@@ -1,13 +1,12 @@
-# Continuation plan
+# Completed continuation plan
 
-Starting product: e2cfaedd2f158ea90c0f0176b9ea43fcee0fdffa, preserved on cloud/sx-porthole-c-f461-pc1.
+Repository: just-every/run-porthole. Branch: cloud/sx-porthole-c-f461-pc1. Final head: ccbc0ac32769466117c0424b07d6428feb4085ff.
 
-1. Reproduce the exact typecheck shard with CI settings on the saved SHA. Determine whether job 128878480785 was cancelled by its twelve-minute limit or by a user-visible assertion failure. Preserve the completed successful sibling shards and do not guess a product repair.
-2. Fix forward only the reproduced cause. Preserve all acceptance assertions, owner and bearer boundaries, the native service packet and inactive restore semantics. Keep CONTRACT.md Status rows and generated views unchanged.
-3. Run the affected shard and service journeys, including current-scope refused writes, digest approval and cancellation, current-reader references, restart, inactive archive restore, route inventory, and browser proof at 1440 and 390. Rebalance existing Verify commands only if measured duration requires it, without dropping commands.
-4. Merge updated main without rewriting the saved commits. Generate and check contract views, restore them from main, regenerate the source lock last, and check first-party integrity and migration custody as applicable.
-5. Inspect every candidate commit identity and trailer, push only the named cloud branch through the fleet guard, and inspect exact-SHA Verify through the budgeted REST watcher. Publish this actual non-secret packet on the separate evidence ref.
+1. Preserved saved head e2cfaedd2f158ea90c0f0176b9ea43fcee0fdffa and reproduced the original typecheck timeout with the exact shard and CI settings. The original combined local shard passed but required 1,134.6 seconds.
+2. Merged current main without rewriting published history. Preserved its standard-reader and reviewed member-removal work, all four native service revisions and both independent archive and audit domains.
+3. Fixed the reproduced shared-producer regression: standard trace qualification receives trace-only export by default; service evidence explicitly requests populated real logs. Exact failed-SHA source replay exited 1 with the original official protobuf DecodeError; the full main control passed. The repaired source shard passes.
+4. Reproduced the analytical workload exceeding its twenty-minute outer timeout, then retained every command while moving native backup to mail-receipts, host heartbeat to exports and analytical connection to traces. The database journey is isolated; live D1 storage inspection avoids repeated CLI startup. The final command multiset equals main's and no assertion is removed or narrowed.
+5. Completed all final-head local checks, including typecheck and service handoffs, database qualification, exports and erasure, host heartbeat, native and analytical standard readers, the relocated analytical connection, 1440 and 390 browser proof, contract generation and restore, source lock, first-party and schema checks. Repaired the local browser cache to use /usr/bin/chromium without changing product code.
+6. Pushed only the named product branch through the fleet guard after identity and trailer checks. Kept all reports and receipts outside product history and published the separate report-only evidence ref. Hosted final-head Verify is unobserved because ten GitHub calls were used; no green result from another SHA is substituted. Publication scan, main equality and Run site remain lander gates.
 
-PORT-054 remains a partial claim. Deployment and queue records, the telemetry-cost domain, external provider qualification and the existing ct and Base holds remain outside this service-only slice. No claim of DONE, provider parity or landing is planned. No acceptance text, Status, Gap or Evidence cell is changed.
-
-Results: steps 1–4 complete. The unchanged baseline passed but exceeded the CI deadline. Main was merged without history rewrite; both affected shards and all mechanical checks pass. Step 5: product candidate pushed; exact-SHA Verify 42556690129 remains running at the latest observation. Evidence is prepared separately.
+PORT-054 is claimed PARTIAL, points 1 and 3. The service half of evidence export is proved; telemetry cost, deployment and queue domains and all stated provider, ct, Base and custody holds remain open. Counts and all 99 Status rows are unchanged. No plan source, Status, Gap or Evidence cell is edited. No DONE claim.

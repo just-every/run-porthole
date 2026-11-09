@@ -1,0 +1,13 @@
+{"completed_at":"2026-11-09T03:29:44Z","conclusion":"success","id":128963915734,"name":"plan","started_at":"2026-11-09T03:29:39Z","steps":[]}
+{"completed_at":"2026-11-09T03:33:39Z","conclusion":"success","id":128963947733,"name":"shards (exports, true)","started_at":"2026-11-09T03:29:46Z","steps":[]}
+{"completed_at":"2026-11-09T03:37:21Z","conclusion":"success","id":128963947746,"name":"shards (ingest, true)","started_at":"2026-11-09T03:29:46Z","steps":[]}
+{"completed_at":"2026-11-09T03:38:36Z","conclusion":"success","id":128963947754,"name":"shards (mail-receipts, true)","started_at":"2026-11-09T03:29:46Z","steps":[]}
+{"completed_at":"2026-11-09T03:36:21Z","conclusion":"success","id":128963947770,"name":"shards (follow-up, true)","started_at":"2026-11-09T03:29:46Z","steps":[]}
+{"completed_at":"2026-11-09T03:37:39Z","conclusion":"success","id":128963947775,"name":"shards (typecheck, true)","started_at":"2026-11-09T03:29:46Z","steps":[]}
+{"completed_at":"2026-11-09T03:38:49Z","conclusion":"success","id":128963947788,"name":"shards (dashboards, true)","started_at":"2026-11-09T03:29:46Z","steps":[]}
+{"completed_at":"2026-11-09T03:36:48Z","conclusion":"success","id":128963947805,"name":"shards (migration, true)","started_at":"2026-11-09T03:29:46Z","steps":[]}
+{"completed_at":"2026-11-09T03:35:53Z","conclusion":"success","id":128963947829,"name":"shards (traces, true)","started_at":"2026-11-09T03:29:46Z","steps":[]}
+{"completed_at":"2026-11-09T03:33:13Z","conclusion":"failure","id":128963947863,"name":"shards (source, false)","started_at":"2026-11-09T03:29:46Z","steps":[{"completed_at":"2026-11-09T03:33:10Z","conclusion":"failure","name":"Run this shard","started_at":"2026-11-09T03:30:13Z"}]}
+{"completed_at":"2026-11-09T03:42:03Z","conclusion":"cancelled","id":128963947896,"name":"shards (analytical, true)","started_at":"2026-11-09T03:29:46Z","steps":[{"completed_at":"2026-11-09T03:41:59Z","conclusion":"cancelled","name":"Run this shard","started_at":"2026-11-09T03:30:29Z"}]}
+{"completed_at":"2026-11-09T03:41:11Z","conclusion":"success","id":128963947905,"name":"shards (runtime, true)","started_at":"2026-11-09T03:29:46Z","steps":[]}
+{"completed_at":"2026-11-09T03:42:07Z","conclusion":"failure","id":128967388630,"name":"verify","started_at":"2026-11-09T03:42:05Z","steps":[{"completed_at":"2026-11-09T03:42:05Z","conclusion":"failure","name":"Require every shard","started_at":"2026-11-09T03:42:05Z"}]}

@@ -2,10 +2,10 @@
   "tag": "sx-porthole-c-f461-pc1",
   "repository": "just-every/run-porthole",
   "branch": "cloud/sx-porthole-c-f461-pc1",
-  "head": "248f5a67669f7213d2d361c8a8874fc5d46ef125",
+  "head": "ccbc0ac32769466117c0424b07d6428feb4085ff",
   "startingHead": "e2cfaedd2f158ea90c0f0176b9ea43fcee0fdffa",
   "mergedMain": "a4b8bed320f94b9bbeb1b0e1d21b232fb6b4c9ed",
-  "remoteProductHead": "248f5a67669f7213d2d361c8a8874fc5d46ef125",
+  "remoteProductHead": "ccbc0ac32769466117c0424b07d6428feb4085ff",
   "countsBefore": {
     "missing": 69,
     "done": 10,
@@ -27,52 +27,88 @@
     2,
     4
   ],
-  "localChecks": [
+  "finalChecks": [
     {
-      "head": "e2cfaedd2f158ea90c0f0176b9ea43fcee0fdffa",
-      "job": "128878480785",
-      "command": "node scripts/verify-ci.mjs typecheck",
-      "exit": 0
+      "head": "ccbc0ac32769466117c0424b07d6428feb4085ff",
+      "command": "node scripts/verify-ci.mjs analytical",
+      "exit": 0,
+      "elapsedSeconds": 468.4
     },
     {
-      "head": "248f5a67669f7213d2d361c8a8874fc5d46ef125",
+      "head": "ccbc0ac32769466117c0424b07d6428feb4085ff",
       "command": "node scripts/verify-ci.mjs typecheck",
-      "exit": 0
+      "exit": 0,
+      "elapsedSeconds": 631.7
     },
     {
-      "head": "248f5a67669f7213d2d361c8a8874fc5d46ef125",
-      "command": "node scripts/verify-ci.mjs mail-receipts",
+      "head": "ccbc0ac32769466117c0424b07d6428feb4085ff",
+      "command": "node scripts/verify-ci.mjs exports",
+      "exit": 0,
+      "elapsedSeconds": 690.3
+    },
+    {
+      "head": "ccbc0ac32769466117c0424b07d6428feb4085ff",
+      "command": "node scripts/verify-ci.mjs source",
+      "exit": 0,
+      "elapsedSeconds": 595.8
+    },
+    {
+      "head": "ccbc0ac32769466117c0424b07d6428feb4085ff",
+      "command": "PORTHOLE_ANALYTICAL_ONLY=1 node tests/runtime.mjs",
       "exit": 0
     }
   ],
-  "mechanical": {
+  "mailProof": {
     "head": "248f5a67669f7213d2d361c8a8874fc5d46ef125",
+    "localExit": 0,
+    "seconds": 612.1,
+    "ciRun": 42556690129,
+    "ciJob": 128963947754,
+    "ciConclusion": "success",
+    "equivalence": "mail and native backup product code and tests unchanged; no mail or native-backup command removed"
+  },
+  "lastObservedVerify": {
+    "run": 42556690129,
+    "conclusion": "failure",
+    "head_sha": "248f5a67669f7213d2d361c8a8874fc5d46ef125",
+    "html_url": "https://github.com/just-every/run-porthole/actions/runs/42556690129",
+    "status": "completed"
+  },
+  "finalVerify": {
+    "status": "not observed: ten-call GitHub budget exhausted",
+    "runId": null,
+    "conclusion": null
+  },
+  "githubCallsUsed": 10,
+  "githubCallsLimit": 10,
+  "mechanical": {
+    "head": "ccbc0ac32769466117c0424b07d6428feb4085ff",
     "originMain": "a4b8bed320f94b9bbeb1b0e1d21b232fb6b4c9ed",
     "commands": [
       {
         "command": "node scripts/porthole/contract-docs.mjs write PORT-054",
         "exit": 0,
-        "elapsedSeconds": 0.16
+        "elapsedSeconds": 0.14
       },
       {
         "command": "node scripts/porthole/contract-docs.mjs check PORT-054",
         "exit": 0,
-        "elapsedSeconds": 0.08
+        "elapsedSeconds": 0.09
       },
       {
         "command": "git checkout origin/main -- ACCEPTANCE.md docs/CLAIMS.md",
         "exit": 0,
-        "elapsedSeconds": 0.01
+        "elapsedSeconds": 0.02
       },
       {
         "command": "pnpm run source:lock",
         "exit": 0,
-        "elapsedSeconds": 0.79
+        "elapsedSeconds": 1.74
       },
       {
         "command": "pnpm run source:check",
         "exit": 0,
-        "elapsedSeconds": 0.77
+        "elapsedSeconds": 0.94
       },
       {
         "command": "pnpm run check --profile first-party",
@@ -82,35 +118,29 @@
       {
         "command": "node scripts/porthole/public-schema.mjs --check",
         "exit": 0,
-        "elapsedSeconds": 1.57
+        "elapsedSeconds": 1.68
       }
     ],
     "worktree": "",
     "contractDiff": ""
   },
-  "verifyObservations": [
-    {
-      "conclusion": null,
-      "event": "push",
-      "head_sha": "248f5a67669f7213d2d361c8a8874fc5d46ef125",
-      "html_url": "https://github.com/just-every/run-porthole/actions/runs/42556690129",
-      "id": 42556690129,
-      "name": "Verify",
-      "status": "in_progress"
-    },
-    {
-      "conclusion": null,
-      "head_sha": "248f5a67669f7213d2d361c8a8874fc5d46ef125",
-      "html_url": "https://github.com/just-every/run-porthole/actions/runs/42556690129",
-      "status": "in_progress"
-    }
-  ],
+  "matrix": {
+    "head": "ccbc0ac32769466117c0424b07d6428feb4085ff",
+    "commandsPreserved": true,
+    "removed": [],
+    "added": [],
+    "moved": [
+      "nativeBackupErasureJourney: typecheck to mail-receipts",
+      "host heartbeat: analytical to exports",
+      "analytical connection: analytical to traces"
+    ]
+  },
   "publicationScan": {
-    "commit": "248f5a67669f7213d2d361c8a8874fc5d46ef125",
+    "commit": "ccbc0ac32769466117c0424b07d6428feb4085ff",
     "complete": false,
     "historyScanned": false,
     "findings": null,
-    "status": "not run in cloud; required Mac lander gate"
+    "status": "required Mac lander gate; not run in cloud"
   },
   "mainEquality": false,
   "runSite": {
@@ -118,11 +148,33 @@
   },
   "pr": null,
   "assertionsRemoved": false,
-  "newPolicyDefault": null,
   "testRegistrationsAdded": 0,
-  "sourceLockFresh": true,
+  "newPolicyDefault": null,
   "trackedWorktree": "",
-  "proofFiles": [
+  "probes": [
+    "PROBE PORT-054 handoffs: Help, Integrations and native runtime service -> all named siblings and partners with exact encoded scoped values; malicious, bearer, non-owner, stale and foreign writes refuse unchanged",
+    "PROBE PORT-054 packet: current native owner preview, exact digest approval, download and cancellation -> native metadata and RED match; scoped references resolve; non-allowlisted fields, other teams and unauthorized writes absent",
+    "PROBE PORT-054 boundaries: running router, built pages and current OpenAPI -> no marketing funnel, CMDB, security case, whole-cloud bill or duplicated compliance-program workflow",
+    "PROBE PORT-054 handoffs: Help, Integrations and native runtime service -> all named siblings and partners with exact encoded scoped values; malicious, bearer, non-owner, stale and foreign writes refuse unchanged",
+    "PROBE PORT-054 packet: current native owner preview, exact digest approval, download and cancellation -> native metadata and RED match; scoped references resolve; non-allowlisted fields, other teams and unauthorized writes absent"
+  ],
+  "finalProofFiles": [
+    "database-collection-stopped-1440.png",
+    "database-collection-stopped-390.png",
+    "database-diagnostics-1440.png",
+    "database-diagnostics-390.png",
+    "database-empty-1440.png",
+    "database-empty-390.png",
+    "database-invalid-1440.png",
+    "database-invalid-390.png",
+    "database-settings-1440.png",
+    "database-settings-390.png",
+    "database-stale-review-1440.png",
+    "database-stale-review-390.png",
+    "database-storage-unavailable-1440.png",
+    "database-storage-unavailable-390.png",
+    "database-unauthorized-1440.png",
+    "database-unauthorized-390.png",
     "evidence-cancelled-1440.png",
     "evidence-cancelled-390.png",
     "evidence-empty-1440.png",
@@ -145,46 +197,14 @@
     "handoffs-settings-390.png",
     "handoffs-stale-revision-1440.png",
     "handoffs-stale-revision-390.png",
-    "health-analytical-read-failed-1440.png",
-    "health-analytical-read-failed-390.png",
-    "health-collector-stopped-1440.png",
-    "health-collector-stopped-390.png",
-    "health-drain-failed-1440.png",
-    "health-drain-failed-390.png",
-    "health-notice-rate-limited-1440.png",
-    "health-notice-rate-limited-390.png",
-    "health-notice-rotated-1440.png",
-    "health-notice-rotated-390.png",
-    "health-notice-rotated-unaccepted-1440.png",
-    "health-notice-rotated-unaccepted-390.png",
-    "health-notice-uncertain-1440.png",
-    "health-notice-uncertain-390.png",
-    "health-pending-recovery-1440.png",
-    "health-pending-recovery-390.png",
-    "health-recipient-pending-1440.png",
-    "health-recipient-pending-390.png",
-    "health-recovered-1440.png",
-    "health-recovered-390.png",
+    "heartbeat-evaluations-1440.png",
+    "heartbeat-evaluations-390.png",
+    "heartbeat-settings-1440.png",
+    "heartbeat-settings-390.png",
     "help-configured-0-1440.png",
     "help-configured-0-390.png",
-    "integration-declarations-resend-1440.png",
-    "integration-declarations-resend-390.png",
-    "integration-held-receipt-1440.png",
-    "integration-held-receipt-390.png",
-    "integration-reconciled-receipt-1440.png",
-    "integration-reconciled-receipt-390.png",
     "integrations-configured-1-1440.png",
     "integrations-configured-1-390.png",
-    "native-backup-erased-1440.png",
-    "native-backup-erased-390.png",
-    "recipient-confirm-1440.png",
-    "recipient-confirm-390.png",
-    "recipient-confirmed-1440.png",
-    "recipient-confirmed-390.png",
-    "recipient-expired-1440.png",
-    "recipient-expired-390.png",
-    "recipient-stale-preview-1440.png",
-    "recipient-stale-preview-390.png",
     "route-inventory.json",
     "service-handoffs-2-1440.png",
     "service-handoffs-2-390.png",
@@ -216,24 +236,25 @@
     "services-summary-390.png",
     "services-unauthorized-1440.png",
     "services-unauthorized-390.png",
-    "setup-recipient-pending-1440.png",
-    "setup-recipient-pending-390.png"
+    "setup-notices-off-1440.png",
+    "setup-notices-off-390.png",
+    "signal-export-explore-1440-0.png",
+    "signal-export-explore-390-0.png",
+    "subject-erasure-restored-1440-0.png",
+    "subject-erasure-restored-1440-1.png",
+    "subject-erasure-restored-390-0.png",
+    "subject-erasure-restored-390-1.png"
   ],
-  "probes": [
-    "PROBE PORT-054 handoffs: Help, Integrations and native runtime service -> all named siblings and partners with exact encoded scoped values; malicious, bearer, non-owner, stale and foreign writes refuse unchanged",
-    "PROBE PORT-054 packet: current native owner preview, exact digest approval, download and cancellation -> native metadata and RED match; scoped references resolve; non-allowlisted fields, other teams and unauthorized writes absent",
-    "PROBE PORT-054 boundaries: running router, built pages and current OpenAPI -> no marketing funnel, CMDB, security case, whole-cloud bill or duplicated compliance-program workflow",
-    "PROBE PORT-054 handoffs: Help, Integrations and native runtime service -> all named siblings and partners with exact encoded scoped values; malicious, bearer, non-owner, stale and foreign writes refuse unchanged",
-    "PROBE PORT-054 packet: current native owner preview, exact digest approval, download and cancellation -> native metadata and RED match; scoped references resolve; non-allowlisted fields, other teams and unauthorized writes absent"
-  ],
-  "timing": {
-    "baselineShardSeconds": 1134.6,
-    "candidateTypecheckSeconds": 551.4,
-    "ciJobLimitSeconds": 720,
-    "candidateMailSeconds": 612.1,
-    "movedNativeBackupSeconds": 289.3
-  },
-  "note": "Timing cancellation reproduced. Baseline completed with exit zero, so there was no nonzero assertion failure and no assertion repair.",
-  "githubCallsUsed": 7,
-  "githubCallsLimit": 10
+  "localChecksComplete": true,
+  "browserEnvironmentRepair": {
+    "head": "ccbc0ac32769466117c0424b07d6428feb4085ff",
+    "command": "node scripts/verify-ci.mjs exports",
+    "exit": 1,
+    "classification": "local environment",
+    "test": "browserProof",
+    "failure": "browserType.launch: missing Playwright headless-shell cache executable",
+    "repair": "Expected cache path points to the required system Chromium at /usr/bin/chromium",
+    "launchProbeExit": 0,
+    "productFilesChanged": false
+  }
 }
