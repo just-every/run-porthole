@@ -943,6 +943,7 @@ async function run(source) {
   const hostHistory=await sql(source,'SELECT * FROM porthole_host_monitor_evaluations WHERE object_id='+literal(host.id))
   await start()
   // Prepare a real Settings export too, including cached download packets.
+  cookie=await helpers.freshOwner()
   const frozen=await value(send(archive+'/exports',{}),201)
   for(let index=0;index<frozen.totalChunks;index++)await value(await fetch(origin+archive+'/exports/'+frozen.id+'/chunks/'+index,{headers:{cookie}}))
   await value(await fetch(origin+archive+'/exports/'+frozen.id+'/manifest',{headers:{cookie}}))
@@ -961,6 +962,7 @@ async function run(source) {
   const delegated=await fetch(origin+erasure+'/apply',{method:'POST',headers:{origin,authorization:'Bearer '+credential.secret,'content-type':'application/json'},body:JSON.stringify({identifier,digest:preview.digest,confirm:'erase-exact-batches'})})
   await value(delegated,403)
   assert.deepEqual(await snapshot(),beforeRefusal,'a credential cannot erase backed-up custody')
+  cookie=await helpers.freshOwner()
   const erased=await value(send(erasure+'/apply',{identifier,digest:preview.digest,confirm:'erase-exact-batches'}))
   assert.equal(erased.erasedBatches,2,'backup then erase completes without history_immutable')
   assert.equal(erased.erasedRecords,2)
@@ -975,6 +977,7 @@ async function run(source) {
   assert.deepEqual(await sql(source,'SELECT * FROM porthole_monitor_state WHERE object_id='+literal(monitors.traces)),traceState,'log erasure leaves unrelated trace-monitor evidence unchanged')
   assert.equal((await sql(source,'SELECT status FROM porthole_monitor_state WHERE object_id='+literal(monitors.logs)))[0].status,'Unknown','a monitor of erased logs cannot present its old count as current evidence')
   await start()
+  cookie=await helpers.freshOwner()
   assert.equal((await fetch(origin+archive+'/exports/'+frozen.id+'/manifest',{headers:{cookie}})).status,404,'old product custody is withdrawn')
   assert.equal((await query('logs')).records.length,1)
   assert.ok(JSON.stringify((await query('logs')).records).includes(peer))
