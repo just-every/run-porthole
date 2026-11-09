@@ -91,3 +91,23 @@ Prometheus query, range-query, series, labels, metadata and exemplar routes,
 and Tempo search, tags and v2 retrieval explicitly refuse. Standard log and
 profile reads, TraceQL and Jaeger interfaces remain outside this implementation.
 Broader erasure and retention qualification remains with PORT-035 and PORT-096.
+
+## Interoperability qualification
+
+The focused standard-read journeys use unmodified Prometheus 3.5.0 with only
+remote-read and a credential file on the reading side. A separate Prometheus
+scrapes the same real producer and receives the identical stock OTLP SDK
+packets. The comparison covers gauges, cumulative counters, classic histogram
+buckets and summaries from actual scrape traffic, and gauges, cumulative sums
+and explicit histograms from the stock OTLP exporter. Official-schema summary
+and non-monotonic cumulative-sum packets supplement the SDK, which has no
+summary instrument. The reference receiver also determines their compound
+attribute labels, namespace and instance identity, quantiles, counts and sums.
+
+Nineteen fixed expressions, the complete sample range and resource information
+are compared for exact series, labels, timestamps and values. The analytical
+journey repeats the stock Prometheus evaluation on both primary and standby,
+and runs the pinned Tempo client against both stores. Official generated OTLP
+readers compare the returned stock trace fields with captured exporter packets
+after mandatory intake privacy. These checks do not establish the omitted log,
+profile, query-evaluation or broader erasure capabilities.

@@ -501,7 +501,7 @@
       "executable": false
     },
     "docs/signal-exports.md": {
-      "sha256": "6fb094e66c4d096152d3cec73b1e9cbe35fd0c4c92e1053de577f5b4972071ae",
+      "sha256": "051e2866dc6d4e36d3326d7ef0e5d8d8524a593e4aa4f7056fbe4ea155ef2b4d",
       "executable": false
     },
     "docs/slos.md": {
@@ -517,7 +517,7 @@
       "executable": false
     },
     "docs/standard-signal-apis.md": {
-      "sha256": "94ed6fc3670181feb4afe0a059b1aea67b5ab90e436d53eb6046e67cb09093d2",
+      "sha256": "ddc66279efe30bcaa78b0e58379d0456279f24de65f31d31c5af96932509c62b",
       "executable": false
     },
     "edition.json": {
@@ -5937,7 +5937,7 @@
       "executable": false
     },
     "tests/porthole/standard-reads.mjs": {
-      "sha256": "8cea844deba43f09a688884a5895ff1b08972aad48be352736af35fe9ced4f56",
+      "sha256": "d47ee4348536341c46820d4678fe20e000835c88b7fd84748a3b09af2df26371",
       "executable": false
     },
     "tests/porthole/stock-ingest.mjs": {
