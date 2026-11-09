@@ -33,6 +33,7 @@ export async function handoffJourney({origin,freshOwner,signIn,sql,call=(path,op
  assert.equal((await call('/api/porthole/v1/services/'+encodedRecord.id+'?'+new URLSearchParams(encoded),{headers:{cookie:responders[0].cookie}})).status,404,'an out-of-scope encoded service has no handoff door')
  await send('/app/settings/credentials/revoke',{id:encodingSource.credential.id})
  const change={revision:1,destination:'https://handoff.example/vane',template:'https://handoff.example/vane/service/{service}?environment={environment}&from={from}&through={through}',confirm:'save-handoff'}
+ await handoffCredentialRefusal({origin,cookie,call,sql,service,responders,query,change,storage})
  for(const destination of [origin.replace('http:','https:'),'http://handoff.example','javascript:alert(1)',['https://synthetic-porthole-1:synthetic-porthole-2','handoff.example/'].join(String.fromCharCode(64)),'https://handoff.example/?token=synthetic-porthole-1','https://handoff.example/%0a','https://handoff.example/%250d','https://handoff.example/?api_key=synthetic-porthole-1','https://handoff.example/#credential','https://handoff.example/\\evil'])await denied(root+'/vane',{...change,destination},400)
  for(const template of ['https://handoff.example/{team}','https://{service}.example/','https://different.example/{service}','http://handoff.example/{service}'])await denied(root+'/vane',{...change,template},400)
  await denied(root+'/vane',{...change,revision:0},409)
@@ -180,4 +181,31 @@ async function encodedService({origin,call,secret}) {
   const starts=receipt.spans.map(s=>BigInt(s.startNs)),ends=receipt.spans.map(s=>BigInt(s.startNs)+BigInt(s.durationNs))
   return {from:String(starts.reduce((a,b)=>a<b?a:b)-1n).padStart(20,'0'),through:String(ends.reduce((a,b)=>a>b?a:b)+1n).padStart(20,'0')}
  }finally{if(child.exitCode===null){const done=new Promise(resolve=>child.once('exit',resolve));child.kill('SIGTERM');await done}await new Promise(resolve=>gateway.close(resolve))}
+}
+
+export async function handoffCredentialRefusal({origin,cookie,call,sql,service,responders,query,change,storage}) {
+ // One table assertion covers write refusal and every live read surface for
+ // legacy rows accepted before the credential rule was tightened.
+ const credentialMarker='synthetic-porthole-8510',credentialProof=[]
+ const credentialUrls=['sig','%73ig','SIG','%2573ig','token','%54OKEN','key','%4bEY','secret','%73ecret','signature','SIGNATURE'].map(key=>'https://handoff.example/?'+key+'='+credentialMarker)
+ credentialUrls.push('https://'+credentialMarker+'@handoff.example/','https://'+credentialMarker+'%40handoff.example/')
+ for(const value of credentialUrls)for(const field of ['destination','template']){
+  const before=await storage(),response=await call(root+'/vane',form(origin,cookie,{...change,[field]:value})),body=await response.text()
+  const unchanged=JSON.stringify(await storage())===JSON.stringify(before)
+  // Clean up a vulnerable pre-fix write so every case probes the same revision.
+  await sql("DELETE FROM porthole_handoff_versions WHERE product='vane' AND revision>1")
+  const reads=[]
+  if(credentialUrls.indexOf(value)<3){
+   await sql(`UPDATE porthole_handoff_versions SET ${field}=${literal(value)} WHERE product='vane' AND revision=1`)
+   try{
+    for(const reader of [{cookie,serviceId:service.id,owner:true},responders.at(-1)])for(const path of [root,'/app/help','/app/integrations','/api/porthole/v1/services'+query,'/app/services/'+reader.serviceId+query,...(reader.owner?['/app/settings/integrations/handoffs']:[])]){
+     const readResponse=await call(path,{headers:{cookie:reader.cookie}}),text=await readResponse.text()
+     reads.push({path,role:reader.owner?'owner':'restricted contractor',status:readResponse.status,exposed:text.includes(credentialMarker)})
+    }
+   }finally{await sql(`UPDATE porthole_handoff_versions SET destination=${literal(change.destination)},template=${literal(change.template)} WHERE product='vane' AND revision=1`)}
+  }
+  credentialProof.push({case:credentialUrls.indexOf(value),field,status:response.status,error:JSON.parse(body).error??null,echo:body.includes(credentialMarker),unchanged,reads})
+ }
+ console.log('Handoff credential refusal proof '+JSON.stringify(credentialProof))
+ assert.deepEqual(credentialProof,credentialProof.map(row=>({...row,status:400,error:'handoff_credentials_forbidden',echo:false,unchanged:true,reads:row.reads.map(read=>({...read,status:200,exposed:false}))})), 'credential URLs refuse without echo or mutation; legacy destinations and templates never reach owner or restricted reads')
 }

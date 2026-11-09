@@ -2065,7 +2065,7 @@
       "executable": false
     },
     "scripts/porthole/archive-policy.mjs": {
-      "sha256": "b00548e5681bf95548decb191cbb5119b8d8b19a4055327b4f2aac8d305e44f5",
+      "sha256": "afe2b59850e29e004ccf852d7909a53ba967f6d8114423563a46bd8667435f77",
       "executable": false
     },
     "scripts/porthole/archive.mjs": {
@@ -4788,8 +4788,16 @@
       "sha256": "d59aab3af03e7825e0af6da8b998fb9b3758c897036d7a8c7f10bf3d1615a513",
       "executable": false
     },
+    "src/porthole/handoffs/credentials.d.mts": {
+      "sha256": "c6fd345845fab1b1c74694dfe4241742701aa27f8e479a66227ba55cbf79a554",
+      "executable": false
+    },
+    "src/porthole/handoffs/credentials.mjs": {
+      "sha256": "6f01ea36cf00c5200326bc5377afae709cc61328bae5777001f9541ad8bd6971",
+      "executable": false
+    },
     "src/porthole/handoffs/model.ts": {
-      "sha256": "7adf6d2400441e86bf6136d2e274bf0a94e93e3391079cf3a1a23308f9d0c8e6",
+      "sha256": "b1e60144a1b0b0718ccb86a9566804195e943b688ec37718427e57177cda5965",
       "executable": false
     },
     "src/porthole/handoffs/openapi.ts": {
@@ -4801,7 +4809,7 @@
       "executable": false
     },
     "src/porthole/handoffs/store.ts": {
-      "sha256": "e049659ac16926a1e48740366d7913fbf653433aceb882abd2a1e5543dbfc33e",
+      "sha256": "50ff00856d0328ce7a8a450d037799ebf1ca1bcef49f092dc30d1e1fae7515d5",
       "executable": false
     },
     "src/porthole/handover/inventory.ts": {
@@ -5261,7 +5269,7 @@
       "executable": false
     },
     "src/porthole/portability/store.ts": {
-      "sha256": "e890919db8a3b72dbcc95bf3c6f340a98e24b00cb00110e7cbfd5a3ebb4cd8db",
+      "sha256": "70378a8c959ae5a385555486a854bc4eab8d41195ca2b02e95887b640c46e1eb",
       "executable": false
     },
     "src/porthole/privacy/actor-erasure/http.ts": {
@@ -5821,7 +5829,7 @@
       "executable": false
     },
     "tests/porthole/handoffs.mjs": {
-      "sha256": "315ddbbccb121efe2b00b281081f734368798c74ea741b0051fb645896aafc24",
+      "sha256": "69d2b9eb8279f59e0b66055a037ecf6b50eefff6cb37305e31b97b9a1a017eee",
       "executable": false
     },
     "tests/porthole/handover.mjs": {

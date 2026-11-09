@@ -1,3 +1,4 @@
+import {hasHandoffCredentials} from '../../src/porthole/handoffs/credentials.mjs'
 // Shared rer export/import uses the same inactive custody boundary as Settings.
 // Native identities become opaque inactive archive actors; sessions and credentials
 // are omitted entirely, including hashes. Source ids remain audit references.
@@ -27,6 +28,10 @@ export default {
   porthole_objects:{state:['quarantined']},porthole_bucket_history:{state:['quarantined']},
   porthole_ingest_control:{paused:[1]},porthole_health_receipts:{status:['Unknown'],expires_at:[0]},
   porthole_monitor_state:{status:['Unknown']},
+ },
+ exportRow(table,row) {
+  if(table==='porthole_handoff_versions'&&(hasHandoffCredentials(row.destination)||hasHandoffCredentials(row.template)))throw Error('handoff_credentials_forbidden')
+  return row
  },
  importRow(table,row) {
   if(['porthole_handoff_versions','porthole_service_packets','porthole_custom_events','porthole_event_filters'].includes(table))return {...row,state:'quarantined'}
