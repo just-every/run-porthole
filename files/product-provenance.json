@@ -1,0 +1,16 @@
+{
+  "repository": "just-every/run-porthole",
+  "branch": "cloud/sx-porthole-f466fix1",
+  "head": "9eff8deeb6a3ad54781dff817213b08c3e12d033",
+  "parents": [
+    "d77a80daa5c1b4a608839d079ccc20ca28ecc7c9",
+    "f51e701475918613fee00845d1bef56fe49517b7"
+  ],
+  "mainAtMerge": "f51e701475918613fee00845d1bef56fe49517b7",
+  "clean": true,
+  "shallow": "false",
+  "candidateCommits": 11,
+  "identityAndTrailers": "all candidate commits including side parents are fleet identity, no coauthor trailers",
+  "productPush": "first attempt succeeded; one candidate pushed",
+  "pr": null
+}

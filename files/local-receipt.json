@@ -1,0 +1,113 @@
+{
+  "checks": [
+    {
+      "command": [
+        "node",
+        "--check",
+        "tests/runtime.mjs"
+      ],
+      "exit": 0,
+      "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "tests/porthole/network.mjs"
+      ],
+      "exit": 0,
+      "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": [
+        "pnpm",
+        "run",
+        "typecheck"
+      ],
+      "exit": 0,
+      "stdoutSha256": "c729709991cfcc855d478902371f8a6f7decd9e552ec7d0f985ce3c85a31c598",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": [
+        "node",
+        "scripts/porthole/public-schema.mjs",
+        "--check"
+      ],
+      "exit": 0,
+      "stdoutSha256": "fdb3d5feaccbaba6f10e5b9b1ae55c2ec965085b85ab9db56250dfc260793c62",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": [
+        "pnpm",
+        "run",
+        "source:check"
+      ],
+      "exit": 0,
+      "stdoutSha256": "a570bf82e4aecb6220d2eeda550c2591dd13d71008c1bd87f66393853bbf5043",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": [
+        "git",
+        "diff",
+        "--check",
+        "--cached"
+      ],
+      "exit": 0,
+      "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": [
+        "git",
+        "diff",
+        "--exit-code",
+        "origin/main",
+        "--",
+        "CONTRACT.md",
+        "ACCEPTANCE.md",
+        "docs/CLAIMS.md"
+      ],
+      "exit": 0,
+      "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "contractGenerator": {
+    "write": "passed PORT-060",
+    "check": "passed PORT-060",
+    "generatedViews": "restored whole from origin/main"
+  },
+  "setup": {
+    "command": "cloud_run npx -y @runeditrun/rer setup --owner-email fleet@runeditrun.com --non-interactive",
+    "exit": 0
+  },
+  "focusedQuotaProbe": {
+    "command": "cloud_run node ../packet/quota-probe.mjs",
+    "exit": 0,
+    "receipt": "quota-receipt.json"
+  },
+  "networkAssertionLines": {
+    "before": 53,
+    "after": 53,
+    "exactUnchanged": true
+  },
+  "contractCounts": {
+    "before": {
+      "done": 10,
+      "partial": 20,
+      "missing": 69,
+      "total": 99
+    },
+    "after": {
+      "done": 10,
+      "partial": 20,
+      "missing": 69,
+      "total": 99
+    }
+  }
+}

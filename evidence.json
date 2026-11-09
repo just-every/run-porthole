@@ -1,0 +1,100 @@
+{
+  "files": [
+    {
+      "blob": "dadcc5620b2a6cb79d8fbf8d778e9790b9e4002b",
+      "bytes": 1591,
+      "path": "PLAN.md",
+      "sha256": "7525bbb13368364d1796e4a38723edab98350fa61c2e5968acd5d172364d86aa"
+    },
+    {
+      "blob": "2583cfd869e2bba933cbc218e6c0e4d2e3317616",
+      "bytes": 9384,
+      "path": "REPORT.md",
+      "sha256": "8a7eb86ba454e4533fdec0d552be515d4832cb783d62ece46c676f4366b12bcb"
+    },
+    {
+      "blob": "8e77b55e6b621bf6a82c73db89896b3e3cadde83",
+      "bytes": 262,
+      "path": "ci-discovery.json",
+      "sha256": "2f8cd2aeb0c8c72dd6a1eb813b29213a65388ee47aa7c9a129649a9ce9d692dc"
+    },
+    {
+      "blob": "8b8bc1ae0188f8f63902702aae50526b1529f90c",
+      "bytes": 1575,
+      "path": "ci-jobs.json",
+      "sha256": "4ce27a29d2bd1a77b5ac9ca06baddf3c59047ccb4d0a0f76ada869174bbeeadc"
+    },
+    {
+      "blob": "5fe2111c6f702628825dacadadc36d4c30416c9e",
+      "bytes": 1354,
+      "path": "ci-state.json",
+      "sha256": "4629cabfa94a77cd21eb60e16919feb079fa376b69f1100089f3f7f084466f00"
+    },
+    {
+      "blob": "72715515549247232188509758b5eb729e7aea06",
+      "bytes": 935,
+      "path": "identities.txt",
+      "sha256": "da56e24b16fa0e02266099add3f6ef3f8d56972c46e2151049e78921630a4fa3"
+    },
+    {
+      "blob": "d37e32389e2da22c2b5221119620f77ffdc3243e",
+      "bytes": 2988,
+      "path": "local-receipt.json",
+      "sha256": "cabb86227259941619d60f8c7e7020d8ce1af7719ba13b4ed1999330ada6a92e"
+    },
+    {
+      "blob": "0fd35338d5d321e6c3fd462e4ba5f8f3d832cb53",
+      "bytes": 6290,
+      "path": "network-failure.txt",
+      "sha256": "d4f82515f12f24170c59d52bf6d4602cf9ce521950f801a1a922615045b7354b"
+    },
+    {
+      "blob": "56963776e4c460945f8c933c678b518ca03f014d",
+      "bytes": 577,
+      "path": "product-provenance.json",
+      "sha256": "4b5981df0d1e544a120386a211ce830023b44a6ce8b23db57d04dfde3a5b7b70"
+    },
+    {
+      "blob": "ba3b763c0797670584a13cda5079251bafae789f",
+      "bytes": 947,
+      "path": "product-push.txt",
+      "sha256": "bf39ac821ae2fa2b873dcd0dd6efd4cfedf9e25b4fda6b03599c81d89bce26b7"
+    },
+    {
+      "blob": "f7233c8191b666e94b051f11021e35ce92fdebad",
+      "bytes": 330,
+      "path": "quota-probe.log",
+      "sha256": "62da4bababf8cffc5dd612a86df9f61293f488c151e581de1c2995505a010fab"
+    },
+    {
+      "blob": "90dd0777e6ea0472f29dccdf0f6a715a06f4decf",
+      "bytes": 2850,
+      "path": "quota-probe.mjs",
+      "sha256": "bfbf9d56b0c5a10c6ce89dcae24465c7e39cc39d32dd57ad5bbe8ad26be2d341"
+    },
+    {
+      "blob": "521d390b0d99313f1ffe149d8c7d9e35d72658ce",
+      "bytes": 904,
+      "path": "quota-receipt.json",
+      "sha256": "367a1c3fb90fec222582f9769b9f307afd6f98382662f0a1b000870174827e3a"
+    },
+    {
+      "blob": "8e4478c68f33967950583c6695c1675dbf070f33",
+      "bytes": 2149,
+      "path": "terminal-receipt.json",
+      "sha256": "c2f5a5e904fc528a1d914ebd6b507601b19ff3d1f51da70ea06c2b8145a7893d"
+    },
+    {
+      "blob": "5d72c956c0f9a72401b136183b224117ee19e9ca",
+      "bytes": 244,
+      "path": "typecheck.log",
+      "sha256": "c729709991cfcc855d478902371f8a6f7decd9e552ec7d0f985ce3c85a31c598"
+    }
+  ],
+  "product_branch": "cloud/sx-porthole-f466fix1",
+  "product_head": "9eff8deeb6a3ad54781dff817213b08c3e12d033",
+  "ref": "refs/heads/evidence/sx-porthole-f466fix1",
+  "repository": "just-every/run-porthole",
+  "schema": 1,
+  "tag": "sx-porthole-f466fix1"
+}

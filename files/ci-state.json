@@ -1,0 +1,42 @@
+{
+  "ghCalls": 6,
+  "runId": 42616107194,
+  "head": "9eff8deeb6a3ad54781dff817213b08c3e12d033",
+  "lastPoll": 1794227736.483671,
+  "history": [
+    {
+      "total_count": 1,
+      "workflow_runs": [
+        {
+          "conclusion": null,
+          "event": "push",
+          "head_sha": "9eff8deeb6a3ad54781dff817213b08c3e12d033",
+          "html_url": "https://github.com/just-every/run-porthole/actions/runs/42616107194",
+          "id": 42616107194,
+          "name": "Verify",
+          "status": "in_progress"
+        }
+      ]
+    },
+    {
+      "conclusion": null,
+      "head_sha": "9eff8deeb6a3ad54781dff817213b08c3e12d033",
+      "html_url": "https://github.com/just-every/run-porthole/actions/runs/42616107194",
+      "status": "in_progress"
+    },
+    {
+      "conclusion": null,
+      "head_sha": "9eff8deeb6a3ad54781dff817213b08c3e12d033",
+      "html_url": "https://github.com/just-every/run-porthole/actions/runs/42616107194",
+      "status": "in_progress"
+    },
+    {
+      "conclusion": "failure",
+      "head_sha": "9eff8deeb6a3ad54781dff817213b08c3e12d033",
+      "html_url": "https://github.com/just-every/run-porthole/actions/runs/42616107194",
+      "status": "completed"
+    }
+  ],
+  "jobDetails": "ci-jobs.json",
+  "failureLogCommand": "gh run view 42616107194 --repo just-every/run-porthole --job 129156629092 --log-failed"
+}

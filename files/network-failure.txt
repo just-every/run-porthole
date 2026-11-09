@@ -1,0 +1,59 @@
+shards (network, true)	Run this shard	2026-11-09T12:21:13.3502083Z > pnpm run verify:app
+shards (network, true)	Run this shard	2026-11-09T12:21:13.5460809Z 
+shards (network, true)	Run this shard	2026-11-09T12:21:13.5461660Z > @just-every/porthole@0.1.0 verify:app /home/runner/work/run-porthole/run-porthole
+shards (network, true)	Run this shard	2026-11-09T12:21:13.5462289Z > node scripts/verify-app.mjs
+shards (network, true)	Run this shard	2026-11-09T12:21:13.5462531Z 
+shards (network, true)	Run this shard	2026-11-09T12:21:13.5700257Z > pnpm run build
+shards (network, true)	Run this shard	2026-11-09T12:21:13.6167515Z Shared production build check: 9eff8deeb6a3ad54781dff817213b08c3e12d033 (112 files)
+shards (network, true)	Run this shard	2026-11-09T12:21:13.6194608Z Using the verified production build from this CI run.
+shards (network, true)	Run this shard	2026-11-09T12:21:13.6195329Z > PORTHOLE_NETWORK_ONLY=1 pnpm run test:runtime
+shards (network, true)	Run this shard	2026-11-09T12:21:13.8173602Z 
+shards (network, true)	Run this shard	2026-11-09T12:21:13.8174531Z > @just-every/porthole@0.1.0 test:runtime /home/runner/work/run-porthole/run-porthole
+shards (network, true)	Run this shard	2026-11-09T12:21:13.8175531Z > rer queue test:runtime -- sh -c "node tests/runtime.mjs"
+shards (network, true)	Run this shard	2026-11-09T12:21:13.8175745Z 
+shards (network, true)	Run this shard	2026-11-09T12:21:13.8938675Z test:runtime
+shards (network, true)	Run this shard	2026-11-09T12:21:20.1407058Z Installed owner claim rejects missing/wrong setup tokens and request demo flags
+shards (network, true)	Run this shard	2026-11-09T12:21:20.1420755Z HTTP-001 passed against emitted local Worker: health, the installed homepage, HTTP and document 404s
+shards (network, true)	Run this shard	2026-11-09T12:22:27.8866330Z Network: counted Kafka and RabbitMQ runtimes ready
+shards (network, true)	Run this shard	2026-11-09T12:22:33.6971593Z Network window: baseline
+shards (network, true)	Run this shard	2026-11-09T12:22:42.9157897Z Network window: dns-delay
+shards (network, true)	Run this shard	2026-11-09T12:23:04.7218865Z Network window: packet-loss
+shards (network, true)	Run this shard	2026-11-09T12:23:19.2304225Z Network window: backlog
+shards (network, true)	Run this shard	2026-11-09T12:23:28.4946279Z Network window: restored-consumers
+shards (network, true)	Run this shard	2026-11-09T12:23:37.5906458Z Network window: application-failures
+shards (network, true)	Run this shard	2026-11-09T12:23:46.7234894Z Network window: denied-namespace
+shards (network, true)	Run this shard	2026-11-09T12:24:11.9821151Z Network window: restored-namespace
+shards (network, true)	Run this shard	2026-11-09T12:24:26.2562397Z Network window: denied-docker-socket
+shards (network, true)	Run this shard	2026-11-09T12:24:51.4222178Z Network window: restored-docker-socket
+shards (network, true)	Run this shard	2026-11-09T12:25:01.9495994Z Network window: denied-kafka-grant
+shards (network, true)	Run this shard	2026-11-09T12:25:28.4320133Z Network window: restored-kafka-grant
+shards (network, true)	Run this shard	2026-11-09T12:25:38.4136954Z Network window: denied-rabbit-permission
+shards (network, true)	Run this shard	2026-11-09T12:26:04.3728563Z Network window: restored-rabbit-permission
+shards (network, true)	Run this shard	2026-11-09T12:31:20.6110830Z PROBE PORT-060 archive: real native export, inactive empty restore, restart and re-export -> identical same-window evidence; no source session or collection credential restored
+shards (network, true)	Run this shard	2026-11-09T12:31:21.9708088Z 
+shards (network, true)	Run this shard	2026-11-09T12:31:22.0165877Z node:internal/modules/run_main:123
+shards (network, true)	Run this shard	2026-11-09T12:31:22.0166634Z     triggerUncaughtException(
+shards (network, true)	Run this shard	2026-11-09T12:31:22.0166993Z     ^
+shards (network, true)	Run this shard	2026-11-09T12:31:22.0167258Z 
+shards (network, true)	Run this shard	2026-11-09T12:31:22.0167694Z AssertionError [ERR_ASSERTION]: {"error":"erasure_selection_too_large"}
+shards (network, true)	Run this shard	2026-11-09T12:31:22.0167954Z 
+shards (network, true)	Run this shard	2026-11-09T12:31:22.0168046Z 409 !== 200
+shards (network, true)	Run this shard	2026-11-09T12:31:22.0168198Z 
+shards (network, true)	Run this shard	2026-11-09T12:31:22.0168578Z     at post (file://[REDACTED]/tests/porthole/network.mjs:16:100)
+shards (network, true)	Run this shard	2026-11-09T12:31:22.0171161Z     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+shards (network, true)	Run this shard	2026-11-09T12:31:22.0171829Z     at async networkJourney (file://[REDACTED]/tests/porthole/network.mjs:136:17)
+shards (network, true)	Run this shard	2026-11-09T12:31:22.0172235Z     at async file://[REDACTED]/tests/runtime.mjs:189:4 {
+shards (network, true)	Run this shard	2026-11-09T12:31:22.0172528Z   generatedMessage: false,
+shards (network, true)	Run this shard	2026-11-09T12:31:22.0172766Z   code: 'ERR_ASSERTION',
+shards (network, true)	Run this shard	2026-11-09T12:31:22.0172984Z   actual: 409,
+shards (network, true)	Run this shard	2026-11-09T12:31:22.0173195Z   expected: 200,
+shards (network, true)	Run this shard	2026-11-09T12:31:22.0173412Z   operator: 'strictEqual',
+shards (network, true)	Run this shard	2026-11-09T12:31:22.0173633Z   diff: 'simple'
+shards (network, true)	Run this shard	2026-11-09T12:31:22.0173986Z }
+shards (network, true)	Run this shard	2026-11-09T12:31:22.0174095Z 
+shards (network, true)	Run this shard	2026-11-09T12:31:22.0174194Z Node.js v22.20.0
+shards (network, true)	Run this shard	2026-11-09T12:31:22.1160631Z  ELIFECYCLE  Command failed with exit code 1.
+shards (network, true)	Run this shard	2026-11-09T12:31:22.1286528Z VERIFY_TIMING {"shard":"network","command":"PORTHOLE_NETWORK_ONLY=1 pnpm run test:runtime","seconds":608.509,"exit":1}
+shards (network, true)	Run this shard	2026-11-09T12:31:22.1430327Z  ELIFECYCLE  Command failed with exit code 1.
+shards (network, true)	Run this shard	2026-11-09T12:31:22.1551430Z VERIFY_TIMING {"shard":"network","command":"pnpm run verify:app","seconds":608.804,"exit":1}
+shards (network, true)	Run this shard	2026-11-09T12:31:22.1579642Z ##[error]Process completed with exit code 1.

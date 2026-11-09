@@ -1,0 +1,42 @@
+{
+  "probe": "duplicate OTLP intake consumes credential request quota",
+  "cases": [
+    {
+      "name": "ordinary",
+      "responses": [
+        200,
+        429
+      ],
+      "usage": {
+        "minute_requests": 600,
+        "minute_bytes": 774
+      },
+      "batches": 1,
+      "configuredQuota": {
+        "requestsPerMinute": 600,
+        "acceptedBytesPerMinute": 10485760,
+        "scannedBytesPerDay": 10737418240,
+        "usdMicrosPerDay": 10000000
+      }
+    },
+    {
+      "name": "fixture-burst",
+      "responses": [
+        200,
+        200
+      ],
+      "usage": {
+        "minute_requests": 601,
+        "minute_bytes": 1548
+      },
+      "batches": 1,
+      "configuredQuota": {
+        "requestsPerMinute": 10000,
+        "acceptedBytesPerMinute": 67108864,
+        "scannedBytesPerDay": 10737418240,
+        "usdMicrosPerDay": 10000000
+      }
+    }
+  ],
+  "result": "passed"
+}

@@ -1,0 +1,69 @@
+{
+  "repository": "just-every/run-porthole",
+  "branch": "cloud/sx-porthole-f466fix1",
+  "head": "9eff8deeb6a3ad54781dff817213b08c3e12d033",
+  "terminal": "BLOCKED",
+  "productPush": "succeeded",
+  "verify": {
+    "runId": 42616107194,
+    "url": "https://github.com/just-every/run-porthole/actions/runs/42616107194",
+    "status": "completed",
+    "conclusion": "failure",
+    "head": "9eff8deeb6a3ad54781dff817213b08c3e12d033",
+    "networkJob": 129156629092,
+    "networkConclusion": "failure",
+    "networkFailure": {
+      "error": "erasure_selection_too_large",
+      "expectedStatus": 200,
+      "actualStatus": 409,
+      "path": "tests/porthole/network.mjs:136",
+      "underlyingPath": "src/porthole/privacy/erasure/http.ts:70",
+      "reason": "More than 100 retained batches match service-wide erasure identifier; current erasure door deliberately refuses this selection."
+    },
+    "passingShards": [
+      "follow-up",
+      "ingest",
+      "runtime",
+      "traces",
+      "source",
+      "migration",
+      "analytical",
+      "dashboards"
+    ],
+    "cancelledShards": [
+      "typecheck",
+      "exports"
+    ],
+    "cancelledReason": "not established by jobs metadata; no green claim"
+  },
+  "quotaDefect": {
+    "hostedRestartReplay": "passed, execution reached archive and later erasure",
+    "hostedArchiveProbe": "passed at 2026-11-09T12:31:20.6110830Z",
+    "fullNetworkShard": "not green",
+    "probeSeconds": 608.509
+  },
+  "ghCalls": 6,
+  "reruns": 0,
+  "additionalProductChanges": "none beyond one scoped quota fix and required merge integration",
+  "clauseChanges": "none; supplied builder claim stays PARTIAL; main source judgments retained",
+  "contractCounts": {
+    "before": [
+      10,
+      20,
+      69,
+      99
+    ],
+    "after": [
+      10,
+      20,
+      69,
+      99
+    ]
+  },
+  "networkAssertionLines": {
+    "before": 53,
+    "after": 53,
+    "unchanged": true
+  },
+  "blocker": "Exact-SHA Verify is red: later network subject-erasure preview exceeds the current 100-batch erasure-door bound. Broadening erasure policy or replacing its full-service erasure assertions exceeds the one-defect brief."
+}
