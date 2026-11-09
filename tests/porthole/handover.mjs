@@ -57,9 +57,10 @@ export async function handoverJourney({origin,freshOwner,signIn,sql,mutate,resta
  // A legacy held SLO owner is previewed, but this removal adds no SLO door.
  const sloId=randomUUID(),sloDefinition={type:'event-ratio',scope,sourceId:source.credential.id,targetPpm:990000,latencyMs:300,goodMetric:null,totalMetric:null,exclusions:[]}
  await mutate(`INSERT INTO porthole_slo_versions VALUES(${literal(sloId)},1,'synthetic-porthole-9107',${literal(JSON.stringify(sloDefinition))},${literal(departing.id)},${Date.now()},'active')`)
- const databaseId=randomUUID()
- await mutate(`INSERT INTO porthole_database_sources VALUES(${literal(databaseId)},${literal(source.credential.id)},'checkout','production','commerce','postgresql',${literal('0'.repeat(64))},1,1,${Date.now()},${literal(departing.id)})`)
- const databaseBefore=await sql(`SELECT * FROM porthole_database_sources WHERE id=${literal(databaseId)}`)
+ const databaseIds=[randomUUID(),'local-postgresql','Synthetic_porthole_9110','S'.repeat(80)]
+ const databaseWhere=`id IN (${databaseIds.map(literal).join(',')})`
+ for(const databaseId of databaseIds)await mutate(`INSERT INTO porthole_database_sources VALUES(${literal(databaseId)},${literal(source.credential.id)},'checkout','production','commerce','postgresql',${literal('0'.repeat(64))},1,1,${Date.now()},${literal(departing.id)})`)
+ const databaseBefore=await sql(`SELECT * FROM porthole_database_sources WHERE ${databaseWhere} ORDER BY id`)
  const heldBefore=await sql(`SELECT * FROM porthole_slo_versions WHERE id=${literal(sloId)}`)
  cookie=await freshOwner()
  await post(members+'/remove',{operatorId:departing.id},409)
@@ -117,7 +118,10 @@ export async function handoverJourney({origin,freshOwner,signIn,sql,mutate,resta
  const rows=await sql(`SELECT owner_ref FROM porthole_event_filters WHERE id IN (${literal(filter.id)},${literal(late.id)})`)
  assert.ok(rows.every(r=>r.owner_ref===null))
  assert.deepEqual(await sql(`SELECT * FROM porthole_slo_versions WHERE id=${literal(sloId)}`),heldBefore,'held SLO version is byte-for-byte unchanged')
- assert.deepEqual(await sql(`SELECT * FROM porthole_database_sources WHERE id=${literal(databaseId)}`),databaseBefore,'held database source and enabled collection remain unchanged')
+ assert.deepEqual(await sql(`SELECT * FROM porthole_database_sources WHERE ${databaseWhere} ORDER BY id`),databaseBefore,'held database source and enabled collection remain unchanged')
+ const exported=await post('/api/porthole/v1/archive/exports',{},201),archiveRows=[]
+ for(let index=0;index<exported.totalChunks;index++)archiveRows.push(...(await get(`/api/porthole/v1/archive/exports/${exported.id}/chunks/${index}`)).rows)
+ assert.deepEqual(archiveRows.filter(r=>r.table==='porthole_handover_history').flatMap(r=>JSON.parse(r.row.decisions)).filter(d=>d.key.startsWith('database-source:')).map(d=>d.key).sort(),databaseIds.map(id=>'database-source:'+id).sort(),'archive export preserves handover continuity for every stored database source identifier form')
  const pending=(await get('/api/porthole/v1/objects')).objects.find(o=>o.id===repair.id)
  assert.equal(pending.state,'inactive')
  assert.equal((await sql(`SELECT * FROM porthole_object_approvals WHERE object_id=${literal(repair.id)}`)).length,0,'old approval is void, not transferred')

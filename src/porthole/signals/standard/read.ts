@@ -37,7 +37,13 @@ export async function standardRead(request:Request,env:Bindings,signal:'metrics'
   if(!batch?.wire_base64)fail('standard_sample_wire_unavailable',409)
   wireBytes+=batch.wire_base64.length
   if(wireBytes>8*1024*1024)fail('standard_read_budget_exceeded',422)
-  const decoded=remoteWrite(unsnappy(Uint8Array.from(atob(batch.wire_base64),c=>c.charCodeAt(0))),new Headers())
+  const wire=Uint8Array.from(atob(batch.wire_base64),c=>c.charCodeAt(0))
+  // Recovering an old sample's exact bits scans its original envelope too.
+  // Reserve those bytes with the same live credential; no legacy path may
+  // bypass the daily scan quota by selecting one point from a large batch.
+  const metered=await verifyCredential(request,env,{action:'telemetry.read',scope:emptyScope,dataScope:allScope,scannedBytes:wire.length})
+  if(canonical([metered.credential.id,metered.credential.revision,metered.credential.scope])!==canonical([original.credential.id,original.credential.revision,original.credential.scope]))fail('authority_changed',409)
+  const decoded=remoteWrite(unsnappy(wire),new Headers())
   for(const row of rows.filter(row=>row.batch_id===batchId)){
    const original=decoded[Number(row.id.split(':').at(-1))]?.payload.record as Record<string,unknown>|undefined
    if(!original?.valueBits)fail('standard_sample_wire_unavailable',409)

@@ -29,7 +29,8 @@ the client also accepts SAMPLES. Porthole performs no expression evaluation.
 
 Remote-write samples preserve original labels, milliseconds and float bits,
 including signed zero and stale NaN. Legacy samples recover their bits from retained original wire, within an
-additional eight MiB recovery budget; unavailable wire refuses explicitly. OTLP mapping pins OpenTelemetry specification v1.45.0,
+additional eight MiB recovery budget; those original envelope bytes also consume
+the credential scan quota. Unavailable wire refuses explicitly. OTLP mapping pins OpenTelemetry specification v1.45.0,
 Prometheus compatibility, with the Prometheus 3.5.0 OTLP receiver profile:
 normalized names and labels, logical JSON values for compound attributes
 (including exact integer labels), unit words before type suffixes, cumulative
@@ -42,6 +43,12 @@ attributes form `target_info`. Scope-info metrics and scope labels are disabled
 in this fixed receiver profile, matching the reference receiver. Compound labels also follow the
 [upstream Value.AsString implementation](https://github.com/open-telemetry/opentelemetry-collector/blob/pdata%2Fv1.34.0/pdata/pcommon/value.go)
 in pdata v1.34.0, the dependency embedded in that pinned Prometheus binary.
+
+Label normalization preserves repeated underscores, prefixes digit-leading names
+with `key_`, and prefixes a single leading underscore with `key`. Normalized
+collisions join attribute values in original key order. Metric names tokenize
+separators, avoid repeated unit tokens and put `total` last for counters. Bucket
+and quantile label values use fixed decimal notation, including small bounds.
 
 Delta temporality, exponential histograms, unsupported metric protocols,
 invalid distributions, negative histogram or summary sums, and conflicting
