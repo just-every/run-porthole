@@ -5697,7 +5697,7 @@
       "executable": false
     },
     "tests/porthole/analytics.mjs": {
-      "sha256": "d3d5b6af8517a28c547024430b12e4c9f12b87ec0bed82206fa38f685818b064",
+      "sha256": "ad84b54b9434bcd0e7ee3f7492660b14dfad55dde6d1d03ba401c3781fb6a91f",
       "executable": false
     },
     "tests/porthole/api.mjs": {
@@ -5721,7 +5721,7 @@
       "executable": false
     },
     "tests/porthole/control-plane-recovery.mjs": {
-      "sha256": "13e46715cf7aec5a1330f39ec6a932d0ae68d4bc0053a3000e8f8718e47f0a2a",
+      "sha256": "32b2b09961137109948725b181c94f05f8b3c26977df3b010fd1b6605dfdf069",
       "executable": false
     },
     "tests/porthole/credentials.mjs": {
@@ -6001,7 +6001,7 @@
       "executable": false
     },
     "workers/analytics/coverage.mjs": {
-      "sha256": "e29020bcd110117cdfbc090f5bcfc793499f9495590d67f5549f0fd4df870492",
+      "sha256": "8c45165ea01a80a03a1d494f0e383391d28d4b906f2bdc0fecb097e831d43391",
       "executable": false
     },
     "workers/analytics/index.mjs": {

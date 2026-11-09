@@ -5,7 +5,15 @@ export async function state(db) {
  if (!row) fail('analytics_schema_unavailable', 503);
  return row;
 }
-export async function activeInventory(db) {return !!await db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='analytics_active_batches'").first()}
+export async function activeInventory(db) {
+ const rows=(await db.prepare("SELECT name,sql FROM sqlite_master WHERE type='table' AND name IN ('analytics_active_batches','analytics_batches','analytics_recoveries')").all()).results
+ if(rows.some(row=>row.name==='analytics_active_batches'))return true
+ // Only the actual pre-recovery schema can use its original inventory. A
+ // missing current projection must never release fenced historical rows.
+ const legacy=rows.find(row=>row.name==='analytics_batches')
+ if(rows.some(row=>row.name==='analytics_recoveries')||!legacy||!/completion_sequence\s+INTEGER\s+NOT\s+NULL\s+UNIQUE\b/i.test(legacy.sql??''))fail('analytics_schema_unavailable',503)
+ return false
+}
 export async function watermark(db) {
  const active=await activeInventory(db),table=active?'analytics_active_batches':'analytics_batches'
  // Include sequence zero: a replica containing sequence 2 without 1 covers zero.

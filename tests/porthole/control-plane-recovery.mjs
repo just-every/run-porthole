@@ -242,6 +242,15 @@ export async function controlPlaneRecoveryJourney(){
   await native(destinationDirectory,['import','--input',file,'--yes'],{refused:true})
   assert.deepEqual(await readFile(file),occupiedBefore)
   await destination.start();assert.equal((await destination.snapshot()).porthole_telemetry_records.length,10)
+  const heldPhysical=await estate.inspect('primary')
+  await estate.stop('primary');await estate.sql('primary','ALTER TABLE analytics_active_batches RENAME TO analytics_recovery_unavailable');await estate.start('primary')
+  try{
+   const unavailable=await destination.call('/api/porthole/v1/ingest/records?signal=logs',{headers:{cookie:destination.cookie}})
+   assert.equal(unavailable.status,503,'missing custody projection cannot fall back to the unfenced physical store')
+   assert.ok(!('records'in await unavailable.json()))
+   assert.deepEqual(await estate.inspect('primary'),heldPhysical)
+  }finally{await estate.stop('primary');await estate.sql('primary','ALTER TABLE analytics_recovery_unavailable RENAME TO analytics_active_batches');await estate.start('primary')}
+  assert.equal((await destination.read('/api/porthole/v1/ingest/records?signal=logs')).records.length,10,'restoring the exact projection keeps the post-export gap fenced')
   record('buffered outage input reconciled once',{backupRecords:6,postExportGap:2,bufferedRecords:4,destinationRecords:10,duplicatesAccounted:4,originalNanoseconds:true})
   assert.equal(heartbeatTransportFailure({code:'ENETUNREACH'}),'local_network_unavailable')
   assert.equal(heartbeatTransportFailure({code:'ECONNREFUSED'}),'control_plane_unreachable')
