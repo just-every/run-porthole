@@ -17,7 +17,7 @@ export async function servicesJourney({origin,freshOwner,signIn,sql,restartWorke
  assert.equal((await read()).services.length,0)
  await servicesBrowser({origin,cookie,path:'/app/services',contains:'No services with retained evidence',name:'services-empty',dispatch:browserDispatch})
  const source=await send('/app/settings/credentials/mint',{name:'synthetic-porthole-8206',class:'ingest',scope:{...scope,signals:['traces','logs'],actions:['telemetry.write']}},201)
- const proof=await serviceCatalogEstate({origin,secret:source.secret,dispatch:call})
+ const proof=await serviceCatalogEstate({origin,secret:source.secret,dispatch:call,logs:true})
  assert.equal(proof.statuses.filter(s=>s===503).length,8,'independently counted application errors')
  assert.equal(proof.statuses.filter(s=>s===200).length,28)
  assert.equal(proof.receipts.find(r=>r.received.length).received.length,36,'all actual queue messages arrived once')

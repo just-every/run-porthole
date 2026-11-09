@@ -5921,7 +5921,7 @@
       "executable": false
     },
     "tests/porthole/polyglot/estate.mjs": {
-      "sha256": "62f05101c3dda5870dc4c7804cdfd58e6dfeabaac68548154a1cd2ce9768dbfb",
+      "sha256": "c455bfff291aeb98162ea34a68ddf7410eb9f23a5b361bc3a261ae8718cfa271",
       "executable": false
     },
     "tests/porthole/polyglot/node.cjs": {
@@ -5949,7 +5949,7 @@
       "executable": false
     },
     "tests/porthole/services.mjs": {
-      "sha256": "2e67c280465696fa1818f495f6c395b13a363ad5e30c97fe75ade4cb6c538d6b",
+      "sha256": "35c0a83214dc331c82702bb513cac760aca69957caa8efde55d122813926c542",
       "executable": false
     },
     "tests/porthole/services/producer.cjs": {
