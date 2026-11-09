@@ -157,8 +157,9 @@ complete subject-erasure implementation.
 
 ## Current qualification limits
 
-PORT-061 remains PARTIAL. Complete standard signal API qualification, automatic subject-to-record
-exclusion coverage and full erasure qualification remain open. The cost model
+PORT-061 remains PARTIAL. Bounded metrics and trace reads have focused stock-client
+interoperability journeys described below. Standard log and profile reads, automatic
+subject-to-record exclusion coverage and full erasure qualification remain open. The cost model
 projects owner-supplied rates; live provider tariffs and complete infrastructure
 cost qualification remain unproved. Independent OTLP and standard profile readers and portable
 record exclusions across old product archives are covered by the focused journey. The existing actor anonymization
