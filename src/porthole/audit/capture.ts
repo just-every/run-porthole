@@ -27,7 +27,7 @@ const actions: Record<string, string> = {
  '/app/settings/integrations/reconcile':'integration.notice-reconcile',
  '/app/settings/instrumentation':'instrumentation.baggage',
  '/app/settings/analytics':'analytics.configure','/app/settings/analytics/reconcile':'analytics.reconcile','/api/porthole/v1/analytics/configuration':'analytics.configure','/api/porthole/v1/analytics/reconcile':'analytics.reconcile',
- '/app/settings/members/invite':'membership.invite', '/app/settings/members/change':'membership.role', '/app/settings/members/remove':'membership.status',
+ '/app/settings/members/preview':'membership.handover-preview', '/app/settings/members/invite':'membership.invite', '/app/settings/members/change':'membership.role', '/app/settings/members/remove':'membership.status',
  '/app/settings/credentials/rescope':'credentials.rescope',
  '/app/settings/credentials/mint':'credentials.mint', '/app/settings/credentials/rotate':'credentials.rotate', '/app/settings/credentials/revoke':'credentials.revoke',
  '/api/porthole/v1/ingest/control':'ingest.control', '/api/porthole/v1/ingest/drain':'ingest.reconcile', '/api/porthole/v1/ingest/loss':'ingest.loss',

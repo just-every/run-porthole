@@ -169,3 +169,18 @@ restore, fresh destination owner proof, exact analytical custody review and new
 scoped collector credentials. Post-export analytical rows remain counted and
 fenced; an archive restores no source authority or live coverage. A deployed
 outage drill and external notification authority remain unqualified.
+
+## Removal handover history
+
+A reviewed removal records opaque member references, the inventory digest,
+object revisions and explicit successor decisions in private transactional
+history. Each unassigned object opens named PORT-059 work; existing recovery
+guards, collection configuration and monitor definitions remain unchanged.
+Follow-up assignment changes retain their original evidence and add a handover
+event. An approved repair whose approver is removed becomes inactive and needs
+a new current approver; no approval or execution permission transfers.
+
+Product archives carry these handover receipts as inactive history. Restore
+does not replay removal, revive ownership grants, private shares, public
+addresses, approvals, custodial credentials or pending work. Re-export retains
+the receipt decisions and their inactive state.
