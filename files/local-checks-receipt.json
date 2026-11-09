@@ -1,0 +1,25 @@
+{
+  "head": "3dc24efb6f5f6aefd50450565837d037bceb1544",
+  "node": "v22.20.0",
+  "checks": [
+    {
+      "command": "pnpm run typecheck",
+      "exit": 0
+    },
+    {
+      "command": "node --check tests/porthole/archive.mjs",
+      "exit": 0
+    },
+    {
+      "command": "pnpm run source:check",
+      "exit": 0
+    }
+  ],
+  "scope": {
+    "product_runtime_changed": false,
+    "contract_clauses_changed": 0,
+    "generated_contract_views_changed": false,
+    "test_registrations_added": 0,
+    "test_registrations_removed": 0
+  }
+}

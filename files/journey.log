@@ -1,0 +1,76 @@
+JOURNEY_BEGIN iteration=1/10 head=3dc24efb6f5f6aefd50450565837d037bceb1544 started=2026-11-09T13:25:29.841Z
+nativeBackupErasureJourney passed: actual native backup, owner-only exact erasure of every matching batch and frozen custody, unchanged unrelated subject and trace history, capture and revoked-credential refusal, restart and native restore with no erased subject or live host authority
+JOURNEY_END {"iteration":1,"started":"2026-11-09T13:25:29.841Z","finished":"2026-11-09T13:38:22.680Z","seconds":772.837,"code":0,"signal":null,"passed":true}
+JOURNEY_BEGIN iteration=2/10 head=3dc24efb6f5f6aefd50450565837d037bceb1544 started=2026-11-09T13:38:22.682Z
+nativeBackupErasureJourney passed: actual native backup, owner-only exact erasure of every matching batch and frozen custody, unchanged unrelated subject and trace history, capture and revoked-credential refusal, restart and native restore with no erased subject or live host authority
+JOURNEY_END {"iteration":2,"started":"2026-11-09T13:38:22.682Z","finished":"2026-11-09T13:52:46.371Z","seconds":863.689,"code":0,"signal":null,"passed":true}
+JOURNEY_BEGIN iteration=3/10 head=3dc24efb6f5f6aefd50450565837d037bceb1544 started=2026-11-09T13:52:46.373Z
+nativeBackupErasureJourney passed: actual native backup, owner-only exact erasure of every matching batch and frozen custody, unchanged unrelated subject and trace history, capture and revoked-credential refusal, restart and native restore with no erased subject or live host authority
+JOURNEY_END {"iteration":3,"started":"2026-11-09T13:52:46.373Z","finished":"2026-11-09T14:06:44.763Z","seconds":838.39,"code":0,"signal":null,"passed":true}
+JOURNEY_BEGIN iteration=4/10 head=3dc24efb6f5f6aefd50450565837d037bceb1544 started=2026-11-09T14:06:44.766Z
+nativeBackupErasureJourney passed: actual native backup, owner-only exact erasure of every matching batch and frozen custody, unchanged unrelated subject and trace history, capture and revoked-credential refusal, restart and native restore with no erased subject or live host authority
+JOURNEY_END {"iteration":4,"started":"2026-11-09T14:06:44.766Z","finished":"2026-11-09T14:20:49.047Z","seconds":844.281,"code":0,"signal":null,"passed":true}
+JOURNEY_BEGIN iteration=5/10 head=3dc24efb6f5f6aefd50450565837d037bceb1544 started=2026-11-09T14:20:49.050Z
+nativeBackupErasureJourney passed: actual native backup, owner-only exact erasure of every matching batch and frozen custody, unchanged unrelated subject and trace history, capture and revoked-credential refusal, restart and native restore with no erased subject or live host authority
+JOURNEY_END {"iteration":5,"started":"2026-11-09T14:20:49.050Z","finished":"2026-11-09T14:35:43.480Z","seconds":894.43,"code":0,"signal":null,"passed":true}
+JOURNEY_BEGIN iteration=6/10 head=3dc24efb6f5f6aefd50450565837d037bceb1544 started=2026-11-09T14:35:43.482Z
+nativeBackupErasureJourney passed: actual native backup, owner-only exact erasure of every matching batch and frozen custody, unchanged unrelated subject and trace history, capture and revoked-credential refusal, restart and native restore with no erased subject or live host authority
+JOURNEY_END {"iteration":6,"started":"2026-11-09T14:35:43.482Z","finished":"2026-11-09T14:49:17.370Z","seconds":813.888,"code":0,"signal":null,"passed":true}
+JOURNEY_BEGIN iteration=7/10 head=3dc24efb6f5f6aefd50450565837d037bceb1544 started=2026-11-09T14:49:17.373Z
+nativeBackupErasureJourney passed: actual native backup, owner-only exact erasure of every matching batch and frozen custody, unchanged unrelated subject and trace history, capture and revoked-credential refusal, restart and native restore with no erased subject or live host authority
+JOURNEY_END {"iteration":7,"started":"2026-11-09T14:49:17.373Z","finished":"2026-11-09T15:04:11.117Z","seconds":893.744,"code":0,"signal":null,"passed":true}
+JOURNEY_BEGIN iteration=8/10 head=3dc24efb6f5f6aefd50450565837d037bceb1544 started=2026-11-09T15:04:11.119Z
+file:///workspace/run-porthole/tests/porthole/archive.mjs:780
+ catch(error){const capture=await readFile(join(cwd,'.seed/installer/install.log'),'utf8').catch(()=> '');const redact=value=>String(value??'').replace(/[A-Za-z0-9_+./=-]{32,}/g,'[redacted]');throw Error(`Native ${args[0]} failed (${error.code})\n${redact(error.stderr).slice(-6000)}\n${redact(error.stdout).slice(-3000)}\n${redact(capture).split('\n').slice(-16).join('\n')}`)}
+                                                                                                                                                                                                      ^
+
+Error: Native import failed (1)
+Heavy job admitted: Porthole import:workflow [318be6e79567]
+Checking pinned pnpm
+10.12.4
+Local import
+▲ [WARNING] Proxy environment variables detected. We'll use your proxy for fetch requests.
+
+
+Checking archive policy local installation data
+Checking migration history for local installation data
+▲ [WARNING] Proxy environment variables detected. We'll use your proxy for fetch requests.
+
+
+Applying local data migrations
+▲ [WARNING] Proxy environment variables detected. We'll use your proxy for fetch requests.
+
+
+Restoring local installation data
+Restoring a 487 KB archive. This takes under a minute.
+Checking the whole archive before anything is restored.
+▲ [WARNING] Proxy environment variables detected. We'll use your proxy for fetch requests.
+
+
+Checking the whole archive before anything is restored.
+Staging the restore: 1 of 20 parts (340 B).
+Staging the restore: 3 of 20 parts (112 KB), under a minute left.
+Staging the restore: 7 of 20 parts (113 KB), under a minute left.
+Staging the restore: 12 of 20 parts (127 KB), under a minute left.
+Staging the restore: 17 of 20 parts (132 KB), under a minute left.
+Staging the restore: 20 of 20 parts (140 KB).
+All 20 parts are staged; verifying them and publishing the restore. This can take several minutes.
+Recording private archive audit
+▲ [WARNING] Proxy environment variables detected. We'll use your proxy for fetch requests.
+
+
+Private archive audit projected.
+The portability module refused or failed the archive operation (native_error: TypeError). Run the same command again; it starts over.
+
+import: failed (exit 1)
+
+
+    at command (file:///workspace/run-porthole/tests/porthole/archive.mjs:780:199)
+    at async run (file:///workspace/run-porthole/tests/porthole/archive.mjs:1012:3)
+    at async nativeBackupJourney (file:///workspace/run-porthole/tests/porthole/archive.mjs:1038:3)
+    at async nativeBackupErasureJourney (file:///workspace/run-porthole/tests/porthole/archive.mjs:764:53)
+    at async file:///workspace/run-porthole/[eval1]:1:74
+
+Node.js v22.20.0
+JOURNEY_END {"iteration":8,"started":"2026-11-09T15:04:11.119Z","finished":"2026-11-09T15:16:51.857Z","seconds":760.738,"code":1,"signal":null,"passed":false}
+JOURNEY_TOTAL {"head":"3dc24efb6f5f6aefd50450565837d037bceb1544","passed":7,"failed":1,"requested":10}

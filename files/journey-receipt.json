@@ -1,0 +1,84 @@
+{
+  "repository": "just-every/run-porthole",
+  "branch": "cloud/sx-porthole-sqlite-busy-1",
+  "head": "3dc24efb6f5f6aefd50450565837d037bceb1544",
+  "node": "v22.20.0",
+  "journey": "tests/porthole/archive.mjs#nativeBackupErasureJourney",
+  "requested": 10,
+  "results": [
+    {
+      "iteration": 1,
+      "started": "2026-11-09T13:25:29.841Z",
+      "finished": "2026-11-09T13:38:22.680Z",
+      "seconds": 772.837,
+      "code": 0,
+      "signal": null,
+      "passed": true
+    },
+    {
+      "iteration": 2,
+      "started": "2026-11-09T13:38:22.682Z",
+      "finished": "2026-11-09T13:52:46.371Z",
+      "seconds": 863.689,
+      "code": 0,
+      "signal": null,
+      "passed": true
+    },
+    {
+      "iteration": 3,
+      "started": "2026-11-09T13:52:46.373Z",
+      "finished": "2026-11-09T14:06:44.763Z",
+      "seconds": 838.39,
+      "code": 0,
+      "signal": null,
+      "passed": true
+    },
+    {
+      "iteration": 4,
+      "started": "2026-11-09T14:06:44.766Z",
+      "finished": "2026-11-09T14:20:49.047Z",
+      "seconds": 844.281,
+      "code": 0,
+      "signal": null,
+      "passed": true
+    },
+    {
+      "iteration": 5,
+      "started": "2026-11-09T14:20:49.050Z",
+      "finished": "2026-11-09T14:35:43.480Z",
+      "seconds": 894.43,
+      "code": 0,
+      "signal": null,
+      "passed": true
+    },
+    {
+      "iteration": 6,
+      "started": "2026-11-09T14:35:43.482Z",
+      "finished": "2026-11-09T14:49:17.370Z",
+      "seconds": 813.888,
+      "code": 0,
+      "signal": null,
+      "passed": true
+    },
+    {
+      "iteration": 7,
+      "started": "2026-11-09T14:49:17.373Z",
+      "finished": "2026-11-09T15:04:11.117Z",
+      "seconds": 893.744,
+      "code": 0,
+      "signal": null,
+      "passed": true
+    },
+    {
+      "iteration": 8,
+      "started": "2026-11-09T15:04:11.119Z",
+      "finished": "2026-11-09T15:16:51.857Z",
+      "seconds": 760.738,
+      "code": 1,
+      "signal": null,
+      "passed": false
+    }
+  ],
+  "passed": 7,
+  "failed": 1
+}

@@ -1,0 +1,14 @@
+{
+  "head": "3dc24efb6f5f6aefd50450565837d037bceb1544",
+  "before": {
+    "file_assertion_calls": 515,
+    "native_helper_assertion_calls": 56,
+    "journey_exports": 21
+  },
+  "after": {
+    "file_assertion_calls": 515,
+    "native_helper_assertion_calls": 56,
+    "journey_exports": 21
+  },
+  "assertion_lines_unchanged": true
+}

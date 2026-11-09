@@ -1,0 +1,32 @@
+{
+  "repository": "just-every/run-porthole",
+  "branch": "cloud/sx-porthole-sqlite-busy-1",
+  "head": "3dc24efb6f5f6aefd50450565837d037bceb1544",
+  "origin_main": "f51e701475918613fee00845d1bef56fe49517b7",
+  "remote_product_head": "3dc24efb6f5f6aefd50450565837d037bceb1544",
+  "remote_product_verified_at": "2026-11-09T15:19:23.688886+00:00",
+  "push_entrypoint": "python3 $HOME/rer-consolidation/.tools/cloud-push.py origin cloud/sx-porthole-sqlite-busy-1",
+  "observed_push_result": "PUSH_OK branch=cloud/sx-porthole-sqlite-busy-1",
+  "push_attempts": 1,
+  "identity_trailer_log": "Run Edit Run fleet <fleet@runeditrun.com>\nRun Edit Run fleet <fleet@runeditrun.com>\n\nRun Edit Run fleet <fleet@runeditrun.com>\nRun Edit Run fleet <fleet@runeditrun.com>",
+  "clean_worktree": true,
+  "changed_paths": [
+    "sources.lock.json",
+    "tests/porthole/archive.mjs"
+  ],
+  "pr": null,
+  "published_history_rewritten": false,
+  "publication_scan": "Not run in cloud; brief excludes it and fleet owns pre-landing publication scan.",
+  "product_pushes": [
+    {
+      "head": "c7a6d9862319ff0ab4c80ed32ed6d337aa238591",
+      "attempts": 1,
+      "result": "PUSH_OK"
+    },
+    {
+      "head": "3dc24efb6f5f6aefd50450565837d037bceb1544",
+      "attempts": 1,
+      "result": "PUSH_OK"
+    }
+  ]
+}

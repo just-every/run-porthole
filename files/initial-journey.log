@@ -1,0 +1,40 @@
+JOURNEY_BEGIN iteration=1/10 head=c7a6d9862319ff0ab4c80ed32ed6d337aa238591 started=2026-11-09T12:18:31.136Z
+nativeBackupErasureJourney passed: actual native backup, owner-only exact erasure of every matching batch and frozen custody, unchanged unrelated subject and trace history, capture and revoked-credential refusal, restart and native restore with no erased subject or live host authority
+JOURNEY_END {"iteration":1,"started":"2026-11-09T12:18:31.136Z","finished":"2026-11-09T12:29:47.510Z","seconds":676.372,"code":0,"signal":null,"passed":true}
+JOURNEY_BEGIN iteration=2/10 head=c7a6d9862319ff0ab4c80ed32ed6d337aa238591 started=2026-11-09T12:29:47.513Z
+nativeBackupErasureJourney passed: actual native backup, owner-only exact erasure of every matching batch and frozen custody, unchanged unrelated subject and trace history, capture and revoked-credential refusal, restart and native restore with no erased subject or live host authority
+JOURNEY_END {"iteration":2,"started":"2026-11-09T12:29:47.513Z","finished":"2026-11-09T12:40:33.073Z","seconds":645.559,"code":0,"signal":null,"passed":true}
+JOURNEY_BEGIN iteration=3/10 head=c7a6d9862319ff0ab4c80ed32ed6d337aa238591 started=2026-11-09T12:40:33.075Z
+nativeBackupErasureJourney passed: actual native backup, owner-only exact erasure of every matching batch and frozen custody, unchanged unrelated subject and trace history, capture and revoked-credential refusal, restart and native restore with no erased subject or live host authority
+JOURNEY_END {"iteration":3,"started":"2026-11-09T12:40:33.075Z","finished":"2026-11-09T12:53:11.788Z","seconds":758.713,"code":0,"signal":null,"passed":true}
+JOURNEY_BEGIN iteration=4/10 head=c7a6d9862319ff0ab4c80ed32ed6d337aa238591 started=2026-11-09T12:53:11.795Z
+nativeBackupErasureJourney passed: actual native backup, owner-only exact erasure of every matching batch and frozen custody, unchanged unrelated subject and trace history, capture and revoked-credential refusal, restart and native restore with no erased subject or live host authority
+JOURNEY_END {"iteration":4,"started":"2026-11-09T12:53:11.795Z","finished":"2026-11-09T13:05:26.638Z","seconds":734.842,"code":0,"signal":null,"passed":true}
+JOURNEY_BEGIN iteration=5/10 head=c7a6d9862319ff0ab4c80ed32ed6d337aa238591 started=2026-11-09T13:05:26.646Z
+nativeBackupErasureJourney passed: actual native backup, owner-only exact erasure of every matching batch and frozen custody, unchanged unrelated subject and trace history, capture and revoked-credential refusal, restart and native restore with no erased subject or live host authority
+JOURNEY_END {"iteration":5,"started":"2026-11-09T13:05:26.646Z","finished":"2026-11-09T13:16:54.802Z","seconds":688.155,"code":0,"signal":null,"passed":true}
+JOURNEY_BEGIN iteration=6/10 head=c7a6d9862319ff0ab4c80ed32ed6d337aa238591 started=2026-11-09T13:16:54.805Z
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: old product custody is withdrawn
+
+403 !== 404
+
+    at run (file:///workspace/run-porthole/tests/porthole/archive.mjs:978:10)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async nativeBackupJourney (file:///workspace/run-porthole/tests/porthole/archive.mjs:1035:3)
+    at async nativeBackupErasureJourney (file:///workspace/run-porthole/tests/porthole/archive.mjs:764:53)
+    at async file:///workspace/run-porthole/[eval1]:1:74 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: 403,
+  expected: 404,
+  operator: 'strictEqual',
+  diff: 'simple'
+}
+
+Node.js v22.20.0
+JOURNEY_END {"iteration":6,"started":"2026-11-09T13:16:54.805Z","finished":"2026-11-09T13:23:59.898Z","seconds":425.093,"code":1,"signal":null,"passed":false}
+JOURNEY_TOTAL {"head":"c7a6d9862319ff0ab4c80ed32ed6d337aa238591","passed":5,"failed":1,"requested":10}

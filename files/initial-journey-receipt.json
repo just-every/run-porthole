@@ -1,0 +1,66 @@
+{
+  "repository": "just-every/run-porthole",
+  "branch": "cloud/sx-porthole-sqlite-busy-1",
+  "head": "c7a6d9862319ff0ab4c80ed32ed6d337aa238591",
+  "node": "v22.20.0",
+  "journey": "tests/porthole/archive.mjs#nativeBackupErasureJourney",
+  "requested": 10,
+  "results": [
+    {
+      "iteration": 1,
+      "started": "2026-11-09T12:18:31.136Z",
+      "finished": "2026-11-09T12:29:47.510Z",
+      "seconds": 676.372,
+      "code": 0,
+      "signal": null,
+      "passed": true
+    },
+    {
+      "iteration": 2,
+      "started": "2026-11-09T12:29:47.513Z",
+      "finished": "2026-11-09T12:40:33.073Z",
+      "seconds": 645.559,
+      "code": 0,
+      "signal": null,
+      "passed": true
+    },
+    {
+      "iteration": 3,
+      "started": "2026-11-09T12:40:33.075Z",
+      "finished": "2026-11-09T12:53:11.788Z",
+      "seconds": 758.713,
+      "code": 0,
+      "signal": null,
+      "passed": true
+    },
+    {
+      "iteration": 4,
+      "started": "2026-11-09T12:53:11.795Z",
+      "finished": "2026-11-09T13:05:26.638Z",
+      "seconds": 734.842,
+      "code": 0,
+      "signal": null,
+      "passed": true
+    },
+    {
+      "iteration": 5,
+      "started": "2026-11-09T13:05:26.646Z",
+      "finished": "2026-11-09T13:16:54.802Z",
+      "seconds": 688.155,
+      "code": 0,
+      "signal": null,
+      "passed": true
+    },
+    {
+      "iteration": 6,
+      "started": "2026-11-09T13:16:54.805Z",
+      "finished": "2026-11-09T13:23:59.898Z",
+      "seconds": 425.093,
+      "code": 1,
+      "signal": null,
+      "passed": false
+    }
+  ],
+  "passed": 5,
+  "failed": 1
+}

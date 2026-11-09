@@ -1,0 +1,16 @@
+{
+  "head": "3dc24efb6f5f6aefd50450565837d037bceb1544",
+  "run": {
+    "conclusion": "failure",
+    "event": "push",
+    "head_branch": "cloud/sx-porthole-sqlite-busy-1",
+    "head_sha": "3dc24efb6f5f6aefd50450565837d037bceb1544",
+    "html_url": "https://github.com/just-every/run-porthole/actions/runs/42625338953",
+    "id": 42625338953,
+    "name": "Verify",
+    "status": "completed"
+  },
+  "github_calls_total": 10,
+  "github_call_budget": 10,
+  "final_run_failure_details": "Not inspected: ten-call GitHub budget exhausted. Earlier candidate failure details are separately retained; they are not claimed as the final run cause."
+}

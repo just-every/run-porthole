@@ -1,0 +1,68 @@
+shards (analytical, true)	Run this shard	﻿2026-11-09T12:19:33.2178688Z ##[group]Run node scripts/verify-ci.mjs "$SHARD"
+shards (analytical, true)	Run this shard	2026-11-09T12:19:33.2179007Z [36;1mnode scripts/verify-ci.mjs "$SHARD"[0m
+shards (analytical, true)	Run this shard	2026-11-09T12:19:33.2190007Z shell: /usr/bin/bash -e {0}
+shards (analytical, true)	Run this shard	2026-11-09T12:19:33.2190235Z env:
+shards (analytical, true)	Run this shard	2026-11-09T12:19:33.2190415Z   CI: true
+shards (analytical, true)	Run this shard	2026-11-09T12:19:33.2190595Z   WRANGLER_SEND_METRICS: false
+shards (analytical, true)	Run this shard	2026-11-09T12:19:33.2190841Z   PLAYWRIGHT_SKIP_BROWSER_GC: 1
+shards (analytical, true)	Run this shard	2026-11-09T12:19:33.2191063Z   SHARD: analytical
+shards (analytical, true)	Run this shard	2026-11-09T12:19:33.2191315Z   SEED_VERIFY_PREBUILT: 1
+shards (analytical, true)	Run this shard	2026-11-09T12:19:33.2191520Z ##[endgroup]
+shards (analytical, true)	Run this shard	2026-11-09T12:19:33.2445354Z > pnpm run verify:app
+shards (analytical, true)	Run this shard	2026-11-09T12:19:33.4427543Z 
+shards (analytical, true)	Run this shard	2026-11-09T12:19:33.4429272Z > @just-every/porthole@0.1.0 verify:app /home/runner/work/run-porthole/run-porthole
+shards (analytical, true)	Run this shard	2026-11-09T12:19:33.4429741Z > node scripts/verify-app.mjs
+shards (analytical, true)	Run this shard	2026-11-09T12:19:33.4429913Z 
+shards (analytical, true)	Run this shard	2026-11-09T12:19:33.4668119Z > pnpm run build
+shards (analytical, true)	Run this shard	2026-11-09T12:19:33.5147466Z Shared production build check: c7a6d9862319ff0ab4c80ed32ed6d337aa238591 (112 files)
+shards (analytical, true)	Run this shard	2026-11-09T12:19:33.5173324Z Using the verified production build from this CI run.
+shards (analytical, true)	Run this shard	2026-11-09T12:19:33.7146684Z > PORTHOLE_ANALYTICAL_ONLY=1 pnpm run test:runtime
+shards (analytical, true)	Run this shard	2026-11-09T12:19:33.7146949Z 
+shards (analytical, true)	Run this shard	2026-11-09T12:19:33.7147227Z > @just-every/porthole@0.1.0 test:runtime /home/runner/work/run-porthole/run-porthole
+shards (analytical, true)	Run this shard	2026-11-09T12:19:33.7147692Z > rer queue test:runtime -- sh -c "node tests/runtime.mjs"
+shards (analytical, true)	Run this shard	2026-11-09T12:19:33.7147900Z 
+shards (analytical, true)	Run this shard	2026-11-09T12:19:33.8028711Z test:runtime
+shards (analytical, true)	Run this shard	2026-11-09T12:19:44.8689904Z analyticalKernelJourney passed: separate Worker/D1 processes, private auth, exact replication/replay, stale standby refusal, actual process stop and original snapshot recovery; kernel-only probe; product integration is checked separately
+shards (analytical, true)	Run this shard	2026-11-09T12:19:50.5343587Z Recipient fixture: parsing migrations
+shards (analytical, true)	Run this shard	2026-11-09T12:19:51.3855635Z Recipient fixture: migrations parsed
+shards (analytical, true)	Run this shard	2026-11-09T12:19:51.3925605Z Recipient fixture: starting emitted Worker
+shards (analytical, true)	Run this shard	2026-11-09T12:19:51.8517461Z Recipient fixture: D1 ready
+shards (analytical, true)	Run this shard	2026-11-09T12:19:53.6041335Z Recipient fixture: native bootstrap
+shards (analytical, true)	Run this shard	2026-11-09T12:20:24.6915491Z Recipient fixture: parsing migrations
+shards (analytical, true)	Run this shard	2026-11-09T12:20:25.5443379Z Recipient fixture: migrations parsed
+shards (analytical, true)	Run this shard	2026-11-09T12:20:25.5528175Z Recipient fixture: starting emitted Worker
+shards (analytical, true)	Run this shard	2026-11-09T12:20:25.9796357Z Recipient fixture: D1 ready
+shards (analytical, true)	Run this shard	2026-11-09T12:20:27.6606640Z Recipient fixture: native bootstrap
+shards (analytical, true)	Run this shard	2026-11-09T12:20:30.3740307Z Recipient fixture: parsing migrations
+shards (analytical, true)	Run this shard	2026-11-09T12:20:31.2623960Z Recipient fixture: migrations parsed
+shards (analytical, true)	Run this shard	2026-11-09T12:20:31.2709417Z Recipient fixture: starting emitted Worker
+shards (analytical, true)	Run this shard	2026-11-09T12:20:31.6693240Z Recipient fixture: D1 ready
+shards (analytical, true)	Run this shard	2026-11-09T12:20:33.3439007Z Recipient fixture: native bootstrap
+shards (analytical, true)	Run this shard	2026-11-09T12:20:36.4313271Z metricUnitsJourney passed (local): stock OTLP producers, grouped 400 ms and 3 s turnover refusal, same-unit [400,3000] ms, 205 contributors, incompatible and unsupported no-effect refusals, immutable replay and revocation
+shards (analytical, true)	Run this shard	2026-11-09T12:20:41.9107849Z metricUnitsJourney passed (analytical): stock OTLP producers, grouped 400 ms and 3 s turnover refusal, same-unit [400,3000] ms, 205 contributors, incompatible and unsupported no-effect refusals, immutable replay and revocation
+shards (analytical, true)	Run this shard	2026-11-09T12:20:45.4752498Z node:internal/modules/run_main:123
+shards (analytical, true)	Run this shard	2026-11-09T12:20:45.4753048Z     triggerUncaughtException(
+shards (analytical, true)	Run this shard	2026-11-09T12:20:45.4753354Z     ^
+shards (analytical, true)	Run this shard	2026-11-09T12:20:45.4753484Z 
+shards (analytical, true)	Run this shard	2026-11-09T12:20:45.4753750Z AssertionError [ERR_ASSERTION]: no horizontal page overflow
+shards (analytical, true)	Run this shard	2026-11-09T12:20:45.4754297Z     at capture (file://[REDACTED]/tests/porthole/explore.mjs:167:66)
+shards (analytical, true)	Run this shard	2026-11-09T12:20:45.4754988Z     at async logSearchBrowser (file://[REDACTED]/tests/porthole/explore.mjs:177:3)
+shards (analytical, true)	Run this shard	2026-11-09T12:20:45.4755532Z     at async nativeLogSearchJourney (file://[REDACTED]/tests/porthole/explore.mjs:144:13)
+shards (analytical, true)	Run this shard	2026-11-09T12:20:45.4756019Z     at async Object.run (file://[REDACTED]/tests/porthole/analytics.mjs:293:4)
+shards (analytical, true)	Run this shard	2026-11-09T12:20:45.4756478Z     at async recipientMailJourney (file://[REDACTED]/tests/porthole/health.mjs:332:4)
+shards (analytical, true)	Run this shard	2026-11-09T12:20:45.4756999Z     at async analyticalConnectionJourney (file://[REDACTED]/tests/porthole/analytics.mjs:131:3)
+shards (analytical, true)	Run this shard	2026-11-09T12:20:45.4757712Z     at async file://[REDACTED]/tests/runtime.mjs:19:125 {
+shards (analytical, true)	Run this shard	2026-11-09T12:20:45.4757998Z   generatedMessage: false,
+shards (analytical, true)	Run this shard	2026-11-09T12:20:45.4758215Z   code: 'ERR_ASSERTION',
+shards (analytical, true)	Run this shard	2026-11-09T12:20:45.4758432Z   actual: false,
+shards (analytical, true)	Run this shard	2026-11-09T12:20:45.4758632Z   expected: true,
+shards (analytical, true)	Run this shard	2026-11-09T12:20:45.4758819Z   operator: '==',
+shards (analytical, true)	Run this shard	2026-11-09T12:20:45.4759009Z   diff: 'simple'
+shards (analytical, true)	Run this shard	2026-11-09T12:20:45.4759188Z }
+shards (analytical, true)	Run this shard	2026-11-09T12:20:45.4759283Z 
+shards (analytical, true)	Run this shard	2026-11-09T12:20:45.4759365Z Node.js v22.20.0
+shards (analytical, true)	Run this shard	2026-11-09T12:20:45.6018060Z  ELIFECYCLE  Command failed with exit code 1.
+shards (analytical, true)	Run this shard	2026-11-09T12:20:45.6138804Z VERIFY_TIMING {"shard":"analytical","command":"PORTHOLE_ANALYTICAL_ONLY=1 pnpm run test:runtime","seconds":72.096,"exit":1}
+shards (analytical, true)	Run this shard	2026-11-09T12:20:45.6285361Z  ELIFECYCLE  Command failed with exit code 1.
+shards (analytical, true)	Run this shard	2026-11-09T12:20:45.6402992Z VERIFY_TIMING {"shard":"analytical","command":"pnpm run verify:app","seconds":72.395,"exit":1}
+shards (analytical, true)	Run this shard	2026-11-09T12:20:45.6436991Z ##[error]Process completed with exit code 1.
