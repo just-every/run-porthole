@@ -206,7 +206,10 @@ or reset stays endpoint-unreachable; it is not proof that local networking is
 healthy. Only explicit local routing errors receive the local-network status.
 Status output contains no credential, response body or configured URL.
 
-1. In the source checkout, read both teams' retained records, batch identities,
+1. Record `installationIdentity` from the source owner's
+   `GET /api/porthole/v1/analytics/configuration`. This is the analytical
+   connection identity, distinct from Base's archive identity. In the source
+   checkout, read both teams' retained records, batch identities,
    archive receipts and audit checkpoints independently. Run `rer export --output
    exports/installation.rer` immediately before the outage. Keep that backup
    immutable. Record any acknowledged cohort accepted after export separately;
@@ -225,7 +228,8 @@ Status output contains no credential, response body or configured URL.
    Stop the old control plane from using those tokens. Connection secrets are
    never collector credentials and never belong in the archive. Leave the
    destination analytical connection paused while reviewing retained custody.
-5. From a native destination owner session with proof in the preceding five
+5. Confirm the destination's same JSON door returns a different
+   `installationIdentity`. From a native destination owner session with proof in the preceding five
    minutes, POST `/api/porthole/v1/analytics/recovery` with `mode: "preview"`,
    `role: "primary"` and the source's `previousIdentity`. Review the returned
    inventory digest, retained counts and fenced counts. Submit the same fields

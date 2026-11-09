@@ -116,7 +116,8 @@ export async function controlPlaneRecoveryJourney(){
   assert.equal((await source.db.prepare('SELECT COUNT(*) AS n FROM porthole_object_approvals').first()).n,1)
   assert.equal((await source.db.prepare('SELECT COUNT(*) AS n FROM porthole_health_recipients WHERE confirmed_at IS NOT NULL AND removed_at IS NULL').first()).n,1)
   await source.post('/api/v1/health/tick',{})
-  const sourceIdentity=(await source.db.prepare('SELECT source_identity FROM porthole_analytical_configuration').first()).source_identity
+  const sourceIdentity=configuration.installationIdentity
+  assert.equal(sourceIdentity,(await source.db.prepare('SELECT source_identity FROM porthole_analytical_configuration').first()).source_identity,'owner API identifies the actual source analytical connection')
   bufferedCollector=await recoveryCollector(scratch)
   await bufferedCollector.start(source.origin,credentials[0].secret)
   const before=await source.snapshot(),file=join(sourceDirectory,'exports','installation.rer')
@@ -198,6 +199,7 @@ export async function controlPlaneRecoveryJourney(){
   const erasureAfter=await destination.snapshot();for(const table of snapshotTables.filter(name=>!name.includes('audit')))assert.deepEqual(erasureAfter[table],erasureBefore[table],'refused erasure cannot change retained custody')
   record('fresh destination owner reviewed exact analytical custody',{retainedBatches:6,retainedRecords:6,fencedBatches:2,fencedRecords:2,physicalRecords:8})
   const cfg=await destination.read('/api/porthole/v1/analytics/configuration')
+  assert.notEqual(cfg.installationIdentity,sourceIdentity,'the explicitly selected destination has a different native connection identity')
   await destination.post('/api/porthole/v1/analytics/configuration',{revision:cfg.revision,role:'primary',enabled:true,confirm:'connect-analytical-workers'})
   const restored=await destination.read('/api/porthole/v1/ingest/records?signal=logs')
   assert.equal(restored.records.length,6);assert.deepEqual(restored.records.map(row=>row.id).sort(),before.porthole_telemetry_records.map(row=>row.id).sort())
