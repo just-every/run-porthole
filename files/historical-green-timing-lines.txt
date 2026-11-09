@@ -1,0 +1,75 @@
+10_shards (analytical, true).txt 2026-11-09T14:07:38.1047383Z VERIFY_TIMING {"shard":"analytical","command":"PORTHOLE_ANALYTICAL_ONLY=1 pnpm run test:runtime","seconds":111.963,"exit":0}
+10_shards (analytical, true).txt 2026-11-09T14:12:35.2253174Z VERIFY_TIMING {"shard":"analytical","command":"PORTHOLE_DATABASE_ONLY=1 pnpm run test:runtime","seconds":297.12,"exit":0}
+10_shards (analytical, true).txt 2026-11-09T14:12:35.2364316Z VERIFY_TIMING {"shard":"analytical","command":"pnpm run verify:app","seconds":409.434,"exit":0}
+11_shards (migration, true).txt 2026-11-09T14:13:37.0131551Z VERIFY_TIMING {"shard":"migration","command":"PORTHOLE_MIGRATION_ONLY=1 pnpm run test:runtime","seconds":475.723,"exit":0}
+11_shards (migration, true).txt 2026-11-09T14:13:37.0223314Z VERIFY_TIMING {"shard":"migration","command":"pnpm run verify:app","seconds":476.07,"exit":0}
+1_shards (network, true).txt 2026-11-09T14:06:57.6789638Z Network: counted Kafka and RabbitMQ runtimes ready
+1_shards (network, true).txt 2026-11-09T14:07:03.8207387Z Network window: baseline
+1_shards (network, true).txt 2026-11-09T14:07:13.3369104Z Network window: dns-delay
+1_shards (network, true).txt 2026-11-09T14:07:35.1106076Z Network window: packet-loss
+1_shards (network, true).txt 2026-11-09T14:07:47.4635195Z Network window: backlog
+1_shards (network, true).txt 2026-11-09T14:07:56.9057610Z Network window: restored-consumers
+1_shards (network, true).txt 2026-11-09T14:08:06.1161783Z Network window: application-failures
+1_shards (network, true).txt 2026-11-09T14:08:15.2616582Z Network window: denied-namespace
+1_shards (network, true).txt 2026-11-09T14:08:40.4507487Z Network window: restored-namespace
+1_shards (network, true).txt 2026-11-09T14:08:50.3360760Z Network window: denied-docker-socket
+1_shards (network, true).txt 2026-11-09T14:09:15.6078559Z Network window: restored-docker-socket
+1_shards (network, true).txt 2026-11-09T14:09:26.1432570Z Network window: denied-kafka-grant
+1_shards (network, true).txt 2026-11-09T14:09:52.7025547Z Network window: restored-kafka-grant
+1_shards (network, true).txt 2026-11-09T14:10:02.7456632Z Network window: denied-rabbit-permission
+1_shards (network, true).txt 2026-11-09T14:10:28.8371781Z Network window: restored-rabbit-permission
+1_shards (network, true).txt 2026-11-09T14:14:52.7346156Z PROBE PORT-060 archive: real native export, inactive empty restore, restart and re-export -> identical same-window evidence; no source session or collection credential restored
+1_shards (network, true).txt 2026-11-09T14:14:56.4712546Z PROBE PORT-060 disposable network: real counted containers, resolver delay, pair loss and broker backlog -> reconciled stock spans, namespace and broker counters; explicit missing privileges, same-window API and Services, scope revocation, replay and restart
+1_shards (network, true).txt 2026-11-09T14:15:20.0954105Z PROBE PORT-060 disposable network: real counted containers, resolver delay, pair loss and broker backlog -> reconciled stock spans, namespace and broker counters; explicit missing privileges, same-window API and Services, scope revocation, replay and restart
+1_shards (network, true).txt 2026-11-09T14:15:21.5416833Z PROBE PORT-060 backends: selected real primary and standby -> identical source-checked network and messaging evidence; stopped selected process -> 503; restart -> exact completed window
+1_shards (network, true).txt 2026-11-09T14:15:22.1151980Z VERIFY_TIMING {"shard":"network","command":"PORTHOLE_NETWORK_ONLY=1 pnpm run test:runtime","seconds":579.881,"exit":0}
+1_shards (network, true).txt 2026-11-09T14:15:22.1238394Z VERIFY_TIMING {"shard":"network","command":"pnpm run verify:app","seconds":580.155,"exit":0}
+2_shards (ingest, true).txt 2026-11-09T14:07:27.5878789Z VERIFY_TIMING {"shard":"ingest","command":"PORTHOLE_INGEST_ONLY=1 pnpm run test:runtime","seconds":102.166,"exit":0}
+2_shards (ingest, true).txt 2026-11-09T14:09:46.9725213Z VERIFY_TIMING {"shard":"ingest","command":"PORTHOLE_PIPELINES_ONLY=1 pnpm run test:runtime","seconds":139.385,"exit":0}
+2_shards (ingest, true).txt 2026-11-09T14:11:10.5704813Z VERIFY_TIMING {"shard":"ingest","command":"PORTHOLE_METRIC_RULES_ONLY=1 pnpm run test:runtime","seconds":83.598,"exit":0}
+2_shards (ingest, true).txt 2026-11-09T14:11:10.5833634Z VERIFY_TIMING {"shard":"ingest","command":"pnpm run verify:app","seconds":325.537,"exit":0}
+3_shards (typecheck, true).txt 2026-11-09T14:05:43.0995341Z VERIFY_TIMING {"shard":"typecheck","command":"pnpm run typecheck","seconds":5.156,"exit":0}
+3_shards (typecheck, true).txt 2026-11-09T14:06:27.4301718Z VERIFY_TIMING {"shard":"typecheck","command":"pnpm run test:typecheck","seconds":44.33,"exit":0}
+3_shards (typecheck, true).txt 2026-11-09T14:10:48.9782651Z VERIFY_TIMING {"shard":"typecheck","command":"PORTHOLE_SERVICES_ONLY=1 pnpm run test:runtime","seconds":261.548,"exit":0}
+3_shards (typecheck, true).txt 2026-11-09T14:13:20.7879852Z VERIFY_TIMING {"shard":"typecheck","command":"PORTHOLE_HOST_HEARTBEAT_ONLY=1 pnpm run test:runtime","seconds":151.809,"exit":0}
+3_shards (typecheck, true).txt 2026-11-09T14:13:20.7986065Z VERIFY_TIMING {"shard":"typecheck","command":"pnpm run verify:app","seconds":463.08,"exit":0}
+4_shards (dashboards, true).txt 2026-11-09T14:09:14.0868176Z VERIFY_TIMING {"shard":"dashboards","command":"PORTHOLE_DASHBOARD_ONLY=1 pnpm run test:runtime","seconds":202.661,"exit":0}
+4_shards (dashboards, true).txt 2026-11-09T14:09:17.2621006Z VERIFY_TIMING {"shard":"dashboards","command":"pnpm exec rer build --site","seconds":3.175,"exit":0}
+4_shards (dashboards, true).txt 2026-11-09T14:10:13.8114584Z VERIFY_TIMING {"shard":"dashboards","command":"PORTHOLE_API_ONLY=1 pnpm run test:runtime","seconds":56.549,"exit":0}
+4_shards (dashboards, true).txt 2026-11-09T14:11:48.0796370Z VERIFY_TIMING {"shard":"dashboards","command":"PORTHOLE_EVENTS_ONLY=1 pnpm run test:runtime","seconds":94.268,"exit":0}
+4_shards (dashboards, true).txt 2026-11-09T14:11:48.0879506Z VERIFY_TIMING {"shard":"dashboards","command":"pnpm run verify:app","seconds":356.902,"exit":0}
+5_shards (traces, true).txt 2026-11-09T14:07:16.2984624Z VERIFY_TIMING {"shard":"traces","command":"PORTHOLE_TRACE_ONLY=1 pnpm run test:runtime","seconds":91.016,"exit":0}
+5_shards (traces, true).txt 2026-11-09T14:08:58.9881121Z VERIFY_TIMING {"shard":"traces","command":"PORTHOLE_GENAI_ONLY=1 pnpm run test:runtime","seconds":102.69,"exit":0}
+5_shards (traces, true).txt 2026-11-09T14:09:13.2633895Z VERIFY_TIMING {"shard":"traces","command":"PORTHOLE_GENAI_ANALYTICAL_ONLY=1 pnpm run test:runtime","seconds":14.275,"exit":0}
+5_shards (traces, true).txt 2026-11-09T14:10:40.0672580Z VERIFY_TIMING {"shard":"traces","command":"PORTHOLE_GENAI_CONTENT_ONLY=1 pnpm run test:runtime","seconds":86.803,"exit":0}
+5_shards (traces, true).txt 2026-11-09T14:12:12.6092449Z VERIFY_TIMING {"shard":"traces","command":"PORTHOLE_FLEET_ONLY=1 pnpm run test:runtime","seconds":92.542,"exit":0}
+5_shards (traces, true).txt 2026-11-09T14:12:12.6204110Z VERIFY_TIMING {"shard":"traces","command":"pnpm run verify:app","seconds":387.629,"exit":0}
+6_shards (exports, true).txt 2026-11-09T14:05:43.8347184Z VERIFY_TIMING {"shard":"exports","command":"python3 -m venv .cache/export-readers && .cache/export-readers/bin/pip install --disable-pip-version-check -r tests/porthole/export-readers.txt","seconds":5.803,"exit":0}
+6_shards (exports, true).txt 2026-11-09T14:07:04.9360670Z VERIFY_TIMING {"shard":"exports","command":"PORTHOLE_ERASURE_ONLY=1 pnpm run test:runtime","seconds":81.101,"exit":0}
+6_shards (exports, true).txt 2026-11-09T14:08:18.5351232Z VERIFY_TIMING {"shard":"exports","command":"PORTHOLE_EXPORT_ONLY=1 pnpm run test:runtime","seconds":73.599,"exit":0}
+6_shards (exports, true).txt 2026-11-09T14:13:04.6497834Z VERIFY_TIMING {"shard":"exports","command":"PORTHOLE_MAIL_ONLY=1 PORTHOLE_MAIL_PROVIDER=resend node tests/runtime.mjs","seconds":286.114,"exit":0}
+6_shards (exports, true).txt 2026-11-09T14:16:22.8225050Z VERIFY_TIMING {"shard":"exports","command":"node --input-type=module -e 'import {nativeBackupErasureJourney} from \"./tests/porthole/archive.mjs\"; await nativeBackupErasureJourney()'","seconds":198.173,"exit":0}
+6_shards (exports, true).txt 2026-11-09T14:16:22.8333124Z VERIFY_TIMING {"shard":"exports","command":"pnpm run verify:app","seconds":645.079,"exit":0}
+7_shards (runtime, true).txt 2026-11-09T14:10:47.6530707Z VERIFY_TIMING {"shard":"runtime","command":"PORTHOLE_CORE_ONLY=1 pnpm run test:runtime","seconds":301.9,"exit":0}
+7_shards (runtime, true).txt 2026-11-09T14:11:09.8365229Z VERIFY_TIMING {"shard":"runtime","command":"pnpm run verify","seconds":325.612,"exit":0}
+8_shards (follow-up, true).txt 2026-11-09T14:06:46.8152543Z VERIFY_TIMING {"shard":"follow-up","command":"PORTHOLE_FOLLOW_UP_ONLY=1 pnpm run test:runtime","seconds":68.291,"exit":0}
+8_shards (follow-up, true).txt 2026-11-09T14:07:43.8874180Z VERIFY_TIMING {"shard":"follow-up","command":"PORTHOLE_SLO_ONLY=1 pnpm run test:runtime","seconds":57.072,"exit":0}
+8_shards (follow-up, true).txt 2026-11-09T14:09:26.9723234Z VERIFY_TIMING {"shard":"follow-up","command":"PORTHOLE_NOTEBOOKS_ONLY=1 pnpm run test:runtime","seconds":103.085,"exit":0}
+8_shards (follow-up, true).txt 2026-11-09T14:09:26.9838734Z VERIFY_TIMING {"shard":"follow-up","command":"pnpm run verify:app","seconds":228.679,"exit":0}
+9_shards (source, true).txt 2026-11-09T14:05:42.3491223Z VERIFY_TIMING {"shard":"source","command":"pnpm run check --profile first-party","seconds":0.517,"exit":0}
+9_shards (source, true).txt 2026-11-09T14:05:43.1560656Z VERIFY_TIMING {"shard":"source","command":"node scripts/porthole/public-schema.mjs --check","seconds":0.807,"exit":0}
+9_shards (source, true).txt 2026-11-09T14:05:43.2039602Z VERIFY_TIMING {"shard":"source","command":"node scripts/porthole/contract-docs.mjs check PORT-075","seconds":0.048,"exit":0}
+9_shards (source, true).txt 2026-11-09T14:05:46.5502969Z VERIFY_TIMING {"shard":"source","command":"python3 -m venv .cache/export-readers && .cache/export-readers/bin/pip install --disable-pip-version-check -r tests/porthole/standard-readers.txt","seconds":3.295,"exit":0}
+9_shards (source, true).txt 2026-11-09T14:05:59.6598165Z VERIFY_TIMING {"shard":"source","command":"node scripts/porthole/standard-clients.mjs","seconds":13.11,"exit":0}
+9_shards (source, true).txt 2026-11-09T14:08:18.2219382Z PROBE PORT-061 standard metrics: stock Prometheus 3.5.0 remote_read evaluates 19 fixed expressions over real scrape, stock OTLP and official-schema summary input -> exact reference series, labels, timestamps and values
+9_shards (source, true).txt 2026-11-09T14:10:14.5417889Z PROBE PORT-061 restore: inactive owner installation restore -> original samples and exact stock Tempo trace in both representations across restart; new destination authority only, revocation enforced, intake remains paused
+9_shards (source, true).txt 2026-11-09T14:10:20.9744439Z PROBE PORT-061 schema and erasure: cumulative gauges, sums, buckets and summaries map exactly; raw float bits survive; delta and exponential inputs refuse; native erased subject and replay remain absent after restart
+9_shards (source, true).txt 2026-11-09T14:10:21.1830503Z PROBE PORT-061 standard traces: captured stock HTTP and Kafka spans -> official OTLP binary reader exact spans and stock Tempo CLI; restricted span set and explicit partial evidence; restart and inactive restore
+9_shards (source, true).txt 2026-11-09T14:10:21.3381892Z VERIFY_TIMING {"shard":"source","command":"PORTHOLE_STANDARD_ONLY=1 pnpm run test:runtime","seconds":261.678,"exit":0}
+9_shards (source, true).txt 2026-11-09T14:13:34.9206326Z PROBE PORT-061 standard metrics: stock Prometheus 3.5.0 remote_read evaluates 19 fixed expressions over real scrape, stock OTLP and official-schema summary input -> exact reference series, labels, timestamps and values on both analytical configurations
+9_shards (source, true).txt 2026-11-09T14:13:59.8708998Z PROBE PORT-061 standard traces: captured stock HTTP and Kafka spans -> official OTLP binary reader exact spans and stock Tempo CLI; restricted span set and explicit partial evidence; restart and inactive restore
+9_shards (source, true).txt 2026-11-09T14:14:33.3419218Z PROBE PORT-061 analytical schema: exact mappings and legacy quotas; analytical erasure refuses unchanged; prior-journal fixture fences both stores and replay; complete row and byte budget refusals
+9_shards (source, true).txt 2026-11-09T14:14:33.3421556Z PROBE PORT-061 authority: both real analytical backends -> same stock samples; mid-read revoke and expiry -> 401; narrowing and custody change -> 409; quota -> 429; excluded records absent; unavailable backend -> 503
+9_shards (source, true).txt 2026-11-09T14:14:33.5541588Z VERIFY_TIMING {"shard":"source","command":"PORTHOLE_STANDARD_ANALYTICAL_ONLY=1 pnpm run test:runtime","seconds":252.216,"exit":0}
+9_shards (source, true).txt 2026-11-09T14:16:44.5459882Z VERIFY_TIMING {"shard":"source","command":"PORTHOLE_HANDOVER_ONLY=1 pnpm run test:runtime","seconds":130.992,"exit":0}
+9_shards (source, true).txt 2026-11-09T14:16:44.5576693Z VERIFY_TIMING {"shard":"source","command":"pnpm run verify:app","seconds":662.963,"exit":0}

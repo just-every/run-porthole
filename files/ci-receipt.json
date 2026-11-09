@@ -1,0 +1,82 @@
+{
+  "run_id": 42650247726,
+  "head": "19850dac55d726ee2e2304b9eeffc0d40e27c354",
+  "status": "completed",
+  "conclusion": "success",
+  "shards": [
+    {
+      "id": 129274877991,
+      "name": "shards (runtime, true)",
+      "conclusion": "success",
+      "seconds": 359
+    },
+    {
+      "id": 129274878001,
+      "name": "shards (analytical, true)",
+      "conclusion": "success",
+      "seconds": 410
+    },
+    {
+      "id": 129274878072,
+      "name": "shards (traces, true)",
+      "conclusion": "success",
+      "seconds": 508
+    },
+    {
+      "id": 129274878073,
+      "name": "shards (exports, true)",
+      "conclusion": "success",
+      "seconds": 561
+    },
+    {
+      "id": 129274878164,
+      "name": "shards (follow-up, true)",
+      "conclusion": "success",
+      "seconds": 438
+    },
+    {
+      "id": 129274878186,
+      "name": "shards (typecheck, true)",
+      "conclusion": "success",
+      "seconds": 531
+    },
+    {
+      "id": 129274878198,
+      "name": "shards (network, true)",
+      "conclusion": "success",
+      "seconds": 566
+    },
+    {
+      "id": 129274878238,
+      "name": "shards (ingest, true)",
+      "conclusion": "success",
+      "seconds": 511
+    },
+    {
+      "id": 129274878264,
+      "name": "shards (source, true)",
+      "conclusion": "success",
+      "seconds": 418
+    },
+    {
+      "id": 129274878561,
+      "name": "shards (migration, true)",
+      "conclusion": "success",
+      "seconds": 484
+    },
+    {
+      "id": 129274878860,
+      "name": "shards (dashboards, true)",
+      "conclusion": "success",
+      "seconds": 505
+    }
+  ],
+  "longest": {
+    "id": 129274878198,
+    "name": "shards (network, true)",
+    "conclusion": "success",
+    "seconds": 566
+  },
+  "mean_seconds": 481.0,
+  "all_under_ten_minutes": true
+}

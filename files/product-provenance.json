@@ -1,0 +1,29 @@
+{
+  "repository": "just-every/run-porthole",
+  "branch": "cloud/sx-porthole-shard-time-3",
+  "head": "19850dac55d726ee2e2304b9eeffc0d40e27c354",
+  "origin_main_at_last_fetch": "f51e701475918613fee00845d1bef56fe49517b7",
+  "first_save": "fe2a96c7296c9ff8a3f629d3b64a8e966025a34b",
+  "baseline": "2564d7a4afad755896962b96d21f2385e1c866e0",
+  "worktree_clean": true,
+  "changes": [
+    "sources.lock.json",
+    "tests/porthole/archive.mjs",
+    "tests/porthole/network.mjs",
+    "tests/porthole/network/estate.mjs",
+    "tests/porthole/network/producer.cjs",
+    "tests/runtime.mjs",
+    "verification.json"
+  ],
+  "source_lock_sha256": "60f60247a089fd9b345ef403724043f8ebe5cfbef93b6d605056af9ee1ecf2ec",
+  "product_pushes": [
+    {
+      "head": "fe2a96c7296c9ff8a3f629d3b64a8e966025a34b",
+      "receipt": "save-push.txt"
+    },
+    {
+      "head": "19850dac55d726ee2e2304b9eeffc0d40e27c354",
+      "receipt": "final-push.txt"
+    }
+  ]
+}

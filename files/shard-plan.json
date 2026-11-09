@@ -1,0 +1,129 @@
+{
+  "shards_before": 11,
+  "shards_after": 11,
+  "non_build_commands_before": 37,
+  "non_build_commands_after": 39,
+  "removed_commands": [],
+  "added_prerequisites": [
+    "python3 -m venv .cache/export-readers && .cache/export-readers/bin/pip install --disable-pip-version-check -r tests/porthole/standard-readers.txt",
+    "node scripts/porthole/standard-clients.mjs"
+  ],
+  "per_shard": [
+    {
+      "shard": "source",
+      "commands": [
+        "pnpm run check --profile first-party",
+        "node scripts/porthole/public-schema.mjs --check",
+        "node scripts/porthole/contract-docs.mjs check PORT-075",
+        "pnpm run build",
+        "python3 -m venv .cache/export-readers && .cache/export-readers/bin/pip install --disable-pip-version-check -r tests/porthole/standard-readers.txt",
+        "node scripts/porthole/standard-clients.mjs",
+        "PORTHOLE_STANDARD_ONLY=1 pnpm run test:runtime",
+        "PORTHOLE_PIPELINES_ONLY=1 pnpm run test:runtime"
+      ],
+      "observed_sum_seconds": 461.189
+    },
+    {
+      "shard": "typecheck",
+      "commands": [
+        "pnpm run build",
+        "pnpm run typecheck",
+        "pnpm run test:typecheck",
+        "python3 -m venv .cache/export-readers && .cache/export-readers/bin/pip install --disable-pip-version-check -r tests/porthole/standard-readers.txt",
+        "node scripts/porthole/standard-clients.mjs",
+        "PORTHOLE_STANDARD_ANALYTICAL_ONLY=1 pnpm run test:runtime",
+        "PORTHOLE_ERASURE_ONLY=1 pnpm run test:runtime"
+      ],
+      "observed_sum_seconds": 473.465
+    },
+    {
+      "shard": "runtime",
+      "commands": [
+        "pnpm run build",
+        "PORTHOLE_CORE_ONLY=1 pnpm run test:runtime",
+        "PORTHOLE_SLO_ONLY=1 pnpm run test:runtime"
+      ],
+      "observed_sum_seconds": 417.771
+    },
+    {
+      "shard": "exports",
+      "commands": [
+        "pnpm run build",
+        "PORTHOLE_MAIL_ONLY=1 PORTHOLE_MAIL_PROVIDER=resend node tests/runtime.mjs",
+        "PORTHOLE_HOST_HEARTBEAT_ONLY=1 pnpm run test:runtime"
+      ],
+      "observed_sum_seconds": 531.159
+    },
+    {
+      "shard": "ingest",
+      "commands": [
+        "pnpm run build",
+        "PORTHOLE_INGEST_ONLY=1 pnpm run test:runtime",
+        "PORTHOLE_HANDOVER_ONLY=1 pnpm run test:runtime",
+        "PORTHOLE_SERVICES_ONLY=1 pnpm run test:runtime"
+      ],
+      "observed_sum_seconds": 505.769
+    },
+    {
+      "shard": "traces",
+      "commands": [
+        "pnpm run build",
+        "PORTHOLE_TRACE_ONLY=1 pnpm run test:runtime",
+        "PORTHOLE_GENAI_ONLY=1 pnpm run test:runtime",
+        "PORTHOLE_GENAI_ANALYTICAL_ONLY=1 pnpm run test:runtime",
+        "PORTHOLE_GENAI_CONTENT_ONLY=1 pnpm run test:runtime",
+        "PORTHOLE_FLEET_ONLY=1 pnpm run test:runtime",
+        "python3 -m venv .cache/export-readers && .cache/export-readers/bin/pip install --disable-pip-version-check -r tests/porthole/export-readers.txt",
+        "PORTHOLE_EXPORT_ONLY=1 pnpm run test:runtime"
+      ],
+      "observed_sum_seconds": 522.535
+    },
+    {
+      "shard": "analytical",
+      "commands": [
+        "pnpm run build",
+        "PORTHOLE_ANALYTICAL_ONLY=1 pnpm run test:runtime",
+        "PORTHOLE_DATABASE_ONLY=1 pnpm run test:runtime",
+        "PORTHOLE_METRIC_RULES_ONLY=1 pnpm run test:runtime"
+      ],
+      "observed_sum_seconds": 502.27
+    },
+    {
+      "shard": "migration",
+      "commands": [
+        "pnpm run build",
+        "PORTHOLE_MIGRATION_ONLY=1 pnpm run test:runtime"
+      ],
+      "observed_sum_seconds": 475.723
+    },
+    {
+      "shard": "dashboards",
+      "commands": [
+        "pnpm run build",
+        "PORTHOLE_DASHBOARD_ONLY=1 pnpm run test:runtime",
+        "pnpm exec rer build --site",
+        "PORTHOLE_API_ONLY=1 pnpm run test:runtime",
+        "PORTHOLE_EVENTS_ONLY=1 pnpm run test:runtime"
+      ],
+      "observed_sum_seconds": 471.689
+    },
+    {
+      "shard": "network",
+      "commands": [
+        "pnpm run build",
+        "PORTHOLE_NETWORK_ONLY=1 pnpm run test:runtime"
+      ],
+      "observed_sum_seconds": 685.07
+    },
+    {
+      "shard": "follow-up",
+      "commands": [
+        "pnpm run build",
+        "PORTHOLE_FOLLOW_UP_ONLY=1 pnpm run test:runtime",
+        "PORTHOLE_NOTEBOOKS_ONLY=1 pnpm run test:runtime",
+        "node --input-type=module -e 'import {nativeBackupErasureJourney} from \"./tests/porthole/archive.mjs\"; await nativeBackupErasureJourney()'"
+      ],
+      "observed_sum_seconds": 491.867
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "budget": 10,
+  "calls": [
+    {
+      "number": 1,
+      "command": "gh api repos/just-every/run-porthole/actions/runs/42643013003/jobs?per_page=100"
+    },
+    {
+      "number": 2,
+      "command": "gh api repos/just-every/run-porthole/actions/runs/42631085363/jobs?per_page=100"
+    },
+    {
+      "number": 3,
+      "command": "gh api repos/just-every/run-porthole/actions/runs/42643013003/logs"
+    },
+    {
+      "number": 4,
+      "command": "gh api repos/just-every/run-porthole/actions/runs/42631085363/logs"
+    },
+    {
+      "number": 5,
+      "command": "gh api repos/just-every/run-porthole/actions/runs?head_sha=19850dac55d726ee2e2304b9eeffc0d40e27c354&per_page=100",
+      "epoch": 1794240035.555091
+    },
+    {
+      "number": 6,
+      "command": "gh api repos/just-every/run-porthole/actions/runs/42650247726 --jq {status,conclusion,head_sha,html_url}",
+      "epoch": 1794240635.5595746
+    },
+    {
+      "number": 7,
+      "command": "gh api repos/just-every/run-porthole/actions/runs/42650247726/jobs?per_page=100",
+      "epoch": 1794240658.0840683,
+      "purpose": "one-time completed job-duration receipt, not status polling"
+    },
+    {
+      "number": 8,
+      "command": "gh api repos/just-every/run-porthole/actions/runs/42650247726/logs",
+      "epoch": 1794240716.6697783,
+      "purpose": "one-time completed timing/probe extraction"
+    }
+  ]
+}

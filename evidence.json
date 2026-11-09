@@ -1,0 +1,142 @@
+{
+  "files": [
+    {
+      "blob": "39e751f68b52f0d6798747f4de637bca69c23ac4",
+      "bytes": 7243,
+      "path": "REPORT.md",
+      "sha256": "d838722d626cb31a3ada8981a130e2e595d4c5564f1247aa3b016fa23d93edbb"
+    },
+    {
+      "blob": "db3ccf5ade68b2591e929b1a35792d537d60b8bb",
+      "bytes": 8935,
+      "path": "candidate-command-timings.json",
+      "sha256": "0eddb7ebf0c95b55c777e0bd7217c3d07ae31a2c7cedb9051f15e6dee12d4302"
+    },
+    {
+      "blob": "7042984a9cc23d93a5f07f9c7654a4dc1947b034",
+      "bytes": 58226,
+      "path": "candidate-jobs.json",
+      "sha256": "ef7c053f0917d3d8e610ae34f9af749291c76277e9654615a3380247aa815f61"
+    },
+    {
+      "blob": "52892defbe87902128331df8570cff31ff6aa639",
+      "bytes": 12417,
+      "path": "candidate-runs.json",
+      "sha256": "ce31bf95769884e780f7933d8db489092ca66b5447f50148cc3e35f209873850"
+    },
+    {
+      "blob": "7b269881da4dbc4ef795ec4d358eb541674d1ca0",
+      "bytes": 263,
+      "path": "candidate-status.json",
+      "sha256": "15bd7286831c89bbcbeecc3216d23c15c4f6264b47af09e44630fa13b0ae51b7"
+    },
+    {
+      "blob": "06a819caf6eb8174e5277be6ba9d885aa56d3687",
+      "bytes": 13714,
+      "path": "candidate-timing-lines.txt",
+      "sha256": "51f8f63ad10f737445d07294a4de480446484e559bb1af9b488ab82c473ffbb4"
+    },
+    {
+      "blob": "905cc7558845928b472d1c1b11406036b794e7f8",
+      "bytes": 1790,
+      "path": "ci-receipt.json",
+      "sha256": "011e09b2c0c3f5fdd60cb13b2ff962dd5d717e449d845c8300b545aa0ea49afa"
+    },
+    {
+      "blob": "43e10804f0d6eebc96de3eced2e15172b0385d85",
+      "bytes": 507,
+      "path": "coverage-preservation.json",
+      "sha256": "9a8aaa07bf9dda89d759cfbb55c8e8e103526ea7353b6068b2f30e3fe33badea"
+    },
+    {
+      "blob": "ec22e789576d2dcb76b041a7c0021fb1422f2c8d",
+      "bytes": 761,
+      "path": "final-push.txt",
+      "sha256": "03699b94aefe65086a80e2a400d27abdd7f1cfe785d5002cea862fd357aecae0"
+    },
+    {
+      "blob": "07d43cc32056714f84febb3346ff2ed8956b8561",
+      "bytes": 1385,
+      "path": "github-api-calls.json",
+      "sha256": "12c7dfd4dfd53d94f4b5e75d50bf44c41f055296a7acbf33a7f1cb68b959bb06"
+    },
+    {
+      "blob": "61c57585ddf772f934b30f7db6bcd6702cb920cf",
+      "bytes": 16735,
+      "path": "historical-command-timings.json",
+      "sha256": "ebb72fd071c5d15d12a1097817397a0c4f3eb27e187e8987d3bb6337fd568c68"
+    },
+    {
+      "blob": "43a4387fea4f1c0abbd91c0421176bde9ced5f9b",
+      "bytes": 58234,
+      "path": "historical-failed-jobs.json",
+      "sha256": "9a32eeaca997dd38624a0b13a3ecda5a8a51d35a920eee8d15ab68850566e32d"
+    },
+    {
+      "blob": "cef27a99d2def9a0811748b92add39a12e75f4fc",
+      "bytes": 12913,
+      "path": "historical-failed-timing-lines.txt",
+      "sha256": "8a454922e3c771cbd9563ff1b1b669be222ee24db03d457ed24163140299b054"
+    },
+    {
+      "blob": "c9c3e53f2679ce15d9249e611d439d833a7b8053",
+      "bytes": 58226,
+      "path": "historical-green-jobs.json",
+      "sha256": "be9dcec340271b045bc7d301316c52baf831d7186d10b7be9e2e7f2b09faa96d"
+    },
+    {
+      "blob": "42b5751e3f0d2371dde7afe751efc31f670dafc6",
+      "bytes": 13232,
+      "path": "historical-green-timing-lines.txt",
+      "sha256": "d522f5204414e03138f9b8831049cb6ca99e0a1b06a26187b754f7e6d522ca33"
+    },
+    {
+      "blob": "29a0ca7615e604d381d73f8f4201db619bfe4c4a",
+      "bytes": 2824,
+      "path": "local-checks.json",
+      "sha256": "432fd0fd4fb5d569d7c11fb0500c826ad004bae1dd39bbfcb3ba66c3b7ca3efd"
+    },
+    {
+      "blob": "24ec970e43e19a6b020bdbd93a176f1a6c3bb6e9",
+      "bytes": 301,
+      "path": "local-network-final.json",
+      "sha256": "4fe379d3105ee019cc68cec7a57ed1a7e9186ebd68558efd452fde8af4819634"
+    },
+    {
+      "blob": "5e1ce0a63003e48db92c9174d7375126b08d366c",
+      "bytes": 2757,
+      "path": "local-network-final.log",
+      "sha256": "5c9ce1df7de3bd0fbf207d61abdeda5e9c389c5fc0a0eac3916a62f06f563d1f"
+    },
+    {
+      "blob": "ec9eca8e2bb58c97e5f40d40659e263dc347957b",
+      "bytes": 3344,
+      "path": "local-network.log",
+      "sha256": "e288c0c60dda3595eedd4226eaaf9077036c3f13e8dcc87b5cb963789db78c48"
+    },
+    {
+      "blob": "3e283dafe97222289e0ccb5308959bfb2674f445",
+      "bytes": 938,
+      "path": "product-provenance.json",
+      "sha256": "8c3f8c864ff54539b6d9cb1ee05c5832d05c0166b58e0f4f3aaf36eb7ff91722"
+    },
+    {
+      "blob": "6a3fcc9d13a12b9c8ee41059697c988af1b24631",
+      "bytes": 967,
+      "path": "save-push.txt",
+      "sha256": "ee3725d8af94d726b2793e31088c33a25eca42486f942fb27c32154637c486d6"
+    },
+    {
+      "blob": "1fed7803e62fda22336e6d91277c2c58562d78ed",
+      "bytes": 4453,
+      "path": "shard-plan.json",
+      "sha256": "3de3ef215609a4616415c271063ea4a3a388c54bad7585a5aee72f4d589205b1"
+    }
+  ],
+  "product_branch": "cloud/sx-porthole-shard-time-3",
+  "product_head": "19850dac55d726ee2e2304b9eeffc0d40e27c354",
+  "ref": "refs/heads/evidence/sx-porthole-shard-time-3",
+  "repository": "just-every/run-porthole",
+  "schema": 1,
+  "tag": "sx-porthole-shard-time-3"
+}

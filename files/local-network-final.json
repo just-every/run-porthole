@@ -1,0 +1,8 @@
+{
+  "head": "19850dac55d726ee2e2304b9eeffc0d40e27c354",
+  "command": "PORTHOLE_CHROMIUM_PATH=/usr/bin/chromium PORTHOLE_NETWORK_ONLY=1 WRANGLER_SEND_METRICS=false pnpm run test:runtime",
+  "exit": 1,
+  "seconds": 245.516,
+  "started_epoch": 1794240034.0763526,
+  "completed_epoch": 1794240279.59245
+}

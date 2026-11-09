@@ -1,0 +1,15 @@
+{
+  "baseline": "2564d7a4afad755896962b96d21f2385e1c866e0",
+  "current": "19850dac55d726ee2e2304b9eeffc0d40e27c354",
+  "counts": {
+    "2564d7a": {
+      "assertion_call_sites": 4205,
+      "registration_call_sites": 8
+    },
+    "HEAD": {
+      "assertion_call_sites": 4205,
+      "registration_call_sites": 8
+    }
+  },
+  "note": "Call-site inventory confirms no registrations or assertions removed. Runtime journey command multiset is checked separately; this is not a new test-budget interpretation."
+}

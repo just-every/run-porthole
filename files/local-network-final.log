@@ -1,0 +1,41 @@
+ WARN  Unsupported engine: wanted: {"node":"22.20.0"} (current: {"node":"v24.19.0","pnpm":"10.12.4"})
+
+> @just-every/porthole@0.1.0 test:runtime /home/agent/rer-consolidation/work/sx-porthole-shard-time-3/run-porthole
+> rer queue test:runtime -- sh -c "node tests/runtime.mjs"
+
+test:runtime
+Heavy job admitted: Porthole test:runtime:command [26b441ac5ace]
+▲ [WARNING] Proxy environment variables detected. We'll use your proxy for fetch requests.
+
+
+Installed owner claim rejects missing/wrong setup tokens and request demo flags
+HTTP-001 passed against emitted local Worker: health, the installed homepage, HTTP and document 404s
+
+node:internal/errors:985
+  const err = new Error(message);
+              ^
+
+Error: Command failed: docker exec porthole-network-02e98e74-kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --command-config /run/admin.properties --create --topic synthetic-porthole-network-orders --partitions 1 --replication-factor 1
+[2026-11-09 16:04:31,358] ERROR org.apache.kafka.common.errors.TimeoutException: Call(callName=createTopics, deadlineMs=1794240271337, tries=1, nextAllowedTryMs=1794240271466) timed out at 1794240271350 after 1 attempt(s)
+Caused by: org.apache.kafka.common.errors.DisconnectException: Cancelled createTopics request with correlation id 3 due to node 1 being disconnected
+ (org.apache.kafka.tools.TopicCommand)
+
+    at genericNodeError (node:internal/errors:985:15)
+    at wrappedFn (node:internal/errors:539:14)
+    at ChildProcess.exithandler (node:child_process:417:12)
+    at ChildProcess.emit (node:events:509:28)
+    at ChildProcess.emit (node:domain:489:12)
+    at maybeClose (node:internal/child_process:1141:16)
+    at ChildProcess._handle.onexit (node:internal/child_process:306:5) {
+  code: 1,
+  killed: false,
+  signal: null,
+  cmd: 'docker exec porthole-network-02e98e74-kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --command-config /run/admin.properties --create --topic synthetic-porthole-network-orders --partitions 1 --replication-factor 1',
+  stdout: 'Error while executing topic command : Call(callName=createTopics, deadlineMs=1794240271337, tries=1, nextAllowedTryMs=1794240271466) timed out at 1794240271350 after 1 attempt(s)\n',
+  stderr: '[2026-11-09 16:04:31,358] ERROR org.apache.kafka.common.errors.TimeoutException: Call(callName=createTopics, deadlineMs=1794240271337, tries=1, nextAllowedTryMs=1794240271466) timed out at 1794240271350 after 1 attempt(s)\n' +
+    'Caused by: org.apache.kafka.common.errors.DisconnectException: Cancelled createTopics request with correlation id 3 due to node 1 being disconnected\n' +
+    ' (org.apache.kafka.tools.TopicCommand)\n'
+}
+
+Node.js v24.19.0
+ ELIFECYCLE  Command failed with exit code 1.

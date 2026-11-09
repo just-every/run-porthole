@@ -1,0 +1,698 @@
+[
+  {
+    "run": 42643013003,
+    "shard": "follow-up",
+    "commands": [
+      {
+        "shard": "follow-up",
+        "command": "PORTHOLE_FOLLOW_UP_ONLY=1 pnpm run test:runtime",
+        "seconds": 97.197,
+        "exit": 0
+      },
+      {
+        "shard": "follow-up",
+        "command": "PORTHOLE_SLO_ONLY=1 pnpm run test:runtime",
+        "seconds": 85.056,
+        "exit": 0
+      },
+      {
+        "shard": "follow-up",
+        "command": "PORTHOLE_NOTEBOOKS_ONLY=1 pnpm run test:runtime",
+        "seconds": 154.178,
+        "exit": 0
+      },
+      {
+        "shard": "follow-up",
+        "command": "node --input-type=module -e 'import {nativeBackupErasureJourney} from \"./tests/porthole/archive.mjs\"; await nativeBackupErasureJourney()'",
+        "seconds": 240.492,
+        "exit": 0
+      },
+      {
+        "shard": "follow-up",
+        "command": "pnpm run verify:app",
+        "seconds": 577.318,
+        "exit": 0
+      }
+    ]
+  },
+  {
+    "run": 42643013003,
+    "shard": "analytical",
+    "commands": [
+      {
+        "shard": "analytical",
+        "command": "PORTHOLE_ANALYTICAL_ONLY=1 pnpm run test:runtime",
+        "seconds": 121.552,
+        "exit": 0
+      },
+      {
+        "shard": "analytical",
+        "command": "PORTHOLE_DATABASE_ONLY=1 pnpm run test:runtime",
+        "seconds": 288.913,
+        "exit": 0
+      },
+      {
+        "shard": "analytical",
+        "command": "pnpm run verify:app",
+        "seconds": 410.751,
+        "exit": 0
+      }
+    ]
+  },
+  {
+    "run": 42643013003,
+    "shard": "source",
+    "commands": [
+      {
+        "shard": "source",
+        "command": "pnpm run check --profile first-party",
+        "seconds": 0.653,
+        "exit": 0
+      },
+      {
+        "shard": "source",
+        "command": "node scripts/porthole/public-schema.mjs --check",
+        "seconds": 0.966,
+        "exit": 0
+      },
+      {
+        "shard": "source",
+        "command": "node scripts/porthole/contract-docs.mjs check PORT-075",
+        "seconds": 0.057,
+        "exit": 0
+      },
+      {
+        "shard": "source",
+        "command": "python3 -m venv .cache/export-readers && .cache/export-readers/bin/pip install --disable-pip-version-check -r tests/porthole/standard-readers.txt",
+        "seconds": 3.778,
+        "exit": 0
+      },
+      {
+        "shard": "source",
+        "command": "node scripts/porthole/standard-clients.mjs",
+        "seconds": 8.063,
+        "exit": 0
+      },
+      {
+        "shard": "source",
+        "command": "PORTHOLE_STANDARD_ONLY=1 pnpm run test:runtime",
+        "seconds": 303.24,
+        "exit": 0
+      },
+      {
+        "shard": "source",
+        "command": "PORTHOLE_STANDARD_ANALYTICAL_ONLY=1 pnpm run test:runtime",
+        "seconds": 306.201,
+        "exit": 0
+      }
+    ]
+  },
+  {
+    "run": 42643013003,
+    "shard": "dashboards",
+    "commands": [
+      {
+        "shard": "dashboards",
+        "command": "PORTHOLE_DASHBOARD_ONLY=1 pnpm run test:runtime",
+        "seconds": 256.281,
+        "exit": 0
+      },
+      {
+        "shard": "dashboards",
+        "command": "pnpm exec rer build --site",
+        "seconds": 4.604,
+        "exit": 0
+      },
+      {
+        "shard": "dashboards",
+        "command": "PORTHOLE_API_ONLY=1 pnpm run test:runtime",
+        "seconds": 78.168,
+        "exit": 0
+      },
+      {
+        "shard": "dashboards",
+        "command": "PORTHOLE_EVENTS_ONLY=1 pnpm run test:runtime",
+        "seconds": 132.636,
+        "exit": 0
+      },
+      {
+        "shard": "dashboards",
+        "command": "pnpm run verify:app",
+        "seconds": 472.061,
+        "exit": 0
+      }
+    ]
+  },
+  {
+    "run": 42643013003,
+    "shard": "exports",
+    "commands": [
+      {
+        "shard": "exports",
+        "command": "python3 -m venv .cache/export-readers && .cache/export-readers/bin/pip install --disable-pip-version-check -r tests/porthole/export-readers.txt",
+        "seconds": 6.56,
+        "exit": 0
+      },
+      {
+        "shard": "exports",
+        "command": "PORTHOLE_ERASURE_ONLY=1 pnpm run test:runtime",
+        "seconds": 99.514,
+        "exit": 0
+      },
+      {
+        "shard": "exports",
+        "command": "PORTHOLE_EXPORT_ONLY=1 pnpm run test:runtime",
+        "seconds": 92.089,
+        "exit": 0
+      },
+      {
+        "shard": "exports",
+        "command": "PORTHOLE_MAIL_ONLY=1 PORTHOLE_MAIL_PROVIDER=resend node tests/runtime.mjs",
+        "seconds": 290.409,
+        "exit": 0
+      },
+      {
+        "shard": "exports",
+        "command": "pnpm run verify:app",
+        "seconds": 488.979,
+        "exit": 0
+      }
+    ]
+  },
+  {
+    "run": 42643013003,
+    "shard": "typecheck",
+    "commands": [
+      {
+        "shard": "typecheck",
+        "command": "pnpm run typecheck",
+        "seconds": 5.348,
+        "exit": 0
+      },
+      {
+        "shard": "typecheck",
+        "command": "pnpm run test:typecheck",
+        "seconds": 45.514,
+        "exit": 0
+      },
+      {
+        "shard": "typecheck",
+        "command": "PORTHOLE_SERVICES_ONLY=1 pnpm run test:runtime",
+        "seconds": 272.611,
+        "exit": 0
+      },
+      {
+        "shard": "typecheck",
+        "command": "pnpm run verify:app",
+        "seconds": 323.743,
+        "exit": 0
+      }
+    ]
+  },
+  {
+    "run": 42643013003,
+    "shard": "traces",
+    "commands": [
+      {
+        "shard": "traces",
+        "command": "PORTHOLE_TRACE_ONLY=1 pnpm run test:runtime",
+        "seconds": 98.824,
+        "exit": 0
+      },
+      {
+        "shard": "traces",
+        "command": "PORTHOLE_GENAI_ONLY=1 pnpm run test:runtime",
+        "seconds": 118.841,
+        "exit": 0
+      },
+      {
+        "shard": "traces",
+        "command": "PORTHOLE_GENAI_ANALYTICAL_ONLY=1 pnpm run test:runtime",
+        "seconds": 13.894,
+        "exit": 0
+      },
+      {
+        "shard": "traces",
+        "command": "PORTHOLE_GENAI_CONTENT_ONLY=1 pnpm run test:runtime",
+        "seconds": 87.739,
+        "exit": 0
+      },
+      {
+        "shard": "traces",
+        "command": "PORTHOLE_FLEET_ONLY=1 pnpm run test:runtime",
+        "seconds": 104.207,
+        "exit": 0
+      },
+      {
+        "shard": "traces",
+        "command": "pnpm run verify:app",
+        "seconds": 423.887,
+        "exit": 0
+      }
+    ]
+  },
+  {
+    "run": 42643013003,
+    "shard": "migration",
+    "commands": [
+      {
+        "shard": "migration",
+        "command": "PORTHOLE_MIGRATION_ONLY=1 pnpm run test:runtime",
+        "seconds": 395.606,
+        "exit": 0
+      },
+      {
+        "shard": "migration",
+        "command": "pnpm run verify:app",
+        "seconds": 395.897,
+        "exit": 0
+      }
+    ]
+  },
+  {
+    "run": 42643013003,
+    "shard": "runtime",
+    "commands": [
+      {
+        "shard": "runtime",
+        "command": "PORTHOLE_CORE_ONLY=1 pnpm run test:runtime",
+        "seconds": 332.715,
+        "exit": 0
+      },
+      {
+        "shard": "runtime",
+        "command": "PORTHOLE_HOST_HEARTBEAT_ONLY=1 pnpm run test:runtime",
+        "seconds": 240.75,
+        "exit": 0
+      },
+      {
+        "shard": "runtime",
+        "command": "pnpm run verify",
+        "seconds": 598.507,
+        "exit": 0
+      }
+    ]
+  },
+  {
+    "run": 42643013003,
+    "shard": "ingest",
+    "commands": [
+      {
+        "shard": "ingest",
+        "command": "PORTHOLE_INGEST_ONLY=1 pnpm run test:runtime",
+        "seconds": 87.982,
+        "exit": 0
+      },
+      {
+        "shard": "ingest",
+        "command": "PORTHOLE_METRIC_RULES_ONLY=1 pnpm run test:runtime",
+        "seconds": 66.997,
+        "exit": 0
+      },
+      {
+        "shard": "ingest",
+        "command": "PORTHOLE_HANDOVER_ONLY=1 pnpm run test:runtime",
+        "seconds": 127.037,
+        "exit": 0
+      },
+      {
+        "shard": "ingest",
+        "command": "pnpm run verify:app",
+        "seconds": 282.304,
+        "exit": 0
+      }
+    ]
+  },
+  {
+    "run": 42643013003,
+    "shard": "network",
+    "commands": [
+      {
+        "shard": "network",
+        "command": "PORTHOLE_NETWORK_ONLY=1 pnpm run test:runtime",
+        "seconds": 685.07,
+        "exit": 0
+      },
+      {
+        "shard": "network",
+        "command": "pnpm run verify:app",
+        "seconds": 685.418,
+        "exit": 0
+      }
+    ]
+  },
+  {
+    "run": 42631085363,
+    "shard": "analytical",
+    "commands": [
+      {
+        "shard": "analytical",
+        "command": "PORTHOLE_ANALYTICAL_ONLY=1 pnpm run test:runtime",
+        "seconds": 111.963,
+        "exit": 0
+      },
+      {
+        "shard": "analytical",
+        "command": "PORTHOLE_DATABASE_ONLY=1 pnpm run test:runtime",
+        "seconds": 297.12,
+        "exit": 0
+      },
+      {
+        "shard": "analytical",
+        "command": "pnpm run verify:app",
+        "seconds": 409.434,
+        "exit": 0
+      }
+    ]
+  },
+  {
+    "run": 42631085363,
+    "shard": "migration",
+    "commands": [
+      {
+        "shard": "migration",
+        "command": "PORTHOLE_MIGRATION_ONLY=1 pnpm run test:runtime",
+        "seconds": 475.723,
+        "exit": 0
+      },
+      {
+        "shard": "migration",
+        "command": "pnpm run verify:app",
+        "seconds": 476.07,
+        "exit": 0
+      }
+    ]
+  },
+  {
+    "run": 42631085363,
+    "shard": "network",
+    "commands": [
+      {
+        "shard": "network",
+        "command": "PORTHOLE_NETWORK_ONLY=1 pnpm run test:runtime",
+        "seconds": 579.881,
+        "exit": 0
+      },
+      {
+        "shard": "network",
+        "command": "pnpm run verify:app",
+        "seconds": 580.155,
+        "exit": 0
+      }
+    ]
+  },
+  {
+    "run": 42631085363,
+    "shard": "ingest",
+    "commands": [
+      {
+        "shard": "ingest",
+        "command": "PORTHOLE_INGEST_ONLY=1 pnpm run test:runtime",
+        "seconds": 102.166,
+        "exit": 0
+      },
+      {
+        "shard": "ingest",
+        "command": "PORTHOLE_PIPELINES_ONLY=1 pnpm run test:runtime",
+        "seconds": 139.385,
+        "exit": 0
+      },
+      {
+        "shard": "ingest",
+        "command": "PORTHOLE_METRIC_RULES_ONLY=1 pnpm run test:runtime",
+        "seconds": 83.598,
+        "exit": 0
+      },
+      {
+        "shard": "ingest",
+        "command": "pnpm run verify:app",
+        "seconds": 325.537,
+        "exit": 0
+      }
+    ]
+  },
+  {
+    "run": 42631085363,
+    "shard": "typecheck",
+    "commands": [
+      {
+        "shard": "typecheck",
+        "command": "pnpm run typecheck",
+        "seconds": 5.156,
+        "exit": 0
+      },
+      {
+        "shard": "typecheck",
+        "command": "pnpm run test:typecheck",
+        "seconds": 44.33,
+        "exit": 0
+      },
+      {
+        "shard": "typecheck",
+        "command": "PORTHOLE_SERVICES_ONLY=1 pnpm run test:runtime",
+        "seconds": 261.548,
+        "exit": 0
+      },
+      {
+        "shard": "typecheck",
+        "command": "PORTHOLE_HOST_HEARTBEAT_ONLY=1 pnpm run test:runtime",
+        "seconds": 151.809,
+        "exit": 0
+      },
+      {
+        "shard": "typecheck",
+        "command": "pnpm run verify:app",
+        "seconds": 463.08,
+        "exit": 0
+      }
+    ]
+  },
+  {
+    "run": 42631085363,
+    "shard": "dashboards",
+    "commands": [
+      {
+        "shard": "dashboards",
+        "command": "PORTHOLE_DASHBOARD_ONLY=1 pnpm run test:runtime",
+        "seconds": 202.661,
+        "exit": 0
+      },
+      {
+        "shard": "dashboards",
+        "command": "pnpm exec rer build --site",
+        "seconds": 3.175,
+        "exit": 0
+      },
+      {
+        "shard": "dashboards",
+        "command": "PORTHOLE_API_ONLY=1 pnpm run test:runtime",
+        "seconds": 56.549,
+        "exit": 0
+      },
+      {
+        "shard": "dashboards",
+        "command": "PORTHOLE_EVENTS_ONLY=1 pnpm run test:runtime",
+        "seconds": 94.268,
+        "exit": 0
+      },
+      {
+        "shard": "dashboards",
+        "command": "pnpm run verify:app",
+        "seconds": 356.902,
+        "exit": 0
+      }
+    ]
+  },
+  {
+    "run": 42631085363,
+    "shard": "traces",
+    "commands": [
+      {
+        "shard": "traces",
+        "command": "PORTHOLE_TRACE_ONLY=1 pnpm run test:runtime",
+        "seconds": 91.016,
+        "exit": 0
+      },
+      {
+        "shard": "traces",
+        "command": "PORTHOLE_GENAI_ONLY=1 pnpm run test:runtime",
+        "seconds": 102.69,
+        "exit": 0
+      },
+      {
+        "shard": "traces",
+        "command": "PORTHOLE_GENAI_ANALYTICAL_ONLY=1 pnpm run test:runtime",
+        "seconds": 14.275,
+        "exit": 0
+      },
+      {
+        "shard": "traces",
+        "command": "PORTHOLE_GENAI_CONTENT_ONLY=1 pnpm run test:runtime",
+        "seconds": 86.803,
+        "exit": 0
+      },
+      {
+        "shard": "traces",
+        "command": "PORTHOLE_FLEET_ONLY=1 pnpm run test:runtime",
+        "seconds": 92.542,
+        "exit": 0
+      },
+      {
+        "shard": "traces",
+        "command": "pnpm run verify:app",
+        "seconds": 387.629,
+        "exit": 0
+      }
+    ]
+  },
+  {
+    "run": 42631085363,
+    "shard": "exports",
+    "commands": [
+      {
+        "shard": "exports",
+        "command": "python3 -m venv .cache/export-readers && .cache/export-readers/bin/pip install --disable-pip-version-check -r tests/porthole/export-readers.txt",
+        "seconds": 5.803,
+        "exit": 0
+      },
+      {
+        "shard": "exports",
+        "command": "PORTHOLE_ERASURE_ONLY=1 pnpm run test:runtime",
+        "seconds": 81.101,
+        "exit": 0
+      },
+      {
+        "shard": "exports",
+        "command": "PORTHOLE_EXPORT_ONLY=1 pnpm run test:runtime",
+        "seconds": 73.599,
+        "exit": 0
+      },
+      {
+        "shard": "exports",
+        "command": "PORTHOLE_MAIL_ONLY=1 PORTHOLE_MAIL_PROVIDER=resend node tests/runtime.mjs",
+        "seconds": 286.114,
+        "exit": 0
+      },
+      {
+        "shard": "exports",
+        "command": "node --input-type=module -e 'import {nativeBackupErasureJourney} from \"./tests/porthole/archive.mjs\"; await nativeBackupErasureJourney()'",
+        "seconds": 198.173,
+        "exit": 0
+      },
+      {
+        "shard": "exports",
+        "command": "pnpm run verify:app",
+        "seconds": 645.079,
+        "exit": 0
+      }
+    ]
+  },
+  {
+    "run": 42631085363,
+    "shard": "runtime",
+    "commands": [
+      {
+        "shard": "runtime",
+        "command": "PORTHOLE_CORE_ONLY=1 pnpm run test:runtime",
+        "seconds": 301.9,
+        "exit": 0
+      },
+      {
+        "shard": "runtime",
+        "command": "pnpm run verify",
+        "seconds": 325.612,
+        "exit": 0
+      }
+    ]
+  },
+  {
+    "run": 42631085363,
+    "shard": "follow-up",
+    "commands": [
+      {
+        "shard": "follow-up",
+        "command": "PORTHOLE_FOLLOW_UP_ONLY=1 pnpm run test:runtime",
+        "seconds": 68.291,
+        "exit": 0
+      },
+      {
+        "shard": "follow-up",
+        "command": "PORTHOLE_SLO_ONLY=1 pnpm run test:runtime",
+        "seconds": 57.072,
+        "exit": 0
+      },
+      {
+        "shard": "follow-up",
+        "command": "PORTHOLE_NOTEBOOKS_ONLY=1 pnpm run test:runtime",
+        "seconds": 103.085,
+        "exit": 0
+      },
+      {
+        "shard": "follow-up",
+        "command": "pnpm run verify:app",
+        "seconds": 228.679,
+        "exit": 0
+      }
+    ]
+  },
+  {
+    "run": 42631085363,
+    "shard": "source",
+    "commands": [
+      {
+        "shard": "source",
+        "command": "pnpm run check --profile first-party",
+        "seconds": 0.517,
+        "exit": 0
+      },
+      {
+        "shard": "source",
+        "command": "node scripts/porthole/public-schema.mjs --check",
+        "seconds": 0.807,
+        "exit": 0
+      },
+      {
+        "shard": "source",
+        "command": "node scripts/porthole/contract-docs.mjs check PORT-075",
+        "seconds": 0.048,
+        "exit": 0
+      },
+      {
+        "shard": "source",
+        "command": "python3 -m venv .cache/export-readers && .cache/export-readers/bin/pip install --disable-pip-version-check -r tests/porthole/standard-readers.txt",
+        "seconds": 3.295,
+        "exit": 0
+      },
+      {
+        "shard": "source",
+        "command": "node scripts/porthole/standard-clients.mjs",
+        "seconds": 13.11,
+        "exit": 0
+      },
+      {
+        "shard": "source",
+        "command": "PORTHOLE_STANDARD_ONLY=1 pnpm run test:runtime",
+        "seconds": 261.678,
+        "exit": 0
+      },
+      {
+        "shard": "source",
+        "command": "PORTHOLE_STANDARD_ANALYTICAL_ONLY=1 pnpm run test:runtime",
+        "seconds": 252.216,
+        "exit": 0
+      },
+      {
+        "shard": "source",
+        "command": "PORTHOLE_HANDOVER_ONLY=1 pnpm run test:runtime",
+        "seconds": 130.992,
+        "exit": 0
+      },
+      {
+        "shard": "source",
+        "command": "pnpm run verify:app",
+        "seconds": 662.963,
+        "exit": 0
+      }
+    ]
+  }
+]

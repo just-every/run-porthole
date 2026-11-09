@@ -1,0 +1,90 @@
+{
+  "repository": "just-every/run-porthole",
+  "baseline": "2564d7a4afad755896962b96d21f2385e1c866e0",
+  "checks": [
+    {
+      "command": "pnpm install --frozen-lockfile",
+      "exit": 0
+    },
+    {
+      "command": "npx -y @runeditrun/rer setup --owner-email fleet@runeditrun.com --non-interactive",
+      "exit": 0
+    },
+    {
+      "command": "npx -y @runeditrun/rer build",
+      "exit": 0
+    },
+    {
+      "command": "pnpm run typecheck",
+      "exit": 0,
+      "runs": 2
+    },
+    {
+      "command": "node --check tests/porthole/network/producer.cjs",
+      "exit": 0
+    },
+    {
+      "command": "node --check tests/porthole/network/estate.mjs",
+      "exit": 0
+    },
+    {
+      "command": "node --check tests/porthole/archive.mjs",
+      "exit": 0
+    },
+    {
+      "command": "node --check tests/porthole/network.mjs",
+      "exit": 0
+    },
+    {
+      "command": "node --check tests/runtime.mjs",
+      "exit": 0
+    },
+    {
+      "command": "node scripts/verify-ci.mjs --check-workflows",
+      "exit": 0
+    },
+    {
+      "command": "node scripts/verify-ci.mjs --matrix push; node scripts/verify-ci.mjs --matrix all",
+      "exit": 0,
+      "shards": 11
+    },
+    {
+      "command": "runtime command multiset preservation check",
+      "exit": 0,
+      "before": 28,
+      "after": 28
+    },
+    {
+      "command": "pnpm run source:lock; pnpm run source:check",
+      "exit": 0,
+      "phase": "first save; repeat after final staging"
+    },
+    {
+      "command": "pnpm run source:lock; pnpm run source:check",
+      "exit": 0,
+      "phase": "final staged tree"
+    }
+  ],
+  "runtime_network": {
+    "command": "PORTHOLE_CHROMIUM_PATH=/usr/bin/chromium PORTHOLE_NETWORK_ONLY=1 WRANGLER_SEND_METRICS=false pnpm run test:runtime",
+    "status": "failed",
+    "head_scope": "first fixture save fe2a96c; subsequent scheduling edits not loaded by this process",
+    "exit": 1,
+    "diagnostic": "Kafka createAcls timed out waiting for node assignment during local Docker estate setup, before fault windows and network assertions. No assertion was relaxed."
+  },
+  "publication_scan": {
+    "status": "not_run",
+    "reason": "explicit scoped assignment says run no publication scan; fleet owns landing scan"
+  },
+  "clauses_changed": [],
+  "candidate_head": "19850dac55d726ee2e2304b9eeffc0d40e27c354",
+  "runtime_network_final": {
+    "head": "19850dac55d726ee2e2304b9eeffc0d40e27c354",
+    "command": "PORTHOLE_CHROMIUM_PATH=/usr/bin/chromium PORTHOLE_NETWORK_ONLY=1 WRANGLER_SEND_METRICS=false pnpm run test:runtime",
+    "exit": 1,
+    "seconds": 245.516,
+    "started_epoch": 1794240034.0763526,
+    "completed_epoch": 1794240279.59245,
+    "diagnostic": "Kafka createTopics timed out after the broker disconnected; failure during estate startup, before network fault windows/assertions."
+  }
+}

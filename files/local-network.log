@@ -1,0 +1,54 @@
+ WARN  Unsupported engine: wanted: {"node":"22.20.0"} (current: {"node":"v24.19.0","pnpm":"10.12.4"})
+
+> @just-every/porthole@0.1.0 test:runtime /home/agent/rer-consolidation/work/sx-porthole-shard-time-3/run-porthole
+> rer queue test:runtime -- sh -c "node tests/runtime.mjs"
+
+test:runtime
+Heavy job admitted: Porthole test:runtime:command [26b441ac5ace]
+▲ [WARNING] Proxy environment variables detected. We'll use your proxy for fetch requests.
+
+
+Installed owner claim rejects missing/wrong setup tokens and request demo flags
+HTTP-001 passed against emitted local Worker: health, the installed homepage, HTTP and document 404s
+
+node:internal/errors:985
+  const err = new Error(message);
+              ^
+
+Error: Command failed: docker exec porthole-network-8eab5b43-kafka /opt/kafka/bin/kafka-acls.sh --bootstrap-server kafka:9092 --command-config /run/admin.properties --add --allow-principal User:reader --operation Describe --cluster
+
+    at genericNodeError (node:internal/errors:985:15)
+    at wrappedFn (node:internal/errors:539:14)
+    at ChildProcess.exithandler (node:child_process:417:12)
+    at ChildProcess.emit (node:events:509:28)
+    at ChildProcess.emit (node:domain:489:12)
+    at maybeClose (node:internal/child_process:1141:16)
+    at ChildProcess._handle.onexit (node:internal/child_process:306:5) {
+  code: 1,
+  killed: false,
+  signal: null,
+  cmd: 'docker exec porthole-network-8eab5b43-kafka /opt/kafka/bin/kafka-acls.sh --bootstrap-server kafka:9092 --command-config /run/admin.properties --add --allow-principal User:reader --operation Describe --cluster',
+  stdout: 'Adding ACLs for resource `ResourcePattern(resourceType=CLUSTER, name=kafka-cluster, patternType=LITERAL)`: \n' +
+    ' \t(principal=User:reader, host=*, operation=DESCRIBE, permissionType=ALLOW) \n' +
+    '\n' +
+    'Error while executing ACL command: org.apache.kafka.common.errors.TimeoutException: Timed out waiting for a node assignment. Call: createAcls\n' +
+    'java.util.concurrent.ExecutionException: org.apache.kafka.common.errors.TimeoutException: Timed out waiting for a node assignment. Call: createAcls\n' +
+    '\tat java.base/java.util.concurrent.CompletableFuture.reportGet(Unknown Source)\n' +
+    '\tat java.base/java.util.concurrent.CompletableFuture.get(Unknown Source)\n' +
+    '\tat org.apache.kafka.common.internals.KafkaFutureImpl.get(KafkaFutureImpl.java:165)\n' +
+    '\tat kafka.admin.AclCommand$AdminClientService.$anonfun$addAcls$3(AclCommand.scala:116)\n' +
+    '\tat scala.collection.IterableOnceOps.foreach(IterableOnce.scala:619)\n' +
+    '\tat scala.collection.IterableOnceOps.foreach$(IterableOnce.scala:617)\n' +
+    '\tat scala.collection.AbstractIterable.foreach(Iterable.scala:935)\n' +
+    '\tat scala.collection.IterableOps$WithFilter.foreach(Iterable.scala:905)\n' +
+    '\tat kafka.admin.AclCommand$AdminClientService.$anonfun$addAcls$1(AclCommand.scala:113)\n' +
+    '\tat kafka.admin.AclCommand$AdminClientService.addAcls(AclCommand.scala:112)\n' +
+    '\tat kafka.admin.AclCommand$.main(AclCommand.scala:74)\n' +
+    '\tat kafka.admin.AclCommand.main(AclCommand.scala)\n' +
+    'Caused by: org.apache.kafka.common.errors.TimeoutException: Timed out waiting for a node assignment. Call: createAcls\n' +
+    '\n',
+  stderr: ''
+}
+
+Node.js v24.19.0
+ ELIFECYCLE  Command failed with exit code 1.
