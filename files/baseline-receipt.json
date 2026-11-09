@@ -1,0 +1,1 @@
+{"head": "e2cfaedd2f158ea90c0f0176b9ea43fcee0fdffa", "job": "128878480785", "command": "node scripts/verify-ci.mjs typecheck", "exit": 0}

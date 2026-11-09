@@ -1,0 +1,26 @@
+{
+  "head": "e2cfaedd2f158ea90c0f0176b9ea43fcee0fdffa",
+  "run": 42528887928,
+  "event": "push",
+  "typecheckJob": 128878480785,
+  "typecheckConclusion": "cancelled",
+  "startedAt": "2026-11-08T22:10:35Z",
+  "completedAt": "2026-11-08T22:22:50Z",
+  "shardStepStartedAt": "2026-11-08T22:11:09Z",
+  "shardStepCompletedAt": "2026-11-08T22:22:48Z",
+  "aggregateJob": 128881719162,
+  "aggregateConclusion": "failure",
+  "otherShards": "success",
+  "logCommands": [
+    {
+      "command": "gh run view 42528887928 --repo just-every/run-porthole --job 128878480785 --log-failed",
+      "exit": 0,
+      "outputBytes": 0
+    },
+    {
+      "command": "gh run view 42528887928 --repo just-every/run-porthole --job 128878480785 --log",
+      "exit": 0,
+      "outputBytes": 0
+    }
+  ]
+}
