@@ -18,7 +18,9 @@ export async function verificationPlan() {
 
 export function run(command, env = process.env) {
  console.log(`> ${command}`);
+ const started = performance.now();
  const result = spawnSync('/bin/bash', ['-euo', 'pipefail', '-c', command], { stdio: 'inherit', env });
+ console.log(`Completed in ${((performance.now() - started) / 1000).toFixed(1)}s (exit ${result.status ?? 1})`);
  if (result.error) throw result.error;
  if (result.status !== 0) process.exit(result.status ?? 1);
 }

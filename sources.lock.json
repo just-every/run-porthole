@@ -2145,7 +2145,7 @@
       "executable": false
     },
     "scripts/verify-app.mjs": {
-      "sha256": "4c3a87c809e2b671a555dc36171b60675f87be96362de7d2269d9f5e1c3100b6",
+      "sha256": "c296135a51b210f2d24b21658f8b788302259728a4dfe95d0e753b2a82a33a90",
       "executable": false
     },
     "scripts/verify-ci.mjs": {
