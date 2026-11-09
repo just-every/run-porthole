@@ -41,7 +41,7 @@ export async function controlPlaneRecoveryJourney(){
  }
  async function native(cwd,args,{refused=false}={}){
   try{const result=await execute(process.execPath,[join(root,'node_modules/@runeditrun/rer/global/rer.mjs'),...args,'--cwd',cwd],{cwd,env:{...process.env,WRANGLER_SEND_METRICS:'false'},timeout:240000,maxBuffer:16*1024*1024});assert.equal(refused,false,'native command must refuse');return result}
-  catch(error){if(refused&&error.code)return;throw Error(`Native ${args[0]} failed: ${String(error.stderr??error.message).replace(/[A-Za-z0-9_+./=-]{32,}/g,'[redacted]').slice(-3000)}`)}
+  catch(error){if(refused&&typeof error.code==='number'&&error.code!==0&&/empty|occupied/i.test(String(error.stdout??'')+String(error.stderr??'')))return;throw Error(`Native ${args[0]} failed: ${String(error.stderr??error.message).replace(/[A-Za-z0-9_+./=-]{32,}/g,'[redacted]').slice(-3000)}`)}
  }
  async function install(directory,email){await native(directory,['setup','--owner-email',email,'--non-interactive']);record('native setup completed')}
  async function launch(directory,email){
