@@ -1,0 +1,36 @@
+{
+  "checks": [
+    {
+      "command": "pnpm run source:check",
+      "exit": 0
+    },
+    {
+      "command": "pnpm run typecheck",
+      "exit": 0
+    },
+    {
+      "command": "node --check packaging/collector/install.mjs",
+      "exit": 0
+    },
+    {
+      "command": "node --check tests/porthole/collector-install.mjs",
+      "exit": 0
+    },
+    {
+      "command": "git diff --check",
+      "exit": 0
+    },
+    {
+      "command": "cloud_run pnpm run check --profile first-party",
+      "exit": 0
+    }
+  ],
+  "setup": {
+    "command": "cloud_run npx -y @runeditrun/rer setup --owner-email fleet@runeditrun.com --non-interactive",
+    "exit": 0
+  },
+  "contractWriteCheck": "passed before restoring generated views from origin/main; subsequent view-only mismatch expected",
+  "publicSchema": "passed",
+  "head": "79ab0f32d5464d1e61ad17498761d09eafabb2b5",
+  "firstParty": "passed"
+}

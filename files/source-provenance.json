@@ -1,0 +1,17 @@
+{
+  "baselineHead": "843cefdeab89ace4ed4543f1ffdb55d0e22b3495",
+  "baselineInstallerSha256": "7944534f7f69ea81dd785ad88414e6ca12c0b7ab827d8a383b462d1a44e1e943",
+  "baselineInstallerUnchangedDuringBeforeProof": true,
+  "originalEvidenceHead": "2a6cb314f3f83343855b4f1c00bbc2fda0fb251f",
+  "claimRetained": "CLAIM PORT-003 PARTIAL points=none tests=tests/porthole/collector-install.mjs#collectorInstallJourney; tests/porthole/collector-install.mjs#fleetJourney; tests/porthole/analytics.mjs#collectorAnalyticalJourney; tests/porthole/archive.mjs#fleetArchiveJourney",
+  "productHead": "79ab0f32d5464d1e61ad17498761d09eafabb2b5",
+  "productBranch": "cloud/sx-porthole-f462fix1",
+  "mergedMain": "85b79464fa8a79597741711f6689f1b21132cd89",
+  "candidateInstallerSha256": "c259248b44174793d1c263e94b8d5c5ba15cce640f80ad56a9eaa9f5ba9f6dca",
+  "candidateConfigSha256": "687d9783db9c760c05adbfccbdfd7e8edfd8fd985144b8a20fcf8ee2b3df1c5e",
+  "generatedViewsUnchangedFromMain": true,
+  "contractUnchangedFromMain": true,
+  "mainIdMap": "absent",
+  "newRegressionAssertions": 1,
+  "removedRegressionAssertions": 0
+}

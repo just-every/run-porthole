@@ -1,0 +1,15 @@
+{
+  "repository": "just-every/run-porthole",
+  "branch": "cloud/sx-porthole-f462fix1",
+  "head": "79ab0f32d5464d1e61ad17498761d09eafabb2b5",
+  "remoteRef": "refs/heads/cloud/sx-porthole-f462fix1",
+  "remoteHead": "79ab0f32d5464d1e61ad17498761d09eafabb2b5",
+  "guardCommand": "python3 $HOME/rer-consolidation/.tools/cloud-push.py origin cloud/sx-porthole-f462fix1",
+  "guardResult": "PUSH_OK branch=cloud/sx-porthole-f462fix1",
+  "guardExit": 0,
+  "attempts": 1,
+  "verifiedAt": "2026-11-09T05:15:15.218018+00:00",
+  "publishedHistoryRewritten": false,
+  "defaultBranchPushed": false,
+  "productWorktreeClean": true
+}

@@ -1,0 +1,10 @@
+{
+  "head": "79ab0f32d5464d1e61ad17498761d09eafabb2b5",
+  "branch": "cloud/sx-porthole-f462fix1",
+  "bundle": "/home/agent/rer-consolidation/work/sx-porthole-f462fix1/product-79ab0f32d546.bundle",
+  "sha256": "a16b4de32a060d4e416fed09afc678dd8ff0cf3023598ec32a6d4b22899f4e0a",
+  "verified": true,
+  "bytes": 16233693,
+  "productPushed": true,
+  "reason": "Local recovery copy while required CI is cancelled; not READY or a substitute for remote custody"
+}

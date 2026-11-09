@@ -1,0 +1,1 @@
+CLAIM PORT-003 PARTIAL points=none tests=tests/porthole/collector-install.mjs#collectorInstallJourney; tests/porthole/collector-install.mjs#fleetJourney; tests/porthole/analytics.mjs#collectorAnalyticalJourney; tests/porthole/archive.mjs#fleetArchiveJourney

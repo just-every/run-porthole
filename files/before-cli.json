@@ -1,0 +1,85 @@
+{
+  "head": "843cefdeab89ace4ed4543f1ffdb55d0e22b3495",
+  "rows": [
+    {
+      "kind": "503",
+      "recovered": false,
+      "keptRunning": false,
+      "attempts": 1,
+      "retryAfterHonored": false,
+      "exit": 1,
+      "explicit": false,
+      "cleanStop": true
+    },
+    {
+      "kind": "429",
+      "recovered": false,
+      "keptRunning": false,
+      "attempts": 1,
+      "retryAfterHonored": false,
+      "exit": 1,
+      "explicit": false,
+      "cleanStop": true
+    },
+    {
+      "kind": "timeout",
+      "recovered": false,
+      "keptRunning": false,
+      "attempts": 1,
+      "retryAfterHonored": true,
+      "exit": 1,
+      "explicit": false,
+      "cleanStop": true
+    },
+    {
+      "kind": "reset",
+      "recovered": false,
+      "keptRunning": false,
+      "attempts": 1,
+      "retryAfterHonored": true,
+      "exit": 1,
+      "explicit": false,
+      "cleanStop": true
+    },
+    {
+      "kind": "401",
+      "recovered": false,
+      "keptRunning": false,
+      "attempts": 1,
+      "retryAfterHonored": true,
+      "exit": 1,
+      "explicit": true,
+      "cleanStop": true
+    },
+    {
+      "kind": "403",
+      "recovered": false,
+      "keptRunning": false,
+      "attempts": 1,
+      "retryAfterHonored": true,
+      "exit": 1,
+      "explicit": true,
+      "cleanStop": true
+    },
+    {
+      "kind": "400",
+      "recovered": false,
+      "keptRunning": false,
+      "attempts": 1,
+      "retryAfterHonored": true,
+      "exit": 1,
+      "explicit": true,
+      "cleanStop": true
+    },
+    {
+      "kind": "malformed",
+      "recovered": false,
+      "keptRunning": true,
+      "attempts": 0,
+      "retryAfterHonored": true,
+      "exit": 1,
+      "explicit": true,
+      "cleanStop": true
+    }
+  ]
+}

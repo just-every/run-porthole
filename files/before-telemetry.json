@@ -1,0 +1,51 @@
+{
+  "mode": "before",
+  "binarySha256": "43132748eb0effb56b9d508ca789149684bf7ab6ade5d65cd0b22c4d265a30c0",
+  "rows": [
+    {
+      "kind": "503",
+      "officialCollector": "0.135.0",
+      "firstReportObserved": true,
+      "inputAcceptedDuringFailure": true,
+      "exportRefusals": 1,
+      "reportAttempts": 1,
+      "fleetRecovered": false,
+      "installerAliveUntilDelivery": false,
+      "delivered": 0,
+      "installerExit": 1,
+      "collectorShutdown": true,
+      "originalTimeUnixNano": "1794200566329000000",
+      "marker": "synthetic-porthole-report-outage-503"
+    },
+    {
+      "kind": "429",
+      "officialCollector": "0.135.0",
+      "firstReportObserved": true,
+      "inputAcceptedDuringFailure": true,
+      "exportRefusals": 1,
+      "reportAttempts": 1,
+      "fleetRecovered": false,
+      "installerAliveUntilDelivery": false,
+      "delivered": 0,
+      "installerExit": 1,
+      "collectorShutdown": true,
+      "originalTimeUnixNano": "1794200567729000000",
+      "marker": "synthetic-porthole-report-outage-429"
+    },
+    {
+      "kind": "timeout",
+      "officialCollector": "0.135.0",
+      "firstReportObserved": true,
+      "inputAcceptedDuringFailure": true,
+      "exportRefusals": 3,
+      "reportAttempts": 1,
+      "fleetRecovered": false,
+      "installerAliveUntilDelivery": false,
+      "delivered": 0,
+      "installerExit": 1,
+      "collectorShutdown": true,
+      "originalTimeUnixNano": "1794200569022000000",
+      "marker": "synthetic-porthole-report-outage-timeout"
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "id": 42565710026,
+  "name": "Verify",
+  "status": "completed",
+  "conclusion": "cancelled",
+  "head_sha": "79ab0f32d5464d1e61ad17498761d09eafabb2b5",
+  "head_branch": "cloud/sx-porthole-f462fix1",
+  "html_url": "https://github.com/just-every/run-porthole/actions/runs/42565710026",
+  "totalGhCalls": 7,
+  "watcherCalls": 4,
+  "additionalJobsCall": 1,
+  "builderRerunRequested": false,
+  "failedJobLogCalls": 1,
+  "failedJobArchiveExit": 0,
+  "failedJobArchiveCommand": "gh run view 42565710026 --repo just-every/run-porthole --job 128995351705 --log-failed"
+}
