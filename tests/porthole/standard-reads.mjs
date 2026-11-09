@@ -84,16 +84,17 @@ export async function assertTempoRead({origin,call=(path,options)=>fetch(origin+
  assert.equal((await call('/api/traces/'+traceId,{headers:{cookie,...auth(read.secret)}})).status,401)
 }
 
-async function stockMetrics({origin,cookie,call,reader,source,scratch}){
+async function stockMetrics({origin,cookie,call,reader,source,scratch,compareBackend}){
  const clients=resolve('.cache/standard-clients'),binary=process.env.PORTHOLE_PROMETHEUS_BIN??join(clients,'prometheus')
  const prom=await import('prom-client'),registry=new prom.Registry(),labels=['service','environment','team','producer']
  const gauge=new prom.Gauge({name:'synthetic_scrape_gauge',help:'Actual producer state',labelNames:labels,registers:[registry]})
  const counter=new prom.Counter({name:'synthetic_scrape_requests_total',help:'Actual requests',labelNames:labels,registers:[registry]})
  const histogram=new prom.Histogram({name:'synthetic_scrape_latency_seconds',help:'Observed work',labelNames:labels,buckets:[0.1,0.5,1],registers:[registry]})
+ const summary=new prom.Summary({name:'synthetic_scrape_work_summary',help:'Observed work distribution',labelNames:labels,percentiles:[0.5,0.9],registers:[registry]})
  let generation=0,scrapeAt=0,capturing=true;const sourceSamples=[],otlpPackets=[],children=[]
  const producer=createServer(async(req,res)=>{
   if(req.url==='/work'){
-   generation++;for(let i=0;i<24;i++){const l=[scope.services[0],'production','commerce','synthetic-porthole-'+(6200+i)];gauge.labels(...l).set(generation+i);counter.labels(...l).inc(i+1);histogram.labels(...l).observe((i%3+1)/10)}
+   generation++;for(let i=0;i<24;i++){const l=[scope.services[0],'production','commerce','synthetic-porthole-'+(6200+i)];gauge.labels(...l).set(generation+i);counter.labels(...l).inc(i+1);histogram.labels(...l).observe((i%3+1)/10);if(i===0)summary.labels(...l).observe(generation)}
    scrapeAt=Date.now();res.end(String(generation));return
   }
   if(req.url==='/metrics'){
@@ -148,6 +149,17 @@ async function stockMetrics({origin,cookie,call,reader,source,scratch}){
   // The stock reader's shutdown emits one last real collection. Finish that
   // collection before freezing the reference evaluation instant.
   await provider.shutdown();provider=undefined
+  assert.equal(otlpPackets.length,6,'five explicit stock collections and the final shutdown collection')
+  // The current stock SDK has no summary instrument. Its supported OTLP wire
+  // form and cumulative non-monotonic sums also go to the actual reference
+  // receiver, rather than using Porthole's mapper to compute expectations.
+  const at=String(BigInt(Date.now())*1000000n),schemaAttributes=[{key:'structured',value:{kvlistValue:{values:[{key:'sequence',value:{intValue:'9007199254740993'}},{key:'nested',value:{arrayValue:{values:[{boolValue:false},{bytesValue:'AQID'},{}]}}}]}}}]
+  const schema={resourceMetrics:[{resource:{attributes:[['service.name',scope.services[0]],['service.namespace','synthetic-porthole-6126'],['service.instance.id','synthetic-porthole-6127'],['deployment.environment.name','production'],['team.name','commerce']].map(([key,stringValue])=>({key,value:{stringValue}}))},scopeMetrics:[{metrics:[
+   {name:'synthetic.schema.nonmonotonic',unit:'ms',sum:{aggregationTemporality:2,isMonotonic:false,dataPoints:[{timeUnixNano:at,asInt:'-3',attributes:schemaAttributes}]}},
+   {name:'synthetic.schema.summary',summary:{dataPoints:[{timeUnixNano:at,count:'8',sum:4,quantileValues:[{quantile:0.0000001,value:0.2},{quantile:0.9,value:0.8}],attributes:schemaAttributes}]}},
+  ]}]}]}
+  const schemaResponse=await fetch(relayOrigin+'/v1/metrics',{method:'POST',headers:{...auth(source.secret),'content-type':'application/json'},body:JSON.stringify(schema)})
+  assert.equal(schemaResponse.status,200,await schemaResponse.text())
   const instant=Date.now()/1000
   await value(await call(api+'/ingest/drain',{method:'POST',headers:{origin,cookie,'content-type':'application/json'},body:'{}'}))
   const query=async(base,expression,instant)=>{
@@ -160,21 +172,30 @@ async function stockMetrics({origin,cookie,call,reader,source,scratch}){
   },'stock remote-write becomes queryable through stock remote-read',90000)
   console.log('Stock scrape generations '+JSON.stringify({scrapes:sourceSamples.length,timestamps:[...new Set(sourceSamples.map(s=>s.time))],counter:(await query(referenceOrigin,'synthetic_scrape_requests_total[2m]',instant)).result.slice(0,1)}))
   await until(async()=>{const data=await query(referenceOrigin,'min(count_over_time(synthetic_scrape_requests_total[2m]))',instant);return Number(data.result[0]?.value[1])>=3},'reference retains multiple real counter scrapes')
-  const expressions=['synthetic_scrape_gauge','sum by (producer) (synthetic_scrape_requests_total)','rate(synthetic_scrape_requests_total[2m])','increase(synthetic_scrape_requests_total[2m])','synthetic_scrape_latency_seconds_bucket','synthetic_otel_gauge_milliseconds','synthetic_otel_requests_total','synthetic_otel_histogram_seconds_bucket','synthetic_otel_histogram_seconds_sum','synthetic_otel_histogram_seconds_count','synthetic_otel_meters_velocity_per_second','synthetic_otel_ratio']
-  for(const expression of expressions){
-   const reference=await query(referenceOrigin,expression,instant),actual=await query(remoteOrigin,expression,instant)
-   const sort=data=>({...data,result:data.result.slice().sort((a,b)=>JSON.stringify(a.metric).localeCompare(JSON.stringify(b.metric)))})
-   assert.ok(reference.result.length>0,'reference has actual source data for '+expression+' '+JSON.stringify(await query(referenceOrigin,'synthetic_scrape_requests_total[2m]',instant)))
-   assert.deepEqual(sort(actual),sort(reference),'stock evaluation parity: '+expression)
-  }
-  const range='{__name__=~"synthetic_.*"}[2m]',reference=await query(referenceOrigin,range,instant),actual=await query(remoteOrigin,range,instant)
+  const expressions=['synthetic_scrape_gauge','sum by (producer) (synthetic_scrape_requests_total)','rate(synthetic_scrape_requests_total[2m])','increase(synthetic_scrape_requests_total[2m])','synthetic_scrape_latency_seconds_bucket','synthetic_otel_gauge_milliseconds','synthetic_otel_requests_total','synthetic_otel_histogram_seconds_bucket','synthetic_otel_histogram_seconds_sum','synthetic_otel_histogram_seconds_count','synthetic_otel_meters_velocity_per_second','synthetic_otel_ratio','synthetic_scrape_work_summary','synthetic_scrape_work_summary_sum','synthetic_scrape_work_summary_count','synthetic_schema_nonmonotonic_milliseconds','synthetic_schema_summary','synthetic_schema_summary_sum','synthetic_schema_summary_count']
   const normalize=data=>data.result.map(series=>({metric:Object.fromEntries(Object.entries(series.metric).sort()),values:series.values})).sort((a,b)=>JSON.stringify(a.metric).localeCompare(JSON.stringify(b.metric)))
-  assert.deepEqual(normalize(actual),normalize(reference),'every original label, timestamp and value survives stock remote-read')
-  assert.ok(actual.result.reduce((n,s)=>n+s.values.length,0)>1000,'every actual scrape and OTLP series crosses multiple pages')
-  const targets=await query(referenceOrigin,'target_info[2m]',instant),remoteTargets=await query(remoteOrigin,'target_info[2m]',instant)
-  assert.deepEqual(normalize(remoteTargets),normalize(targets),'resource target series also preserve every original label, timestamp and value')
-  assert.ok(sourceSamples.length>=5);assert.equal(otlpPackets.length,6,'five explicit stock collections and the final shutdown collection')
-  console.log('PROBE PORT-061 standard metrics: stock Prometheus 3.5.0 remote_read evaluates twelve fixed expressions over real scrape and stock OTLP input -> exact reference series, labels, timestamps and values')
+  const range='{__name__=~"synthetic_.*"}[2m]',reference=await query(referenceOrigin,range,instant),targets=await query(referenceOrigin,'target_info[2m]',instant)
+  const expectations=new Map()
+  for(const expression of expressions){
+   const expected=await query(referenceOrigin,expression,instant)
+   assert.ok(expected.result.length>0,'reference has actual source data for '+expression)
+   expectations.set(expression,expected)
+  }
+  const verify=async()=>{
+   for(const expression of expressions){
+    const actual=await query(remoteOrigin,expression,instant)
+    const sort=data=>({...data,result:data.result.slice().sort((a,b)=>JSON.stringify(a.metric).localeCompare(JSON.stringify(b.metric)))})
+    assert.deepEqual(sort(actual),sort(expectations.get(expression)),'stock evaluation parity: '+expression)
+   }
+   const actual=await query(remoteOrigin,range,instant)
+   assert.deepEqual(normalize(actual),normalize(reference),'every original label, timestamp and value survives stock remote-read')
+   assert.ok(actual.result.reduce((n,s)=>n+s.values.length,0)>1000,'every actual scrape and OTLP series crosses multiple pages')
+   assert.deepEqual(normalize(await query(remoteOrigin,'target_info[2m]',instant)),normalize(targets),'resource target series also preserve every original label, timestamp and value')
+  }
+  await verify()
+  if(compareBackend)await compareBackend(verify)
+  assert.ok(sourceSamples.length>=5);assert.equal(otlpPackets.length,7,'six stock SDK collections and one explicit official-schema edge packet')
+  console.log('PROBE PORT-061 standard metrics: stock Prometheus 3.5.0 remote_read evaluates '+expressions.length+' fixed expressions over real scrape, stock OTLP and official-schema summary input -> exact reference series, labels, timestamps and values'+(compareBackend?' on both analytical configurations':''))
   const generations=[...new Set(sourceSamples.map(sample=>sample.time))]
   assert.equal(generations.length,5,'all five actual producer generations were scraped')
   const split=BigInt(generations[3]),windows=[{from:0n,through:split-1n},{from:split,through:18446744073709n}]
@@ -186,7 +207,7 @@ async function stockMetrics({origin,cookie,call,reader,source,scratch}){
  }
 }
 
-export async function standardReadJourney({origin,cookie,call=(path,options)=>fetch(origin+path,options),freshOwner,restartWorker,sql,withEmptyDestination,withPinnedClock}){
+export async function standardReadJourney({origin,cookie,call=(path,options)=>fetch(origin+path,options),freshOwner,restartWorker,sql,withEmptyDestination,withPinnedClock,compareBackend}){
  cookie=await freshOwner()
  const post=(path,data,headers={cookie})=>call(path,{method:'POST',headers:{origin,'content-type':'application/json',...headers},body:JSON.stringify(data)})
  const mint=async(kind,extra={})=>value(await post(credential+'/mint',{name:'Standard signal reader',class:kind,scope:{...scope,actions:kind==='ingest'?['telemetry.write']:['telemetry.read']},...extra}),201)
@@ -197,7 +218,7 @@ export async function standardReadJourney({origin,cookie,call=(path,options)=>fe
   for(const path of ['/api/v1/query','/api/v1/query_range','/api/v1/series','/api/v1/labels','/api/v1/label/team/values','/api/v1/metadata','/api/v1/targets/metadata','/api/metrics/query_range','/api/v2/search/tags','/api/search','/api/search/tags','/api/v2/traces/0123456789abcdef0123456789abcdef'])assert.equal((await call(path,{headers:auth(reader.secret)})).status,501,'explicit unsupported standard route '+path)
   await value(await remoteRead(call,reader.secret,{types:[1]}),415)
   await value(await remoteRead(call,reader.secret,{matchers:[['__name__','(?=a)',2]]}),400)
-  const metrics=await stockMetrics({origin,cookie,call,reader,source,scratch})
+  const metrics=await stockMetrics({origin,cookie,call,reader,source,scratch,compareBackend})
   let settled
   for(let pass=0;pass<20;pass++){settled=await value(await post(api+'/ingest/drain',{}));if(!settled.pendingBatches&&settled.analytical.complete)break}
   assert.equal(settled.pendingBatches,0);assert.equal(settled.analytical.complete,true,'the stock exporter shutdown flush is retained before snapshot comparison')
@@ -263,10 +284,14 @@ export async function standardReadJourney({origin,cookie,call=(path,options)=>fe
   const endpoint=await listen(proxy)
   try{
    const cli=process.env.PORTHOLE_TEMPO_CLI_BIN??resolve('.cache/standard-clients/tempo-cli')
-   const output=await execute(cli,['query','api','trace-id',endpoint,selected,'--v1'],{timeout:30000})
-   const clientPath=join(scratch,'tempo-client.json');await writeFile(clientPath,output.stdout)
-   const clientTrace=JSON.parse((await execute(python,['tests/porthole/export-otlp-reader.py','--trace-json',clientPath])).stdout)
-   assert.deepEqual(grouped(clientTrace).map(canonical).sort(),grouped(original).map(canonical).sort(),'the pinned stock Tempo client decodes every permitted span field, resource and scope')
+   const verify=async()=>{
+    const output=await execute(cli,['query','api','trace-id',endpoint,selected,'--v1'],{timeout:30000})
+    const clientPath=join(scratch,'tempo-client.json');await writeFile(clientPath,output.stdout)
+    const clientTrace=JSON.parse((await execute(python,['tests/porthole/export-otlp-reader.py','--trace-json',clientPath])).stdout)
+    assert.deepEqual(grouped(clientTrace).map(canonical).sort(),grouped(original).map(canonical).sort(),'the pinned stock Tempo client decodes every permitted span field, resource and scope')
+   }
+   await verify()
+   if(compareBackend)await compareBackend(verify)
   }finally{await close(proxy)}
   const restricted=await mint('read',{scope:{...scope,services:['fulfillment'],teams:['fulfillment']}})
   const limited=await value(await call('/api/traces/'+selected,{headers:auth(restricted.secret)}))
@@ -318,7 +343,8 @@ export async function standardAnalyticalJourney(){
   const post=(path,data,headers={cookie})=>call(path,{method:'POST',headers:{origin,'content-type':'application/json',...headers},body:JSON.stringify(data)})
   const connect=async role=>{const config=await value(await call(api+'/analytics/configuration',{headers:{cookie}}));await value(await post(api+'/analytics/configuration',{revision:config.revision,role,enabled:true,confirm:'connect-analytical-workers'}))}
   await connect('primary')
-  const result=await standardReadJourney({origin,call,cookie,restartWorker,...helpers})
+  const compareBackend=async probe=>{await connect('standby');try{await probe()}finally{await connect('primary')}}
+  const result=await standardReadJourney({origin,call,cookie,restartWorker,...helpers,compareBackend})
   cookie=await helpers.freshOwner()
   const original=await remoteWindows(call,result.reader.secret,result.metrics.windows)
   const window=result.metrics.windows[1]
