@@ -193,9 +193,18 @@ try {
   }
   if(process.env.PORTHOLE_NETWORK_ONLY==='1') {
    const {networkJourney}=await import('./porthole/network.mjs')
-   await networkJourney({origin,restartWorker,withEmptyDestination,...helpers})
    const {networkAnalyticalJourney}=await import('./porthole/analytics.mjs')
-   await networkAnalyticalJourney()
+   let analytical
+   try {
+    await networkJourney({origin,restartWorker,withEmptyDestination,...helpers,onCaptured:()=>{
+     analytical=networkAnalyticalJourney()
+     // Observe rejection immediately while native assertions are still running.
+     analytical.catch(()=>{})
+    }})
+   } finally {
+    // Both proofs must finish, including cleanup, even if either one fails.
+    await analytical
+   }
   } else if(process.env.PORTHOLE_SERVICES_ANALYTICAL_ONLY==='1') {
    const {servicesAnalyticalJourney}=await import('./porthole/analytics.mjs')
    await servicesAnalyticalJourney()
