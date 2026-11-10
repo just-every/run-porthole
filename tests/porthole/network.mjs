@@ -30,8 +30,9 @@ export async function networkJourney({origin,call=(path,options)=>fetch(origin+p
   proof=retainedProof
   for(const p of proof.packets){const r=await call(p.path,{method:'POST',headers:{authorization:'Bearer '+source.secret,'content-type':p.type},body:p.body});assert.equal(r.status,200,await r.clone().text())}
  }
- let pending=1;for(let i=0;i<100&&pending;i++)pending=(await post('/api/porthole/v1/ingest/drain',{})).pendingBatches
+ let pending=1,last,rounds=0;for(let i=0;i<100&&pending;i++){last=await post('/api/porthole/v1/ingest/drain',{});pending=last.pendingBatches;rounds++}
  assert.equal(pending,0)
+ if(analytical){console.log('DIAG drain rounds='+rounds+' packets='+proof.packets.length+' bytes='+proof.packets.reduce((n,p)=>n+p.body.length,0)+' '+JSON.stringify(last.analytical));const again=await post('/api/porthole/v1/analytics/reconcile',{});console.log('DIAG reconcile '+JSON.stringify(again));console.log('DIAG batches '+JSON.stringify(await sql("SELECT state,COUNT(*) n,MAX(completion_sequence) m,SUM(record_count) r,MIN(accepted_at) a0,MAX(accepted_at) a1 FROM porthole_ingest_batches GROUP BY state")));console.log('DIAG now='+Date.now()+' windows='+JSON.stringify(proof.windows.map(w=>[w.name,w.from,w.through])))}
  // The analytical proof owns separate stores and replays this immutable capture.
  // Start it alongside native assertions/archive work, then the harness joins it.
  onCaptured?.()
