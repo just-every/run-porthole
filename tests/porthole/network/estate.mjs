@@ -9,6 +9,7 @@ import {randomUUID} from 'node:crypto'
 import {releases as networkPins} from '../../../collectors/network/release.mjs'
 import {releases as messagingPins} from '../../../collectors/messaging/release.mjs'
 import {networkConfiguration} from '../../../collectors/network/configuration.mjs'
+import {batchFixtureMetrics} from './batching.mjs'
 import {messagingConfiguration} from '../../../collectors/messaging/configuration.mjs'
 const execute=promisify(execFile),pause=ms=>new Promise(r=>setTimeout(r,ms))
 const password='synthetic-porthole-network-secret',destination='synthetic-porthole-network-orders'
@@ -30,13 +31,27 @@ export async function networkEstate({dispatch,secret}) {
  async function command(name,args){return docker('exec',tag+'-'+name,...args)}
  async function kafkaCommand(tool,args){return command('kafka',['/opt/kafka/bin/kafka-'+tool+'.sh','--bootstrap-server','kafka:9092','--command-config','/run/admin.properties',...args])}
  async function netem(namespace,args,capability=true){return docker('run','--rm','--network','container:'+tag+'-'+namespace,...(capability?['--cap-add','NET_ADMIN']:[]),networkPins.netem,'tc',...args).catch(error=>{if(/qdisc kind is unknown/.test(error.stderr??''))throw Error('network_fault_kernel_unavailable: CONFIG_NET_SCH_NETEM and CONFIG_NET_SCH_PRIO required; '+error.stderr.trim());throw error})}
- async function snap(){return {atNs:String(BigInt(Date.now())*1000000n),apps:await stats(),containerDrops:{rx:Number(await command('checkout-kafka',['cat','/sys/class/net/eth0/statistics/rx_dropped'])),tx:Number(await command('checkout-kafka',['cat','/sys/class/net/eth0/statistics/tx_dropped']))},snmp:await command('checkout-kafka',['cat','/proc/net/snmp']),netstat:await command('checkout-kafka',['cat','/proc/net/netstat']),kafka:await kafkaCommand('consumer-groups',['--describe','--group','synthetic-porthole-network-group']),rabbit:await command('rabbit',['rabbitmqctl','-q','list_queues','name','messages_ready','messages_unacknowledged','messages'])}}
+ // Read independent witnesses together, within the same before/after window.
+ // Fault injection, sample intervals and every counter assertion stay intact.
+ async function snap(){
+  const atNs=String(BigInt(Date.now())*1000000n)
+  const [apps,rx,tx,snmp,netstat,kafka,rabbit]=await Promise.all([
+   stats(),
+   command('checkout-kafka',['cat','/sys/class/net/eth0/statistics/rx_dropped']),
+   command('checkout-kafka',['cat','/sys/class/net/eth0/statistics/tx_dropped']),
+   command('checkout-kafka',['cat','/proc/net/snmp']),
+   command('checkout-kafka',['cat','/proc/net/netstat']),
+   kafkaCommand('consumer-groups',['--describe','--group','synthetic-porthole-network-group']),
+   command('rabbit',['rabbitmqctl','-q','list_queues','name','messages_ready','messages_unacknowledged','messages']),
+  ])
+  return {atNs,apps,containerDrops:{rx:Number(rx),tx:Number(tx)},snmp,netstat,kafka,rabbit}
+ }
  async function record(name,injected,run){
   console.log('Network window: '+name)
   const from=String(BigInt(Date.now())*1000000n),before=await snap(),groundTruth=await run();await pause(4500);for(const role of roles)await app(role,'/flush');await pause(500)
   const after=await snap(),through=String(BigInt(Date.now())*1000000n),window={name,injected,from,through,before,after,...(groundTruth?{groundTruth}:{})};windows.push(window);return window
  }
- async function collect(name,config,mountSocket=true){const file=join(scratch,name+'.json');await writeFile(file,JSON.stringify(config));return run(name,['--user','0:0','-e','NO_PROXY='+internalNoProxy,'-e','no_proxy='+internalNoProxy,'-v',file+':/etc/otelcol/config.json:ro',...(mountSocket?['-v','/var/run/docker.sock:/var/run/docker.sock:ro']:[]),'-e','KAFKA_READER_PASSWORD='+password,'-e','RABBITMQ_MONITOR_PASSWORD='+password,networkPins.collector,'--config=/etc/otelcol/config.json'])}
+ async function collect(name,config,mountSocket=true){const file=join(scratch,name+'.json');await writeFile(file,JSON.stringify(batchFixtureMetrics(config)));return run(name,['--user','0:0','-e','NO_PROXY='+internalNoProxy,'-e','no_proxy='+internalNoProxy,'-v',file+':/etc/otelcol/config.json:ro',...(mountSocket?['-v','/var/run/docker.sock:/var/run/docker.sock:ro']:[]),'-e',`KAFKA_READER_PASSWORD=${password}`,'-e',`RABBITMQ_MONITOR_PASSWORD=${password}`,networkPins.collector,'--config=/etc/otelcol/config.json'])}
  async function start(){
   await docker('network','create',tag);network=JSON.parse(await docker('network','inspect',tag))[0];const gatewayIp=network.IPAM.Config[0].Gateway
   internalNoProxy+=','+gatewayIp+',kafka,rabbit,'+roles.join(',')+',.porthole.test'
@@ -44,8 +59,13 @@ export async function networkEstate({dispatch,secret}) {
   await new Promise(r=>gateway.listen(0,'0.0.0.0',r));exportEndpoint='http://'+gatewayIp+':'+gateway.address().port
   await writeFile(join(scratch,'admin.properties'),'request.timeout.ms=3000\ndefault.api.timeout.ms=5000\nsecurity.protocol=SASL_PLAINTEXT\nsasl.mechanism=PLAIN\nsasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username="admin" password="'+password+'";\n')
   await writeFile(join(scratch,'kafka-jaas.conf'),'KafkaServer { org.apache.kafka.common.security.plain.PlainLoginModule required username="admin" password="'+password+'" user_admin="'+password+'" user_reader="'+password+'"; };\n')
-  await run('kafka',['-v',join(scratch,'kafka-jaas.conf')+':/run/kafka-jaas.conf:ro','-e','KAFKA_OPTS=-Djava.security.auth.login.config=/run/kafka-jaas.conf','-v',join(scratch,'admin.properties')+':/run/admin.properties:ro','-e','KAFKA_NODE_ID=1','-e','KAFKA_PROCESS_ROLES=broker,controller','-e','KAFKA_LISTENERS=SASL_PLAINTEXT://:9092,CONTROLLER://:9093','-e','KAFKA_ADVERTISED_LISTENERS=SASL_PLAINTEXT://kafka:9092','-e','KAFKA_CONTROLLER_QUORUM_VOTERS=1@kafka:9093','-e','KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER','-e','KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,SASL_PLAINTEXT:SASL_PLAINTEXT','-e','KAFKA_INTER_BROKER_LISTENER_NAME=SASL_PLAINTEXT','-e','KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL=PLAIN','-e','KAFKA_SASL_ENABLED_MECHANISMS=PLAIN','-e','KAFKA_LISTENER_NAME_SASL_PLAINTEXT_PLAIN_SASL_JAAS_CONFIG=org.apache.kafka.common.security.plain.PlainLoginModule required username="admin" password="'+password+'" user_admin="'+password+'" user_reader="'+password+'";','-e','KAFKA_AUTHORIZER_CLASS_NAME=org.apache.kafka.metadata.authorizer.StandardAuthorizer','-e','KAFKA_SUPER_USERS=User:admin;User:ANONYMOUS','-e','KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1','-e','KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1','-e','KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1',messagingPins.kafka])
-  await run('rabbit',['-e','RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS=-rabbit collect_statistics_interval 1000','-e','RABBITMQ_DEFAULT_USER=workload','-e','RABBITMQ_DEFAULT_PASS='+password,messagingPins.rabbitmq])
+  // Independent brokers can pull and start together before readiness checks.
+  const brokers=await Promise.allSettled([
+   run('kafka',['-v',join(scratch,'kafka-jaas.conf')+':/run/kafka-jaas.conf:ro','-e','KAFKA_OPTS=-Djava.security.auth.login.config=/run/kafka-jaas.conf','-v',join(scratch,'admin.properties')+':/run/admin.properties:ro','-e','KAFKA_NODE_ID=1','-e','KAFKA_PROCESS_ROLES=broker,controller','-e','KAFKA_LISTENERS=SASL_PLAINTEXT://:9092,CONTROLLER://:9093','-e','KAFKA_ADVERTISED_LISTENERS=SASL_PLAINTEXT://kafka:9092','-e','KAFKA_CONTROLLER_QUORUM_VOTERS=1@kafka:9093','-e','KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER','-e','KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,SASL_PLAINTEXT:SASL_PLAINTEXT','-e','KAFKA_INTER_BROKER_LISTENER_NAME=SASL_PLAINTEXT','-e','KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL=PLAIN','-e','KAFKA_SASL_ENABLED_MECHANISMS=PLAIN','-e','KAFKA_LISTENER_NAME_SASL_PLAINTEXT_PLAIN_SASL_JAAS_CONFIG=org.apache.kafka.common.security.plain.PlainLoginModule required username="admin" password="'+password+'" user_admin="'+password+'" user_reader="'+password+'";','-e','KAFKA_AUTHORIZER_CLASS_NAME=org.apache.kafka.metadata.authorizer.StandardAuthorizer','-e','KAFKA_SUPER_USERS=User:admin;User:ANONYMOUS','-e','KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1','-e','KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1','-e','KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1',messagingPins.kafka]),
+   run('rabbit',['-e','RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS=-rabbit collect_statistics_interval 1000','-e','RABBITMQ_DEFAULT_USER=workload','-e','RABBITMQ_DEFAULT_PASS='+password,messagingPins.rabbitmq]),
+  ])
+  // Finish both starts before cleanup can run if either broker fails.
+  for(const broker of brokers)if(broker.status==='rejected')throw broker.reason
   ids.rabbitmq=ids.rabbit
   await waitFor('kafka',()=>kafkaCommand('topics',['--list']).then(()=>true))
   await kafkaCommand('topics',['--create','--topic',destination,'--partitions','1','--replication-factor','1'])
@@ -121,6 +141,9 @@ export async function networkEstate({dispatch,secret}) {
    const name='obi-'+(caps.join('-')||'none')
    try{await run(name,['--pid','container:'+tag+'-checkout-kafka',...caps.flatMap(c=>['--cap-add',c]),'-e','OTEL_EBPF_OPEN_PORT=8080','-e','OTEL_EXPORTER_OTLP_ENDPOINT='+exportEndpoint,networkPins.obi],{namespace:'checkout-kafka'});await pause(3000);const state=(await inspect(name)).State,logs=await docker('logs',tag+'-'+name);denials.push({name,privilege:'BPF and PERFMON with kernel support',state:state.Running?'running-unqualified':'kernel-or-privilege-gap',diagnostic:logs.slice(-1600)});if(state.Running)await docker('stop',tag+'-'+name)}catch(error){denials.push({name,privilege:'BPF and PERFMON with kernel support',state:'kernel-or-privilege-gap',diagnostic:String(error.stderr??error.message).slice(-1000)})}
   }
+  // Flush stock processors before reading the final capture. Force removal
+  // would discard their buffered samples and weaken the window comparisons.
+  for(const name of containers.filter(name=>name.includes('collector')||name.endsWith('-network-no-socket')))await docker('stop','--time','30',name)
   for(const role of roles)await app(role,'/flush');await pause(500)
   return {windows,denials,packets,stats:await stats(),ids,foreign:foreignReceipt,pins:{...networkPins,...messagingPins}}
  }

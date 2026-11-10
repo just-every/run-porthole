@@ -63,7 +63,13 @@ let persist = await mkdtemp(join(tmpdir(), 'foundation-runtime-'))
 const stores=[persist]
 const migrationEnv={...process.env,CI:'1',WRANGLER_SEND_METRICS:'false'}
 const migrate=config=>execFileSync(process.execPath,['node_modules/wrangler/bin/wrangler.js','d1','migrations','apply','foundation','--local','--persist-to',persist,'--config',config],{stdio:'pipe',env:migrationEnv,maxBuffer:128*1024*1024})
-const sql=async command=>JSON.parse((await execute(process.execPath,['node_modules/wrangler/bin/wrangler.js','d1','execute','foundation','--local','--persist-to',persist,'--config','dist/server/wrangler.json','--json','--command',command],{encoding:'utf8',env:migrationEnv,maxBuffer:128*1024*1024})).stdout).flatMap(result=>result.results??[])
+const sql=async command=>{
+ // Read the actual running Worker's D1 binding rather than starting another
+ // Wrangler/Miniflare process for every assertion or session lookup. Fixture
+ // writes still use the offline CLI, including the explicit restart drills.
+ if(worker && /^\s*SELECT\b/i.test(command))return sql.read(command)
+ return JSON.parse((await execute(process.execPath,['node_modules/wrangler/bin/wrangler.js','d1','execute','foundation','--local','--persist-to',persist,'--config','dist/server/wrangler.json','--json','--command',command],{encoding:'utf8',env:migrationEnv,maxBuffer:128*1024*1024})).stdout).flatMap(result=>result.results??[])
+}
 // Upgrade a real prior installation: Base first, then existing members, then
 // the shipped product migrations through Wrangler's actual migration command.
 const oldMigrations=join(persist,'previous-migrations');await mkdir(oldMigrations)
@@ -94,6 +100,7 @@ async function startWorker() {
 }
 async function stopWorker() {
  await worker?.dispose()
+ worker=null
 }
 async function restartWorker(changeStorage) {
  await stopWorker(); if (changeStorage) await changeStorage(); await startWorker()
@@ -186,9 +193,18 @@ try {
   }
   if(process.env.PORTHOLE_NETWORK_ONLY==='1') {
    const {networkJourney}=await import('./porthole/network.mjs')
-   await networkJourney({origin,restartWorker,withEmptyDestination,...helpers})
    const {networkAnalyticalJourney}=await import('./porthole/analytics.mjs')
-   await networkAnalyticalJourney()
+   let analytical
+   try {
+    await networkJourney({origin,restartWorker,withEmptyDestination,...helpers,onCaptured:()=>{
+     analytical=networkAnalyticalJourney()
+     // Observe rejection immediately while native assertions are still running.
+     analytical.catch(()=>{})
+    }})
+   } finally {
+    // Both proofs must finish, including cleanup, even if either one fails.
+    await analytical
+   }
   } else if(process.env.PORTHOLE_SERVICES_ANALYTICAL_ONLY==='1') {
    const {servicesAnalyticalJourney}=await import('./porthole/analytics.mjs')
    await servicesAnalyticalJourney()

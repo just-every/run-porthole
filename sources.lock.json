@@ -5853,7 +5853,7 @@
       "executable": false
     },
     "tests/porthole/archive.mjs": {
-      "sha256": "537563ca70d4fe404e7ef5b7208fb428fff65d32fa476900da70b5143d4220a9",
+      "sha256": "90579952b1adb5c3e4c8b7cf72a6963c750bee0d781c342edffb44f0239ec80d",
       "executable": false
     },
     "tests/porthole/audit.mjs": {
@@ -5997,11 +5997,15 @@
       "executable": false
     },
     "tests/porthole/network.mjs": {
-      "sha256": "0219eb52da2942eb26d7be8acae5ed918f2e1df441d8660778ce4d69d3610c3d",
+      "sha256": "4e4a31c59f90d7d9f5bb9e99dfee011939c82a8973b6f5cc307a0bebb6ee5774",
+      "executable": false
+    },
+    "tests/porthole/network/batching.mjs": {
+      "sha256": "1d59b6851390b4034a0dc7e030847d46090b5e91c87d34e0c6d468d3d02b2942",
       "executable": false
     },
     "tests/porthole/network/estate.mjs": {
-      "sha256": "3d3e29418c55b26387b0890162c2be2e54e7a8cb6e7a15192344497bc971d7bc",
+      "sha256": "891c7c5dda2858e1c29e56ffec11e95746fc550d762cb28ec3145aa97828c31b",
       "executable": false
     },
     "tests/porthole/network/foreign.cjs": {
@@ -6009,7 +6013,7 @@
       "executable": false
     },
     "tests/porthole/network/producer.cjs": {
-      "sha256": "7197831c39c776f0ab7b3892be7c44c6b1884bb43e90fc440a8a5db7f6b2b1c5",
+      "sha256": "8f49a0e4230c8b50b02d971d6fee71edfc66fc1614005e24cd9693f20098c8e4",
       "executable": false
     },
     "tests/porthole/notebooks.mjs": {
@@ -6137,7 +6141,7 @@
       "executable": false
     },
     "tests/runtime.mjs": {
-      "sha256": "597c1dfaeb2cb780ef660073ef06e1f5221c4ae7372d84cb5238fc017a431843",
+      "sha256": "0e1e2f27c4e5b687f9422117d5eced19b65bdf8f1003c744da17349442e33d62",
       "executable": false
     },
     "tests/typecheck-checks.mjs": {
@@ -6149,7 +6153,7 @@
       "executable": false
     },
     "verification.json": {
-      "sha256": "a615163710a3a31fb0ccac166c3163ce90a7ba0afed4558737c0564999051997",
+      "sha256": "af0145432081eebc559485b5f9c38e8edb47a0d8e5b31265782fc0997bd0c2de",
       "executable": false
     },
     "VERIFY-WORKFLOW.md": {

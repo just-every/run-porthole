@@ -14,7 +14,7 @@ import {otlpProtoBatch} from './ingest.mjs'
 const execute=promisify(execFile),api='/api/porthole/v1/archive',hash=value=>createHash('sha256').update(value).digest('hex')
 const post=(origin,cookie,path,data)=>fetch(origin+path,{method:'POST',redirect:'manual',headers:{origin,cookie,'content-type':'application/json'},body:JSON.stringify(data)})
 const get=(origin,cookie,path)=>fetch(origin+path,{headers:{cookie}})
-async function value(response,status=200){assert.equal(response.status,status,await response.clone().text());assert.equal(response.headers.get('cache-control'),'no-store');return response.json()}
+async function value(response,status=200){assert.equal(response.status,status,response.status===status?undefined:await response.clone().text());assert.equal(response.headers.get('cache-control'),'no-store');return response.json()}
 async function savedExport(origin,cookie,start){
  const job=await value(start,201),chunks=[]
  for(let index=0;index<job.totalChunks;index++)chunks.push(await value(await get(origin,cookie,`${api}/exports/${job.id}/chunks/${index}`)))
