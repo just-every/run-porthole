@@ -15,6 +15,16 @@ export async function networkJourney({origin,call=(path,options)=>fetch(origin+p
  let cookie=await freshOwner()
  const post=async(path,data,status=200)=>{const r=await call(path,form(origin,cookie,data));assert.equal(r.status,status,await r.clone().text());return r.json()}
  const read=async(path,acting=cookie)=>{const r=await call(path,{headers:{cookie:acting}});assert.equal(r.status,200,await r.clone().text());return r.json()}
+ // A drain processes at most 20 batches and replicates at most 20 batches or
+ // 1.8 MiB to the analytical replica, so a capture of tens of batches needs more
+ // drains than its pending count alone shows (a slower runner exports more
+ // packets). Settle on the product's own signal: nothing pending and the
+ // replica at the required watermark; never read before both hold.
+ const settle=async()=>{
+  let drained
+  for(let i=0;i<100;i++){drained=await post('/api/porthole/v1/ingest/drain',{});if(!drained.pendingBatches&&drained.analytical.complete)break}
+  assert.equal(drained.pendingBatches,0);assert.equal(drained.analytical.complete,true,'analytical replication reaches the required watermark: '+JSON.stringify(drained.analytical))
+ }
  assert.equal((await call(root)).status,401)
  assert.equal((await read(root+'?from=1&through=2')).network.length,0)
  // Collectors export throughout the multi-minute fault windows; restart,
@@ -30,8 +40,7 @@ export async function networkJourney({origin,call=(path,options)=>fetch(origin+p
   proof=retainedProof
   for(const p of proof.packets){const r=await call(p.path,{method:'POST',headers:{authorization:'Bearer '+source.secret,'content-type':p.type},body:p.body});assert.equal(r.status,200,await r.clone().text())}
  }
- let pending=1;for(let i=0;i<100&&pending;i++)pending=(await post('/api/porthole/v1/ingest/drain',{})).pendingBatches
- assert.equal(pending,0)
+ await settle()
  // The analytical proof owns separate stores and replays this immutable capture.
  // Start it alongside native assertions/archive work, then the harness joins it.
  onCaptured?.()
@@ -130,7 +139,7 @@ export async function networkJourney({origin,call=(path,options)=>fetch(origin+p
  assert.deepEqual(await read(root+dns.query+'&snapshot='+dns.view.snapshot),dns.view,'restart reconstructs exact evidence from retained inputs')
  const before=await read(root+backlog.query)
  for(const packet of proof.packets){const r=await call(packet.path,{method:'POST',headers:{authorization:'Bearer '+source.secret,'content-type':packet.type},body:packet.body});assert.equal(r.status,200,await r.clone().text())}
- for(let i=0;i<100;i++)if(!(await post('/api/porthole/v1/ingest/drain',{})).pendingBatches)break
+ await settle()
  const after=await read(root+backlog.query+'&snapshot='+before.snapshot)
  assert.deepEqual(after,before,'replayed stock packets cannot alter a completed watermark')
  if(withEmptyDestination){const {networkArchiveJourney}=await import('./archive.mjs');await networkArchiveJourney({origin,freshOwner,withEmptyDestination,query:backlog.query+'&snapshot='+before.snapshot,expected:before})}
@@ -143,7 +152,7 @@ export async function networkJourney({origin,call=(path,options)=>fetch(origin+p
   let refused=0
   for(const p of proof.packets){const r=await call(p.path,{method:'POST',headers:{authorization:'Bearer '+source.secret,'content-type':p.type},body:p.body});assert.ok([200,409].includes(r.status));if(r.status===409)refused++}
   assert.ok(refused>0,'actual erased network capture replay is refused')
-  for(let i=0;i<100;i++)if(!(await post('/api/porthole/v1/ingest/drain',{})).pendingBatches)break
+  await settle()
   assert.ok(!(await read(root+backlog.query)).network.some(n=>JSON.parse(n.key)[0]==='checkout-kafka'),'latest intake watermark cannot resurrect erased evidence')
   const afterReplay=await read(root+backlog.query)
   await restartWorker();cookie=await freshOwner();assert.deepEqual(await read(root+backlog.query),afterReplay)
