@@ -62,7 +62,10 @@ export function otlpRecords(data: Record<string, unknown>, signal: Signal, heade
      for (const rawPoint of points) {
       const point = object(rawPoint), pointAttr = attributes(point.attributes)
       if (kind === 'gauge' || kind === 'sum') {
-       if (Number(Object.hasOwn(point,'asDouble')) + Number(Object.hasOwn(point,'asInt')) !== 1) return invalid('missing_metric_value')
+       const values = Number(Object.hasOwn(point,'asDouble')) + Number(Object.hasOwn(point,'asInt'))
+       // OTLP withdrawal markers have no numeric oneof when NO_RECORDED_VALUE is set.
+       const noValue = typeof point.flags === 'number' && Number.isInteger(point.flags) && point.flags >= 0 && point.flags <= 0xffffffff && (point.flags & 1) !== 0
+       if (values !== 1 && !(values === 0 && noValue)) return invalid('missing_metric_value')
       }
       append(record({ ...common, metric: { ...entry, [kind]: { ...container, dataPoints: undefined } }, metricKind: kind, record: point }, { ...attr, ...pointAttr }, point.timeUnixNano ?? '0', headers, signal))
      }

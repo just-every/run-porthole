@@ -13,6 +13,7 @@ export async function pipelineJourney({origin,freshOwner,sql,restartWorker,withE
  const get=async path=>value(await fetch(origin+path,{headers:{cookie}}))
  const catalog=await get(api+'/catalog')
  const d={service:'synthetic-porthole-12000',environment:'production',team:'payments',processors:[catalog.processors.find(p=>p.type==='json').example,{type:'status',source:'level'}],metrics:[{name:'checkout.logs'},{name:'checkout.errors',field:'status',equals:'error'}],redaction:[{pattern:'private-[0-9]{4}',exceptions:['private-0000']}]}
+ const containerId='a'.repeat(20)+'123456789'+'b'.repeat(35),containerResource=[{key:'container.id',value:{stringValue:containerId}}]
  const scope={services:[d.service],environments:[d.environment],teams:[d.team]}
  const source=await value(await post('/app/settings/credentials/mint',{name:'synthetic-porthole-12001',class:'ingest',scope:{...scope,signals:['logs'],actions:['telemetry.write']}}),201)
  const preview=async(definition=d,samples=[],revision)=>value(await post(api+'/preview',{definition,samples,revision:revision??(await get(api)).revision}),201)
@@ -25,9 +26,9 @@ export async function pipelineJourney({origin,freshOwner,sql,restartWorker,withE
  // nested objects, escaped values and equivalent escaped key spellings.
  const escapedSsn=Array.from(planted[0],char=>'\\u'+char.charCodeAt(0).toString(16).padStart(4,'0')).join('')
  bodies[0]='{"repeated":"'+planted[0]+'","repeated":"safe","nested":[{"note":"'+planted[1]+'","note":"safe"}],"escaped":"'+escapedSsn+'","esc\\u0061ped":"safe",'+bodies[0].slice(1)
- const send=async(bodies,id,time=at,attributes=[])=>{
+ const send=async(bodies,id,time=at,attributes=[],resources=[])=>{
   const packet=otlpLogBatch(bodies.map((_,i)=>time+BigInt(i)))
-  const resource=packet.resourceLogs[0];resource.resource.attributes=[{key:'service.name',value:{stringValue:d.service}},{key:'team.name',value:{stringValue:d.team}},{key:'deployment.environment.name',value:{stringValue:d.environment}},{key:'nested-private',value:{stringValue:planted[0]}}]
+  const resource=packet.resourceLogs[0];resource.resource.attributes=[{key:'service.name',value:{stringValue:d.service}},{key:'team.name',value:{stringValue:d.team}},{key:'deployment.environment.name',value:{stringValue:d.environment}},{key:'nested-private',value:{stringValue:planted[0]}},...resources]
   resource.scopeLogs[0].logRecords.forEach((row,i)=>{row.body.stringValue=bodies[i];row.attributes.push(...(attributes[i]??[]));if(bodies[i].includes('protectedError'))row.severityNumber=17})
   const wire=JSON.stringify(packet),response=await fetch(origin+'/v1/logs',{method:'POST',headers:{authorization:'Bearer '+source.secret,'content-type':'application/json','x-porthole-batch-id':id},body:wire})
   assert.equal(response.status,200,await response.clone().text());return {id:response.headers.get('x-porthole-batch'),wire}
@@ -86,8 +87,10 @@ export async function pipelineJourney({origin,freshOwner,sql,restartWorker,withE
  assert.equal((await activate(p)).revision,1)
  assert.equal((await post(api+'/activate',{previewId:p.id,digest:p.digest,confirm:'activate-pipeline'})).status,409,'approval is single use')
  await value(await post(intake+'/control',{paused:true}))
- const first=await send(bodies,'synthetic-porthole-12003')
+ const first=await send(bodies,'synthetic-porthole-12003',at,[],containerResource)
  const queued=(await sql(`SELECT * FROM porthole_ingest_batches WHERE id=${literal(first.id)}`))[0]
+ const queuedRecords=JSON.parse(queued.records)
+ assert.ok(queuedRecords.every(row=>row.payload.resource.attributes.find(a=>a.key==='container.id')?.value.stringValue===containerId),'validated opaque Docker identities survive mandatory privacy masks before pending persistence')
  const wire=JSON.parse(Buffer.from(queued.wire_base64,'base64').toString())
  assert.equal(wire.format,'porthole.sanitized-log-envelope.v1');assert.deepEqual(wire.records,JSON.parse(queued.records));assert.notEqual(Buffer.from(queued.wire_base64,'base64').toString(),first.wire)
  assert.equal(queued.digest,createHash('sha256').update(JSON.stringify({environment:null,service:null,team:null,tenant:null,wire:Buffer.from(first.wire).toString('base64')})).digest('hex'),'source identity remains bound to original bytes')
@@ -95,7 +98,7 @@ export async function pipelineJourney({origin,freshOwner,sql,restartWorker,withE
  const stale=await preview(d),kv={...d,processors:[{type:'kv'},{type:'status',source:'level'}]}
  assert.equal((await activate(await preview(kv,['level=info message="Checkout kv"']))).revision,2)
  assert.equal((await post(api+'/activate',{previewId:stale.id,digest:stale.digest,confirm:'activate-pipeline'})).status,409)
- assert.equal((await send(bodies,'synthetic-porthole-12003')).id,first.id,'revision change cannot reinterpret a replay')
+ assert.equal((await send(bodies,'synthetic-porthole-12003',at,[],containerResource)).id,first.id,'revision change cannot reinterpret a replay')
  await send(['level=info message="Checkout kv"'],'synthetic-porthole-12004',at+10n)
  assert.equal((await activate(await preview(d,bodies))).revision,3)
  await restartWorker();cookie=await freshOwner()

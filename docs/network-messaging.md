@@ -50,6 +50,10 @@ routing-topology qualification.
 
 ## Missing evidence and privileges
 
+Stock scalar withdrawal markers retain their NO_RECORDED_VALUE flag and original
+timestamp without a numeric value. They do not supply a measured zero or fresh
+network coverage.
+
 Counter age is measured against the selected window's end. A sample more than
 15 seconds behind that end is stale. Missing metrics and unsuccessful collection
 are not converted to zero. Each gap names the collection source, required

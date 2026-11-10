@@ -187,3 +187,8 @@ this does not provide a flame graph engine. Cross-language exporter coverage,
 production gRPC deployments and high-volume latency or capacity have not been
 qualified by these examples. Acceptance of a batch establishes durable intake,
 not a throughput or query-latency guarantee.
+
+
+Docker collection and the Linux Kubernetes DaemonSet are documented in
+[Collector installation](./collector-install.md), including privilege gaps,
+zero-code instrumentation limits and uninstall effects.
