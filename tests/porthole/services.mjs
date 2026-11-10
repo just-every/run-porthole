@@ -16,8 +16,8 @@ export async function servicesJourney({origin,freshOwner,signIn,sql,restartWorke
  assert.equal((await call(api)).status,401)
  assert.equal((await read()).services.length,0)
  await servicesBrowser({origin,cookie,path:'/app/services',contains:'No services with retained evidence',name:'services-empty',dispatch:browserDispatch})
- const source=await send('/app/settings/credentials/mint',{name:'synthetic-porthole-8206',class:'ingest',scope:{...scope,signals:['traces'],actions:['telemetry.write']}},201)
- const proof=await serviceCatalogEstate({origin,secret:source.secret,dispatch:call})
+ const source=await send('/app/settings/credentials/mint',{name:'synthetic-porthole-8206',class:'ingest',scope:{...scope,signals:['traces','logs'],actions:['telemetry.write']}},201)
+ const proof=await serviceCatalogEstate({origin,secret:source.secret,dispatch:call,logs:true})
  assert.equal(proof.statuses.filter(s=>s===503).length,8,'independently counted application errors')
  assert.equal(proof.statuses.filter(s=>s===200).length,28)
  assert.equal(proof.receipts.find(r=>r.received.length).received.length,36,'all actual queue messages arrived once')
@@ -86,8 +86,8 @@ export async function servicesJourney({origin,freshOwner,signIn,sql,restartWorke
  const {serviceTopologyProof}=await import('./traces.mjs')
  await serviceTopologyProof({read,proof,view,checkout,fulfillment})
  await servicesBrowser({origin,cookie,path:'/app/services/'+checkout.id+query,contains:'Observed requests',name:'services-summary',dispatch:browserDispatch,observed:checkout.summary})
- for(const [index,packet]of proof.packets.entries()){
-  const replay=await call('/v1/traces',{method:'POST',headers:{authorization:'Bearer '+source.secret,'content-type':packet.type,'x-porthole-batch-id':'synthetic-porthole-replay-'+index},body:packet.body})
+ for(const [index,packet]of proof.packets.filter(packet=>packet.path!=='/v1/logs').entries()){
+  const replay=await call(packet.path??'/v1/traces',{method:'POST',headers:{authorization:'Bearer '+source.secret,'content-type':packet.type,'x-porthole-batch-id':'synthetic-porthole-replay-'+index},body:packet.body})
   assert.equal(replay.status,200,await replay.clone().text())
  }
  await send('/api/porthole/v1/ingest/drain',{})
@@ -144,20 +144,28 @@ export async function servicesJourney({origin,freshOwner,signIn,sql,restartWorke
  const originalAlert=ownerAlerts.find(a=>a.monitorId===alert.id)
  assert.equal(originalAlert.firingEpisode,fired.firingEpisode);assert.equal(originalAlert.metadataAtFirstFiring.revision,2);assert.equal(originalAlert.currentMetadata.revision,2)
  assert.equal((await read(api+'/'+fulfillment.id+query,restricted)).alerts.length,0,'foreign service reader sees no checkout or multi-service alert identity')
+ const staleSelection={serviceId:checkout.id,from:view.from,through:view.through,metadataRevision:2,externalReference:'synthetic-porthole-8510',fields:['identity','metadata']}
+ const stalePacket=await send('/api/porthole/v1/service-evidence',staleSelection,201)
+ await send('/api/porthole/v1/service-evidence/'+stalePacket.id+'/approve',{confirm:stalePacket.id,digest:stalePacket.digest})
  console.log('Services: scoped metadata refusal checks passed; checking native Settings')
  await servicesBrowser({origin,cookie,path:'/app/settings/services/'+checkout.id+query,contains:'Review service metadata',name:'services-settings',dispatch:browserDispatch,save:true})
  const changed=await read(api+'/'+checkout.id+query)
+ assert.equal((await call('/api/porthole/v1/service-evidence/'+stalePacket.id+'/download',{headers:{cookie}})).status,409,'a real reviewed metadata change invalidates the older approved packet')
  assert.equal(changed.metadata.revision,3);assert.equal(changed.metadata.criticality,'critical');assert.equal(changed.metadata.runbook,'https://restricted.example/runbooks/reviewed')
+ assert.deepEqual(await grants(),grantsBeforeReassignment,'firing context and metadata edits create no grants')
+ const {handoffJourney}=await import('./handoffs.mjs')
+ const handoffPacket=await handoffJourney({origin,freshOwner,signIn,sql,call,service:changed,query,ownerCookie:cookie,responders:[{cookie:eligibleCookie,serviceId:checkout.id},{cookie:restricted,serviceId:fulfillment.id}],bearer:source.secret,dispatch:browserDispatch,withPinnedClock,expectedLogs:proof.receipts.find(row=>row.spans.some(span=>span.resource['service.name']==='checkout')).logCount})
  const alertContext=changed.alerts.find(a=>a.monitorId===alert.id)
  assert.equal(alertContext.metadataAtFirstFiring.revision,2);assert.equal(alertContext.metadataAtFirstFiring.runbook,values.runbook);assert.equal(alertContext.currentMetadata.revision,3);assert.equal(alertContext.currentMetadata.runbook,changed.metadata.runbook);assert.equal(alertContext.currentMetadata.criticality,'critical');assert.equal(alertContext.currentMetadata.owner_ref,eligible.id);assert.equal(alertContext.delivery,'not-requested')
  const responderAlerts=(await read(api+'/'+checkout.id+query,eligibleCookie)).alerts
  assert.deepEqual(responderAlerts,[alertContext],'responder sees exact checkout metadata but cannot learn a monitor covering another service')
- assert.deepEqual(await grants(),grantsBeforeReassignment,'firing context and metadata edits create no grants')
  assert.equal((await sql("SELECT COUNT(*) AS n FROM porthole_audit_entries WHERE json_extract(entry,'$.action')='services.revise' AND json_extract(entry,'$.phase')='committed'"))[0].n,3,'each immutable revision has an atomic audit fact')
  await restartWorker();cookie=await freshOwner()
  const reloaded=await read(api+'/'+checkout.id+query)
  assert.deepEqual(reloaded.metadata,changed.metadata);assert.deepEqual(reloaded.history,changed.history)
  assert.deepEqual(reloaded.alerts,changed.alerts);assert.deepEqual(reloaded.associations,checkout.associations)
+ assert.equal((await read('/api/porthole/v1/handoffs')).handoffs.length,12,'handoff configuration survives restart')
+ assert.equal((await call('/api/porthole/v1/service-evidence/'+handoffPacket.id+'/download',{headers:{cookie}})).status,200,'approved current packet survives restart')
  const discoveryFields=service=>Object.fromEntries(['id','service','environment','team','versions','summary','associations'].map(key=>[key,service[key]]))
  const discoveryProof={query:discoveryQuery,services:discovered.services.map(discoveryFields)}
  assert.deepEqual((await read(api+discoveryQuery)).services.map(discoveryFields),discoveryProof.services,'restart preserves both version history and isolated environment observations')
@@ -168,6 +176,12 @@ export async function servicesJourney({origin,freshOwner,signIn,sql,restartWorke
  assert.equal(quiet.freshness,'no-retained-evidence');assert.equal(quiet.spanCount,0);assert.equal(quiet.summary.p95Ns,null);assert.deepEqual(quiet.associations,[])
  assert.equal(quiet.metadata.revision,3);assert.deepEqual(quiet.history,reloaded.history);assert.equal(quiet.coverage.fullTraffic,false,'an empty observation window cannot establish healthy full traffic')
  await servicesBrowser({origin,cookie,path:'/app/services/'+checkout.id+quietQuery,contains:'no-retained-evidence',name:'services-no-retained-evidence',dispatch:browserDispatch})
+ cookie=await freshOwner()
+ const emptyPacket=await send('/api/porthole/v1/service-evidence',{...staleSelection,metadataRevision:3,from:quiet.from,through:quiet.through,fields:['observedRed','coverage','traceReferences','logReferences']},201)
+ assert.equal(emptyPacket.packet.fields.observedRed.requests,0);assert.deepEqual(emptyPacket.packet.fields.traceReferences,[]);assert.deepEqual(emptyPacket.packet.fields.logReferences,[]);assert.ok(emptyPacket.packet.fields.coverage.missing.some(value=>value.includes('No retained logs')))
+ const {handoffBrowser}=await import('./handoffs.mjs')
+ await handoffBrowser({origin,cookie,path:'/app/services/evidence/'+emptyPacket.id,contains:'No retained logs',name:'evidence-empty',dispatch:browserDispatch})
+ await send('/api/porthole/v1/service-evidence/'+emptyPacket.id+'/cancel',{confirm:emptyPacket.id,digest:emptyPacket.digest})
  if(withPinnedClock){const at=Number(end/1000000n)+300001;await withPinnedClock(at,async()=>{const stale=await read(api+query);assert.ok(stale.services.every(s=>s.freshness==='stale'));assert.equal(stale.services.find(s=>s.id===checkout.id).metadata.owner_ref,eligible.id);await servicesBrowser({origin,cookie,path:'/app/services'+query,contains:'Freshness: stale',name:'services-freshness-stale',dispatch:browserDispatch})})}
  await servicesBrowser({origin,cookie:eligibleCookie,path:'/app/services/'+checkout.id+query,contains:'critical',name:'services-responder',dispatch:browserDispatch,follow:true})
  await send('/app/settings/members/change',{operatorId:eligible.id,role:'responder',scope:{services:['fulfillment'],environments:['production'],teams:['fulfillment']}})
@@ -193,7 +207,7 @@ export async function servicesJourney({origin,freshOwner,signIn,sql,restartWorke
  assert.equal((await call(api+'?budget=3',{headers:{cookie}})).status,400)
  await servicesBrowser({origin,cookie,path:'/app/services?budget=3',contains:'invalid service budget',name:'services-invalid',status:400,dispatch:browserDispatch})
  let backup
- if(withEmptyDestination){const {servicesArchiveJourney}=await import('./archive.mjs');backup=await servicesArchiveJourney({origin,freshOwner,restartWorker,withEmptyDestination,id:checkout.id,query,expected:changed.metadata,summary:checkout.summary,associations:checkout.associations,discovery:discoveryProof})}
+ if(withEmptyDestination){const {servicesArchiveJourney}=await import('./archive.mjs');backup=await servicesArchiveJourney({origin,freshOwner,restartWorker,withEmptyDestination,id:checkout.id,query,expected:changed.metadata,summary:checkout.summary,associations:checkout.associations,discovery:discoveryProof,handoffPacket})}
  cookie=await freshOwner()
  const erasure='/api/porthole/v1/subject-erasure',preview=await send(erasure,{identifier:'checkout'})
  assert.equal(preview.canApply,true);assert.ok(preview.records>36,'actual stock checkout envelopes are present in the exact erasure preview')
@@ -206,12 +220,13 @@ export async function servicesJourney({origin,freshOwner,signIn,sql,restartWorke
   assert.equal(receipt.erasedRecords,preview.records)
   if(backup)assert.equal((await call('/api/porthole/v1/archive/exports/'+backup.id+'/chunks/'+backup.chunk,{headers:{cookie}})).status,404,'erasure withdraws cached and reconstructed archive packets together')
   const removed=await read(api+'/'+checkout.id+query)
-  assert.equal(removed.spanCount,0);assert.deepEqual(removed.associations,[]);assert.equal(removed.summary.p95Ns,null);assert.equal(removed.metadata.revision,4);assert.equal(removed.metadata.owner_ref,null)
+  assert.equal(removed.spanCount,0);assert.equal((await call('/api/porthole/v1/service-evidence/'+handoffPacket.id+'/download',{headers:{cookie}})).status,409,'erased input cannot survive as a downloadable packet')
+  assert.deepEqual(removed.associations,[]);assert.equal(removed.summary.p95Ns,null);assert.equal(removed.metadata.revision,4);assert.equal(removed.metadata.owner_ref,null)
   assert.ok((await read(associationTrace)).spans.every(span=>span.service!=='checkout'),'an erased association pivot cannot restore its original input')
   assert.ok(removed.alerts.every(a=>a.status==='Unknown'),'erased input cannot leave firing context labeled as fresh measured evidence')
   const peer=(await read(api+'/'+fulfillment.id+query));assert.deepEqual(peer.summary,fulfillment.summary);assert.deepEqual(peer.associations,fulfillment.associations,'unrelated service evidence stays unchanged')
   let refused=0
-  for(const packet of proof.packets){const response=await call('/v1/traces',{method:'POST',headers:{authorization:'Bearer '+source.secret,'content-type':packet.type},body:packet.body});assert.ok([200,409].includes(response.status));if(response.status===409)refused++}
+  for(const packet of proof.packets){const response=await call(packet.path??'/v1/traces',{method:'POST',headers:{authorization:'Bearer '+source.secret,'content-type':packet.type},body:packet.body});assert.ok([200,409].includes(response.status));if(response.status===409)refused++}
   assert.ok(refused>0,'original checkout wire replay is fenced by the real erasure journal')
   await restartWorker();cookie=await freshOwner()
   assert.deepEqual((await read(api+'/'+checkout.id+query)).associations,[],'restart and replay cannot resurrect derived associations')
@@ -229,10 +244,10 @@ export async function servicesJourney({origin,freshOwner,signIn,sql,restartWorke
  console.log('PROBE PORT-008 associations: 36 real PostgreSQL queries and 36 real Kafka sends and receives -> exact scoped database, messaging and detected host identities; replay adds no observations')
  console.log('PROBE PORT-008 fired-context: existing activated count monitor over actual checkout traces -> Firing episode with service revision 2; edit and restart -> original revision preserved and exact current revision 3 for owner and scoped responder, without grants or delivery')
  console.log('servicesJourney passed '+(analytical?'analytical':'local')+': source counters and stock spans, multi-page bounds, ownership and native browser states')
- return {view,query,checkoutId:checkout.id}
+ return {view,query,checkoutId:checkout.id,packetId:handoffPacket.id}
 }
 
-export async function servicesBrowser({origin,cookie='',path,contains,name,status=200,dispatch,save=false,follow=false,observed}) {
+export async function servicesBrowser({origin,cookie='',path,contains,name,status=200,dispatch,save=false,follow=false,observed,networkExpected}) {
  const {chromium}=await import('@playwright/test'),browser=await chromium.launch({headless:true,...(process.env.PORTHOLE_CHROMIUM_PATH?{executablePath:process.env.PORTHOLE_CHROMIUM_PATH}:{}),args:['--no-sandbox','--use-mock-keychain','--password-store=basic']})
  try{
   const context=await browser.newContext({viewport:{width:1440,height:900}})
@@ -240,6 +255,12 @@ export async function servicesBrowser({origin,cookie='',path,contains,name,statu
   if(dispatch)await context.route(origin+'/**',async route=>{const r=route.request(),response=await dispatch(r.url(),{method:r.method(),headers:r.headers(),...(r.postDataBuffer()?{body:r.postDataBuffer()}:{})});await route.fulfill({status:response.status,headers:Object.fromEntries(response.headers),body:Buffer.from(await response.arrayBuffer())})})
   const page=await context.newPage(),response=await page.goto(origin+path)
   assert.equal(response.status(),status);assert.ok((await page.locator('body').innerText()).includes(contains))
+  if(networkExpected){
+   const body=await page.locator('body').innerText(),n=networkExpected.network,q=networkExpected.queue
+   if(n)for(const series of [n.dns,n.connections])if(series.observations){assert.ok(body.includes(series.observations+' observations'));assert.ok(body.includes('p95 '+(Number(series.p95Ns)/1e6).toFixed(2)+' ms'))}
+   for(const metric of [...(n?.counters??[]),...(q?.metrics??[])]){const dimensions=Object.entries(metric.attributes??{}).sort(([a],[b])=>a.localeCompare(b)).map(([k,v])=>k+'='+String(v)).join(' · ');assert.ok(body.includes(metric.name+(dimensions?' · '+dimensions:'')+' · '+metric.state+' · latest '+(metric.value===null?'Unknown':metric.value)+' '+metric.unit),'Services shows the source-checked metric dimensions, value and state')}
+   if(q){assert.ok(body.includes('Visible queue producer throughput '+(q.visibleQueue.producerPerSecond===null?'Unknown':q.visibleQueue.producerPerSecond.toPrecision(3)+' per second')));assert.ok(body.includes('Propagated producer to consumer links: '+q.links.length))}
+  }
   if(observed){const body=await page.locator('body').innerText();assert.ok(body.includes(observed.requests+' requests · '+observed.errors+' errors'));for(const name of ['p50','p95','p99'])assert.ok(body.includes(name+' '+(Number(observed[name+'Ns'])/1e6).toFixed(2)+' ms'),'Services shows the independently reconciled '+name);const href=await page.getByRole('link',{name:'Read this snapshot as JSON',exact:true}).getAttribute('href');const linked=await page.goto(origin+href);assert.equal(linked.status(),200);const json=await linked.json();assert.equal(json.summary.requests,observed.requests);assert.equal(json.summary.errors,observed.errors);assert.equal(json.summary.p95Ns,observed.p95Ns);await page.goto(origin+path)}
   if(observed){assert.match(await page.locator('body').innerText(),/database.*postgresql.*synthetic_porthole_8400/);assert.match(await page.locator('body').innerText(),/messaging.*kafka/)}
   if(observed){
@@ -256,6 +277,15 @@ export async function servicesBrowser({origin,cookie='',path,contains,name,statu
   assert.equal(await page.locator('button').evaluateAll(nodes=>nodes.filter(n=>!n.textContent.trim()).length),0,'every control has a text label')
   assert.ok(await page.locator('main').evaluate(node=>[...node.querySelectorAll('p,a,button,label,input,select,dt,dd,li')].every(n=>parseFloat(getComputedStyle(n).fontSize)>=13)),'ordinary text is at least 13px')
   const link=page.getByRole('link',{name:'All services',exact:true});if(await link.count()){await link.focus();assert.ok(await link.evaluate(n=>n===document.activeElement))}
+  if(path==='/app/settings/fleet'&&status===200){
+   const jsonLink=page.getByRole('link',{name:'Read fleet as JSON',exact:true})
+   await jsonLink.focus();assert.ok(await jsonLink.evaluate(n=>n===document.activeElement),'fleet JSON link is keyboard accessible')
+   await page.keyboard.press('Enter');await page.waitForURL(origin+'/api/porthole/v1/fleet')
+   assert.ok((await page.locator('body').innerText()).includes('installs'),'keyboard JSON pivot reads the actual owner fleet response')
+   await page.goto(origin+path)
+   const services=page.getByRole('link',{name:'Inspect Services',exact:true});await services.focus();assert.ok(await services.evaluate(n=>n===document.activeElement),'fleet service pivot is keyboard accessible')
+  }
+
   if(save){
    const stale=await context.newPage();await stale.goto(origin+path)
    await page.getByLabel('Runbook URL').fill('https://restricted.example/runbooks/reviewed');await page.getByLabel('Criticality',{exact:true}).selectOption('critical');await page.getByLabel('I approve these exact values').check()

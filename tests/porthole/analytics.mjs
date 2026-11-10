@@ -365,11 +365,46 @@ export async function servicesAnalyticalJourney() {
    await estate.stop('standby')
    assert.equal((await call('/api/porthole/v1/services'+result.query,{headers:{cookie}})).status,503,'no fabricated local fallback when selected analytical process is stopped')
    await servicesBrowser({origin,cookie,path:'/app/services'+result.query,contains:'analytics',status:503,name:'services-storage-unavailable',dispatch:(url,options)=>call(new URL(url).pathname+new URL(url).search,options)})
+   assert.equal((await call('/api/porthole/v1/service-evidence/'+result.packetId+'/download',{headers:{cookie}})).status,503,'packet download never falls back when current scoped analytical readers are unavailable')
+   const {handoffBrowser}=await import('./handoffs.mjs')
+   await handoffBrowser({origin,cookie,path:'/app/services/evidence/'+result.packetId,contains:'analytics',status:503,name:'evidence-unavailable',dispatch:(url,options)=>call(new URL(url).pathname+new URL(url).search,options)})
    await estate.start('standby')
    assert.deepEqual((await read('/api/porthole/v1/services'+result.query)).services,primary.services)
    console.log('PROBE PORT-008 backends: selected real primary and standby -> identical source-checked catalog; stopped selected process -> 503; restart -> exact history and counters')
   }})
  }finally{await estate.dispose()}
+}
+
+/** Run the same retained network capture through both actual query backends.
+ * Kept with the native network journey so its captured stock packets are reused. */
+export async function networkAnalyticalJourney() {
+ const estate=await analyticalEstate()
+ try {
+  const {recipientMailJourney}=await import('./health.mjs'),{fixture}=await import('./fixture.mjs')
+  await recipientMailJourney({bindings:estate.bindings,services:estate.services,run:async context=>{
+   const {origin,call,post,getDb,restart,sessionSecret,ownerEmail}=context
+   const sql=async statement=>(await getDb().prepare(statement).all()).results
+   const restartWorker=async change=>{await change?.();await restart()}
+   const helpers=fixture({origin,sql,restartWorker,sessionSecret,ownerEmail,call})
+   let cookie=await helpers.freshOwner()
+   const read=async path=>{const response=await call(path,{headers:{cookie}});assert.equal(response.status,200,await response.clone().text());return response.json()}
+   const configure=async role=>{const c=await read('/api/porthole/v1/analytics/configuration');await post('/api/porthole/v1/analytics/configuration',{revision:c.revision,role,enabled:true,confirm:'connect-analytical-workers'})}
+   await configure('primary')
+   await post('/api/porthole/v1/analytics/reconcile',{})
+   const {networkJourney}=await import('./network.mjs')
+   const network=await networkJourney({origin,call,sql,restartWorker,...helpers,analytical:true,browserDispatch:(url,options)=>call(new URL(url).pathname+new URL(url).search,options)})
+   cookie=await helpers.freshOwner()
+   await configure('standby')
+   const path='/api/porthole/v1/network-messaging'+network.query+'&snapshot='+network.view.snapshot
+   const standbyNetwork=await read(path)
+   assert.deepEqual(standbyNetwork.network,network.view.network);assert.deepEqual(standbyNetwork.messaging,network.view.messaging)
+   await estate.stop('standby')
+   assert.equal((await call(path,{headers:{cookie}})).status,503,'no fabricated local network evidence when the selected analytical process is stopped')
+   await estate.start('standby')
+   assert.deepEqual(await read(path),standbyNetwork,'restored analytical collection keeps the original completed network window')
+   console.log('PROBE PORT-060 backends: selected real primary and standby -> identical source-checked network and messaging evidence; stopped selected process -> 503; restart -> exact completed window')
+  }})
+ } finally {await estate.dispose()}
 }
 
 export async function metricRangeAnalyticalProof({origin,cookie,call,getDb,reference,at=Date.now()-60000}) {
@@ -393,4 +428,44 @@ export async function metricRangeQualificationJourney() {
   await context.post('/api/porthole/v1/analytics/configuration',{revision:configuration.revision,role:'primary',enabled:true,confirm:'connect-analytical-workers'},200)
   await metricRangeAnalyticalProof({...context,at,reference})
  }})}finally{await estate.dispose()}
+}
+
+
+/** Replay the exact stock Collector wire captured by the real Docker journey,
+ * changing only the local ingest credential. Both real analytical processes
+ * must preserve source identity and time, without a local storage fallback. */
+export async function collectorAnalyticalJourney({packets,expected}) {
+ assert.ok(packets.length,'actual Docker Collector log packets were captured')
+ const estate=await analyticalEstate()
+ try {
+  const {recipientMailJourney}=await import('./health.mjs')
+  await recipientMailJourney({bindings:estate.bindings,services:estate.services,run:async context=>{
+   const {call,post}=context;let cookie=context.cookie
+   const read=async path=>{const r=await call(path,{headers:{cookie}});assert.equal(r.status,200,await r.clone().text());return r.json()}
+   const configure=async role=>{const c=await read('/api/porthole/v1/analytics/configuration');await post('/api/porthole/v1/analytics/configuration',{revision:c.revision,role,enabled:true,confirm:'connect-analytical-workers'})}
+   await configure('primary')
+   const source=await (await post('/app/settings/credentials/mint',{name:'synthetic-porthole-8620',class:'ingest',scope:expected.scope},201)).json()
+   for(const packet of packets){const r=await call('/v1/logs',{method:'POST',headers:{authorization:'Bearer '+source.secret,'content-type':packet.type,...(packet.encoding?{'content-encoding':packet.encoding}:{})},body:packet.body});assert.equal(r.status,200,await r.clone().text())}
+   let pending=1
+   for(let pass=0;pass<30&&pending;pass++)pending=(await (await post('/api/porthole/v1/ingest/drain',{})).json()).pendingBatches
+   assert.equal(pending,0)
+   await post('/api/porthole/v1/analytics/reconcile',{})
+   const query='/api/porthole/v1/ingest/records?'+new URLSearchParams({signal:'logs',service:expected.scope.services[0],limit:'200'})
+   const primary=await read(query),record=primary.records.find(r=>r.payload.record.body.stringValue.includes(expected.marker))
+   assert.equal(primary.analytical.role,'primary');assert.ok(record)
+   assert.equal(record.event_time_ns,expected.timeNs)
+   assert.equal(record.payload.resource.attributes.find(a=>a.key==='container.id').value.stringValue,expected.containerId)
+   await configure('standby')
+   const standby=await read(query)
+   assert.equal(standby.analytical.role,'standby');assert.deepEqual(standby.records,primary.records)
+   await estate.stop('standby')
+   assert.equal((await call(query,{headers:{cookie}})).status,503,'unavailable selected analytical storage cannot become empty healthy logs')
+   await estate.start('standby')
+   assert.deepEqual((await read(query)).records,primary.records)
+   await post('/app/settings/credentials/revoke',{id:source.credential.id})
+   const rejected=await call('/v1/logs',{method:'POST',headers:{authorization:'Bearer '+source.secret,'content-type':packets[0].type,...(packets[0].encoding?{'content-encoding':packets[0].encoding}:{})},body:packets[0].body})
+   assert.equal(rejected.status,401);assert.deepEqual((await read(query)).records,primary.records)
+   console.log('PROBE PORT-003 analytical reads: exact stock Docker Collector wire -> primary and standby preserve identical original log timestamp and container identity; selected outage returns 503, restart retains evidence, revoked replay refuses unchanged')
+  }})
+ }finally{await estate.dispose()}
 }

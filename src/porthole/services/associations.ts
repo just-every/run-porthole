@@ -16,7 +16,7 @@ export function associations(resource:Record<string,unknown>,attrs:Record<string
  const database=identity(attrs['db.system.name']??attrs['db.system'])
  if(kind===3&&database)add({kind:'database',system:database,target:identity(attrs['db.namespace']??attrs['db.name']),address,port,relation:'calls'})
  const messaging=identity(attrs['messaging.system'])
- if([3,4,5].includes(kind)&&messaging)add({kind:'messaging',system:messaging,target:identity(attrs['messaging.destination.name']??attrs['messaging.destination']),address,port,relation:kind===4?'produces':kind===5?'consumes':'calls'})
+ if([3,4,5].includes(kind)&&messaging)add({kind:'messaging',system:messaging,target:identity(attrs['messaging.destination.name']??(attrs['messaging.destination']||attrs['messaging.rabbitmq.routing_key'])),address,port,relation:kind===4?'produces':kind===5?'consumes':'calls'})
  return result
 }
 export function mergeAssociations(rows:Association[]) {

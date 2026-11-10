@@ -1,3 +1,4 @@
+import {validateHandoff} from '../handoffs/model'
 import type { Authority } from '../security/authority'
 import { fail, proofFence } from '../security/authority'
 import { digest, genesis } from '../audit/store'
@@ -41,7 +42,7 @@ export async function startExport(db:D1Database,actor:Authority):Promise<Job> {
 export async function exportChunk(db:D1Database,actor:Authority,job:Job,index:number):Promise<Chunk|null> {
  if(!['snapshot','complete'].includes(job.state))fail('archive_validation_incomplete',409)
  const old=await storedChunk(db,job.id,index)
- if(old){await db.batch([guard(db,actor,"EXISTS(SELECT 1 FROM porthole_archive_jobs WHERE id=? AND direction='export' AND state IN ('snapshot','complete'))",[job.id])]);return old}
+ if(old){for(const row of old.rows)if(row.table==='porthole_handoff_versions')validateHandoff(row.row);await db.batch([guard(db,actor,"EXISTS(SELECT 1 FROM porthole_archive_jobs WHERE id=? AND direction='export' AND state IN ('snapshot','complete'))",[job.id])]);return old}
  if(index!==job.next_chunk)fail('archive_cursor_invalid',409)
  const rows=(await db.prepare('SELECT payload FROM porthole_archive_rows WHERE job_id=? AND ordinal>=? AND ordinal<? ORDER BY ordinal').bind(job.id,index*chunkRows,(index+1)*chunkRows).all<{payload:string}>()).results.map(value=>JSON.parse(value.payload) as PortableRow)
  if(!rows.length){await finishExport(db,actor,job);return null}
