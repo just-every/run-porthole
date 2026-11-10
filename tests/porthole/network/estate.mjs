@@ -51,7 +51,7 @@ export async function networkEstate({dispatch,secret}) {
   const from=String(BigInt(Date.now())*1000000n),before=await snap(),groundTruth=await run();await pause(4500);for(const role of roles)await app(role,'/flush');await pause(500)
   const after=await snap(),through=String(BigInt(Date.now())*1000000n),window={name,injected,from,through,before,after,...(groundTruth?{groundTruth}:{})};windows.push(window);return window
  }
- async function collect(name,config,mountSocket=true){const file=join(scratch,name+'.json');await writeFile(file,JSON.stringify(batchFixtureMetrics(config)));return run(name,['--user','0:0','-e','NO_PROXY='+internalNoProxy,'-e','no_proxy='+internalNoProxy,'-v',file+':/etc/otelcol/config.json:ro',...(mountSocket?['-v','/var/run/docker.sock:/var/run/docker.sock:ro']:[]),'-e','KAFKA_READER_PASSWORD='+password,'-e','RABBITMQ_MONITOR_PASSWORD='+password,networkPins.collector,'--config=/etc/otelcol/config.json'])}
+ async function collect(name,config,mountSocket=true){const file=join(scratch,name+'.json');await writeFile(file,JSON.stringify(batchFixtureMetrics(config)));return run(name,['--user','0:0','-e','NO_PROXY='+internalNoProxy,'-e','no_proxy='+internalNoProxy,'-v',file+':/etc/otelcol/config.json:ro',...(mountSocket?['-v','/var/run/docker.sock:/var/run/docker.sock:ro']:[]),'-e',`KAFKA_READER_PASSWORD=${password}`,'-e',`RABBITMQ_MONITOR_PASSWORD=${password}`,networkPins.collector,'--config=/etc/otelcol/config.json'])}
  async function start(){
   await docker('network','create',tag);network=JSON.parse(await docker('network','inspect',tag))[0];const gatewayIp=network.IPAM.Config[0].Gateway
   internalNoProxy+=','+gatewayIp+',kafka,rabbit,'+roles.join(',')+',.porthole.test'
