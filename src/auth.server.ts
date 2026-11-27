@@ -4,7 +4,7 @@ import { createIdpOwnerClaimHandler, createOwnerClaimHandler } from './modules/o
 import { firstRunResponse } from './base/setup'
 import { fontDocumentResponse } from './base/font-response'
 import { createOperatorAuth, createAuthHandler, createSignInHandler, type AuthConfig, AuthError } from './modules/operator-auth/index.mjs'
-import { mailOff, operatorMail } from './mail.server.mjs'
+import { operatorMail } from './mail.server.mjs'
 import branding from './branding.json'
 import { identity } from './identity'
 import { asFrame, homeDocument, withBar } from './ui/document.server'
@@ -60,6 +60,8 @@ export interface Bindings {
 }
 
 export const runtimeBindings = (env: Bindings): Bindings => env.RER_DEV_ORIGIN && env.AUTH_LOCAL === 'true' ? { ...env, AUTH_ORIGIN: env.RER_DEV_ORIGIN } : env
+// MAIL_PROVIDER=none: no sign-in email is offered; the owner signs in with `rer signin`.
+const mailOff = (env: Bindings) => env.MAIL_PROVIDER === 'none' && env.RER_DEMO !== '1' && env.AUTH_LOCAL !== 'true'
 export const authConfig = (env: Bindings): AuthConfig => ({ dependencies: true, origin: env.AUTH_ORIGIN, local: env.AUTH_LOCAL === 'true', OWNER_EMAIL: env.OWNER_EMAIL, SESSION_SECRET: env.SESSION_SECRET, INSTALLATION_KEY: env.INSTALLATION_KEY, INSTALLATION_KEY_PREVIOUS: env.INSTALLATION_KEY_PREVIOUS, SETUP_TOKEN: env.SETUP_TOKEN, MAIL_FROM: env.MAIL_FROM, branding: { productName: branding.name, accentColor: branding.primaryColor, signInPath: '/signin', theme: theme.href } })
 export function baseOperatorAuth(env: Bindings) {
  return createOperatorAuth({ db: env.DB, config: authConfig(env), mailSender: mailOff(env) ? undefined : operatorMail(env), rolePolicy: rolePolicy(env), clientIp: request => request.headers.get('CF-Connecting-IP') ?? '' })

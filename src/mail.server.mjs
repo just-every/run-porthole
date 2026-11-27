@@ -7,7 +7,6 @@ const disabledSender = Object.freeze({
   return { status: 'rejected', provider: 'none', providerMessageId: null, code: 'mail_off' }
  },
 })
-export const mailOff = env => env.MAIL_PROVIDER === 'none' && env.RER_DEMO !== '1' && env.AUTH_LOCAL !== 'true'
 
 export function operatorMail(env, dependencies = {}) {
  if (env.RER_DEMO === '1' || env.AUTH_LOCAL === 'true') {
