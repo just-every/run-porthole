@@ -69,6 +69,8 @@
     "migrations/core/0065_porthole_handoff_audit_reference.sql",
     "migrations/core/0066_porthole_handoff_portable_reference.sql",
     "migrations/core/0067_porthole_fleet.sql",
+    "migrations/core/0068_agent_door_relay_upgrade.sql",
+    "migrations/core/0069_business_retired.sql",
     "workers/analytics/migrations/core/0001_analytics.sql",
     "workers/analytics/migrations/core/0002_archive_receipt.sql",
     "workers/analytics/migrations/core/0003_profiles.sql"

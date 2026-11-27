@@ -42,7 +42,7 @@ export async function agentResponse(request:Request,env:Bindings):Promise<Respon
   const settings=businessSettings(env)
   return settings.handle(request)
  }
- if(path!=='/mcp'&&path!=='/api/porthole/v1/mcp'&&path!=='/api/rer/agent-policy'&&!path.startsWith('/agents')&&!path.startsWith('/.well-known/oauth-protected-resource'))return null
+ if(path!=='/mcp'&&path!=='/api/porthole/v1/mcp'&&path!=='/api/rer/agent-policy'&&path!=='/api/rer/agent-decisions'&&!path.startsWith('/agents')&&!path.startsWith('/.well-known/oauth-protected-resource'))return null
  try {sameOrigin(request,env)}catch(error){return Response.json({code:error instanceof AuthError?error.code:'invalid_origin'},{status:403,headers:privateHeaders})}
  const response=await portholeAgentDoor(env).handle(request)
  // Native credentials keep the existing transport quota contract while the
