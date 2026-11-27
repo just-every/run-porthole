@@ -1,6 +1,6 @@
 {
   "version": "0.1.0",
-  "publicReleaseNotes": "Prepare Porthole for hosted installation with a digest-bound setup manifest, a deployment specification, a Managed delivery workflow and configurable mail delivery. Product capability status remains as recorded in CONTRACT.md.",
+  "publicReleaseNotes": "Porthole 0.1.0, its first published release, on rer 0.2.143: hosted installation with a digest-bound setup manifest, a deployment specification and a Managed delivery workflow. Mail is off by default (MAIL_PROVIDER=none): no sender or mail key is needed, sends are refused with mail_off, and the owner signs in with rer signin. Configurable mail delivery remains available. Product capability status remains as recorded in CONTRACT.md.",
   "migrations": [
     "migrations/core/0001_owner.sql",
     "migrations/core/0002_outbox.sql",
@@ -43,6 +43,18 @@
     "migrations/core/0039_porthole_baggage.sql",
     "migrations/core/0040_porthole_notice_uncertainty.sql",
     "migrations/core/0041_porthole_notice_grant.sql",
+    "migrations/core/0042_porthole_notice_reconciliation.sql",
+    "migrations/core/0043_porthole_subject_erasure.sql",
+    "migrations/core/0044_porthole_retention.sql",
+    "migrations/core/0045_porthole_follow_up.sql",
+    "migrations/core/0046_porthole_follow_up_authority.sql",
+    "migrations/core/0047_porthole_slos.sql",
+    "migrations/core/0048_porthole_migration_custody.sql",
+    "migrations/core/0049_porthole_import_erasure.sql",
+    "migrations/core/0050_porthole_span_metrics.sql",
+    "migrations/core/0051_porthole_notebooks.sql",
+    "migrations/core/0052_porthole_notebook_publications.sql",
+    "migrations/core/0053_porthole_host_monitors.sql",
     "migrations/core/0054_agent_door.sql",
     "migrations/core/0055_business_settings.sql",
     "migrations/core/0056_business_people.sql",
@@ -51,7 +63,15 @@
     "migrations/core/0059_porthole_pipelines.sql",
     "migrations/core/0060_porthole_services.sql",
     "migrations/core/0061_porthole_events.sql",
-    "migrations/core/0062_porthole_database.sql"
+    "migrations/core/0062_porthole_database.sql",
+    "migrations/core/0063_porthole_handover.sql",
+    "migrations/core/0064_porthole_handoffs.sql",
+    "migrations/core/0065_porthole_handoff_audit_reference.sql",
+    "migrations/core/0066_porthole_handoff_portable_reference.sql",
+    "migrations/core/0067_porthole_fleet.sql",
+    "workers/analytics/migrations/core/0001_analytics.sql",
+    "workers/analytics/migrations/core/0002_archive_receipt.sql",
+    "workers/analytics/migrations/core/0003_profiles.sql"
   ],
   "breaking": false,
   "agentUpdateInstructions": "Install the pinned dependencies and follow OPERATIONS.md. Preserve applied migration bytes and private installation settings."

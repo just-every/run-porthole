@@ -309,6 +309,13 @@ no provider writes, uploads, secret changes or resource creation. The default en
 `--environment NAME`. The dry run does not establish upload acceptance,
 hosted health or mail delivery.
 
+Set `MAIL_PROVIDER=none` (the deploy.json default) for a Business without a mail
+service. Run `MAIL_PROVIDER=none rer deploy --dry-run` to validate the deployment.
+This mode needs no sender address or mail API key; every send is refused with
+`mail_off`. After a real deployment, `rer signin` uses the deployment's
+Cloudflare credentials to issue a one-time link for its owner. Email sign-in,
+invitations and notice email need a configured mail provider.
+
 `rer describe` reads the current checkout's actual verbs,
 flags, aliases, pins, effects and local state without installing or running
 project commands. New verbs accept `--help`, `--cwd PATH`, `--non-interactive`

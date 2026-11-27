@@ -297,7 +297,7 @@
       "executable": false
     },
     ".github/workflows/run-demo.yml": {
-      "sha256": "41365ec7c002e9451166313b085f9e64ed2e3ea002c27f3d5ead845bc9c302b2",
+      "sha256": "8a9f011fa892b7adc7941f2ddd09cb08c8af4c77c05c584c89b70de2cc1ab9b7",
       "executable": false
     },
     ".github/workflows/run-site.yml": {
@@ -337,7 +337,11 @@
       "executable": false
     },
     "base-copies.json": {
-      "sha256": "202b3773133e4c64aea6a46d30d3dd93703246a32ea88427b6b798aeda5a5131",
+      "sha256": "8bf2e04d2453f0d1b35f5bbd73c551fde3de3c898b535489388116ae1f7acb28",
+      "executable": false
+    },
+    "CHANGELOG.md": {
+      "sha256": "eada2660c7c049f9c0143afa2f1d927c6e9e1a71e6bf3b6bb783a589a35d95bc",
       "executable": false
     },
     "charts/porthole/Chart.yaml": {
@@ -441,7 +445,7 @@
       "executable": false
     },
     "deploy.json": {
-      "sha256": "fa1378306d4eddf99a9489ba50108ba81148a26e0115a908174c0ed1489992e1",
+      "sha256": "528beda3c364e46e7861ce3bfcf9fc4b66c8db280381c08ea41bc53feef2ea96",
       "executable": false
     },
     "docs/access.md": {
@@ -465,7 +469,7 @@
       "executable": false
     },
     "docs/company-agents.md": {
-      "sha256": "a26211c35a8d0a6342a39778929823341f6dbdaf2a99a9476d50631a1768a0b6",
+      "sha256": "71d7f88f11afdd8d58958459966acb50ff3de81089f8739331bbf5c3ac954d4d",
       "executable": false
     },
     "docs/contract/PORT-099-rubric.md": {
@@ -673,7 +677,7 @@
       "executable": false
     },
     "management/integration/deployment-spec.json": {
-      "sha256": "f209047234b91d3e538d5a6e9bb38fe591bc4be34ad8eafd94ffae1b0f7b3b7b",
+      "sha256": "c72a4b296fd1a2c67fbe053fc65423424bf25def6286c91f7108b359f99bcfe7",
       "executable": false
     },
     "migrations/core/0001_owner.sql": {
@@ -957,7 +961,7 @@
       "executable": false
     },
     "package.json": {
-      "sha256": "1b3eac594d9afdceb2d43ef8ec0cf49d49529e9cd18033a44c1fdb308f23f4c0",
+      "sha256": "bac64ed798058acf9a0a31bb945862f4a178d017581efe7a33848e9c4464d89e",
       "executable": false
     },
     "packaging.json": {
@@ -977,7 +981,7 @@
       "executable": false
     },
     "pnpm-lock.yaml": {
-      "sha256": "8c276ba568ceade8c9cc79da5a20ba257b8c493bf070abd090a663457f7a532e",
+      "sha256": "3dd09489820791fd43e7a4b96f10ef1c9eaeb65e8436bcd5096e49800da960ab",
       "executable": false
     },
     "public/brand/apple-touch-icon.png": {
@@ -1381,19 +1385,19 @@
       "executable": false
     },
     "README.md": {
-      "sha256": "f8f71aab5a2696ceeb2f62d7853282cb163c684e86736747b9ddb9335d474336",
+      "sha256": "3b747162d16e05ec9c572d11ef515667f89d4e99cec015ac1c7eb5e6280621e7",
       "executable": false
     },
     "RELEASE.json": {
-      "sha256": "0e170e1aab75ba1e956c5c046e46ff84751c508de184e803332acb10a6cd6742",
+      "sha256": "8d4b79aa0f8c5a8e02f1dab6e9e4696f3b8b53ebd52b54d9a131305bee4b1c39",
       "executable": false
     },
     "rer-project.json": {
-      "sha256": "dcd3aa2dd35a73a9c9f4cde73005cd50fb1a41064498c65604e8ac93685984e4",
+      "sha256": "192bb5e81cd269f9e4670f5254d4aaf582e37befbb0d6e9fd563e1f9d27f0e3a",
       "executable": false
     },
     "rer-setup.json": {
-      "sha256": "88e0323fe300f007754f67b0ae4102e265378e5d449108858a090132f2c5dd26",
+      "sha256": "7dcb91586076d2dbb4ecf9ffa9c5b6456af73e753d1e26189c91344f83794235",
       "executable": false
     },
     "RULINGS.md": {
@@ -1401,7 +1405,7 @@
       "executable": false
     },
     "RUN-LOCALLY.md": {
-      "sha256": "ab049a0eb1db086a99aff1627444eaa38de2fb1ca0d2532def42bb75ca83038e",
+      "sha256": "240f095fc5797c460e19b05f843d651e26b86bf09ced7657fd421a5e1088eeed",
       "executable": false
     },
     "scripts/analytical/cli.mjs": {
@@ -2121,7 +2125,7 @@
       "executable": false
     },
     "scripts/installer/local.mjs": {
-      "sha256": "124a50d534396f9bc50da07572d81ec9b464e5d69fedd222264cceb4cfb0b90f",
+      "sha256": "c644117af682a316c4322cd2b2afc1b8627747f23dc427a2a04e4bcb9b43d0a2",
       "executable": false
     },
     "scripts/installer/seed.mjs": {
@@ -2237,7 +2241,7 @@
       "executable": false
     },
     "src/auth.server.ts": {
-      "sha256": "08779967a5f78c42db449be1a7a087e733ef4f52d8c18b9b2361762e13e82847",
+      "sha256": "316b56d0322fe09f3678e35b83e1df89d65c2497074f257b4d728dbc0e05484c",
       "executable": false
     },
     "src/base/actor.ts": {
@@ -2401,11 +2405,11 @@
       "executable": false
     },
     "src/mail.server.d.mts": {
-      "sha256": "e4acaab22c2e3ca37489221ee79cf8120f6504a543820e77be4969bf057ce0f1",
+      "sha256": "5157d26b230972dd61507c297cc6dfe81ec5b280c380cf5bd43a503d130eb02f",
       "executable": false
     },
     "src/mail.server.mjs": {
-      "sha256": "50b5edefbe42900788c4540f4a6844e196277ac762503ad9693fafabe834c168",
+      "sha256": "1ed6c4fdf7e6d8c255c8b30392097868fdd3f63e6a25fb3cd6c4776caf6e7539",
       "executable": false
     },
     "src/modules/agent-door/admission.ts": {

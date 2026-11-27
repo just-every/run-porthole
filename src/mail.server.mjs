@@ -1,9 +1,19 @@
 import { createMailSender } from './modules/mail/index.mjs'
 
+// MAIL_PROVIDER=none: a Business without a mail service. Every send is refused with mail_off and no provider is contacted;
+// the owner signs in with `rer signin` instead of an emailed link.
+const disabledSender = Object.freeze({
+ async send() {
+  return { status: 'rejected', provider: 'none', providerMessageId: null, code: 'mail_off' }
+ },
+})
+export const mailOff = env => env.MAIL_PROVIDER === 'none' && env.RER_DEMO !== '1' && env.AUTH_LOCAL !== 'true'
+
 export function operatorMail(env, dependencies = {}) {
  if (env.RER_DEMO === '1' || env.AUTH_LOCAL === 'true') {
   return createMailSender({ provider: 'development', mode: 'development' })
  }
+ if (env.MAIL_PROVIDER === 'none') return disabledSender
  if (!env.MAIL_PROVIDER || env.MAIL_PROVIDER === 'development') return undefined
  return {
   async send(message) {

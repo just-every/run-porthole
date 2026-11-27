@@ -42,7 +42,7 @@ conformance journey. Optional owner-connected analytical reads still use the
 native backend, its scoped request and its live configuration fence.
 
 The runtime is copied from Base 2135c394939f4a737adabdc8003b0e667b31ac5a;
-the command pin is the released `@runeditrun/rer` 0.2.91. `agent-surface.json`
+the command pin is the released `@runeditrun/rer` 0.2.143. `agent-surface.json`
 contains the conformance declaration and native journey. Verification uses the
 real signed owner claim, native setup completion, actual migrations and durable
 storage, then a signed Business owner binding; it has no production test route.
